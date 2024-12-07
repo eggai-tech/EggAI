@@ -1,0 +1,2 @@
+# Channel
+::: eggai.channel.Channel

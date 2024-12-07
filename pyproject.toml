@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "eggai"
+version = "0.1.8"
+description = ""
+authors = ["Stefano Tucci <stefanotucci89@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aiokafka = "^0.12.0"
+
+
+[tool.poetry.group.dev.dependencies]
+twine = "^6.0.1"
+pytest-asyncio = "^0.24.0"
+pytest = "^8.3.4"
+mkdocs = "^1.6.1"
+mkdocstrings = {extras = ["python"], version = "^0.27.0"}
+mkdocs-material = "^9.5.48"
+mkdocs-include-markdown-plugin = "^7.1.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

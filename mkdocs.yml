@@ -1,0 +1,29 @@
+site_name: EggAI Multi-Agent Framework
+copyright: Copyright &copy; 2024 EggAI Technologies GmbH
+
+theme:
+  name: material
+  features:
+    - navigation.expand
+  logo: assets/logo.png
+  favicon: assets/favicon.png
+  palette:
+    primary: white
+
+nav:
+  - Reference:
+    - "Agent": agent.md
+    - "Channel": channel.md
+
+plugins:
+- include-markdown:
+    comments: true
+    start: <!--start-->
+    end: <!--end-->
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [eggai]
+
+extra:
+  generator: false
