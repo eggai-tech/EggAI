@@ -1,0 +1,535 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+      
+      
+      <link rel="icon" href="assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+    
+    
+      
+        <title>EggAI Multi-Agent Framework</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#eggai-multi-agent-framework" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="EggAI Multi-Agent Framework" class="md-header__button md-logo" aria-label="EggAI Multi-Agent Framework" data-md-component="logo">
+      
+  <img src="assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            EggAI Multi-Agent Framework
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              EggAI Multi-Agent Framework
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="EggAI Multi-Agent Framework" class="md-nav__button md-logo" aria-label="EggAI Multi-Agent Framework" data-md-component="logo">
+      
+  <img src="assets/logo.png" alt="logo">
+
+    </a>
+    EggAI Multi-Agent Framework
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="agent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Agent
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="channel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Channel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#features" class="md-nav__link">
+    <span class="md-ellipsis">
+      🌟 Features
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      📖 Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      🏗️ System Architecture
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      📦 Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      🚀 Getting Started
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      💡 Core Concepts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="💡 Core Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      🤖 Agent
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      🚇 Channel
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="eggai-multi-agent-framework">EggAI Multi-Agent Framework</h1>
+<p><a href="https://www.python.org/downloads/"><img alt="Python 3.x" src="https://img.shields.io/badge/python-3.x-blue?style=for-the-badge&amp;logo=python&amp;logoColor=white" /></a>
+<a href="https://opensource.org/licenses/MIT"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge&amp;logo=opensourceinitiative&amp;logoColor=white" /></a>
+<a href="https://github.com/eggai-tech/eggai/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge&amp;logo=github&amp;logoColor=white" /></a>
+<a href="https://github.com/eggai-tech/eggai/issues"><img alt="GitHub Issues" src="https://img.shields.io/github/issues/eggai-tech/eggai?style=for-the-badge&amp;logo=github&amp;logoColor=white" /></a>
+<a href="https://github.com/eggai-tech/eggai/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/eggai-tech/eggai?style=for-the-badge&amp;logo=github&amp;logoColor=white" /></a></p>
+<p><code>EggAI Multi-Agent Framework</code> is an async-first framework for building, deploying, and scaling multi-agent systems for modern enterprise environments.</p>
+<!-- BEGIN INCLUDE ../README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+
+<h2 id="features">🌟 Features</h2>
+<ul>
+<li>🤖 <strong>Agent Management</strong>: Simplify the orchestration and execution of multi-agent systems.</li>
+<li>🚀 <strong>Async-First</strong>: Push-based APIs designed for high-concurrency, long-running AI workflows, and real-time processes.</li>
+<li>⚡ <strong>Event-Driven</strong>: Enable real-time reactions to events for dynamic and responsive systems.</li>
+<li>📈 <strong>Horizontally Scalable</strong>: Scale agent execution seamlessly to meet growing demands.</li>
+<li>🚇 <strong>Kafka Integration</strong>: Native support for Kafka topics ensures seamless streaming and messaging.</li>
+<li>🛠 <strong>Flexible Architecture</strong>: Easily adapt or extend components without disrupting workflows.</li>
+<li>🔄 <strong>Resilient by Design</strong>: Built-in retry mechanisms and fault tolerance for production-grade robustness.</li>
+</ul>
+<h2 id="overview">📖 Overview</h2>
+<p><code>EggAI Multi-Agent Framework</code> provides the <code>eggai</code> Python library that simplifies the development of multi-agent systems.
+It allows developers to focus on business logic while handling the complexities of distributed systems.</p>
+<h2 id="system-architecture">🏗️ System Architecture</h2>
+<p><img alt="System Architecture" src="assets/system-architecture.svg" /></p>
+<ol>
+<li>
+<p><strong>Human Interaction</strong>:</p>
+</li>
+<li>
+<p>Users interact with the system via various <strong>Human Channels</strong>, such as chat interfaces or APIs, which are routed through the <strong>Gateway</strong>.</p>
+</li>
+<li>
+<p><strong>Gateway</strong>:</p>
+</li>
+<li>
+<p>The Gateway acts as the entry point for all human communications and interfaces with the system to ensure secure and consistent message delivery.</p>
+</li>
+<li>
+<p><strong>Coordinator</strong>:</p>
+</li>
+<li>
+<p>The <strong>Coordinator</strong> is the central component that manages the communication between humans and specialized agents.</p>
+</li>
+<li>
+<p>It determines which agent(s) to involve and facilitates the interaction through the <strong>Agent Channels</strong>.</p>
+</li>
+<li>
+<p><strong>Agents</strong>:</p>
+</li>
+<li>
+<p>The system is composed of multiple specialized agents (Agent 1, Agent 2, Agent 3), each responsible for handling specific types of tasks or functions.</p>
+</li>
+<li>
+<p>Agents communicate with the Coordinator through their respective <strong>Agent Channels</strong>, ensuring scalability and modularity.</p>
+</li>
+<li>
+<p><strong>Agent and Human Channels</strong>:</p>
+</li>
+<li><strong>Human Channels</strong> connect the Gateway to humans for interaction.</li>
+<li><strong>Agent Channels</strong> connect the Coordinator to agents, enabling task-specific processing and delegation.</li>
+</ol>
+<h2 id="installation">📦 Installation</h2>
+<p>Install <code>EggAI</code> via pip:</p>
+<pre><code class="language-bash">pip install eggai
+</code></pre>
+<h2 id="getting-started">🚀 Getting Started</h2>
+<p>Here's how you can quickly set up an agent to handle events in an event-driven system:</p>
+<pre><code class="language-python">import asyncio
+
+from eggai.agent import Agent
+from eggai.channel import Channel
+
+agent = Agent(&quot;OrderAgent&quot;)
+channel = Channel()
+
+@agent.subscribe(event_name=&quot;order_requested&quot;)
+async def handle_order_requested(event):
+    print(f&quot;[ORDER AGENT]: Received order request. Event: {event}&quot;)
+    await channel.publish({&quot;event_name&quot;: &quot;order_created&quot;, &quot;payload&quot;: event})
+
+@agent.subscribe(event_name=&quot;order_created&quot;)
+async def handle_order_created(event):
+    print(f&quot;[ORDER AGENT]: Order created. Event: {event}&quot;)
+
+async def main():
+    await agent.run()
+    await channel.publish({
+        &quot;event_name&quot;: &quot;order_requested&quot;,
+        &quot;payload&quot;: {
+            &quot;product&quot;: &quot;Laptop&quot;,
+            &quot;quantity&quot;: 1
+        }
+    })
+
+    try:
+        print(&quot;Agent is running. Press Ctrl+C to stop.&quot;)
+        await asyncio.Event().wait()
+    except asyncio.exceptions.CancelledError:
+        print(&quot;Task was cancelled. Cleaning up...&quot;)
+    finally:
+        # Clean up resources
+        await agent.stop()
+        await channel.stop()
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>This code demonstrates how to define an <code>Agent</code> and use it to process events from Kafka topics.</p>
+<p>This repository contains a few applications you can use as a reference:</p>
+<h2 id="core-concepts">💡 Core Concepts</h2>
+<h3 id="agent">🤖 Agent</h3>
+<p>An <code>Agent</code> is responsible for subscribing to Kafka topics, processing events, and orchestrating tasks using user-defined handlers. The key features of the <code>Agent</code> class include:</p>
+<ul>
+<li><strong>Event Subscription</strong>: Bind event handlers to specific events using the <code>subscribe</code> decorator.</li>
+<li><strong>Lifecycle Management</strong>: Manage producer and consumer lifecycles seamlessly.</li>
+<li><strong>Minimal Boilerplate</strong>: Focus on business logic without worrying about Kafka details.</li>
+</ul>
+<h3 id="channel">🚇 Channel</h3>
+<p>A <code>Channel</code> abstracts the Kafka producer interface to publish events to specific Kafka topics. Key features include:</p>
+<ul>
+<li><strong>Event Publishing</strong>: Send events to Kafka topics easily.</li>
+<li><strong>Singleton Producers</strong>: Manage Kafka producers efficiently across multiple channels.</li>
+</ul>
+<!-- END INCLUDE -->
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 EggAI Technologies GmbH
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.expand"], "search": "assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="assets/javascripts/bundle.83f73b43.min.js"></script>
+      
+    
+  </body>
+</html>
