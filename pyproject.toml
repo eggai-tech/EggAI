@@ -1,14 +1,38 @@
 [tool.poetry]
 name = "eggai"
 version = "0.1.8"
-description = ""
+description = "EggAI Multi-Agent Framework` is an async-first framework for building, deploying, and scaling multi-agent systems for modern enterprise environments"
 authors = ["Stefano Tucci <stefanotucci89@gmail.com>"]
 readme = "README.md"
+license = "MIT"
+homepage = "https://eggai-tech.github.io/EggAI/"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: System :: Networking",
+    "Topic :: System :: Clustering",
+    "Topic :: Communications :: Message Queues",
+    "Operating System :: OS Independent",
+    "Framework :: AsyncIO",
+    "Environment :: Console",
+    "Natural Language :: English",
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 aiokafka = "^0.12.0"
-
 
 [tool.poetry.group.dev.dependencies]
 twine = "^6.0.1"
