@@ -368,8 +368,8 @@
 <h2 id="features">🌟 Features</h2>
 <ul>
 <li>🤖 <strong>Agent Management</strong>: Simplify the orchestration and execution of multi-agent systems.</li>
-<li>🚀 <strong>Async-First</strong>: Push-based APIs designed for high-concurrency, long-running AI workflows, and real-time processes.</li>
-<li>⚡ <strong>Event-Driven</strong>: Enable real-time reactions to events for dynamic and responsive systems.</li>
+<li>🚀 <strong>Async-First</strong>: Push-based APIs designed for high-concurrency, long-running and real-time processes.</li>
+<li>⚡ <strong>Event-Driven</strong>: Enable adaptive and responsive system behaviors triggered by real-time events.</li>
 <li>📈 <strong>Horizontally Scalable</strong>: Scale agent execution seamlessly to meet growing demands.</li>
 <li>🚇 <strong>Kafka Integration</strong>: Native support for Kafka topics ensures seamless streaming and messaging.</li>
 <li>🛠 <strong>Flexible Architecture</strong>: Easily adapt or extend components without disrupting workflows.</li>
@@ -418,15 +418,14 @@ It allows developers to focus on business logic while handling the complexities 
 <li><strong>Agent Channels</strong> connect the Coordinator to agents, enabling task-specific processing and delegation.</li>
 </ol>
 <h2 id="installation">📦 Installation</h2>
-<p>Install <code>EggAI</code> via pip:</p>
+<p>Install <code>eggai</code> via pip:</p>
 <pre><code class="language-bash">pip install eggai
 </code></pre>
 <h2 id="getting-started">🚀 Getting Started</h2>
 <p>Here's how you can quickly set up an agent to handle events in an event-driven system:</p>
 <pre><code class="language-python">import asyncio
 
-from eggai.agent import Agent
-from eggai.channel import Channel
+from eggai import Agent, Channel
 
 agent = Agent(&quot;OrderAgent&quot;)
 channel = Channel()
@@ -464,20 +463,26 @@ if __name__ == &quot;__main__&quot;:
     asyncio.run(main())
 </code></pre>
 <p>This code demonstrates how to define an <code>Agent</code> and use it to process events from Kafka topics.</p>
-<p>This repository contains a few applications you can use as a reference:</p>
 <h2 id="core-concepts">💡 Core Concepts</h2>
 <h3 id="agent">🤖 Agent</h3>
-<p>An <code>Agent</code> is responsible for subscribing to Kafka topics, processing events, and orchestrating tasks using user-defined handlers. The key features of the <code>Agent</code> class include:</p>
+<p>An <code>Agent</code> is an isolated unit of business logic designed to orchestrate workflows, process events, and communicate with external systems such as LLMs and APIs.
+It reduces boilerplate while supporting complex and long-running workflows. Key features include:</p>
 <ul>
-<li><strong>Event Subscription</strong>: Bind event handlers to specific events using the <code>subscribe</code> decorator.</li>
-<li><strong>Lifecycle Management</strong>: Manage producer and consumer lifecycles seamlessly.</li>
-<li><strong>Minimal Boilerplate</strong>: Focus on business logic without worrying about Kafka details.</li>
+<li><strong>Event Handling</strong>: Use the <code>subscribe</code> decorator to bind user-defined handlers to specific events.  </li>
+<li><strong>Workflow Orchestration</strong>: Manage long-running workflows and tasks efficiently.  </li>
+<li><strong>External System Communication</strong>: Seamlessly interact with Large Language Models (LLMs), external APIs, and other systems.  </li>
+<li><strong>Lifecycle Management</strong>: Automatically handle the lifecycle of Kafka consumers, producers, and other connected components.  </li>
+<li><strong>Boilerplate Reduction</strong>: Focus on core business logic while leveraging built-in integrations for messaging and workflows.  </li>
 </ul>
 <h3 id="channel">🚇 Channel</h3>
-<p>A <code>Channel</code> abstracts the Kafka producer interface to publish events to specific Kafka topics. Key features include:</p>
+<p>A <code>Channel</code> is the foundational communication layer that facilitates both event publishing and subscription.
+It abstracts Kafka producers and consumers, enabling efficient and flexible event-driven operations. Key features include:</p>
 <ul>
-<li><strong>Event Publishing</strong>: Send events to Kafka topics easily.</li>
-<li><strong>Singleton Producers</strong>: Manage Kafka producers efficiently across multiple channels.</li>
+<li><strong>Event Communication</strong>: Publish events to Kafka topics with ease.  </li>
+<li><strong>Event Subscription</strong>: Subscribe to Kafka topics and process events directly through the <code>Channel</code>.  </li>
+<li><strong>Shared Resources</strong>: Optimize resource usage by managing singleton Kafka producers and consumers across multiple agents or channels.  </li>
+<li><strong>Seamless Integration</strong>: Act as a communication hub, supporting both Agents and other system components.  </li>
+<li><strong>Flexibility</strong>: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.  </li>
 </ul>
 <!-- END INCLUDE -->
 
