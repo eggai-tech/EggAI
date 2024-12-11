@@ -1,5 +1,6 @@
 import asyncio
 import json
+from collections import defaultdict
 from typing import Dict, List, Callable, Optional
 
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
@@ -109,11 +110,12 @@ class Agent:
                         filter_func = handler_entry["filter"]
                         handler = handler_entry["handler"]
                         # Apply the filter function (if any) or process the message directly
-                        if filter_func is None or filter_func(message):
-                            try:
-                                await handler(message)  # Pass the entire message
-                            except Exception as e:
-                                print(f"Failed to process message from {channel_name}: {e} {message} {handler_entry['handler_name']}")
+                        safe_message = defaultdict(lambda: None, message)
+                        try:
+                            if filter_func is None or filter_func(safe_message):
+                                await handler(safe_message)
+                        except Exception as e:
+                            print(f"Failed to process message from {channel_name}: {e} {message} {handler_entry['handler_name']}")
         except asyncio.CancelledError:
             pass
         finally:

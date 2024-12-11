@@ -1,7 +1,7 @@
 
-# Getting Started with `EggAI Multi-Agent Framework`
+# Introducing the Coordinator Agent in `EggAI Multi-Agent Framework`
 
-This guide will help you quickly set up and get started with the EggAI Multi-Agent Framework.
+This guide will help you quickly set up and get started with the EggAI Multi-Agent Framework, building a simple coordinator agent that manages the communication between the Human layer and the Agents layer.
 
 ## Prerequisites
 

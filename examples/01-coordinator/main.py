@@ -14,7 +14,7 @@ async def main():
     await email_agent.run()
 
     await human_channel.publish({
-        "event_name": "order_requested",
+        "action": "create_order",
         "payload": {
             "product": "Laptop", "quantity": 1
         }
@@ -26,9 +26,9 @@ async def main():
     except asyncio.exceptions.CancelledError:
         print("Task was cancelled. Cleaning up...")
     finally:
-        await coordinator.stop()
         await order_agent.stop()
         await email_agent.stop()
+        await coordinator.stop()
         await Channel.stop()
 
     print("Done.")
