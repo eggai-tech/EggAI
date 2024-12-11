@@ -1,11 +1,17 @@
 import asyncio
 import json
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Optional
 
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
+from eggai.channel import Channel
 from eggai.constants import DEFAULT_CHANNEL_NAME
 from eggai.settings.kafka import KafkaSettings
+
+
+def _get_channel_name(channel: Optional[Channel], channel_name: Optional[str]) -> str:
+    return channel.name if channel else channel_name or DEFAULT_CHANNEL_NAME
+
 
 class Agent:
     """
@@ -25,37 +31,33 @@ class Agent:
         """
         self.name = name
         self.kafka_settings = KafkaSettings()
-        self._producer = None  # Kafka producer instance
-        self._consumer = None  # Kafka consumer instance
-        self._handlers: Dict[str, List[Callable]] = {}  # Maps channel:event_name to list of handlers
+        self._producer = None
+        self._consumer = None
+        self._handlers: List[Dict[str, Callable]] = []  # List of handlers with filters
         self._channels = set()  # Tracks all subscribed channels
-        self._running_task = None  # Task to manage the lifecycle of the agent
+        self._running_task = None
 
-    def subscribe(self, event_name: str, channel_name: str = DEFAULT_CHANNEL_NAME) -> Callable:
+    def subscribe(self, channel_name: str = DEFAULT_CHANNEL_NAME, channel: Channel = None, filter_func: Optional[Callable[[Dict], bool]] = None) -> Callable:
         """
-        Decorator for subscribing to a channel and binding a handler to a specific event.
-
-        Allows users to define handler functions that are triggered when messages for the
-        specified event name are received on the channel.
+        Decorator for subscribing to a channel and binding a handler with an optional filter function.
 
         Args:
-            event_name (str): The name of the event to subscribe to.
             channel_name (str): The channel where the event occurs (default is DEFAULT_CHANNEL_NAME).
+            channel (Channel): An instance of the Channel class to use for publishing messages.
+            filter_func (Callable[[Dict], bool], optional): A filter function to determine whether to handle a message.
 
         Returns:
             Callable: A decorator for wrapping the handler function.
 
         Example:
-            @agent.subscribe(event_name="order_created", channel_name="orders")
-            async def handle_order_created(payload):
-                print(f"Order created: {payload}")
+            @agent.subscribe(channel_name="orders", filter_func=lambda msg: msg.get("event_name") == "order_created")
+            async def handle_order_created(message):
+                print(f"Order created: {message}")
         """
         def decorator(func: Callable):
-            topic_event = f"{channel_name}:{event_name}"
-            if topic_event not in self._handlers:
-                self._handlers[topic_event] = []
-            self._handlers[topic_event].append(func)  # Register the handler
-            self._channels.add(channel_name)  # Track the channel
+            channel_name_to_use = _get_channel_name(channel, channel_name)
+            self._handlers.append({"channel":channel_name_to_use , "filter": filter_func, "handler": func, "handler_name": func.__name__})
+            self._channels.add(channel_name_to_use)  # Track the channel
             return func
         return decorator
 
@@ -80,10 +82,10 @@ class Agent:
         """
         if self._consumer is None:
             self._consumer = AIOKafkaConsumer(
-                *self._channels,  # Subscribe to all tracked channels
+                *self._channels,
                 bootstrap_servers=self.kafka_settings.BOOTSTRAP_SERVERS,
-                group_id=f"{self.name}_group",  # Consumer group for this agent
-                auto_offset_reset="latest",  # Start from the latest messages
+                group_id=f"{self.name}_group",
+                auto_offset_reset="latest",
             )
             await self._consumer.start()
 
@@ -100,25 +102,22 @@ class Agent:
         try:
             async for msg in self._consumer:
                 channel_name = msg.topic
-                try:
-                    message = json.loads(msg.value.decode("utf-8"))
-                    event_name = message.get("event_name")
-                    payload = message.get("payload")
-
-                    topic_event = f"{channel_name}:{event_name}"
-                    if topic_event in self._handlers:
-                        # Invoke all handlers for the event
-                        for handler in self._handlers[topic_event]:
-                            await handler(payload)
-                except Exception as e:
-                    print(f"Failed to process message from {channel_name}: {e}")
+                message = json.loads(msg.value.decode("utf-8"))
+                # Check all handlers to see if any should process this message
+                for handler_entry in self._handlers:
+                    if handler_entry["channel"] == channel_name:
+                        filter_func = handler_entry["filter"]
+                        handler = handler_entry["handler"]
+                        # Apply the filter function (if any) or process the message directly
+                        if filter_func is None or filter_func(message):
+                            try:
+                                await handler(message)  # Pass the entire message
+                            except Exception as e:
+                                print(f"Failed to process message from {channel_name}: {e} {message} {handler_entry['handler_name']}")
         except asyncio.CancelledError:
-            # Task cancelled during shutdown
             pass
         finally:
-            print(f"Stopping agent '{self.name}'...")
             await self._consumer.stop()
-            print(f"Agent '{self.name}' stopped.")
 
     async def run(self):
         """
@@ -148,9 +147,8 @@ class Agent:
         if not self._running_task:
             raise RuntimeError("Agent is not running.")
         await self._producer.stop()
-        self._running_task.cancel()  # Cancel the main processing task
+        self._running_task.cancel()
         try:
-            await self._running_task  # Wait for the task to finish
+            await self._running_task
         except asyncio.CancelledError:
-            # Ignore cancellation errors during shutdown
             pass

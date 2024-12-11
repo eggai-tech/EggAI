@@ -28,6 +28,8 @@ async def main():
         await email_agent.stop()
         await channel.stop()
 
+    print("Done.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

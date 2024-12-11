@@ -5,13 +5,13 @@ from eggai import Agent, Channel
 agent = Agent("OrderAgent")
 channel = Channel()
 
-@agent.subscribe(event_name="order_requested")
+@agent.subscribe(filter_func=lambda event: event["event_name"] == "order_requested")
 async def handle_order_requested(event):
     print(f"[ORDER AGENT]: Received order request. Event: {event}")
     await channel.publish({"event_name": "order_created", "payload": event})
 
 
-@agent.subscribe(event_name="order_created")
+@agent.subscribe(filter_func=lambda event: event["event_name"] == "order_created")
 async def handle_order_created(event):
     print(f"[ORDER AGENT]: Order created. Event: {event}")
 
