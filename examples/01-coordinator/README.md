@@ -66,14 +66,14 @@ pip install eggai
 
 ### Step 3: Start Required Services with Docker 🚢
 
-EggAI relies on Kafka and other services to function seamlessly. Start these services using Docker Compose:
+EggAI relies on brokers like Kafka or [Redpanda](https://github.com/redpanda-data/redpanda) and other services to function seamlessly. Start these services using Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
 This command will:
-- Spin up the Kafka broker.
+- Spin up the [Redpanda](https://github.com/redpanda-data/redpanda) broker.
 - Start the necessary infrastructure components for the framework.
 
 ---
