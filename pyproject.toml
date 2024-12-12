@@ -23,7 +23,6 @@ classifiers = [
     "Topic :: System :: Distributed Computing",
     "Topic :: System :: Networking",
     "Topic :: System :: Clustering",
-    "Topic :: Communications :: Message Queues",
     "Operating System :: OS Independent",
     "Framework :: AsyncIO",
     "Environment :: Console",
