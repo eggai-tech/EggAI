@@ -1,4 +1,3 @@
-import asyncio
 import json
 from aiokafka import AIOKafkaProducer
 
@@ -33,7 +32,7 @@ class Channel:
             producer = AIOKafkaProducer(
                 bootstrap_servers=self.kafka_settings.BOOTSTRAP_SERVERS,
             )
-            await producer.start()  # Start the Kafka producer
+            await producer.start()
             Channel._producers[self.name] = producer
         return Channel._producers[self.name]
 
@@ -54,7 +53,7 @@ class Channel:
                 "payload": {"order_id": 123, "status": "created"}
             })
         """
-        producer = await self._get_producer()  # Get or create the producer
+        producer = await self._get_producer()
         await producer.send_and_wait(self.name, json.dumps(event).encode("utf-8"))
 
     @staticmethod
