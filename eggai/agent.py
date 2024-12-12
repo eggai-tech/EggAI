@@ -11,6 +11,16 @@ from eggai.settings.kafka import KafkaSettings
 
 
 def _get_channel_name(channel: Optional[Channel], channel_name: Optional[str]) -> str:
+    """
+    Determine the channel name to use based on the provided channel object or channel name.
+
+    Args:
+        channel (Optional[Channel]): An instance of the Channel class. If provided, its name will be used.
+        channel_name (Optional[str]): The channel name to use if no Channel instance is provided.
+
+    Returns:
+        str: The resolved channel name, or the default channel name if neither parameter is provided.
+    """
     return channel.name if channel else channel_name or DEFAULT_CHANNEL_NAME
 
 
@@ -18,9 +28,10 @@ class Agent:
     """
     A message-based agent for subscribing to events and handling messages with user-defined functions.
 
-    This class acts as an intermediary for message-based communication, allowing users to
-    subscribe to specific event names on particular channels and handle incoming messages
-    through custom callback functions. It uses Kafka as the messaging backend.
+    This class serves as an intermediary for message-based communication. It allows users to:
+    - Subscribe to specific event names on particular channels.
+    - Handle incoming messages using custom callback functions.
+    - Utilize Kafka as the messaging backend.
     """
 
     def __init__(self, name: str):
@@ -34,8 +45,8 @@ class Agent:
         self.kafka_settings = KafkaSettings()
         self._producer = None
         self._consumer = None
-        self._handlers: List[Dict[str, Callable]] = []  # List of handlers with filters
-        self._channels = set()  # Tracks all subscribed channels
+        self._handlers: List[Dict[str, Callable]] = []
+        self._channels = set()
         self._running_task = None
 
     def subscribe(self, channel_name: str = DEFAULT_CHANNEL_NAME, channel: Channel = None, filter_func: Optional[Callable[[Dict], bool]] = None) -> Callable:
@@ -44,7 +55,7 @@ class Agent:
 
         Args:
             channel_name (str): The channel where the event occurs (default is DEFAULT_CHANNEL_NAME).
-            channel (Channel): An instance of the Channel class to use for publishing messages.
+            channel (Channel): An instance of the Channel class. If provided, its name will be used.
             filter_func (Callable[[Dict], bool], optional): A filter function to determine whether to handle a message.
 
         Returns:
@@ -57,8 +68,8 @@ class Agent:
         """
         def decorator(func: Callable):
             channel_name_to_use = _get_channel_name(channel, channel_name)
-            self._handlers.append({"channel":channel_name_to_use , "filter": filter_func, "handler": func, "handler_name": func.__name__})
-            self._channels.add(channel_name_to_use)  # Track the channel
+            self._handlers.append({"channel": channel_name_to_use, "filter": filter_func, "handler": func, "handler_name": func.__name__})
+            self._channels.add(channel_name_to_use)
             return func
         return decorator
 
@@ -80,6 +91,7 @@ class Agent:
         Initialize and start the Kafka consumer.
 
         This consumer listens to all subscribed channels and processes messages asynchronously.
+        It connects to Kafka using the bootstrap servers and a consumer group ID.
         """
         if self._consumer is None:
             self._consumer = AIOKafkaConsumer(
@@ -104,12 +116,10 @@ class Agent:
             async for msg in self._consumer:
                 channel_name = msg.topic
                 message = json.loads(msg.value.decode("utf-8"))
-                # Check all handlers to see if any should process this message
                 for handler_entry in self._handlers:
                     if handler_entry["channel"] == channel_name:
                         filter_func = handler_entry["filter"]
                         handler = handler_entry["handler"]
-                        # Apply the filter function (if any) or process the message directly
                         safe_message = defaultdict(lambda: None, message)
                         try:
                             if filter_func is None or filter_func(safe_message):

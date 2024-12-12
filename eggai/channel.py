@@ -14,7 +14,7 @@ class Channel:
     each Kafka topic has a single producer instance for optimal resource usage.
     """
 
-    _producers = {}  # Singleton dictionary to hold producers for each channel
+    _producers = {}
 
     def __init__(self, name: str = DEFAULT_CHANNEL_NAME):
         """
@@ -28,6 +28,15 @@ class Channel:
         self.kafka_settings = KafkaSettings()
 
     async def _get_producer(self) -> AIOKafkaProducer:
+        """
+        Get or create a Kafka producer for the current channel.
+
+        This method uses a singleton pattern to ensure that each Kafka topic has
+        a single producer instance.
+
+        Returns:
+            AIOKafkaProducer: The Kafka producer instance associated with the channel.
+        """
         if self.name not in Channel._producers:
             producer = AIOKafkaProducer(
                 bootstrap_servers=self.kafka_settings.BOOTSTRAP_SERVERS,
@@ -68,5 +77,5 @@ class Channel:
             await Channel.stop()
         """
         for producer in Channel._producers.values():
-            await producer.stop()  # Stop each producer
-        Channel._producers.clear()  # Clear the singleton dictionary
+            await producer.stop()
+        Channel._producers.clear()
