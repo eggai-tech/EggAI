@@ -2,6 +2,8 @@
 
 This example demonstrates how to integrate **LangChain** tools into an **EggAI** agent workflow. By binding external tools to the language model, your agent can perform more complex operations—like counting emails over a certain period—directly from within a natural language prompt.
 
+The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/03-langchain-tool-calling)
+
 ## Overview 🔄
 
 In this scenario, we have a single **Email Agent** that:

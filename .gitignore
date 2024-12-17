@@ -109,3 +109,6 @@ coverage.xml
 # Local configuration files
 *.local
 *.envrc
+
+# Other
+.DS_Store

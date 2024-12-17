@@ -11,9 +11,19 @@ theme:
     primary: white
 
 nav:
-  - Reference:
-    - "Agent": agent.md
-    - "Channel": channel.md
+  - "Introduction": index.md
+  - Concepts:
+    - "Agent": concepts/agent.md
+    - "Multi-Agent System": concepts/multi-agent-system.md
+  - Examples:
+    - "Getting Started": examples/00-getting-started.md
+    - "Coordinator": examples/01-coordinator.md
+    - "Websocket Gateway": examples/02-websocket-gateway.md
+    - "LangChain Tool Calling": examples/03-langchain-tool-calling.md
+  - References:
+    - "Agent": references/agent.md
+    - "Channel": references/channel.md
+    - "Message": references/message.md
 
 plugins:
 - include-markdown:

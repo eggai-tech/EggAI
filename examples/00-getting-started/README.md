@@ -2,6 +2,8 @@
 
 Welcome to the **EggAI Multi-Agent Framework**! This guide will help you set up and run a simple use case demonstrating how to orchestrate and manage two agents in an asynchronous, event-driven architecture. Let's dive in! 🚀
 
+The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/00-getting-started)
+
 ---
 
 ## Prerequisites 🔧

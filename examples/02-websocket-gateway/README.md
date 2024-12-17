@@ -2,6 +2,8 @@
 
 Welcome to the advanced example of the **EggAI Multi-Agent Framework**! This demo showcases a rich workflow involving **multiple communication channels**, advanced coordination, and real-time message exchange.
 
+The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/02-websocket-gateway)
+
 ## Key Communication Channels
 
 1. **WebSocket Gateway Channel**: A specialized gateway that facilitates two-way communication between the human interface and the agent ecosystem through a WebSocket connection. Messages can flow from the human channel into the WebSocket and from the WebSocket back to the human channel.

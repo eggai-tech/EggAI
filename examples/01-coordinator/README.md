@@ -7,6 +7,8 @@ Welcome to the advanced example of the **EggAI Multi-Agent Framework**! This dem
 
 In this setup, a **Coordinator Agent** orchestrates the flow between the human channel and the worker agents: **Email Agent** and **Order Agent**.
 
+The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/01-coordinator)
+
 Let’s get started! 🚀
 
 ---
