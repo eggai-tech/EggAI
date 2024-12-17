@@ -41,6 +41,7 @@ env/
 .venv/
 .pyenv/
 __pypackages__/
+.venv*/
 
 # Django stuff:
 local_settings.py

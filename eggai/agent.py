@@ -1,12 +1,13 @@
 import asyncio
 import json
 from collections import defaultdict
-from typing import Dict, List, Callable, Optional
+from typing import Dict, List, Callable, Optional, Type
 
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
 from eggai.channel import Channel
 from eggai.constants import DEFAULT_CHANNEL_NAME
+from eggai.schemas import MessageBase
 from eggai.settings.kafka import KafkaSettings
 
 
@@ -49,7 +50,13 @@ class Agent:
         self._channels = set()
         self._running_task = None
 
-    def subscribe(self, channel_name: str = DEFAULT_CHANNEL_NAME, channel: Channel = None, filter_func: Optional[Callable[[Dict], bool]] = None) -> Callable:
+    def subscribe(
+            self,
+            channel_name: str = DEFAULT_CHANNEL_NAME,
+            channel: Channel = None,
+            filter_func: Optional[Callable[[Dict], bool]] = None,
+            message_type: Type[MessageBase] = None
+    ) -> Callable:
         """
         Decorator for subscribing to a channel and binding a handler with an optional filter function.
 
@@ -57,6 +64,7 @@ class Agent:
             channel_name (str): The channel where the event occurs (default is DEFAULT_CHANNEL_NAME).
             channel (Channel): An instance of the Channel class. If provided, its name will be used.
             filter_func (Callable[[Dict], bool], optional): A filter function to determine whether to handle a message.
+            message_type (Type[MessageBase], optional): The Pydantic model to use for parsing the message.
 
         Returns:
             Callable: A decorator for wrapping the handler function.
@@ -68,7 +76,13 @@ class Agent:
         """
         def decorator(func: Callable):
             channel_name_to_use = _get_channel_name(channel, channel_name)
-            self._handlers.append({"channel": channel_name_to_use, "filter": filter_func, "handler": func, "handler_name": func.__name__})
+            self._handlers.append({
+                "channel": channel_name_to_use,
+                "filter": filter_func,
+                "handler": func,
+                "handler_name": func.__name__,
+                "message_type": message_type
+            })
             self._channels.add(channel_name_to_use)
             return func
         return decorator
@@ -120,12 +134,15 @@ class Agent:
                     if handler_entry["channel"] == channel_name:
                         filter_func = handler_entry["filter"]
                         handler = handler_entry["handler"]
+                        message_type = handler_entry["message_type"]
                         safe_message = defaultdict(lambda: None, message)
                         try:
                             if filter_func is None or filter_func(safe_message):
+                                if message_type is not None:
+                                    safe_message = message_type(**message)
                                 await handler(safe_message)
                         except Exception as e:
-                            print(f"Failed to process message from {channel_name}: {e} {message} {handler_entry['handler_name']}")
+                            print(f"Failed to process message from {channel_name}: {e} {message} {self.name}.{handler_entry['handler_name']} {handler_entry['channel']}")
         except asyncio.CancelledError:
             pass
         finally:
