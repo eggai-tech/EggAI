@@ -1,0 +1,989 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../00-getting-started/">
+      
+      
+        <link rel="next" href="../02-websocket-gateway/">
+      
+      
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Coordinator - EggAI Multi-Agent Framework</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#advanced-use-case-multi-agent-communication-with-human-and-agent-channels" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="EggAI Multi-Agent Framework" class="md-header__button md-logo" aria-label="EggAI Multi-Agent Framework" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            EggAI Multi-Agent Framework
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Coordinator
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="EggAI Multi-Agent Framework" class="md-nav__button md-logo" aria-label="EggAI Multi-Agent Framework" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    EggAI Multi-Agent Framework
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Concepts
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/agent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Agent
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/multi-agent-system/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-Agent System
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Examples
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00-getting-started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Coordinator
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Coordinator
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites 🔧
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview 🔄
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview 🔄">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-features-highlighted" class="md-nav__link">
+    <span class="md-ellipsis">
+      Key Features Highlighted:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Setup Instructions ⏳
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setup Instructions ⏳">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-create-a-virtual-environment-optional-but-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Create a Virtual Environment (Optional but Recommended) 🌍
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-install-the-eggai-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Install the EggAI Library 🎓
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-start-required-services-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Start Required Services with Docker 🚢
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running the Example 🏆
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running the Example 🏆">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflow-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workflow Description:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Output:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stopping-and-cleaning-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stopping and Cleaning Up ❌
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps 🚀
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-websocket-gateway/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Websocket Gateway
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-langchain-tool-calling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LangChain Tool Calling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    References
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            References
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/agent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Agent
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/channel/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Channel
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../references/message/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Message
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites 🔧
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview 🔄
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview 🔄">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-features-highlighted" class="md-nav__link">
+    <span class="md-ellipsis">
+      Key Features Highlighted:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Setup Instructions ⏳
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setup Instructions ⏳">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-create-a-virtual-environment-optional-but-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Create a Virtual Environment (Optional but Recommended) 🌍
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-install-the-eggai-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Install the EggAI Library 🎓
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-start-required-services-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Start Required Services with Docker 🚢
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running the Example 🏆
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running the Example 🏆">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflow-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workflow Description:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Output:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stopping-and-cleaning-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stopping and Cleaning Up ❌
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps 🚀
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<!-- BEGIN INCLUDE ../../examples/01-coordinator/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="advanced-use-case-multi-agent-communication-with-human-and-agent-channels">Advanced Use Case: Multi-Agent Communication with Human and Agent Channels 🤖</h1>
+<p>Welcome to the advanced example of the <strong>EggAI Multi-Agent Framework</strong>! This demo highlights a more complex workflow involving <strong>two communication channels</strong>:</p>
+<ol>
+<li><strong>Human Channel</strong>: Exposes an interface for users (or frontends) to send and receive data related to complex workflows managed by agents.</li>
+<li><strong>Agent Channel</strong>: Handles message passing and events between multiple agents.</li>
+</ol>
+<p>In this setup, a <strong>Coordinator Agent</strong> orchestrates the flow between the human channel and the worker agents: <strong>Email Agent</strong> and <strong>Order Agent</strong>.</p>
+<p>The code for the example can be found <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/01-coordinator">here</a></p>
+<p>Let’s get started! 🚀</p>
+<hr />
+<h2 id="prerequisites">Prerequisites 🔧</h2>
+<p>Before you begin, ensure you have the following tools installed:</p>
+<ul>
+<li><strong>Python</strong> 3.10+</li>
+<li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
+</ul>
+<hr />
+<h2 id="overview">Overview 🔄</h2>
+<p>In this demo, you will:</p>
+<ul>
+<li>Use a <strong>Human Channel</strong> to send a request to create an order.</li>
+<li>Have the <strong>Coordinator Agent</strong> process the request and distribute tasks to the worker agents.</li>
+<li>Receive a notification via the <strong>Human Channel</strong> once the task is completed.</li>
+</ul>
+<p>Below is the architecture diagram for this example:</p>
+<p><img alt="architecture-advanced-example.png" src="../../assets/architecture-coordinator.svg" /></p>
+<h3 id="key-features-highlighted">Key Features Highlighted:</h3>
+<ul>
+<li>🤝 <strong>Human-Agent Interaction:</strong> Human Channel bridges the gap between users and agents.</li>
+<li>🧑‍🤝‍🧑 <strong>Coordinator Role:</strong> Coordinator Agent orchestrates workflows and delegates tasks to worker agents.</li>
+<li>📬 <strong>Worker Agents:</strong> Specialized agents handle specific tasks, like email notifications and order processing.</li>
+<li>⚡ <strong>Event-Driven Design:</strong> Real-time updates and notifications via the Human Channel.</li>
+</ul>
+<hr />
+<h2 id="setup-instructions">Setup Instructions ⏳</h2>
+<h3 id="step-1-create-a-virtual-environment-optional-but-recommended">Step 1: Create a Virtual Environment (Optional but Recommended) 🌍</h3>
+<p>To avoid dependency conflicts, create and activate a virtual environment:</p>
+<pre><code class="language-bash">python -m venv venv
+source venv/bin/activate  # For Windows: venv\Scripts\activate
+</code></pre>
+<hr />
+<h3 id="step-2-install-the-eggai-library">Step 2: Install the EggAI Library 🎓</h3>
+<p>Use <code>pip</code> to install the EggAI framework:</p>
+<pre><code class="language-bash">pip install eggai
+</code></pre>
+<hr />
+<h3 id="step-3-start-required-services-with-docker">Step 3: Start Required Services with Docker 🚢</h3>
+<p>EggAI relies on brokers like Kafka or <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> and other services to function seamlessly. Start these services using Docker Compose:</p>
+<pre><code class="language-bash">docker compose up -d
+</code></pre>
+<p>This command will:
+- Spin up the <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> broker.
+- Start the necessary infrastructure components for the framework.</p>
+<hr />
+<h2 id="running-the-example">Running the Example 🏆</h2>
+<p>The example code for this demo is included in the <code>examples/01-coordinator/main.py</code> folder. Run the <code>main.py</code> file to execute the workflow:</p>
+<pre><code class="language-bash">python main.py
+</code></pre>
+<h3 id="workflow-description">Workflow Description:</h3>
+<ol>
+<li><strong>Request Sent to Human Channel</strong>:</li>
+<li>
+<p>The <code>main.py</code> file sends a request to create an order (<code>Laptop</code>, quantity <code>1</code>) via the Human Channel.</p>
+</li>
+<li>
+<p><strong>Coordinator Orchestrates Workflow</strong>:</p>
+</li>
+<li>
+<p>The Coordinator Agent receives the request and delegates tasks to the worker agents:</p>
+<ul>
+<li><strong>Order Agent</strong>: Processes the order creation.</li>
+<li><strong>Email Agent</strong>: Sends an email notification for the created order.</li>
+</ul>
+</li>
+<li>
+<p><strong>Notification Sent Back to Human Channel</strong>:</p>
+</li>
+<li>Once the workflow is complete, the Coordinator publishes an update to the Human Channel, notifying the user that the task has been successfully processed.</li>
+</ol>
+<h3 id="example-output">Example Output:</h3>
+<pre><code class="language-plaintext">[COORDINATOR]: action message received. Forwarding to agents channel.
+Agent is running. Press Ctrl+C to stop.
+[ORDER AGENT]: order_requested event received. Emitting order_created event.
+[EMAIL AGENT]: order_created event received. Sending email to customer.
+[EMAIL AGENT]: order_created event received. Sending notification event.
+[ORDER AGENT]: order_created event received.
+[COORDINATOR]: human=true message received. Forwarding to human channel.
+[COORDINATOR]: Received notification for human:  Order created, you will receive an email soon.
+</code></pre>
+<hr />
+<h2 id="stopping-and-cleaning-up">Stopping and Cleaning Up ❌</h2>
+<p>When you're done, stop and clean up the Docker containers to free up resources:</p>
+<pre><code class="language-bash">docker compose down -v
+</code></pre>
+<p>This will stop all running containers and remove any associated volumes.</p>
+<hr />
+<h2 id="next-steps">Next Steps 🚀</h2>
+<p>Ready to explore further? Check out:
+- <strong>Advanced Examples:</strong> Discover more complex use cases in the <code>examples/</code> folder.
+- <strong>Contribution Guidelines:</strong> Get involved and help improve EggAI!
+- <strong>GitHub Issues:</strong> <a href="https://github.com/eggai-tech/eggai/issues">Submit a bug or feature request</a>.
+- <strong>Documentation:</strong> Refer to the official docs for deeper insights.</p>
+<p>Thank you for choosing EggAI Multi-Agent Framework. Happy coding! 🤖🥚</p>
+<!-- END INCLUDE -->
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 EggAI Technologies GmbH
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>
