@@ -4,16 +4,16 @@ Welcome to the advanced example of the **EggAI Multi-Agent Framework**! This dem
 
 ## Key Communication Channels
 
-1. **Human Channel**: An interface for users (or frontends) to send and receive information related to complex workflows managed by agents.
-2. **WebSocket Gateway Channel**: A specialized gateway that facilitates two-way communication between the human interface and the agent ecosystem through a WebSocket connection. Messages can flow from the human channel into the WebSocket and from the WebSocket back to the human channel.
+1. **WebSocket Gateway Channel**: A specialized gateway that facilitates two-way communication between the human interface and the agent ecosystem through a WebSocket connection. Messages can flow from the human channel into the WebSocket and from the WebSocket back to the human channel.
+2. **Human Channel**: An interface for users (or frontends) to send and receive information related to complex workflows managed by agents.
 3. **Agent Channel**: Handles message passing and event-driven communications among multiple specialized agents.
 
 ## Agents Involved
 
-- **Coordinator Agent**: Orchestrates the end-to-end workflow. It routes incoming messages from the Human and WebSocket channels to the appropriate worker agents, and also ensures relevant responses or events are pushed back out to the human interface or WebSocket connection.
-- **Email Agent**: Responsible for handling email-related tasks, such as sending notifications and confirmations.
-- **Order Agent**: Manages order lifecycle events, from request to creation and confirmation.
 - **WebsocketGateway Agent**: Acts as a bridge. It takes messages originating from the human interface (e.g., a web UI) and translates them into messages for the agent ecosystem via the WebSocket connection. Conversely, it also relays agent-generated messages back to the human interface.
+- **Coordinator Agent**: Orchestrates the end-to-end workflow. It routes incoming messages from the Human and WebSocket channels to the appropriate worker agents, and also ensures relevant responses or events are pushed back out to the human interface or WebSocket connection.
+- **Order Agent**: Manages order lifecycle events, from request to creation and confirmation.
+- **Email Agent**: Responsible for handling email-related tasks, such as sending notifications and confirmations.
 
 ## What Makes This Setup Special?
 
@@ -100,7 +100,7 @@ This will:
 
 ## Running the Example 🏆
 
-The example code for this demo is located in the `examples/01-coordinator/main.py` directory. To run the workflow:
+The example code for this demo is located in the `examples/02-websockety-gateway/main.py` directory. To run the workflow:
 
 ```bash
 python main.py
