@@ -55,7 +55,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 If you haven’t already:
 
 ```bash
-pip install eggai
+pip install eggai openai
 ```
 
 ### Step 3: Start Services with Docker 🚢
@@ -72,10 +72,10 @@ This will start the broker and any additional components required to run the age
 
 ## Running the Example 🏆
 
-Navigate to the `examples/04-context` folder and run the main script:
+Navigate to the `examples/04-context` folder and run the main script (remember to set your OpenAI API key):
 
 ```bash
-python main.py
+OPENAI_API_KEY="your-api-key" python main.py
 ```
 
 **What to expect:**
