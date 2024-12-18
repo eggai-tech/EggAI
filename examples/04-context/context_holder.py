@@ -9,3 +9,5 @@ class ContextHolder:
 
     def get_context(self, message_id):
         return self.context_map.get(message_id, {})
+
+context_holder = ContextHolder()

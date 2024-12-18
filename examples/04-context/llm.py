@@ -16,7 +16,7 @@ product_list = [
     {"name": "Razer Blade 15", "category": "Laptop", "description": "High-performance gaming laptop with NVIDIA GeForce RTX 3070 and 144Hz display."}
 ]
 
-def information_product_prompt():
+def get_product_information_system_prompt():
     product_list_json = json.dumps(product_list, indent=4)
 
     return """
@@ -42,7 +42,7 @@ Example:
 """
 
 
-def get_related_products_prompt():
+def get_recommendation_agent_system_prompt():
     product_list_json = json.dumps(product_list, indent=4)
     return """
 You are a Recommender Agent. Your task is to recommend products based on the user context history.
@@ -71,7 +71,7 @@ def get_product_info(user_query: str):
     completion = openai_client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": information_product_prompt()},
+            {"role": "system", "content": get_product_information_system_prompt()},
             {"role": "user", "content": user_query}
         ]
     )
@@ -83,7 +83,7 @@ def get_related_products(context):
     completion = openai_client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": get_related_products_prompt()},
+            {"role": "system", "content": get_recommendation_agent_system_prompt()},
             {"role": "user", "content": json.dumps(context)}
         ]
     )
