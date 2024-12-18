@@ -31,13 +31,21 @@ async def handle_product_info_sent(msg):
 
 
 audit_agent = Agent("AuditAgent")
-@audit_agent.subscribe(channel=humans_channel)
-async def print_human_message(msg):
-    print(f"[AUDIT] [HUMAN CHANNEL]: {msg}")
+@audit_agent.subscribe(channel=agents_channel, filter_func=lambda msg: msg["event"] == "user_query")
+async def user_asks(msg):
+    print(f"User: {msg['payload']}")
 
-@audit_agent.subscribe(channel=agents_channel)
+@audit_agent.subscribe(channel=humans_channel, filter_func=lambda msg: msg["event"] == "product_info")
 async def print_agents_message(msg):
-    print(f"[AUDIT] [AGENTS CHANNEL]: {msg}")
+    print(f"Search Agent:")
+    for product in msg["content"]:
+        print("  - " + product["name"])
+
+@audit_agent.subscribe(channel=humans_channel, filter_func=lambda msg: msg["event"] == "related_products")
+async def print_recommendation(msg):
+    print(f"Recommendation Agent:")
+    for product in msg["content"]:
+        print("  - " + product["name"] + " (Reason: " + product["reason"] + ")")
 
 
 async def main():
