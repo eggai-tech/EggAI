@@ -42,7 +42,7 @@ Example:
 """
 
 
-def get_related_products_prompt(history):
+def get_related_products_prompt():
     product_list_json = json.dumps(product_list, indent=4)
     return """
 You are a Recommender Agent. Your task is to recommend products based on the user context history.
@@ -79,12 +79,12 @@ def get_product_info(user_query: str):
     return json.loads(completion.choices[0].message.content.strip())
 
 
-def get_related_products(history):
+def get_related_products(context):
     completion = openai_client.chat.completions.create(
         model="gpt-4o",
         messages=[
-            {"role": "system", "content": get_related_products_prompt(json.dumps(history))},
-            {"role": "user", "content": json.dumps(history)}
+            {"role": "system", "content": get_related_products_prompt()},
+            {"role": "user", "content": json.dumps(context)}
         ]
     )
 
