@@ -85,6 +85,18 @@ OPENAI_API_KEY="your-api-key" python main.py
 3. Simultaneously, the Product Agent stores the query’s context into `ContextHolder`.
 4. The Recommendation Agent, upon detecting that products have been returned, retrieves the context. It then recommends a few related items based on the user query and the products found.
 5. The console output (or log) will display both the initial product list and the recommended products, illustrating how context is maintained and utilized across multiple agents.
+    ```plaintext
+    Agent is running. Press Ctrl+C to stop.
+    User: Can you recommend a smartphone, i like gaming on it. I prefer Apple if possible
+    Search Agent:
+      - iPhone 15
+      - Samsung Galaxy S23
+      - OnePlus 11
+    Recommendation Agent:
+      - MacBook Pro 14-inch (Reason: Recommended as it offers a seamless Apple ecosystem experience for gaming and productivity.)
+      - Razer Blade 15 (Reason: Recommended for gaming enthusiasts, providing high-quality graphics and performance.)
+    Task was cancelled. Cleaning up...
+    ```
 
 ---
 
