@@ -8,6 +8,7 @@ class MessageBase(BaseModel):
     Provides the common fields required for every message.
     """
     id: UUID4 = Field(..., description="Unique identifier for correlating requests and responses.")
-    message_type: str = Field(..., description="Type of the message (e.g., request, response, event).")
+    type: str = Field(..., description="Type of the message (e.g., request, response, event).")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata for the message.")
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Contextual information for the message.")
     payload: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Message-specific data.")
