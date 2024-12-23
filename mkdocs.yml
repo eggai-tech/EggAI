@@ -20,6 +20,8 @@ nav:
     - "Coordinator": examples/01-coordinator.md
     - "Websocket Gateway": examples/02-websocket-gateway.md
     - "LangChain Tool Calling": examples/03-langchain-tool-calling.md
+    - "Shared Context": examples/04-context.md
+    - "LiteLLM Integration": examples/05-litellm-agent.md
   - References:
     - "Agent": references/agent.md
     - "Channel": references/channel.md
