@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../00-getting-started/">
+        <link rel="prev" href="../04-context/">
       
       
-        <link rel="next" href="../02-websocket-gateway/">
+        <link rel="next" href="../../references/agent/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Coordinator - EggAI Multi-Agent Framework</title>
+        <title>LiteLLM Integration - EggAI Multi-Agent Framework</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#advanced-use-case-multi-agent-communication-with-human-and-agent-channels" class="md-skip">
+        <a href="#integrating-litellm-with-eggai-framework" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Coordinator
+              LiteLLM Integration
             
           </span>
         </div>
@@ -323,30 +323,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Coordinator
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../01-coordinator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -355,152 +335,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      Prerequisites 🔧
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      Overview 🔄
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Overview 🔄">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#key-features-highlighted" class="md-nav__link">
-    <span class="md-ellipsis">
-      Key Features Highlighted:
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setup-instructions" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setup Instructions ⏳
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup Instructions ⏳">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-create-a-virtual-environment-optional-but-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 1: Create a Virtual Environment (Optional but Recommended) 🌍
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-install-the-eggai-library" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 2: Install the EggAI Library 🎓
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-3-start-required-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 3: Start Required Services with Docker 🚢
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-the-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running the Example 🏆
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Running the Example 🏆">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#workflow-description" class="md-nav__link">
-    <span class="md-ellipsis">
-      Workflow Description:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#example-output" class="md-nav__link">
-    <span class="md-ellipsis">
-      Example Output:
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#stopping-and-cleaning-up" class="md-nav__link">
-    <span class="md-ellipsis">
-      Stopping and Cleaning Up ❌
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      Next Steps 🚀
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -573,10 +407,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../05-litellm-agent/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    LiteLLM Integration
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -585,6 +439,161 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#whats-inside" class="md-nav__link">
+    <span class="md-ellipsis">
+      What’s Inside? 🗂️
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What’s Inside? 🗂️">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agents
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flow
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites 🔧
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Setup Instructions ⏳
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setup Instructions ⏳">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-install-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Install Dependencies
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-start-services-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Start Services with Docker
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-the-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running the Example 🏆
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture Overview 🔁
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Code Breakdown 🔬
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Breakdown 🔬">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      Key Components
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleaning-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cleaning Up ❌
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      Next Steps 🚀
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -731,28 +740,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites 🔧
+      What’s Inside? 🗂️
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What’s Inside? 🗂️">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agents
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      Overview 🔄
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Overview 🔄">
-      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#key-features-highlighted" class="md-nav__link">
+  <a href="#flow" class="md-nav__link">
     <span class="md-ellipsis">
-      Key Features Highlighted:
+      Flow
     </span>
   </a>
   
@@ -760,6 +769,15 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites 🔧
+    </span>
+  </a>
   
 </li>
       
@@ -774,27 +792,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#step-1-create-a-virtual-environment-optional-but-recommended" class="md-nav__link">
+  <a href="#step-1-install-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 1: Create a Virtual Environment (Optional but Recommended) 🌍
+      Step 1: Install Dependencies
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#step-2-install-the-eggai-library" class="md-nav__link">
+  <a href="#step-2-start-services-with-docker" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 2: Install the EggAI Library 🎓
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-3-start-required-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 3: Start Required Services with Docker 🚢
+      Step 2: Start Services with Docker
     </span>
   </a>
   
@@ -812,22 +821,31 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Running the Example 🏆">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#workflow-description" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-overview" class="md-nav__link">
     <span class="md-ellipsis">
-      Workflow Description:
+      Architecture Overview 🔁
     </span>
   </a>
   
 </li>
+      
+        <li class="md-nav__item">
+  <a href="#code-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Code Breakdown 🔬
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Breakdown 🔬">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#example-output" class="md-nav__link">
+  <a href="#key-components" class="md-nav__link">
     <span class="md-ellipsis">
-      Example Output:
+      Key Components
     </span>
   </a>
   
@@ -839,9 +857,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#stopping-and-cleaning-up" class="md-nav__link">
+  <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Stopping and Cleaning Up ❌
+      Cleaning Up ❌
     </span>
   </a>
   
@@ -871,110 +889,159 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../examples/01-coordinator/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="advanced-use-case-multi-agent-communication-with-human-and-agent-channels">Advanced Use Case: Multi-Agent Communication with Human and Agent Channels 🤖</h1>
-<p>Welcome to the advanced example of the <strong>EggAI Multi-Agent Framework</strong>! This demo highlights a more complex workflow involving <strong>two communication channels</strong>:</p>
+<!-- BEGIN INCLUDE ../../examples/05-litellm-agent/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="integrating-litellm-with-eggai-framework">Integrating LiteLLM with EggAI Framework 🧪🫶</h1>
+<p>Welcome to the <strong>05-litellm-agent</strong> example for <strong>EggAI</strong>! This example demonstrates how to integrate LiteLLM into the EggAI framework, showcasing how to handle customer inquiries in a structured and scalable way using two AI agents: <strong>SupportAgent</strong> and <strong>EscalationAgent</strong>. These agents collaborate to provide responses to customer queries, escalating issues when necessary.</p>
+<hr />
+<h2 id="whats-inside">What’s Inside? 🗂️</h2>
+<h3 id="agents"><strong>Agents</strong></h3>
+<ul>
+<li><strong>LiteLlmAgent</strong>:</li>
+<li>An agent class based on the EggAI framework’s Agent class.</li>
+<li>Provides a completion wrapper function for seamless interaction with language models.</li>
+<li>
+<p>Supports calling tools for enhanced functionality and task-specific operations.</p>
+</li>
+<li>
+<p><strong>SupportAgent</strong>:</p>
+</li>
+<li>Uses a system prompt to handle common customer inquiries such as return policies, shipping times, and product information.</li>
+<li>Leverages LiteLLM to determine whether it can respond or if the issue needs escalation.</li>
+<li>
+<p>Utilizes the <code>GetKnowledge</code> tool to query a simulated knowledge base.</p>
+</li>
+<li>
+<p><strong>EscalationAgent</strong>:</p>
+</li>
+<li>Handles more complex issues by creating support tickets.</li>
+<li>Notifies the user and the support team about the ticket.</li>
+<li>Uses the <code>TicketingTool</code> to simulate ticket creation.</li>
+</ul>
+<h3 id="flow"><strong>Flow</strong></h3>
 <ol>
-<li><strong>Human Channel</strong>: Exposes an interface for users (or frontends) to send and receive data related to complex workflows managed by agents.</li>
-<li><strong>Agent Channel</strong>: Handles message passing and events between multiple agents.</li>
+<li><strong>Customer Inquiry</strong>:</li>
+<li>A customer sends a question, such as "What is your return policy?" or "I have a billing issue."</li>
+<li>
+<p>The inquiry is published on the <code>humans</code> channel.</p>
+</li>
+<li>
+<p><strong>SupportAgent</strong>:</p>
+</li>
+<li>Listens for inquiries and processes the question.</li>
+<li>Uses the <code>GetKnowledge</code> tool to fetch relevant information from the knowledge base.</li>
+<li>If the issue is straightforward, it responds directly to the customer.</li>
+<li>
+<p>If the issue is complex, it escalates to the EscalationAgent.</p>
+</li>
+<li>
+<p><strong>EscalationAgent</strong>:</p>
+</li>
+<li>Listens for escalated inquiries.</li>
+<li>Creates a support ticket for the issue using the <code>TicketingTool</code>.</li>
+<li>Publishes the ticket details to the <code>agents</code> channel.</li>
+<li>
+<p>Informs the customer about the escalation and provides a ticket ID.</p>
+</li>
+<li>
+<p><strong>Output</strong>:</p>
+</li>
+<li>Customers receive a response (either directly or with a ticket ID).</li>
+<li>Agents work collaboratively to ensure a seamless experience.</li>
 </ol>
-<p>In this setup, a <strong>Coordinator Agent</strong> orchestrates the flow between the human channel and the worker agents: <strong>Email Agent</strong> and <strong>Order Agent</strong>.</p>
-<p>The code for the example can be found <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/01-coordinator">here</a></p>
-<p>Let’s get started! 🚀</p>
 <hr />
 <h2 id="prerequisites">Prerequisites 🔧</h2>
-<p>Before you begin, ensure you have the following tools installed:</p>
+<p>Before running this example, ensure you have the following:</p>
 <ul>
 <li><strong>Python</strong> 3.10+</li>
 <li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
-</ul>
-<hr />
-<h2 id="overview">Overview 🔄</h2>
-<p>In this demo, you will:</p>
-<ul>
-<li>Use a <strong>Human Channel</strong> to send a request to create an order.</li>
-<li>Have the <strong>Coordinator Agent</strong> process the request and distribute tasks to the worker agents.</li>
-<li>Receive a notification via the <strong>Human Channel</strong> once the task is completed.</li>
-</ul>
-<p>Below is the architecture diagram for this example:</p>
-<p><img alt="architecture-advanced-example.png" src="../../assets/architecture-coordinator.svg" /></p>
-<h3 id="key-features-highlighted">Key Features Highlighted:</h3>
-<ul>
-<li>🤝 <strong>Human-Agent Interaction:</strong> Human Channel bridges the gap between users and agents.</li>
-<li>🧑‍🤝‍🧑 <strong>Coordinator Role:</strong> Coordinator Agent orchestrates workflows and delegates tasks to worker agents.</li>
-<li>📬 <strong>Worker Agents:</strong> Specialized agents handle specific tasks, like email notifications and order processing.</li>
-<li>⚡ <strong>Event-Driven Design:</strong> Real-time updates and notifications via the Human Channel.</li>
+<li>The EggAI framework installed (<code>pip install eggai</code>)</li>
+<li><strong>LiteLLM</strong> library installed</li>
 </ul>
 <hr />
 <h2 id="setup-instructions">Setup Instructions ⏳</h2>
-<h3 id="step-1-create-a-virtual-environment-optional-but-recommended">Step 1: Create a Virtual Environment (Optional but Recommended) 🌍</h3>
-<p>To avoid dependency conflicts, create and activate a virtual environment:</p>
-<pre><code class="language-bash">python -m venv venv
-source venv/bin/activate  # For Windows: venv\Scripts\activate
+<h3 id="step-1-install-dependencies">Step 1: Install Dependencies</h3>
+<pre><code class="language-bash">pip install eggai litellm
 </code></pre>
-<hr />
-<h3 id="step-2-install-the-eggai-library">Step 2: Install the EggAI Library 🎓</h3>
-<p>Use <code>pip</code> to install the EggAI framework:</p>
-<pre><code class="language-bash">pip install eggai
-</code></pre>
-<hr />
-<h3 id="step-3-start-required-services-with-docker">Step 3: Start Required Services with Docker 🚢</h3>
-<p>EggAI relies on brokers like Kafka or <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> and other services to function seamlessly. Start these services using Docker Compose:</p>
+<h3 id="step-2-start-services-with-docker">Step 2: Start Services with Docker</h3>
+<p>This example uses a messaging broker. Start the necessary services:</p>
 <pre><code class="language-bash">docker compose up -d
 </code></pre>
-<p>This command will:
-- Spin up the <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> broker.
-- Start the necessary infrastructure components for the framework.</p>
 <hr />
 <h2 id="running-the-example">Running the Example 🏆</h2>
-<p>The example code for this demo is included in the <code>examples/01-coordinator/main.py</code> folder. Run the <code>main.py</code> file to execute the workflow:</p>
+<p>Navigate to the <code>examples/05-litellm-agent</code> folder and run the main script:</p>
 <pre><code class="language-bash">python main.py
 </code></pre>
-<h3 id="workflow-description">Workflow Description:</h3>
+<p><strong>What to expect:</strong></p>
 <ol>
-<li><strong>Request Sent to Human Channel</strong>:</li>
-<li>
-<p>The <code>main.py</code> file sends a request to create an order (<code>Laptop</code>, quantity <code>1</code>) via the Human Channel.</p>
-</li>
-<li>
-<p><strong>Coordinator Orchestrates Workflow</strong>:</p>
-</li>
-<li>
-<p>The Coordinator Agent receives the request and delegates tasks to the worker agents:</p>
-<ul>
-<li><strong>Order Agent</strong>: Processes the order creation.</li>
-<li><strong>Email Agent</strong>: Sends an email notification for the created order.</li>
-</ul>
-</li>
-<li>
-<p><strong>Notification Sent Back to Human Channel</strong>:</p>
-</li>
-<li>Once the workflow is complete, the Coordinator publishes an update to the Human Channel, notifying the user that the task has been successfully processed.</li>
+<li><strong>Customer Inquiry</strong>: You’ll see a customer query such as "What is your return policy?" being processed.</li>
+<li><strong>SupportAgent Response</strong>:</li>
+<li>If the inquiry is simple, the SupportAgent responds directly using information from the knowledge base.</li>
+<li>Example:
+     <code>plaintext
+     Handling customer inquiry: What is your return policy?
+     Querying knowledge base for: return_policy
+     Response from SupportAgent: {"response": "Our return policy is 30 days from the date of purchase. Items must be in their original condition."}
+     Responding directly to the customer...</code></li>
+<li><strong>Escalation</strong>: For complex issues, the inquiry is escalated to the EscalationAgent.</li>
+<li>Example:
+     <code>plaintext
+     Handling customer inquiry: I have a billing issue that isn't resolved yet.
+     Response from SupportAgent: {"response": "escalate"}
+     Escalating issue to EscalationAgent...
+     Support ticket created: TCKT123456, informing customer...</code></li>
 </ol>
-<h3 id="example-output">Example Output:</h3>
-<pre><code class="language-plaintext">[COORDINATOR]: action message received. Forwarding to agents channel.
-Agent is running. Press Ctrl+C to stop.
-[ORDER AGENT]: order_requested event received. Emitting order_created event.
-[EMAIL AGENT]: order_created event received. Sending email to customer.
-[EMAIL AGENT]: order_created event received. Sending notification event.
-[ORDER AGENT]: order_created event received.
-[COORDINATOR]: human=true message received. Forwarding to human channel.
-[COORDINATOR]: Received notification for human:  Order created, you will receive an email soon.
-</code></pre>
 <hr />
-<h2 id="stopping-and-cleaning-up">Stopping and Cleaning Up ❌</h2>
-<p>When you're done, stop and clean up the Docker containers to free up resources:</p>
+<h2 id="architecture-overview">Architecture Overview 🔁</h2>
+<ol>
+<li><strong>User Query</strong>: Customers send inquiries (e.g., "What is your return policy?").</li>
+<li><strong>SupportAgent</strong>: Handles general inquiries using a knowledge base or escalates complex issues.</li>
+<li><strong>EscalationAgent</strong>: Creates support tickets for escalated issues and notifies customers.</li>
+<li><strong>Channels</strong>:</li>
+<li><strong>Humans Channel</strong>: For interactions between customers and agents.</li>
+<li><strong>Agents Channel</strong>: For communication between agents.</li>
+</ol>
+<hr />
+<h2 id="code-breakdown">Code Breakdown 🔬</h2>
+<h3 id="key-components">Key Components</h3>
+<ol>
+<li><strong>LiteLlmAgent Initialization</strong>:</li>
+<li>
+<p><code>SupportAgent</code> and <code>EscalationAgent</code> are initialized with system prompts and model configurations.</p>
+</li>
+<li>
+<p><strong>Tools</strong>:</p>
+</li>
+<li><code>GetKnowledge</code>: Used by the SupportAgent to query a simulated knowledge base.</li>
+<li>
+<p><code>TicketingTool</code>: Used by the EscalationAgent to simulate ticket creation.</p>
+</li>
+<li>
+<p><strong>Message Handling</strong>:</p>
+</li>
+<li>Agents subscribe to channels and listen for specific message types.</li>
+<li>
+<p>Context is passed seamlessly between agents using structured messages.</p>
+</li>
+<li>
+<p><strong>Main Script</strong>:</p>
+</li>
+<li>Simulates both simple and complex customer inquiries.</li>
+<li>Manages agent lifecycle and cleanup.</li>
+</ol>
+<hr />
+<h2 id="cleaning-up">Cleaning Up ❌</h2>
+<p>When you’re done, stop the services:</p>
 <pre><code class="language-bash">docker compose down -v
 </code></pre>
-<p>This will stop all running containers and remove any associated volumes.</p>
 <hr />
 <h2 id="next-steps">Next Steps 🚀</h2>
-<p>Ready to explore further? Check out:
-- <strong>Advanced Examples:</strong> Discover more complex use cases in the <code>examples/</code> folder.
-- <strong>Contribution Guidelines:</strong> Get involved and help improve EggAI!
-- <strong>GitHub Issues:</strong> <a href="https://github.com/eggai-tech/eggai/issues">Submit a bug or feature request</a>.
-- <strong>Documentation:</strong> Refer to the official docs for deeper insights.</p>
-<p>Thank you for choosing EggAI Multi-Agent Framework. Happy coding! 🤖🥚</p>
+<ul>
+<li><strong>Explore</strong>: Try modifying the example to include additional agents or tools.</li>
+<li><strong>Learn More</strong>: Check out other examples in the <code>examples</code> folder for advanced patterns.</li>
+<li><strong>Contribute</strong>: Share your feedback, report issues, or contribute to the EggAI project.</li>
+</ul>
+<hr />
+<p>Thank you for exploring how LiteLLM integrates into EggAI to create efficient, context-aware multi-agent systems! 🙏🧪</p>
 <!-- END INCLUDE -->
 
 
