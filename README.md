@@ -17,6 +17,7 @@
 [Getting Started](#-getting-started) •
 [Core Concepts](#-core-concepts) •
 [Examples](#-examples) •
+[Why Copy/Paste?](-why-copypaste) •
 [Contribution](#-contribution) •
 [License](#-license)
 
