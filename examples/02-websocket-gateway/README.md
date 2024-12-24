@@ -1,6 +1,6 @@
 # Advanced Use Case: Multi-Agent Communication with Human, WebSocket, and Agent Channels 🤖🕸️
 
-Welcome to the advanced example of the **EggAI Multi-Agent Framework**! This demo showcases a rich workflow involving **multiple communication channels**, advanced coordination, and real-time message exchange.
+Welcome to the advanced example of the **EggAI Multi-Agent Meta Framework**! This demo showcases a rich workflow involving **multiple communication channels**, advanced coordination, and real-time message exchange.
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/02-websocket-gateway)
 
@@ -171,4 +171,4 @@ This command halts all running containers and removes any associated volumes, re
 - **Open Issues or Suggest Features:** [File an issue on GitHub](https://github.com/eggai-tech/eggai/issues) if you encounter bugs or want to request new functionalities.
 - **Dive into the Documentation:** Explore the official docs to understand all configuration options, architectural best practices, and performance tuning tips.
 
-**Thank you for choosing the EggAI Multi-Agent Framework. Enjoy building responsive, scalable, and intelligent agent-driven systems!** 🤖🥚
+**Thank you for choosing the EggAI Multi-Agent Meta Framework. Enjoy building responsive, scalable, and intelligent agent-driven systems!** 🤖🥚

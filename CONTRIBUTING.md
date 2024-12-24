@@ -1,6 +1,6 @@
-# Contributing to EggAI Multi-Agent Framework
+# Contributing to EggAI Multi-Agent Meta Framework
 
-Thank you for considering contributing to **EggAI Multi-Agent Framework**! 🎉 We value your contributions and want to make the process as smooth as possible. Please follow the guidelines below to get started.
+Thank you for considering contributing to **EggAI Multi-Agent Meta Framework**! 🎉 We value your contributions and want to make the process as smooth as possible. Please follow the guidelines below to get started.
 
 ---
 
@@ -96,8 +96,8 @@ fix: resolve issue with login timeout
 
 ## License
 
-By contributing to **EggAI Multi-Agent Framework**, you agree that your contributions will be licensed under the [Project License](LICENSE.md).
+By contributing to **EggAI Multi-Agent Meta Framework**, you agree that your contributions will be licensed under the [Project License](LICENSE.md).
 
 ---
 
-Thank you for contributing to **EggAI Multi-Agent Framework!** 💖
+Thank you for contributing to **EggAI Multi-Agent Meta Framework!** 💖

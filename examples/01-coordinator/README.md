@@ -1,6 +1,6 @@
 # Advanced Use Case: Multi-Agent Communication with Human and Agent Channels 🤖
 
-Welcome to the advanced example of the **EggAI Multi-Agent Framework**! This demo highlights a more complex workflow involving **two communication channels**:
+Welcome to the advanced example of the **EggAI Multi-Agent Meta Framework**! This demo highlights a more complex workflow involving **two communication channels**:
 
 1. **Human Channel**: Exposes an interface for users (or frontends) to send and receive data related to complex workflows managed by agents.
 2. **Agent Channel**: Handles message passing and events between multiple agents.
@@ -136,4 +136,4 @@ Ready to explore further? Check out:
 - **GitHub Issues:** [Submit a bug or feature request](https://github.com/eggai-tech/eggai/issues).
 - **Documentation:** Refer to the official docs for deeper insights.
 
-Thank you for choosing EggAI Multi-Agent Framework. Happy coding! 🤖🥚
+Thank you for choosing EggAI Multi-Agent Meta Framework. Happy coding! 🤖🥚

@@ -1,6 +1,6 @@
-# Getting Started with EggAI Multi-Agent Framework 🤖
+# Getting Started with EggAI Multi-Agent Meta Framework 🤖
 
-Welcome to the **EggAI Multi-Agent Framework**! This guide will help you set up and run a simple use case demonstrating how to orchestrate and manage two agents in an asynchronous, event-driven architecture. Let's dive in! 🚀
+Welcome to the **EggAI Multi-Agent Meta Framework**! This guide will help you set up and run a simple use case demonstrating how to orchestrate and manage two agents in an asynchronous, event-driven architecture. Let's dive in! 🚀
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/00-getting-started)
 
@@ -103,5 +103,5 @@ Ready to explore further? Check out:
 - **GitHub Issues:** [Submit a bug or feature request](https://github.com/eggai-tech/eggai/issues).
 - **Documentation:** Refer to the official docs for deeper insights.
 
-Thank you for choosing EggAI Multi-Agent Framework. Happy coding! 🤖🥚
+Thank you for choosing EggAI Multi-Agent Meta Framework. Happy coding! 🤖🥚
 
