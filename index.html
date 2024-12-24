@@ -814,7 +814,7 @@
 <p><code>EggAI Multi-Agent Meta Framework</code> provides the <code>eggai</code> Python library that simplifies the development of multi-agent systems.
 It allows developers to focus on business logic while handling the complexities of distributed systems.</p>
 <h2 id="meta-framework-approach">🛠️ Meta-Framework Approach</h2>
-<p>EggAI is designed as a meta-framework, offering a robust baseline setup that includes essential primitives such as Agent and Channel classes. This foundational structure enables seamless communication within multi-agent systems while providing the flexibility to integrate and utilize various specialized frameworks like <a href="https://dspy.ai/">DSPy</a>, <a href="https://www.langchain.com/">LangChain</a>, and <a href="https://www.llamaindex.ai/">LlamaIndex</a> within each agent. By adopting a meta-framework architecture, EggAI ensures that developers can leverage the strengths of multiple tools and libraries, fostering a highly customizable and extensible development environment tailored to diverse enterprise needs.</p>
+<p>EggAI is designed as a <strong>meta-framework</strong>, providing essential primitives like <code>Agent</code> and <code>Channel</code> to enable seamless communication within multi-agent systems. It also integrates easily with specialized frameworks like <a href="https://dspy.ai/">DSPy</a>, <a href="https://www.langchain.com/">LangChain</a>, or <a href="https://www.llamaindex.ai/">LlamaIndex</a>, so you can build a highly customizable and extensible environment tailored to your enterprise needs. </p>
 <h2 id="system-architecture">🏗️ System Architecture</h2>
 <p><img alt="System Architecture" src="assets/system-architecture.svg" /></p>
 <ol>
@@ -859,7 +859,9 @@ It allows developers to focus on business logic while handling the complexities 
 <pre><code class="language-bash">pip install eggai
 </code></pre>
 <h2 id="getting-started">🚀 Getting Started</h2>
-<p>Here's how you can quickly set up an agent to handle events in an event-driven system:</p>
+<p>Below is a quick “recipe” that you can <strong>copy/paste</strong> and adapt. It shows how to set up an agent to handle events in an event-driven system:</p>
+<p>python
+Copy code</p>
 <pre><code class="language-python">import asyncio
 
 from eggai import Agent, Channel
@@ -899,7 +901,7 @@ async def main():
 if __name__ == &quot;__main__&quot;:
     asyncio.run(main())
 </code></pre>
-<p>This code demonstrates how to define an <code>Agent</code> and use it to process events from Kafka topics.</p>
+<p>Copy this snippet into your project, customize it, and you’re good to go!</p>
 <h2 id="core-concepts">💡 Core Concepts</h2>
 <h3 id="agent">🤖 Agent</h3>
 <p>An <code>Agent</code> is an isolated unit of business logic designed to orchestrate workflows, process events, and communicate with external systems such as LLMs and APIs.
