@@ -76,11 +76,7 @@ pip install eggai
 
 ## 🚀 Getting Started
 
-Below is a quick “recipe” that you can **copy/paste** and adapt. It shows how to set up an agent to handle events in an event-driven system:
-
-python
-Copy code
-
+Here's how you can quickly set up an agent to handle events in an event-driven system:
 
 ```python
 import asyncio
