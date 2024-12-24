@@ -37,7 +37,7 @@
 It allows developers to focus on business logic while handling the complexities of distributed systems.
 
 ## 🛠️ Meta-Framework Approach
-EggAI is designed as a meta-framework, offering a robust baseline setup that includes essential primitives such as Agent and Channel classes. This foundational structure enables seamless communication within multi-agent systems while providing the flexibility to integrate and utilize various specialized frameworks like DSPy, LangChain, and LlamaIndex within each agent. By adopting a meta-framework architecture, EggAI ensures that developers can leverage the strengths of multiple tools and libraries, fostering a highly customizable and extensible development environment tailored to diverse enterprise needs.
+EggAI is designed as a meta-framework, offering a robust baseline setup that includes essential primitives such as Agent and Channel classes. This foundational structure enables seamless communication within multi-agent systems while providing the flexibility to integrate and utilize various specialized frameworks like [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/) within each agent. By adopting a meta-framework architecture, EggAI ensures that developers can leverage the strengths of multiple tools and libraries, fostering a highly customizable and extensible development environment tailored to diverse enterprise needs.
 
 ## 🏗️ System Architecture
 
