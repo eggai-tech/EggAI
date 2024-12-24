@@ -466,20 +466,44 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#agents" class="md-nav__link">
+  <a href="#flow" class="md-nav__link">
     <span class="md-ellipsis">
-      Agents
+      Flow 🌊
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flow 🌊">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#customer-inquiry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Customer Inquiry:
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#flow" class="md-nav__link">
+  <a href="#supportagent" class="md-nav__link">
     <span class="md-ellipsis">
-      Flow
+      SupportAgent:
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escalationagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      EscalationAgent:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -495,16 +519,7 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setup-instructions" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setup Instructions ⏳
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup Instructions ⏳">
+    <nav class="md-nav" aria-label="Prerequisites 🔧">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -534,6 +549,15 @@
   <a href="#running-the-example" class="md-nav__link">
     <span class="md-ellipsis">
       Running the Example 🏆
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#expected-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Expected output 📤
     </span>
   </a>
   
@@ -750,20 +774,44 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#agents" class="md-nav__link">
+  <a href="#flow" class="md-nav__link">
     <span class="md-ellipsis">
-      Agents
+      Flow 🌊
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flow 🌊">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#customer-inquiry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Customer Inquiry:
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#flow" class="md-nav__link">
+  <a href="#supportagent" class="md-nav__link">
     <span class="md-ellipsis">
-      Flow
+      SupportAgent:
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escalationagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      EscalationAgent:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -779,16 +827,7 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setup-instructions" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setup Instructions ⏳
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup Instructions ⏳">
+    <nav class="md-nav" aria-label="Prerequisites 🔧">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -818,6 +857,15 @@
   <a href="#running-the-example" class="md-nav__link">
     <span class="md-ellipsis">
       Running the Example 🏆
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#expected-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Expected output 📤
     </span>
   </a>
   
@@ -893,72 +941,43 @@
 <h1 id="integrating-litellm-with-eggai-framework">Integrating LiteLLM with EggAI Framework 🧪🫶</h1>
 <p>Welcome to the <strong>05-litellm-agent</strong> example for <strong>EggAI</strong>! This example demonstrates how to integrate LiteLLM into the EggAI framework, showcasing how to handle customer inquiries in a structured and scalable way using two AI agents: <strong>SupportAgent</strong> and <strong>EscalationAgent</strong>. These agents collaborate to provide responses to customer queries, escalating issues when necessary.</p>
 <hr />
-<h2 id="whats-inside">What’s Inside? 🗂️</h2>
-<h3 id="agents"><strong>Agents</strong></h3>
+<h2 id="whats-inside"><strong>What’s Inside?</strong> 🗂️</h2>
+<p><strong>LiteLlmAgent</strong>:
+- An agent class based on the EggAI framework’s Agent class.
+- Provides a completion wrapper function for seamless interaction with language models.
+- Supports calling tools for enhanced functionality and task-specific operations.</p>
+<p><strong>SupportAgent</strong>:
+- Uses a system prompt to handle common customer inquiries such as return policies, shipping times, and product information.
+- Leverages LiteLLM to determine whether it can respond or if the issue needs escalation.
+- Utilizes the <code>GetKnowledge</code> tool to query a simulated knowledge base.</p>
+<p><strong>EscalationAgent</strong>:
+- Handles more complex issues by creating support tickets.
+- Notifies the user and the support team about the ticket.
+- Uses the <code>TicketingTool</code> to simulate ticket creation.</p>
+<h3 id="flow"><strong>Flow</strong> 🌊</h3>
+<p>The example simulates a customer inquiry system with two agents: SupportAgent and EscalationAgent. The agents interact with each other and the customer through channels. The flow is as follows:</p>
+<h4 id="customer-inquiry"><strong>Customer Inquiry</strong>:</h4>
 <ul>
-<li><strong>LiteLlmAgent</strong>:</li>
-<li>An agent class based on the EggAI framework’s Agent class.</li>
-<li>Provides a completion wrapper function for seamless interaction with language models.</li>
-<li>
-<p>Supports calling tools for enhanced functionality and task-specific operations.</p>
-</li>
-<li>
-<p><strong>SupportAgent</strong>:</p>
-</li>
-<li>Uses a system prompt to handle common customer inquiries such as return policies, shipping times, and product information.</li>
-<li>Leverages LiteLLM to determine whether it can respond or if the issue needs escalation.</li>
-<li>
-<p>Utilizes the <code>GetKnowledge</code> tool to query a simulated knowledge base.</p>
-</li>
-<li>
-<p><strong>EscalationAgent</strong>:</p>
-</li>
-<li>Handles more complex issues by creating support tickets.</li>
-<li>Notifies the user and the support team about the ticket.</li>
-<li>Uses the <code>TicketingTool</code> to simulate ticket creation.</li>
-</ul>
-<h3 id="flow"><strong>Flow</strong></h3>
-<ol>
-<li><strong>Customer Inquiry</strong>:</li>
 <li>A customer sends a question, such as "What is your return policy?" or "I have a billing issue."</li>
-<li>
-<p>The inquiry is published on the <code>humans</code> channel.</p>
-</li>
-<li>
-<p><strong>SupportAgent</strong>:</p>
-</li>
+<li>The inquiry is published on the <code>humans</code> channel.</li>
+</ul>
+<h4 id="supportagent"><strong>SupportAgent</strong>:</h4>
+<ul>
 <li>Listens for inquiries and processes the question.</li>
 <li>Uses the <code>GetKnowledge</code> tool to fetch relevant information from the knowledge base.</li>
 <li>If the issue is straightforward, it responds directly to the customer.</li>
-<li>
-<p>If the issue is complex, it escalates to the EscalationAgent.</p>
-</li>
-<li>
-<p><strong>EscalationAgent</strong>:</p>
-</li>
+<li>If the issue is complex, it escalates to the EscalationAgent.</li>
+</ul>
+<h4 id="escalationagent"><strong>EscalationAgent</strong>:</h4>
+<ul>
 <li>Listens for escalated inquiries.</li>
 <li>Creates a support ticket for the issue using the <code>TicketingTool</code>.</li>
 <li>Publishes the ticket details to the <code>agents</code> channel.</li>
-<li>
-<p>Informs the customer about the escalation and provides a ticket ID.</p>
-</li>
-<li>
-<p><strong>Output</strong>:</p>
-</li>
-<li>Customers receive a response (either directly or with a ticket ID).</li>
-<li>Agents work collaboratively to ensure a seamless experience.</li>
-</ol>
-<hr />
-<h2 id="prerequisites">Prerequisites 🔧</h2>
-<p>Before running this example, ensure you have the following:</p>
-<ul>
-<li><strong>Python</strong> 3.10+</li>
-<li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
-<li>The EggAI framework installed (<code>pip install eggai</code>)</li>
-<li><strong>LiteLLM</strong> library installed</li>
+<li>Informs the customer about the escalation and provides a ticket ID.</li>
 </ul>
 <hr />
-<h2 id="setup-instructions">Setup Instructions ⏳</h2>
+<h2 id="prerequisites"><strong>Prerequisites</strong> 🔧</h2>
+<p>Before running this example, ensure you have the following:</p>
 <h3 id="step-1-install-dependencies">Step 1: Install Dependencies</h3>
 <pre><code class="language-bash">pip install eggai litellm
 </code></pre>
@@ -967,29 +986,23 @@
 <pre><code class="language-bash">docker compose up -d
 </code></pre>
 <hr />
-<h2 id="running-the-example">Running the Example 🏆</h2>
+<h2 id="running-the-example"><strong>Running the Example</strong> 🏆</h2>
 <p>Navigate to the <code>examples/05-litellm-agent</code> folder and run the main script:</p>
 <pre><code class="language-bash">python main.py
 </code></pre>
-<p><strong>What to expect:</strong></p>
-<ol>
-<li><strong>Customer Inquiry</strong>: You’ll see a customer query such as "What is your return policy?" being processed.</li>
-<li><strong>SupportAgent Response</strong>:</li>
-<li>If the inquiry is simple, the SupportAgent responds directly using information from the knowledge base.</li>
-<li>Example:
-     <code>plaintext
-     Handling customer inquiry: What is your return policy?
-     Querying knowledge base for: return_policy
-     Response from SupportAgent: {"response": "Our return policy is 30 days from the date of purchase. Items must be in their original condition."}
-     Responding directly to the customer...</code></li>
-<li><strong>Escalation</strong>: For complex issues, the inquiry is escalated to the EscalationAgent.</li>
-<li>Example:
-     <code>plaintext
-     Handling customer inquiry: I have a billing issue that isn't resolved yet.
-     Response from SupportAgent: {"response": "escalate"}
-     Escalating issue to EscalationAgent...
-     Support ticket created: TCKT123456, informing customer...</code></li>
-</ol>
+<h2 id="expected-output"><strong>Expected output</strong> 📤</h2>
+<pre><code class="language-plaintext">Handling customer inquiry: What is your return policy?
+Agent is running. Press Ctrl+C to stop.
+Handling customer inquiry: I have a billing issue that isn't resolved yet.
+Querying knowledge base for: return_policy
+Response from SupportAgent: {'response': 'Our return policy is 30 days from the date of purchase. Items must be in their original condition.'}
+Responding directly to the customer...
+Querying knowledge base for: billing_issue
+Response from SupportAgent: {'response': 'escalate'}
+Escalating issue to EscalationAgent...
+Creating support ticket for issue: I have a billing issue that isn't resolved yet.
+Ticket created for escalated issue:  {'ticket_id': 'TCKT1188', 'department': 'Billing Department'}
+</code></pre>
 <hr />
 <h2 id="architecture-overview">Architecture Overview 🔁</h2>
 <ol>

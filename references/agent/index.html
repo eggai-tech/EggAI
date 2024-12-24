@@ -732,7 +732,7 @@
 
 
               <details class="quote">
-                <summary>Source code in <code>eggai\agent.py</code></summary>
+                <summary>Source code in <code>eggai/agent.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 28</span>
 <span class="normal"> 29</span>
 <span class="normal"> 30</span>
@@ -888,7 +888,8 @@
 <span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
-<span class="normal">183</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Agent</span><span class="p">:</span>
+<span class="normal">183</span>
+<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Agent</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A message-based agent for subscribing to events and handling messages with user-defined functions.</span>
 
@@ -976,6 +977,7 @@
                 <span class="n">bootstrap_servers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kafka_settings</span><span class="o">.</span><span class="n">BOOTSTRAP_SERVERS</span><span class="p">,</span>
                 <span class="n">group_id</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">_group&quot;</span><span class="p">,</span>
                 <span class="n">auto_offset_reset</span><span class="o">=</span><span class="s2">&quot;latest&quot;</span><span class="p">,</span>
+                <span class="n">rebalance_timeout_ms</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consumer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
@@ -1104,7 +1106,7 @@
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\agent.py</code></summary>
+              <summary>Source code in <code>eggai/agent.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">38</span>
 <span class="normal">39</span>
 <span class="normal">40</span>
@@ -1181,9 +1183,8 @@ incoming messages.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\agent.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">151</span>
-<span class="normal">152</span>
+              <summary>Source code in <code>eggai/agent.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">152</span>
 <span class="normal">153</span>
 <span class="normal">154</span>
 <span class="normal">155</span>
@@ -1196,7 +1197,8 @@ incoming messages.</p>
 <span class="normal">162</span>
 <span class="normal">163</span>
 <span class="normal">164</span>
-<span class="normal">165</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">165</span>
+<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Start the agent by initializing the Kafka producer and consumer, and begin handling messages.</span>
 
@@ -1259,9 +1261,8 @@ incoming messages.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\agent.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">167</span>
-<span class="normal">168</span>
+              <summary>Source code in <code>eggai/agent.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">168</span>
 <span class="normal">169</span>
 <span class="normal">170</span>
 <span class="normal">171</span>
@@ -1276,7 +1277,8 @@ incoming messages.</p>
 <span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
-<span class="normal">183</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">183</span>
+<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Stop the agent gracefully by cancelling the running task and stopping the producer.</span>
 
@@ -1422,7 +1424,7 @@ async def handle_order_created(message):
     print(f"Order created: {message}")</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>eggai\agent.py</code></summary>
+              <summary>Source code in <code>eggai/agent.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">53</span>
 <span class="normal">54</span>
 <span class="normal">55</span>
