@@ -113,6 +113,7 @@ class Agent:
                 bootstrap_servers=self.kafka_settings.BOOTSTRAP_SERVERS,
                 group_id=f"{self.name}_group",
                 auto_offset_reset="latest",
+                rebalance_timeout_ms=1000,
             )
             await self._consumer.start()
 
