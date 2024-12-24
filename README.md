@@ -148,7 +148,14 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
 <!--end-->
 ## 👀 Examples
 
-For detailed examples, please refer to [examples](examples).
+For detailed examples, please refer to [examples](examples):
+
+- [Getting Started](examples/00-getting-started.md): Orchestrate two agents asynchronously.
+- [Coordinator](examples/01-coordinator.md): Bridge multiple communication channels.
+- [Websocket Gateway](examples/02-websocket-gateway.md): Real-time interaction via WebSockets.
+- [LangChain Tool Calling](examples/03-langchain-tool-calling.md): Integrate tool calling with [LangChain](https://www.langchain.com/).
+- [Shared Context](examples/04-context.md): Maintain shared context across agents.
+- [LiteLLM Integration](examples/05-litellm-agent.md): Power agents with [LiteLLM](https://www.litellm.ai/).
 
 ## 🤝 Contribution
 
