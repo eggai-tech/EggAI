@@ -4,61 +4,48 @@ Welcome to the **05-litellm-agent** example for **EggAI**! This example demonstr
 
 ---
 
-## What’s Inside? 🗂️
+## **What’s Inside?** 🗂️
 
-### **Agents**
+**LiteLlmAgent**:
+- An agent class based on the EggAI framework’s Agent class.
+- Provides a completion wrapper function for seamless interaction with language models.
+- Supports calling tools for enhanced functionality and task-specific operations.
 
-- **LiteLlmAgent**:
-  - An agent class based on the EggAI framework’s Agent class.
-  - Provides a completion wrapper function for seamless interaction with language models.
-  - Supports calling tools for enhanced functionality and task-specific operations.
+**SupportAgent**:
+- Uses a system prompt to handle common customer inquiries such as return policies, shipping times, and product information.
+- Leverages LiteLLM to determine whether it can respond or if the issue needs escalation.
+- Utilizes the `GetKnowledge` tool to query a simulated knowledge base.
 
-- **SupportAgent**:
-  - Uses a system prompt to handle common customer inquiries such as return policies, shipping times, and product information.
-  - Leverages LiteLLM to determine whether it can respond or if the issue needs escalation.
-  - Utilizes the `GetKnowledge` tool to query a simulated knowledge base.
+**EscalationAgent**:
+- Handles more complex issues by creating support tickets.
+- Notifies the user and the support team about the ticket.
+- Uses the `TicketingTool` to simulate ticket creation.
 
-- **EscalationAgent**:
-  - Handles more complex issues by creating support tickets.
-  - Notifies the user and the support team about the ticket.
-  - Uses the `TicketingTool` to simulate ticket creation.
+### **Flow** 🌊
 
-### **Flow**
+The example simulates a customer inquiry system with two agents: SupportAgent and EscalationAgent. The agents interact with each other and the customer through channels. The flow is as follows:
 
-1. **Customer Inquiry**:
+#### **Customer Inquiry**:
    - A customer sends a question, such as "What is your return policy?" or "I have a billing issue."
    - The inquiry is published on the `humans` channel.
 
-2. **SupportAgent**:
+#### **SupportAgent**:
    - Listens for inquiries and processes the question.
    - Uses the `GetKnowledge` tool to fetch relevant information from the knowledge base.
    - If the issue is straightforward, it responds directly to the customer.
    - If the issue is complex, it escalates to the EscalationAgent.
 
-3. **EscalationAgent**:
+#### **EscalationAgent**:
    - Listens for escalated inquiries.
    - Creates a support ticket for the issue using the `TicketingTool`.
    - Publishes the ticket details to the `agents` channel.
    - Informs the customer about the escalation and provides a ticket ID.
 
-4. **Output**:
-   - Customers receive a response (either directly or with a ticket ID).
-   - Agents work collaboratively to ensure a seamless experience.
-
 ---
 
-## Prerequisites 🔧
+## **Prerequisites** 🔧
 
 Before running this example, ensure you have the following:
-
-- **Python** 3.10+
-- **Docker** and **Docker Compose**
-- The EggAI framework installed (`pip install eggai`)
-- **LiteLLM** library installed
-
----
-
-## Setup Instructions ⏳
 
 ### Step 1: Install Dependencies
 
@@ -76,7 +63,7 @@ docker compose up -d
 
 ---
 
-## Running the Example 🏆
+## **Running the Example** 🏆
 
 Navigate to the `examples/05-litellm-agent` folder and run the main script:
 
@@ -84,27 +71,21 @@ Navigate to the `examples/05-litellm-agent` folder and run the main script:
 python main.py
 ```
 
-**What to expect:**
+## **Expected output** 📤
 
-1. **Customer Inquiry**: You’ll see a customer query such as "What is your return policy?" being processed.
-2. **SupportAgent Response**:
-   - If the inquiry is simple, the SupportAgent responds directly using information from the knowledge base.
-   - Example:
-     ```plaintext
-     Handling customer inquiry: What is your return policy?
-     Querying knowledge base for: return_policy
-     Response from SupportAgent: {"response": "Our return policy is 30 days from the date of purchase. Items must be in their original condition."}
-     Responding directly to the customer...
-     ```
-3. **Escalation**: For complex issues, the inquiry is escalated to the EscalationAgent.
-   - Example:
-     ```plaintext
-     Handling customer inquiry: I have a billing issue that isn't resolved yet.
-     Response from SupportAgent: {"response": "escalate"}
-     Escalating issue to EscalationAgent...
-     Support ticket created: TCKT123456, informing customer...
-     ```
-
+```plaintext
+Handling customer inquiry: What is your return policy?
+Agent is running. Press Ctrl+C to stop.
+Handling customer inquiry: I have a billing issue that isn't resolved yet.
+Querying knowledge base for: return_policy
+Response from SupportAgent: {'response': 'Our return policy is 30 days from the date of purchase. Items must be in their original condition.'}
+Responding directly to the customer...
+Querying knowledge base for: billing_issue
+Response from SupportAgent: {'response': 'escalate'}
+Escalating issue to EscalationAgent...
+Creating support ticket for issue: I have a billing issue that isn't resolved yet.
+Ticket created for escalated issue:  {'ticket_id': 'TCKT1188', 'department': 'Billing Department'}
+```
 ---
 
 ## Architecture Overview 🔁

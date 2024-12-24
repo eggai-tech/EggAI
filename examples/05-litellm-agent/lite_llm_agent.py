@@ -6,6 +6,34 @@ import litellm
 
 from eggai import Agent
 
+def function_to_json_schema(func: Callable) -> dict:
+    parameters = {"type": "object", "properties": {}, "required": []}
+    sig = inspect.signature(func)
+    name = func.__name__
+    docstring = (inspect.getdoc(func) or "").split('\n')
+    description = " ".join([line for line in docstring if line.strip() and not line.lstrip().startswith(':')])
+
+    for param in sig.parameters.values():
+        if param.name == "self":
+            continue
+        if param.default == inspect.Parameter.empty:
+            parameters["required"].append(param.name)
+        parameters["properties"][param.name] = {
+            "type": "string",
+            "description": param.name,
+        }
+        if len(docstring) > 0:
+            for line in docstring:
+                if line.startswith(f":param {param.name}:"):
+                    parameters["properties"][param.name]["description"] = line.split(":param ")[1]
+    return {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+            "parameters": parameters,
+        },
+    }
 
 class LiteLlmAgent(Agent):
     def __init__(self, name: str, model: Optional[str] = None, system_message: Optional[str] = None):
@@ -53,33 +81,17 @@ class LiteLlmAgent(Agent):
 
         return response
 
-    def tool(self, name: str, description: str):
+    def tool(self, name: str = None, description: str = None):
         def decorator(func: Callable):
-            parameters = {"type": "object", "properties": {}, "required": []}
-            sig = inspect.signature(func)
-            docstring = (inspect.getdoc(func) or "").split('\n')
-            for param in sig.parameters.values():
-                if param.name == "self":
-                    continue
-                if param.default == inspect.Parameter.empty:
-                    parameters["required"].append(param.name)
-                parameters["properties"][param.name] = {
-                    "type": "string",
-                    "description": param.name,
-                }
-                if len(docstring) > 0:
-                    for line in docstring:
-                        if line.startswith(f":param {param.name}:"):
-                            parameters["properties"][param.name]["description"] = line.split(":param ")[1]
-            self.tools.append({
-                "type": "function",
-                "function": {
-                    "name": name,
-                    "description": description,
-                    "parameters": parameters,
-                },
-            })
-            self.tools_map[name] = func
+            json_schema = function_to_json_schema(func)
+            if name is not None:
+                json_schema["function"]["name"] = name
+
+            if description is not None:
+                json_schema["function"]["description"] = description
+
+            self.tools.append(json_schema)
+            self.tools_map[json_schema["function"]["name"]] = func
             return func
 
         return decorator
@@ -92,7 +104,7 @@ if __name__ == "__main__":
 
     agent = LiteLlmAgent("LlmAgent", model="openai/gpt-3.5-turbo")
 
-    @agent.tool(name="get_current_weather", description="Get the current weather in a given location")
+    @agent.tool
     async def get_current_weather(location, unit="Celsius"):
         """
         Get the current weather in a given location.
