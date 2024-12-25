@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     agent = LiteLlmAgent("LlmAgent", model="openai/gpt-3.5-turbo")
 
-    @agent.tool
+    @agent.tool()
     async def get_current_weather(location, unit="Celsius"):
         """
         Get the current weather in a given location.

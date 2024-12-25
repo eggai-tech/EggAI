@@ -53,10 +53,10 @@ class LiteLlmAgent(Agent):
             messages = [{"role": "system", "content": self.system_message}, *messages]
 
         tools = kwargs.pop("tools", [])
-        if len(tools) > 0:
-            self.tools.extend(tools)
         if len(self.tools) > 0:
-            kwargs["tools"] = self.tools
+            tools.extend(self.tools)
+        if len(tools) > 0:
+            kwargs["tools"] = tools
 
         response = await litellm.acompletion(**{**kwargs, "model": model, "messages": messages})
         tool_calls = response.choices[0].message.tool_calls
