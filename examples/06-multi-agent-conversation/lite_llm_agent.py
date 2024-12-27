@@ -36,18 +36,16 @@ def function_to_json_schema(func: Callable) -> dict:
     }
 
 class LiteLlmAgent(Agent):
-    def __init__(self, name: str, model: Optional[str] = None, system_message: Optional[str] = None):
+    def __init__(self, name: str, model: Optional[str] = None, system_message: Optional[str] = None, **kwargs):
         super().__init__(name)
         self.model = model
         self.system_message = system_message
         self.tools = []
         self.tools_map = {}
+        self.local_kwargs = kwargs
 
     async def completion(self, **kwargs):
         model = kwargs.pop("model", self.model)
-        if model is None:
-            raise ValueError("Model is required for completion.")
-
         messages = kwargs.pop("messages", [])
         if self.system_message:
             messages = [{"role": "system", "content": self.system_message}, *messages]
@@ -58,7 +56,8 @@ class LiteLlmAgent(Agent):
         if len(tools) > 0:
             kwargs["tools"] = tools
 
-        response = await litellm.acompletion(**{**kwargs, "model": model, "messages": messages})
+        final_params = {**self.local_kwargs, **kwargs, "model": model, "messages": messages}
+        response = await litellm.acompletion(**final_params)
         tool_calls = response.choices[0].message.tool_calls
         if tool_calls:
             messages.append(response.choices[0].message)
@@ -76,7 +75,8 @@ class LiteLlmAgent(Agent):
                     "name": tool_name,
                     "content": json.dumps(function_response)
                 })
-            response = await litellm.acompletion(**{**kwargs, "model": model, "messages": messages})
+            final_params = {**self.local_kwargs,  **kwargs, "model": model, "messages": messages}
+            response = await litellm.acompletion(**final_params)
             return response
 
         return response

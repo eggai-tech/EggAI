@@ -33,7 +33,7 @@ You are an advanced Triage Assistant for a multi-agent system. Your primary resp
 triage_agent = LiteLlmAgent(
     name="TriageAgent",
     system_message=build_triage_system_prompt(AGENT_REGISTRY),
-    model="gpt-3.5-turbo-1106"
+    model="openai/gpt-3.5-turbo"
 )
 
 

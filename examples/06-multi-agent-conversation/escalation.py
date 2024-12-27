@@ -16,7 +16,7 @@ escalation_agent = LiteLlmAgent(
         "    'We have created a support ticket ESC-123456 for your issue. Our Technical Support team will reach out to you shortly.'\n"
         "Maintain a courteous tone and avoid providing any incorrect or speculative information. "
     ),
-    model="gpt-3.5-turbo-1106"
+    model="openai/gpt-3.5-turbo",
 )
 
 @escalation_agent.subscribe(channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_request")

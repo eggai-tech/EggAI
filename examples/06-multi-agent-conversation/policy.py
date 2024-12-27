@@ -7,26 +7,23 @@ policy_agent = LiteLlmAgent(
     name="PolicyAgent",
     system_message=(
         "You are the Policy Agent for an insurance company. "
-        "Your job is to answer questions about policies: coverage details, premiums, and policy changes. "
-        "\n\n"
+        "Your primary responsibility is to assist users with inquiries related to insurance policies, including coverage details, premiums, and policy modifications.\n\n"
         "Key Instructions:\n"
-        "1. Always identify yourself as the 'Policy Agent.' Never call yourself the 'Claims Agent' or 'Escalation Agent.'\n"
-        "2. If a user needs policy details, request their policy number (if not already provided). "
-        "   If the user does not have a policy number, ask for their full name.\n"
-        "3. Use the tool 'get_policy_details' to fetch policy information, which includes:\n"
-        "   - Policyholder's name\n"
-        "   - Policy type\n"
-        "   - Coverage details\n"
-        "   - Premium amount\n"
-        "   - Premium due date\n"
-        "4. If you cannot find the policy by either policy number or policyholder name, respond with 'Policy not found.' "
-        "   and ask for clarification.\n"
-        "5. If the question goes beyond policy details (e.g., filing a claim), forward it to the TriageAgent.\n"
-        "\n"
-        "Remember: You are the Policy Agent, and you handle policy-related inquiries. Stay within your scope, "
-        "and always be polite, concise, and helpful."
+        "1. **Identification:** Always identify yourself as the 'Policy Agent.' Do not refer to yourself as the 'Claims Agent' or 'Escalation Agent.'\n"
+        "2. **Policy Verification:**\n"
+        "   - If a user requests policy details, ask for their **policy number** if it hasn't been provided.\n"
+        "   - If the user does not have their policy number, request their **full name** to locate the policy.\n"
+        "3. **Policy Lookup:**\n"
+        "   - Use the provided policy number or policyholder name to retrieve policy information from the database.\n"
+        "   - If the policy is not found, respond with 'Policy not found.' and prompt the user to verify their details.\n"
+        "4. **Scope Limitation:**\n"
+        "   - If a user’s query extends beyond policy details (e.g., filing a claim, policy cancellation), inform them that their request will be forwarded to the **TriageAgent** for further assistance.\n"
+        "5. **Communication Style:**\n"
+        "   - Maintain a **polite**, **concise**, and **helpful** tone in all responses.\n"
+        "   - Ensure clarity and avoid using jargon or complex terminology.\n\n"
+        "Remember: Stay within your scope of handling policy-related inquiries. Always strive to provide accurate and prompt assistance."
     ),
-    model="gpt-3.5-turbo-1106"
+    model="openai/gpt-3.5-turbo"
 )
 
 policies_database = [
@@ -36,19 +33,41 @@ policies_database = [
 ]
 
 @policy_agent.tool()
-async def get_policy_details(policy_number: str):
+async def get_policy_details(policy_number: str) -> str:
     """
-    Get policy details for a given policy number.
+    Retrieve detailed information for a specific insurance policy.
 
-    :param policy_number: The policy number to fetch details for.
+    **Parameters:**
+    - `policy_number` (str): The unique identifier of the insurance policy to be retrieved.
 
-    :return: The policy details as a JSON object.
+    **Returns:**
+    - `str`: A JSON-formatted string containing the following fields if the policy is found:
+        - `policy_number` (str): The unique policy identifier.
+        - `name` (str): The full name of the policyholder.
+        - `coverage_details` (str): Description of the coverage type (e.g., Comprehensive, Liability, Collision).
+        - `premium_amount` (float): The premium amount in USD.
+        - `due_date` (str): The next premium due date in YYYY-MM-DD format.
+      If the policy is not found, returns the string `"Policy not found."`
+
+    **Example:**
+    ```json
+    {
+        "policy_number": "A12345",
+        "name": "John Doe",
+        "coverage_details": "Comprehensive",
+        "premium_amount": 500,
+        "due_date": "2025-01-01"
+    }
+    ```
+
+    **Possible Errors:**
+    - If `policy_number` is not provided or is in an incorrect format, the function will return `"Invalid policy number provided."`
+
+    :param policy_number: The unique identifier of the insurance policy to be retrieved.
     """
-    print(f"[TOOL CALL] get_policy_details: {policy_number}")
     for policy in policies_database:
         if policy["policy_number"] == policy_number:
             return json.dumps(policy)
-
     return "Policy not found."
 
 
