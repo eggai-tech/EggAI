@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../04-context/">
+        <link rel="prev" href="../05-litellm-agent/">
       
       
-        <link rel="next" href="../06-multi-agent-conversation/">
+        <link rel="next" href="../../references/agent/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>LiteLLM Integration - EggAI Multi-Agent Meta Framework</title>
+        <title>Multi-Agent Conversation - EggAI Multi-Agent Meta Framework</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#integrating-litellm-with-eggai-framework" class="md-skip">
+        <a href="#multi-agent-conversation-example-for-eggai" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              LiteLLM Integration
+              Multi-Agent Conversation
             
           </span>
         </div>
@@ -407,6 +407,27 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-litellm-agent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LiteLLM Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -423,7 +444,7 @@
           
   
   <span class="md-ellipsis">
-    LiteLLM Integration
+    Multi-Agent Conversation
   </span>
   
 
@@ -434,7 +455,7 @@
         
   
   <span class="md-ellipsis">
-    LiteLLM Integration
+    Multi-Agent Conversation
   </span>
   
 
@@ -466,6 +487,51 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#litellmagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      LiteLlmAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#policyagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      PolicyAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#claimsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      ClaimsAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escalationagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      EscalationAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#triageagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      TriageAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#flow" class="md-nav__link">
     <span class="md-ellipsis">
       Flow 🌊
@@ -476,25 +542,34 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#customer-inquiry" class="md-nav__link">
+  <a href="#user-interaction" class="md-nav__link">
     <span class="md-ellipsis">
-      Customer Inquiry:
+      User Interaction:
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#supportagent" class="md-nav__link">
+  <a href="#triageagent_1" class="md-nav__link">
     <span class="md-ellipsis">
-      SupportAgent:
+      TriageAgent:
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#escalationagent" class="md-nav__link">
+  <a href="#policyagent-claimsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      PolicyAgent / ClaimsAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escalationagent_1" class="md-nav__link">
     <span class="md-ellipsis">
       EscalationAgent:
     </span>
@@ -557,7 +632,7 @@
         <li class="md-nav__item">
   <a href="#expected-output" class="md-nav__link">
     <span class="md-ellipsis">
-      Expected output 📤
+      Expected Output 📤
     </span>
   </a>
   
@@ -618,27 +693,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../06-multi-agent-conversation/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Multi-Agent Conversation
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -795,6 +849,51 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#litellmagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      LiteLlmAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#policyagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      PolicyAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#claimsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      ClaimsAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escalationagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      EscalationAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#triageagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      TriageAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#flow" class="md-nav__link">
     <span class="md-ellipsis">
       Flow 🌊
@@ -805,25 +904,34 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#customer-inquiry" class="md-nav__link">
+  <a href="#user-interaction" class="md-nav__link">
     <span class="md-ellipsis">
-      Customer Inquiry:
+      User Interaction:
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#supportagent" class="md-nav__link">
+  <a href="#triageagent_1" class="md-nav__link">
     <span class="md-ellipsis">
-      SupportAgent:
+      TriageAgent:
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#escalationagent" class="md-nav__link">
+  <a href="#policyagent-claimsagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      PolicyAgent / ClaimsAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escalationagent_1" class="md-nav__link">
     <span class="md-ellipsis">
       EscalationAgent:
     </span>
@@ -886,7 +994,7 @@
         <li class="md-nav__item">
   <a href="#expected-output" class="md-nav__link">
     <span class="md-ellipsis">
-      Expected output 📤
+      Expected Output 📤
     </span>
   </a>
   
@@ -958,43 +1066,61 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../examples/05-litellm-agent/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="integrating-litellm-with-eggai-framework">Integrating LiteLLM with EggAI Framework 🧪🫶</h1>
-<p>Welcome to the <strong>05-litellm-agent</strong> example for <strong>EggAI</strong>! This example demonstrates how to integrate LiteLLM into the EggAI framework, showcasing how to handle customer inquiries in a structured and scalable way using two AI agents: <strong>SupportAgent</strong> and <strong>EscalationAgent</strong>. These agents collaborate to provide responses to customer queries, escalating issues when necessary.</p>
+<!-- BEGIN INCLUDE ../../examples/06-multi-agent-conversation/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="multi-agent-conversation-example-for-eggai">Multi-Agent Conversation Example for EggAI 🥚🤖</h1>
+<p>Welcome to the <strong>06-multi-agent-conversation</strong> example for <strong>EggAI</strong>! This example showcases how to build a collaborative multi-agent system using EggAI, where different agents work together to handle user inquiries efficiently. In this CLI Chat example, the <strong>TriageAgent</strong> routes user messages to the appropriate agents (<strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, and <strong>EscalationAgent</strong>) to provide seamless and context-aware assistance.</p>
 <hr />
 <h2 id="whats-inside"><strong>What’s Inside?</strong> 🗂️</h2>
-<p><strong>LiteLlmAgent</strong>:
-- An agent class based on the EggAI framework’s Agent class.
-- Provides a completion wrapper function for seamless interaction with language models.
-- Supports calling tools for enhanced functionality and task-specific operations.</p>
-<p><strong>SupportAgent</strong>:
-- Uses a system prompt to handle common customer inquiries such as return policies, shipping times, and product information.
-- Leverages LiteLLM to determine whether it can respond or if the issue needs escalation.
-- Utilizes the <code>GetKnowledge</code> tool to query a simulated knowledge base.</p>
-<p><strong>EscalationAgent</strong>:
-- Handles more complex issues by creating support tickets.
-- Notifies the user and the support team about the ticket.
-- Uses the <code>TicketingTool</code> to simulate ticket creation.</p>
+<h3 id="litellmagent"><strong>LiteLlmAgent</strong>:</h3>
+<ul>
+<li>An agent class based on the EggAI framework’s Agent class.</li>
+<li>Facilitates communication with language models through a completion wrapper function.</li>
+<li>Supports integrating tools for task-specific operations and enhanced functionality.</li>
+</ul>
+<h3 id="policyagent"><strong>PolicyAgent</strong>:</h3>
+<ul>
+<li>Handles inquiries related to insurance policies, such as coverage details, premiums, and policy modifications.</li>
+<li>Utilizes a mock <code>policies_database</code> to retrieve and provide policy information.</li>
+<li>Ensures responses are polite, concise, and within the scope of policy-related queries.</li>
+</ul>
+<h3 id="claimsagent"><strong>ClaimsAgent</strong>:</h3>
+<ul>
+<li>Manages claims-related inquiries, including filing new claims, checking claim statuses, and understanding claim coverage or payouts.</li>
+<li>Provides clear instructions and maintains an empathetic tone.</li>
+<li>Escalates complex or out-of-scope requests to the <strong>TriageAgent</strong>.</li>
+</ul>
+<h3 id="escalationagent"><strong>EscalationAgent</strong>:</h3>
+<ul>
+<li>Handles issues that cannot be resolved by the PolicyAgent or ClaimsAgent.</li>
+<li>Creates support tickets and informs users that their issue will be escalated to a human support representative.</li>
+<li>Generates a unique ticket ID and specifies the relevant department for the issue.</li>
+</ul>
+<h3 id="triageagent"><strong>TriageAgent</strong>:</h3>
+<ul>
+<li>Acts as the central router for user messages.</li>
+<li>Analyzes user inquiries and directs them to the appropriate agent based on predefined guidelines.</li>
+<li>Ensures that requests are handled by the most suitable agent or escalated when necessary.</li>
+</ul>
 <h3 id="flow"><strong>Flow</strong> 🌊</h3>
-<p>The example simulates a customer inquiry system with two agents: SupportAgent and EscalationAgent. The agents interact with each other and the customer through channels. The flow is as follows:</p>
-<h4 id="customer-inquiry"><strong>Customer Inquiry</strong>:</h4>
+<p>The example simulates a multi-agent conversation system where user messages are intelligently routed to the appropriate agents for handling. The flow is as follows:</p>
+<h4 id="user-interaction"><strong>User Interaction</strong>:</h4>
 <ul>
-<li>A customer sends a question, such as "What is your return policy?" or "I have a billing issue."</li>
-<li>The inquiry is published on the <code>humans</code> channel.</li>
+<li>A user interacts with the CLI Chat by sending messages related to their insurance needs.</li>
 </ul>
-<h4 id="supportagent"><strong>SupportAgent</strong>:</h4>
+<h4 id="triageagent_1"><strong>TriageAgent</strong>:</h4>
 <ul>
-<li>Listens for inquiries and processes the question.</li>
-<li>Uses the <code>GetKnowledge</code> tool to fetch relevant information from the knowledge base.</li>
-<li>If the issue is straightforward, it responds directly to the customer.</li>
-<li>If the issue is complex, it escalates to the EscalationAgent.</li>
+<li>Receives the user message and determines which agent should handle the request based on the content and context.</li>
+<li>Routes the message to the <strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, or <strong>EscalationAgent</strong> as appropriate.</li>
 </ul>
-<h4 id="escalationagent"><strong>EscalationAgent</strong>:</h4>
+<h4 id="policyagent-claimsagent"><strong>PolicyAgent / ClaimsAgent</strong>:</h4>
 <ul>
-<li>Listens for escalated inquiries.</li>
-<li>Creates a support ticket for the issue using the <code>TicketingTool</code>.</li>
-<li>Publishes the ticket details to the <code>agents</code> channel.</li>
-<li>Informs the customer about the escalation and provides a ticket ID.</li>
+<li>Processes the user inquiry and provides relevant information or assistance.</li>
+<li>If the request is beyond their scope, they delegate the issue back to the <strong>TriageAgent</strong> for further handling.</li>
+</ul>
+<h4 id="escalationagent_1"><strong>EscalationAgent</strong>:</h4>
+<ul>
+<li>Manages escalated issues by creating support tickets and notifying the user.</li>
+<li>Ensures that complex or unresolved issues are directed to human support representatives.</li>
 </ul>
 <hr />
 <h2 id="prerequisites"><strong>Prerequisites</strong> 🔧</h2>
@@ -1008,74 +1134,121 @@
 </code></pre>
 <hr />
 <h2 id="running-the-example"><strong>Running the Example</strong> 🏆</h2>
-<p>Navigate to the <code>examples/05-litellm-agent</code> folder and run the main script:</p>
+<p>Navigate to the <code>examples/06-multi-agent-conversation</code> folder and run the main script:</p>
 <pre><code class="language-bash">python main.py
 </code></pre>
-<h2 id="expected-output"><strong>Expected output</strong> 📤</h2>
-<pre><code class="language-plaintext">Handling customer inquiry: What is your return policy?
-Agent is running. Press Ctrl+C to stop.
-Handling customer inquiry: I have a billing issue that isn't resolved yet.
-Querying knowledge base for: return_policy
-Response from SupportAgent: {'response': 'Our return policy is 30 days from the date of purchase. Items must be in their original condition.'}
-Responding directly to the customer...
-Querying knowledge base for: billing_issue
-Response from SupportAgent: {'response': 'escalate'}
-Escalating issue to EscalationAgent...
-Creating support ticket for issue: I have a billing issue that isn't resolved yet.
-Ticket created for escalated issue:  {'ticket_id': 'TCKT1188', 'department': 'Billing Department'}
+<hr />
+<h2 id="expected-output"><strong>Expected Output</strong> 📤</h2>
+<pre><code class="language-plaintext">Welcome to the Insurance Customer Service System!
+
+You: Hello, what's my policy's due date?
+
+📄 PolicyAgent:
+Hello! I'm here to help you with your policy inquiries. Could you please provide me with your **policy number**?
+If you don't have it handy, your **full name** will work too, and I can look up the details for you.
+
+You: A12345
+
+📄 PolicyAgent:
+Thank you for providing your policy number. Here are the details:
+
+- **Policy Number:** A12345
+- **Policyholder Name:** John Doe
+- **Coverage Details:** Comprehensive
+- **Premium Amount:** $500
+- **Due Date:** January 1, 2025
+
+If you have any more questions or need further assistance, feel free to ask!
+
+You: I need info about claims
+
+📝 ClaimsAgent:
+Hello! I can assist you with inquiries related to claims. Could you please specify what information you need?
+Some topics I can help with include filing a new claim, checking the status of a claim, or understanding claim coverage
+and payouts. Let me know how I can assist you today!
+
+You: Can u list my current claims?
+
+📝 ClaimsAgent:
+I can certainly help you with that. To proceed, could you please provide your claim ID or any relevant details
+that might help in locating your claims? Once I have that information, I can check your current claims and provide you
+with the necessary details.
+
+You: Sorry I lost all my data, I don't remember
+
+💬 EscalationAgent:
+We have created a support ticket ESC-654321 for your issue. Our Claims Support team will reach out to you
+shortly.
+
+You: exit
+
+Goodbye!
 </code></pre>
 <hr />
-<h2 id="architecture-overview">Architecture Overview 🔁</h2>
+<h2 id="architecture-overview"><strong>Architecture Overview</strong> 🔁</h2>
+<p><img alt="architecture-overview-img" src="../../assets/architecture-example-06-multi-agent-conversation.svg" /></p>
 <ol>
-<li><strong>User Query</strong>: Customers send inquiries (e.g., "What is your return policy?").</li>
-<li><strong>SupportAgent</strong>: Handles general inquiries using a knowledge base or escalates complex issues.</li>
-<li><strong>EscalationAgent</strong>: Creates support tickets for escalated issues and notifies customers.</li>
+<li><strong>User Interaction</strong>: Users interact with the system through a CLI Chat interface.</li>
+<li><strong>TriageAgent</strong>: Analyzes incoming messages and routes them to the appropriate agent based on the content.</li>
+<li><strong>PolicyAgent</strong>: Handles policy-related inquiries using a mock <code>policies_database</code>.</li>
+<li><strong>ClaimsAgent</strong>: Manages claims-related inquiries and requests.</li>
+<li><strong>EscalationAgent</strong>: Takes care of issues that require human intervention by creating support tickets.</li>
 <li><strong>Channels</strong>:</li>
-<li><strong>Humans Channel</strong>: For interactions between customers and agents.</li>
-<li><strong>Agents Channel</strong>: For communication between agents.</li>
+<li><strong>User Channel</strong>: For interactions between the user and the agents.</li>
+<li><strong>Agent Channel</strong>: For communication and coordination between different agents.</li>
 </ol>
 <hr />
-<h2 id="code-breakdown">Code Breakdown 🔬</h2>
-<h3 id="key-components">Key Components</h3>
+<h2 id="code-breakdown"><strong>Code Breakdown</strong> 🔬</h2>
+<h3 id="key-components"><strong>Key Components</strong></h3>
 <ol>
 <li><strong>LiteLlmAgent Initialization</strong>:</li>
 <li>
-<p><code>SupportAgent</code> and <code>EscalationAgent</code> are initialized with system prompts and model configurations.</p>
+<p><strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, <strong>EscalationAgent</strong>, and <strong>TriageAgent</strong> are initialized with specific system prompts and model configurations.</p>
+</li>
+<li>
+<p><strong>Mock Database</strong>:</p>
+</li>
+<li>
+<p><code>policies_database</code>: A simulated database containing policy information for demonstration purposes.</p>
 </li>
 <li>
 <p><strong>Tools</strong>:</p>
 </li>
-<li><code>GetKnowledge</code>: Used by the SupportAgent to query a simulated knowledge base.</li>
 <li>
-<p><code>TicketingTool</code>: Used by the EscalationAgent to simulate ticket creation.</p>
+<p><strong>get_policy_details</strong>: A tool used by the PolicyAgent to retrieve policy information from the <code>policies_database</code>.</p>
+</li>
+<li>
+<p><strong>Triage System Prompt</strong>:</p>
+</li>
+<li>
+<p>Defines guidelines for the TriageAgent to determine which agent should handle each user request based on keywords and context.</p>
 </li>
 <li>
 <p><strong>Message Handling</strong>:</p>
 </li>
-<li>Agents subscribe to channels and listen for specific message types.</li>
+<li>Users interact via the CLI, and messages are processed by the TriageAgent, which routes them to the appropriate agent.</li>
 <li>
-<p>Context is passed seamlessly between agents using structured messages.</p>
+<p>Agents communicate through structured messages, ensuring context is maintained throughout the conversation.</p>
 </li>
 <li>
 <p><strong>Main Script</strong>:</p>
 </li>
-<li>Simulates both simple and complex customer inquiries.</li>
-<li>Manages agent lifecycle and cleanup.</li>
+<li>Manages the lifecycle of the CLI Chat, initializes agents, and handles user inputs and agent responses.</li>
 </ol>
 <hr />
-<h2 id="cleaning-up">Cleaning Up ❌</h2>
+<h2 id="cleaning-up"><strong>Cleaning Up</strong> ❌</h2>
 <p>When you’re done, stop the services:</p>
 <pre><code class="language-bash">docker compose down -v
 </code></pre>
 <hr />
-<h2 id="next-steps">Next Steps 🚀</h2>
+<h2 id="next-steps"><strong>Next Steps</strong> 🚀</h2>
 <ul>
-<li><strong>Explore</strong>: Try modifying the example to include additional agents or tools.</li>
-<li><strong>Learn More</strong>: Check out other examples in the <code>examples</code> folder for advanced patterns.</li>
-<li><strong>Contribute</strong>: Share your feedback, report issues, or contribute to the EggAI project.</li>
+<li><strong>Explore</strong>: Modify the example to include additional agents or enhance existing ones with more tools and capabilities.</li>
+<li><strong>Learn More</strong>: Check out other examples in the <code>examples</code> folder to discover advanced multi-agent patterns and integrations.</li>
+<li><strong>Contribute</strong>: Share your feedback, report issues, or contribute to the EggAI project to help improve the framework.</li>
 </ul>
 <hr />
-<p>Thank you for exploring how LiteLLM integrates into EggAI to create efficient, context-aware multi-agent systems! 🙏🧪</p>
+<p>Thank you for exploring the <strong>06-multi-agent-conversation</strong> example for EggAI! 🥚🤖 We hope this example helps you understand how to build and manage collaborative multi-agent systems to handle complex user interactions effectively. 🙏✨</p>
 <!-- END INCLUDE -->
 
 
