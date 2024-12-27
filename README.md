@@ -151,12 +151,13 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
 
 We encourage you to **copy/paste** from our [examples folder](examples), which includes:
 
-- [Getting Started](examples/00-getting-started.md): Orchestrate two agents asynchronously.
-- [Coordinator](examples/01-coordinator.md): Bridge multiple communication channels.
-- [Websocket Gateway](examples/02-websocket-gateway.md): Real-time interaction via WebSockets.
-- [LangChain Tool Calling](examples/03-langchain-tool-calling.md): Integrate tool calling with [LangChain](https://www.langchain.com/).
-- [Shared Context](examples/04-context.md): Maintain shared context across agents.
-- [LiteLLM Integration](examples/05-litellm-agent.md): Power agents with [LiteLLM](https://www.litellm.ai/).
+- [Getting Started](examples/00-getting-started/README.md): Orchestrate two agents asynchronously.
+- [Coordinator](examples/01-coordinator/README.md): Bridge multiple communication channels.
+- [Websocket Gateway](examples/02-websocket-gateway/README.md): Real-time interaction via WebSockets.
+- [LangChain Tool Calling](examples/03-langchain-tool-calling/README.md): Integrate tool calling with [LangChain](https://www.langchain.com/).
+- [Shared Context](examples/04-context/README.md): Maintain shared context across agents.
+- [LiteLLM Integration](examples/05-litellm-agent/README.md): Power agents with [LiteLLM](https://www.litellm.ai/).
+- [Multi-Agent Conversation](examples/06-multi-agent-conversation/README.md): Context aware multi-agent conversations.
 
 ## 📋 Why Copy/Paste?
 

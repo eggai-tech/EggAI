@@ -22,6 +22,7 @@ nav:
     - "LangChain Tool Calling": examples/03-langchain-tool-calling.md
     - "Shared Context": examples/04-context.md
     - "LiteLLM Integration": examples/05-litellm-agent.md
+    - "Multi-Agent Conversation": examples/06-multi-agent-conversation.md
   - References:
     - "Agent": references/agent.md
     - "Channel": references/channel.md
