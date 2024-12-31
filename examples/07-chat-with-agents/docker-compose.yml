@@ -76,7 +76,7 @@ services:
     command: -c "
       echo 'Waiting for Redpanda cluster to be ready...' &&
       sleep 5 &&
-      rpk topic create humans --brokers=redpanda-0:9092 &&
+      rpk topic create human --brokers=redpanda-0:9092 &&
       echo 'Topic humans created successfully!'" &&
       rpk topic create agents --brokers=redpanda-0:9092 &&
       echo 'Topic agents created successfully!'"
