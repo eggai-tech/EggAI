@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-Agent Chat Interface</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind = {
+      config: {
+        darkMode: 'class', // Enable dark mode via class strategy
+        theme: {
+          extend: {
+            // Extend your theme here if needed
+          }
+        },
+        variants: {
+          extend: {
+            // Extend variants if necessary
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    #messages::-webkit-scrollbar {
+      width: 8px;
+    }
+    #messages::-webkit-scrollbar-thumb {
+      background-color: rgba(100, 100, 100, 0.3);
+      border-radius: 4px;
+    }
+    html, body {
+      height: 100%;
+    }
+    #toggleDarkMode:checked + .toggle-bg .dot {
+      transform: translateX(100%);
+      background-color: #4ade80; /* Tailwind green-400 */
+    }
+    .toggle-icon {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    #toggleDarkMode:checked + .toggle-bg .sun-icon {
+      opacity: 0;
+    }
+    #toggleDarkMode:checked + .toggle-bg .moon-icon {
+      opacity: 1;
+    }
+    /* Initial state: show sun icon */
+    .moon-icon {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-screen">
+  <div class="w-full max-w-2xl max-h-[50vh] bg-white dark:bg-gray-800 shadow-lg rounded-lg flex flex-col">
+    <!-- Header -->
+    <div class="bg-blue-500 dark:bg-gray-700 text-white p-4 rounded-t-lg flex justify-between items-center">
+      <h2 class="text-lg font-semibold">Support Chat</h2>
+      <div class="flex items-center space-x-4">
+        <span id="connectionStatus" class="text-sm">Connecting...</span>
+        <!-- Dark Mode Toggle with Icons -->
+        <label for="toggleDarkMode" class="flex items-center cursor-pointer">
+          <div class="relative">
+            <!-- Hidden Checkbox -->
+            <input type="checkbox" id="toggleDarkMode" class="sr-only" onclick="toggleDarkMode()" aria-label="Toggle Dark Mode">
+            <!-- Toggle Background -->
+            <div class="toggle-bg w-12 h-6 bg-gray-300 dark:bg-gray-600 rounded-full shadow-inner flex items-center transition-colors duration-300">
+              <!-- Sun Icon -->
+              <svg class="sun-icon w-4 h-4 text-yellow-400 absolute left-1 transition-opacity duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364l-1.414 1.414M6.05 17.95l-1.414 1.414m12.728 0l1.414-1.414M6.05 6.05L4.636 7.464M12 8a4 4 0 100 8 4 4 0 000-8z" />
+              </svg>
+              <!-- Moon Icon -->
+              <svg class="moon-icon w-4 h-4 text-gray-200 absolute right-1 transition-opacity duration-300" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+              </svg>
+              <!-- Toggle Dot -->
+              <div class="dot w-6 h-6 bg-white dark:bg-gray-300 rounded-full shadow transform transition-transform duration-300"></div>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Messages Area -->
+    <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-700">
+      <!-- Messages will be dynamically added here -->
+    </div>
+
+    <!-- Input Area -->
+    <div class="p-4 border-t dark:border-gray-600 flex items-center bg-gray-100 dark:bg-gray-800">
+      <input type="text" id="messageInput" placeholder="Type your message..." class="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400" onkeydown="handleKeyDown(event)">
+      <button onclick="sendMessage()" class="ml-2 bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700">Send</button>
+    </div>
+  </div>
+
+  <!-- JavaScript for Dynamic Messages, WebSocket Handling, and Dark Mode -->
+  <script>
+    const messagesContainer = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const toggleDarkModeCheckbox = document.getElementById('toggleDarkMode');
+
+    const agents = {
+      'TriageAgent': {
+        emoji: '🔍',
+        bgColor: 'bg-purple-100',
+        darkBgColor: 'dark:bg-purple-700',
+        textColor: 'text-purple-800',
+        darkTextColor: 'dark:text-purple-200'
+      },
+      'PolicyAgent': {
+        emoji: '🛡️',
+        bgColor: 'bg-blue-100',
+        darkBgColor: 'dark:bg-blue-700',
+        textColor: 'text-blue-800',
+        darkTextColor: 'dark:text-blue-200'
+      },
+      'TicketingAgent': {
+        emoji: '🎫',
+        bgColor: 'bg-yellow-100',
+        darkBgColor: 'dark:bg-yellow-700',
+        textColor: 'text-yellow-800',
+        darkTextColor: 'dark:text-yellow-200'
+      },
+    };
+
+    let websocket;
+    let connectionId = null;
+
+    function initWebSocket() {
+      const uri = "ws://localhost:8000/ws"; // Update with your server's URI if different
+      websocket = new WebSocket(uri);
+
+      websocket.onopen = () => {
+        console.log("WebSocket connection opened.");
+        connectionStatus.textContent = "Connected";
+        connectionStatus.classList.remove('text-red-500', 'text-yellow-500');
+        connectionStatus.classList.add('text-green-500');
+      };
+
+      websocket.onmessage = (event) => {
+        console.log("Message received:", event.data);
+        try {
+          const message = JSON.parse(event.data);
+
+          // Check if the message contains a connection_id and it's not already stored
+          if (!connectionId && message.connection_id) {
+            connectionId = message.connection_id;
+            localStorage.setItem('connection_id', connectionId);
+            console.log("Connection ID saved:", connectionId);
+            addSystemMessage(`Connection established. ID: ${connectionId}`);
+            return;
+          }
+
+          // Handle regular agent messages
+          const sender = message.sender || 'Agent';
+          const content = message.content || '';
+
+          // Ensure sender is one of the defined agents
+          if (agents[sender]) {
+            addMessage(sender, content);
+          } else {
+            // Fallback to TriageAgent if sender is unknown
+            addMessage('TriageAgent', content);
+          }
+        } catch (error) {
+          console.error("Error parsing message:", error);
+          addSystemMessage("An error occurred while processing a message.");
+        }
+      };
+
+      websocket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      websocket.onclose = (event) => {
+        console.log("WebSocket connection closed:", event);
+        connectionStatus.textContent = "Disconnected. Reconnecting...";
+        connectionStatus.classList.remove('text-green-500');
+        connectionStatus.classList.add('text-red-500');
+        // Attempt to reconnect after a delay
+        setTimeout(initWebSocket, 3000);
+      };
+    }
+
+    // Call initWebSocket when the page loads
+    window.onload = () => {
+      // Initialize dark mode based on saved preference
+      const darkMode = localStorage.getItem('darkMode') === 'enabled';
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+        toggleDarkModeCheckbox.checked = true;
+      }
+      initWebSocket();
+    };
+
+    function addMessage(sender, text) {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('flex', 'mb-4');
+
+      if (sender === 'You') {
+        messageDiv.classList.add('justify-end');
+
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.classList.add(
+          'mr-3',
+          'bg-green-100',
+          'dark:bg-green-700',
+          'text-green-800',
+          'dark:text-green-200',
+          'p-2',
+          'rounded-lg',
+          'max-w-xs'
+        );
+        bubbleDiv.innerHTML = `
+          <p class="text-sm">${text}</p>
+          <span class="text-xs text-gray-500 dark:text-gray-400">You</span>
+        `;
+        messageDiv.appendChild(bubbleDiv);
+
+        const profileDiv = document.createElement('div');
+        profileDiv.classList.add('flex-shrink-0');
+
+        const emojiDiv = document.createElement('div');
+        emojiDiv.classList.add(
+          'w-10',
+          'h-10',
+          'rounded-full',
+          'bg-green-200',
+          'dark:bg-green-600',
+          'flex',
+          'items-center',
+          'justify-center',
+          'text-2xl'
+        );
+        emojiDiv.textContent = '🙂'; // You can change this emoji as desired
+
+        profileDiv.appendChild(emojiDiv);
+        messageDiv.appendChild(profileDiv);
+      } else {
+        const profileDiv = document.createElement('div');
+        profileDiv.classList.add('flex-shrink-0');
+
+        const emojiDiv = document.createElement('div');
+        emojiDiv.classList.add(
+          'w-10',
+          'h-10',
+          'rounded-full',
+          'flex',
+          'items-center',
+          'justify-center',
+          'text-2xl'
+        );
+
+        const agent = agents[sender] || {
+          emoji: '💬',
+          bgColor: 'bg-gray-200',
+          darkBgColor: 'dark:bg-gray-600',
+          textColor: 'text-gray-800',
+          darkTextColor: 'dark:text-gray-200'
+        };
+        emojiDiv.textContent = agent.emoji;
+        emojiDiv.classList.add(agent.bgColor, agent.darkBgColor, agent.textColor, agent.darkTextColor);
+
+        profileDiv.appendChild(emojiDiv);
+        messageDiv.appendChild(profileDiv);
+
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.classList.add(
+          'ml-3',
+          agent.bgColor,
+          agent.darkBgColor,
+          agent.textColor,
+          agent.darkTextColor,
+          'p-2',
+          'rounded-lg',
+          'max-w-xs'
+        );
+        bubbleDiv.innerHTML = `
+          <p class="text-sm">${text}</p>
+          <span class="text-xs text-gray-500 dark:text-gray-400">${sender}</span>
+        `;
+        messageDiv.appendChild(bubbleDiv);
+      }
+
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function addSystemMessage(text) {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('flex', 'justify-center', 'mb-4');
+
+      const bubbleDiv = document.createElement('div');
+      bubbleDiv.classList.add(
+        'bg-gray-300',
+        'dark:bg-gray-600',
+        'text-gray-800',
+        'dark:text-gray-200',
+        'p-2',
+        'rounded-lg',
+        'max-w-xs',
+        'text-center',
+        'italic'
+      );
+      bubbleDiv.textContent = text;
+
+      messageDiv.appendChild(bubbleDiv);
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (text !== '' && websocket.readyState === WebSocket.OPEN) {
+        const message = {
+          payload: text
+        };
+        websocket.send(JSON.stringify(message));
+        addMessage('You', text);
+        messageInput.value = '';
+      } else if (websocket.readyState !== WebSocket.OPEN) {
+        alert("Connection is not open. Please wait...");
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      if (document.documentElement.classList.contains('dark')) {
+        localStorage.setItem('darkMode', 'enabled');
+      } else {
+        localStorage.setItem('darkMode', 'disabled');
+      }
+    }
+  </script>
+</body>
+</html>
