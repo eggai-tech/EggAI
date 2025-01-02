@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../05-litellm-agent/">
+        <link rel="prev" href="../07-chat-with-agents/">
       
       
-        <link rel="next" href="../07-chat-with-agents/">
+        <link rel="next" href="../../references/agent/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Multi-Agent Conversation - EggAI Multi-Agent Meta Framework</title>
+        <title>Evaluation & DSPy - EggAI Multi-Agent Meta Framework</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#multi-agent-conversation-example-for-eggai" class="md-skip">
+        <a href="#agent-evaluation-and-enhancement-example-for-eggai" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Multi-Agent Conversation
+              Evaluation & DSPy
             
           </span>
         </div>
@@ -428,6 +428,48 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-multi-agent-conversation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-Agent Conversation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-chat-with-agents/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    An Insurance Company Scenario
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -444,7 +486,7 @@
           
   
   <span class="md-ellipsis">
-    Multi-Agent Conversation
+    Evaluation & DSPy
   </span>
   
 
@@ -455,7 +497,7 @@
         
   
   <span class="md-ellipsis">
-    Multi-Agent Conversation
+    Evaluation & DSPy
   </span>
   
 
@@ -477,6 +519,24 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#a-story-of-refinement-and-improvement" class="md-nav__link">
+    <span class="md-ellipsis">
+      A Story of Refinement and Improvement
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-on-proven-foundations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building on Proven Foundations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
       What’s Inside? 🗂️
@@ -487,91 +547,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#litellmagent" class="md-nav__link">
+  <a href="#agent-evaluation-framework" class="md-nav__link">
     <span class="md-ellipsis">
-      LiteLlmAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flow 🌊
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flow 🌊">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#user-interaction" class="md-nav__link">
-    <span class="md-ellipsis">
-      User Interaction:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent-claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent / ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
+      Agent Evaluation Framework
     </span>
   </a>
   
@@ -581,9 +559,13 @@
     </nav>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It Works 🛠️
+    </span>
+  </a>
   
 </li>
       
@@ -621,9 +603,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-the-example" class="md-nav__link">
+  <a href="#running-the-evaluation" class="md-nav__link">
     <span class="md-ellipsis">
-      Running the Example 🏆
+      Running the Evaluation 🏆
     </span>
   </a>
   
@@ -693,48 +675,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../07-chat-with-agents/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    An Insurance Company Scenario
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../08-evaluation-and-dspy/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Evaluation & DSPy
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -881,6 +821,24 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#a-story-of-refinement-and-improvement" class="md-nav__link">
+    <span class="md-ellipsis">
+      A Story of Refinement and Improvement
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-on-proven-foundations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building on Proven Foundations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
       What’s Inside? 🗂️
@@ -891,91 +849,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#litellmagent" class="md-nav__link">
+  <a href="#agent-evaluation-framework" class="md-nav__link">
     <span class="md-ellipsis">
-      LiteLlmAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flow 🌊
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flow 🌊">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#user-interaction" class="md-nav__link">
-    <span class="md-ellipsis">
-      User Interaction:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent-claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent / ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
+      Agent Evaluation Framework
     </span>
   </a>
   
@@ -985,9 +861,13 @@
     </nav>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It Works 🛠️
+    </span>
+  </a>
   
 </li>
       
@@ -1025,9 +905,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-the-example" class="md-nav__link">
+  <a href="#running-the-evaluation" class="md-nav__link">
     <span class="md-ellipsis">
-      Running the Example 🏆
+      Running the Evaluation 🏆
     </span>
   </a>
   
@@ -1108,189 +988,222 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../examples/06-multi-agent-conversation/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="multi-agent-conversation-example-for-eggai">Multi-Agent Conversation Example for EggAI 🥚🤖</h1>
-<p>Welcome to the <strong>06-multi-agent-conversation</strong> example for <strong>EggAI</strong>! This example showcases how to build a collaborative multi-agent system using EggAI, where different agents work together to handle user inquiries efficiently. In this CLI Chat example, the <strong>TriageAgent</strong> routes user messages to the appropriate agents (<strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, and <strong>EscalationAgent</strong>) to provide seamless and context-aware assistance.</p>
+<!-- BEGIN INCLUDE ../../examples/example_08_dspy/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="agent-evaluation-and-enhancement-example-for-eggai">Agent Evaluation and Enhancement Example for EggAI 🥚🤖</h1>
+<h2 id="a-story-of-refinement-and-improvement"><strong>A Story of Refinement and Improvement</strong></h2>
+<p>In the quest to build intelligent and responsive multi-agent systems, continuous evaluation and enhancement of each agent's performance are paramount. The <strong>Agent Evaluation and Enhancement</strong> example for <strong>EggAI</strong> embodies this journey. Focused on refining the <strong>TriageAgent</strong>, this example demonstrates how to assess agent effectiveness, identify areas for improvement, and generate actionable insights through automated testing and reporting.</p>
+<hr />
+<h2 id="building-on-proven-foundations"><strong>Building on Proven Foundations</strong></h2>
+<p>To create a robust evaluation framework, we integrated key components from previous EggAI examples:</p>
+<ul>
+<li><strong>WebSocket Gateway (<code>examples/02-websocket-gateway</code>)</strong>:</li>
+<li><strong>Purpose</strong>: Facilitates real-time communication between agents and users.</li>
+<li>
+<p><strong>Integration</strong>: Provides the communication backbone for sending and receiving test messages during evaluation.</p>
+</li>
+<li>
+<p><strong>LiteLlmAgent (<code>examples/05-litellm-agent</code>)</strong>:</p>
+</li>
+<li><strong>Purpose</strong>: Enables efficient interaction with language models.</li>
+<li>
+<p><strong>Integration</strong>: Powers the <strong>TriageAgent</strong>, allowing it to process and respond to user messages accurately.</p>
+</li>
+<li>
+<p><strong>Triage Concept (<code>examples/06-multi-agent-conversation</code>)</strong>:</p>
+</li>
+<li><strong>Purpose</strong>: Implements intelligent routing of user messages to appropriate agents.</li>
+<li><strong>Integration</strong>: Serves as the foundation for enhancing the <strong>TriageAgent</strong>'s decision-making capabilities.</li>
+</ul>
 <hr />
 <h2 id="whats-inside"><strong>What’s Inside?</strong> 🗂️</h2>
-<h3 id="litellmagent"><strong>LiteLlmAgent</strong>:</h3>
+<h3 id="agent-evaluation-framework"><strong>Agent Evaluation Framework</strong></h3>
 <ul>
-<li>An agent class based on the EggAI framework’s Agent class.</li>
-<li>Facilitates communication with language models through a completion wrapper function.</li>
-<li>Supports integrating tools for task-specific operations and enhanced functionality.</li>
+<li><strong>Test Code (<code>tests/test_triage_agent.py</code>)</strong>:</li>
+<li><strong>Functionality</strong>: Automates the testing of the <strong>TriageAgent</strong> against a predefined JSON dataset.</li>
+<li>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Parses user-agent conversations.</li>
+<li>Mocks message publishing to simulate agent responses.</li>
+<li>Validates the <strong>TriageAgent</strong>'s ability to correctly route messages.</li>
+<li>Records success and failure outcomes.</li>
 </ul>
-<h3 id="policyagent"><strong>PolicyAgent</strong>:</h3>
-<ul>
-<li>Handles inquiries related to insurance policies, such as coverage details, premiums, and policy modifications.</li>
-<li>Utilizes a mock <code>policies_database</code> to retrieve and provide policy information.</li>
-<li>Ensures responses are polite, concise, and within the scope of policy-related queries.</li>
-</ul>
-<h3 id="claimsagent"><strong>ClaimsAgent</strong>:</h3>
-<ul>
-<li>Manages claims-related inquiries, including filing new claims, checking claim statuses, and understanding claim coverage or payouts.</li>
-<li>Provides clear instructions and maintains an empathetic tone.</li>
-<li>Escalates complex or out-of-scope requests to the <strong>TriageAgent</strong>.</li>
-</ul>
-<h3 id="escalationagent"><strong>EscalationAgent</strong>:</h3>
-<ul>
-<li>Handles issues that cannot be resolved by the PolicyAgent or ClaimsAgent.</li>
-<li>Creates support tickets and informs users that their issue will be escalated to a human support representative.</li>
-<li>Generates a unique ticket ID and specifies the relevant department for the issue.</li>
-</ul>
-<h3 id="triageagent"><strong>TriageAgent</strong>:</h3>
-<ul>
-<li>Acts as the central router for user messages.</li>
-<li>Analyzes user inquiries and directs them to the appropriate agent based on predefined guidelines.</li>
-<li>Ensures that requests are handled by the most suitable agent or escalated when necessary.</li>
-</ul>
-<h3 id="flow"><strong>Flow</strong> 🌊</h3>
-<p>The example simulates a multi-agent conversation system where user messages are intelligently routed to the appropriate agents for handling. The flow is as follows:</p>
-<h4 id="user-interaction"><strong>User Interaction</strong>:</h4>
-<ul>
-<li>A user interacts with the CLI Chat by sending messages related to their insurance needs.</li>
-</ul>
-<h4 id="triageagent_1"><strong>TriageAgent</strong>:</h4>
-<ul>
-<li>Receives the user message and determines which agent should handle the request based on the content and context.</li>
-<li>Routes the message to the <strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, or <strong>EscalationAgent</strong> as appropriate.</li>
-</ul>
-<h4 id="policyagent-claimsagent"><strong>PolicyAgent / ClaimsAgent</strong>:</h4>
-<ul>
-<li>Processes the user inquiry and provides relevant information or assistance.</li>
-<li>If the request is beyond their scope, they delegate the issue back to the <strong>TriageAgent</strong> for further handling.</li>
-</ul>
-<h4 id="escalationagent_1"><strong>EscalationAgent</strong>:</h4>
-<ul>
-<li>Manages escalated issues by creating support tickets and notifying the user.</li>
-<li>Ensures that complex or unresolved issues are directed to human support representatives.</li>
+</li>
+<li>
+<p><strong>Dataset (<code>datasets/triage-training.json</code>)</strong>:</p>
+</li>
+<li><strong>Content</strong>: A collection of conversation samples with expected routing targets.</li>
+<li>
+<p><strong>Purpose</strong>: Serves as the benchmark for evaluating the <strong>TriageAgent</strong>'s performance.</p>
+</li>
+<li>
+<p><strong>Reporting Tools</strong>:</p>
+</li>
+<li><strong>JSON Results</strong>: Logs detailed test outcomes for further analysis.</li>
+<li><strong>HTML Report</strong>: Generates a user-friendly report highlighting test successes and failures, enabling users to identify and address weaknesses in the <strong>TriageAgent</strong>.</li>
 </ul>
 <hr />
+<h2 id="how-it-works"><strong>How It Works</strong> 🛠️</h2>
+<ol>
+<li><strong>Setup</strong>:</li>
+<li>
+<p>Ensure all dependencies are installed and services are running.</p>
+</li>
+<li>
+<p><strong>Running Tests</strong>:</p>
+</li>
+<li>
+<p>Execute the test script to evaluate the <strong>TriageAgent</strong> against the conversation dataset.</p>
+</li>
+<li>
+<p><strong>Analyzing Results</strong>:</p>
+</li>
+<li>Review the console output for immediate feedback on each test case.</li>
+<li>
+<p>Examine the generated HTML report for a comprehensive overview of the agent's performance, including areas that need enhancement.</p>
+</li>
+<li>
+<p><strong>Enhancing the Agent</strong>:</p>
+</li>
+<li>Use the insights from the report to refine the <strong>TriageAgent</strong>'s logic, improve keyword detection, and optimize routing guidelines.</li>
+</ol>
+<hr />
 <h2 id="prerequisites"><strong>Prerequisites</strong> 🔧</h2>
-<p>Before running this example, ensure you have the following:</p>
-<h3 id="step-1-install-dependencies">Step 1: Install Dependencies</h3>
-<pre><code class="language-bash">pip install eggai litellm
+<p>Before diving into the evaluation, ensure you have the following set up:</p>
+<h3 id="step-1-install-dependencies"><strong>Step 1: Install Dependencies</strong></h3>
+<pre><code class="language-bash">pip install eggai litellm fastapi uvicorn pytest jinja2 python-dotenv
 </code></pre>
-<h3 id="step-2-start-services-with-docker">Step 2: Start Services with Docker</h3>
-<p>This example uses a messaging broker. Start the necessary services:</p>
+<h3 id="step-2-start-services-with-docker"><strong>Step 2: Start Services with Docker</strong></h3>
+<p>This example utilizes a messaging broker. Launch the necessary services using Docker:</p>
 <pre><code class="language-bash">docker compose up -d
 </code></pre>
 <hr />
-<h2 id="running-the-example"><strong>Running the Example</strong> 🏆</h2>
-<p>Navigate to the <code>examples/06-multi-agent-conversation</code> folder and run the main script:</p>
-<pre><code class="language-bash">python main.py
-</code></pre>
+<h2 id="running-the-evaluation"><strong>Running the Evaluation</strong> 🏆</h2>
+<ol>
+<li><strong>Navigate to the Project Directory</strong>:</li>
+</ol>
+<p><code>bash
+   cd path/to/project-directory</code></p>
+<ol>
+<li><strong>Execute the Test Script</strong>:</li>
+</ol>
+<p><code>bash
+   pytest tests/test_triage_agent.py</code></p>
+<ul>
+<li>
+<p><strong>Outcome</strong>: The script will run through each conversation in the dataset, evaluate the <strong>TriageAgent</strong>'s routing decisions, and output the results.</p>
+</li>
+<li>
+<p><strong>Access the HTML Report</strong>:</p>
+</li>
+</ul>
+<p>After the tests complete, an HTML report will be generated in the <code>reports</code> directory. Open the report in your web browser to review detailed results.</p>
+<p><code>bash
+   open reports/YYYYMMDD-HHMMSS-triage-agent-report.html</code></p>
 <hr />
 <h2 id="expected-output"><strong>Expected Output</strong> 📤</h2>
-<pre><code class="language-plaintext">Welcome to the Insurance Customer Service System!
-
-You: Hello, what's my policy's due date?
-
-📄 PolicyAgent:
-Hello! I'm here to help you with your policy inquiries. Could you please provide me with your **policy number**?
-If you don't have it handy, your **full name** will work too, and I can look up the details for you.
-
-You: A12345
-
-📄 PolicyAgent:
-Thank you for providing your policy number. Here are the details:
-
-- **Policy Number:** A12345
-- **Policyholder Name:** John Doe
-- **Coverage Details:** Comprehensive
-- **Premium Amount:** $500
-- **Due Date:** January 1, 2025
-
-If you have any more questions or need further assistance, feel free to ask!
-
-You: I need info about claims
-
-📝 ClaimsAgent:
-Hello! I can assist you with inquiries related to claims. Could you please specify what information you need?
-Some topics I can help with include filing a new claim, checking the status of a claim, or understanding claim coverage
-and payouts. Let me know how I can assist you today!
-
-You: Can u list my current claims?
-
-📝 ClaimsAgent:
-I can certainly help you with that. To proceed, could you please provide your claim ID or any relevant details
-that might help in locating your claims? Once I have that information, I can check your current claims and provide you
-with the necessary details.
-
-You: Sorry I lost all my data, I don't remember
-
-💬 EscalationAgent:
-We have created a support ticket ESC-654321 for your issue. Our Claims Support team will reach out to you
-shortly.
-
-You: exit
-
-Goodbye!
-</code></pre>
+<p>Upon running the tests, you will observe:</p>
+<ul>
+<li><strong>Console Output</strong>:</li>
+<li>A log of each test case indicating <strong>PASS</strong> or <strong>FAIL</strong>, along with pertinent details.</li>
+<li>
+<p>A summary showing the total number of tests, successes, failures, and the overall success rate.</p>
+</li>
+<li>
+<p><strong>HTML Report</strong>:</p>
+</li>
+<li>A visually appealing and interactive report detailing each test case.</li>
+<li>Sections highlighting the summary of results and detailed insights into each conversation's outcome.</li>
+<li>Indicators for successful and failed tests to quickly identify areas needing attention.</li>
+</ul>
+<p><img alt="HTML Report Screenshot" src="../../assets/triage-evaluation-report.png" /></p>
 <hr />
 <h2 id="architecture-overview"><strong>Architecture Overview</strong> 🔁</h2>
-<p><img alt="architecture-overview-img" src="../../assets/architecture-example-06-multi-agent-conversation.svg" /></p>
 <ol>
-<li><strong>User Interaction</strong>: Users interact with the system through a CLI Chat interface.</li>
-<li><strong>TriageAgent</strong>: Analyzes incoming messages and routes them to the appropriate agent based on the content.</li>
-<li><strong>PolicyAgent</strong>: Handles policy-related inquiries using a mock <code>policies_database</code>.</li>
-<li><strong>ClaimsAgent</strong>: Manages claims-related inquiries and requests.</li>
-<li><strong>EscalationAgent</strong>: Takes care of issues that require human intervention by creating support tickets.</li>
-<li><strong>Channels</strong>:</li>
-<li><strong>User Channel</strong>: For interactions between the user and the agents.</li>
-<li><strong>Agent Channel</strong>: For communication and coordination between different agents.</li>
+<li><strong>Test Execution</strong>:</li>
+<li>
+<p>The test script sends predefined conversations to the <strong>TriageAgent</strong> via the WebSocket gateway.</p>
+</li>
+<li>
+<p><strong>TriageAgent Processing</strong>:</p>
+</li>
+<li>
+<p>Analyzes each conversation to determine the appropriate target agent based on the content and context.</p>
+</li>
+<li>
+<p><strong>Result Collection</strong>:</p>
+</li>
+<li>
+<p>The test script captures the <strong>TriageAgent</strong>'s routing decisions and compares them against expected outcomes.</p>
+</li>
+<li>
+<p><strong>Reporting</strong>:</p>
+</li>
+<li>Successes and failures are logged and compiled into a comprehensive HTML report for review and further enhancement.</li>
 </ol>
 <hr />
 <h2 id="code-breakdown"><strong>Code Breakdown</strong> 🔬</h2>
 <h3 id="key-components"><strong>Key Components</strong></h3>
 <ol>
-<li><strong>LiteLlmAgent Initialization</strong>:</li>
+<li><strong>Test Script (<code>tests/test_triage_agent.py</code>)</strong>:</li>
 <li>
-<p><strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, <strong>EscalationAgent</strong>, and <strong>TriageAgent</strong> are initialized with specific system prompts and model configurations.</p>
+<p><strong>Functions</strong>:</p>
+<ul>
+<li><code>parse_conversation</code>: Converts conversation text into structured message formats.</li>
+<li><code>test_handle_user_message</code>: Runs the evaluation by sending conversations to the <strong>TriageAgent</strong> and recording outcomes.</li>
+<li><code>generate_html_report</code>: Creates an HTML report using Jinja2 templates to visualize test results.</li>
+</ul>
 </li>
 <li>
-<p><strong>Mock Database</strong>:</p>
+<p><strong>Dataset (<code>datasets/triage-training.json</code>)</strong>:</p>
 </li>
 <li>
-<p><code>policies_database</code>: A simulated database containing policy information for demonstration purposes.</p>
+<p>Contains a variety of conversation scenarios to rigorously test the <strong>TriageAgent</strong>'s routing logic.</p>
 </li>
 <li>
-<p><strong>Tools</strong>:</p>
+<p><strong>Reporting Mechanism</strong>:</p>
 </li>
 <li>
-<p><strong>get_policy_details</strong>: A tool used by the PolicyAgent to retrieve policy information from the <code>policies_database</code>.</p>
+<p>Utilizes Jinja2 for templating and Bootstrap for styling to produce an intuitive and informative HTML report.</p>
 </li>
 <li>
-<p><strong>Triage System Prompt</strong>:</p>
+<p><strong>Agent Integration</strong>:</p>
 </li>
-<li>
-<p>Defines guidelines for the TriageAgent to determine which agent should handle each user request based on keywords and context.</p>
-</li>
-<li>
-<p><strong>Message Handling</strong>:</p>
-</li>
-<li>Users interact via the CLI, and messages are processed by the TriageAgent, which routes them to the appropriate agent.</li>
-<li>
-<p>Agents communicate through structured messages, ensuring context is maintained throughout the conversation.</p>
-</li>
-<li>
-<p><strong>Main Script</strong>:</p>
-</li>
-<li>Manages the lifecycle of the CLI Chat, initializes agents, and handles user inputs and agent responses.</li>
+<li><strong>TriageAgent</strong> leverages the <strong>LiteLlmAgent</strong> for processing and decision-making, ensuring accurate and efficient message routing.</li>
 </ol>
 <hr />
 <h2 id="cleaning-up"><strong>Cleaning Up</strong> ❌</h2>
-<p>When you’re done, stop the services:</p>
+<p>After completing your evaluations, gracefully shut down the services to free up resources:</p>
 <pre><code class="language-bash">docker compose down -v
 </code></pre>
-<hr />
-<h2 id="next-steps"><strong>Next Steps</strong> 🚀</h2>
 <ul>
-<li><strong>Explore</strong>: Modify the example to include additional agents or enhance existing ones with more tools and capabilities.</li>
-<li><strong>Learn More</strong>: Check out other examples in the <code>examples</code> folder to discover advanced multi-agent patterns and integrations.</li>
-<li><strong>Contribute</strong>: Share your feedback, report issues, or contribute to the EggAI project to help improve the framework.</li>
+<li><strong>Effect</strong>: Stops and removes the Docker containers along with their associated volumes, ensuring no residual processes remain active.</li>
 </ul>
 <hr />
-<p>Thank you for exploring the <strong>06-multi-agent-conversation</strong> example for EggAI! 🥚🤖 We hope this example helps you understand how to build and manage collaborative multi-agent systems to handle complex user interactions effectively. 🙏✨</p>
+<h2 id="next-steps"><strong>Next Steps</strong> 🚀</h2>
+<p>Elevate your agent evaluation and enhancement process with these actionable steps:</p>
+<ul>
+<li>
+<p><strong>Refine the Dataset</strong>: Expand the <code>triage-training.json</code> with more diverse conversation scenarios to further test the <strong>TriageAgent</strong>'s capabilities.</p>
+</li>
+<li>
+<p><strong>Enhance Reporting</strong>: Customize the HTML report to include additional metrics, visualizations, or interactive elements for deeper insights.</p>
+</li>
+<li>
+<p><strong>Automate Enhancements</strong>: Integrate the evaluation framework into a CI/CD pipeline to continuously assess and improve agent performance.</p>
+</li>
+<li>
+<p><strong>Expand Agent Capabilities</strong>: Use the insights from evaluations to introduce new features or adjust existing ones, ensuring the <strong>TriageAgent</strong> adapts to evolving user needs.</p>
+</li>
+<li>
+<p><strong>Learn More</strong>: Explore other EggAI examples to discover advanced testing methodologies and agent integration techniques.</p>
+</li>
+<li>
+<p><strong>Contribute</strong>: Share your enhancements, report issues, or contribute new features to the EggAI project to support the community.</p>
+</li>
+</ul>
+<hr />
+<p>Thank you for embarking on the <strong>Agent Evaluation and Enhancement</strong> journey with EggAI! 🥚🤖 We hope this example empowers you to build more effective and intelligent agents, driving superior user interactions and system performance. 🙏✨</p>
 <!-- END INCLUDE -->
 
 
