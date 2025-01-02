@@ -122,13 +122,11 @@ Upon running the tests, you will observe:
   - Sections highlighting the summary of results and detailed insights into each conversation's outcome.
   - Indicators for successful and failed tests to quickly identify areas needing attention.
 
-![HTML Report Screenshot](/docs/assets/example-08-report.png)
+![HTML Report Screenshot](../../docs/assets/triage-evaluation-report.png)
 
 ---
 
 ## **Architecture Overview** 🔁
-
-![Architecture Overview](../../docs/assets/architecture-agent-evaluation.svg)
 
 1. **Test Execution**:
    - The test script sends predefined conversations to the **TriageAgent** via the WebSocket gateway.

@@ -23,6 +23,8 @@ nav:
     - "Shared Context": examples/04-context.md
     - "LiteLLM Integration": examples/05-litellm-agent.md
     - "Multi-Agent Conversation": examples/06-multi-agent-conversation.md
+    - "An Insurance Company Scenario": examples/07-chat-with-agents.md
+    - "Evaluation & DSPy": examples/08-evaluation-and-dspy.md
   - References:
     - "Agent": references/agent.md
     - "Channel": references/channel.md
