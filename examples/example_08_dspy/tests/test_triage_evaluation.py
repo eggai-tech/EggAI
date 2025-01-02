@@ -100,14 +100,6 @@ async def test_handle_user_message(monkeypatch):
         "success_percentage": f"{success_percentage:.2f}"
     }
 
-    # write json results too
-    with open('results.json', 'w') as f:
-        json_to_write = {
-            "summary": summary,
-            "results": test_results
-        }
-        json.dump(json_to_write, f, indent=4)
-
     # Generate the HTML report
     generate_html_report(test_results, summary)
 
@@ -167,7 +159,6 @@ def generate_html_report(test_results, summary, output_dir='reports'):
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3>Detailed Results</h3>
-                <input type="text" id="searchBox" class="form-control w-25" placeholder="Search">
             </div>
 
             <table id="resultsTable" class="table table-striped">
@@ -208,11 +199,6 @@ def generate_html_report(test_results, summary, output_dir='reports'):
                 var table = $('#resultsTable').DataTable({
                     "order": [[ 0, "asc" ]],
                     "pageLength": 10
-                });
-
-                // Custom search box
-                $('#searchBox').on('keyup', function() {
-                    table.search(this.value).draw();
                 });
             });
         </script>
