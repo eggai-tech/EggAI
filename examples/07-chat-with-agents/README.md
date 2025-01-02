@@ -106,7 +106,7 @@ Open your web browser and navigate to [http://127.0.0.1:8000/](http://127.0.0.1:
 
 Upon running the example and accessing the chat interface, you should see a dynamic web-based chat UI similar to the screenshot below:
 
-![Chat UI Screenshot](/docs/assets/example-07-chat.png)
+![Chat UI Screenshot](../../docs/assets/example-07-chat.png)
 
 ### **Sample Interaction**
 
