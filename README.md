@@ -1,6 +1,7 @@
 <img src="docs/assets/eggai-word-and-figuremark.svg" alt="EggAI word and figuremark" width="200px" style="margin-bottom: 16px;" />
 
 <!--start-->
+
 # Multi-Agent Meta Framework
 
 [![Python 3.x](https://img.shields.io/badge/python-3.x-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
@@ -27,8 +28,8 @@ By handling the complexities of distributed systems, EggAI frees developers to f
 - 🔄 **Resilient by Design**: Built-in retry mechanisms and fault tolerance for production-grade robustness.
 
 ## EggAI SDK
-**EggAI SDK** provides essential primitives like `Agent` and `Channel` to enable seamless communication within multi-agent systems. It also integrates easily with specialized frameworks like [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), or [LlamaIndex](https://www.llamaindex.ai/), so you can build a highly customizable and extensible environment tailored to your enterprise needs. 
 
+**EggAI SDK** provides essential primitives like `Agent` and `Channel` to enable seamless communication within multi-agent systems. It also integrates easily with specialized frameworks like [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), or [LlamaIndex](https://www.llamaindex.ai/), so you can build a highly customizable and extensible environment tailored to your enterprise needs.
 
 ### Installation
 
@@ -90,32 +91,108 @@ Copy this snippet into your project, customize it, and you’re good to go!
 An `Agent` is an isolated unit of business logic designed to orchestrate workflows, process events, and communicate with external systems such as LLMs and APIs.
 It reduces boilerplate while supporting complex and long-running workflows. Key features include:
 
-- **Event Handling**: Use the `subscribe` decorator to bind user-defined handlers to specific events.  
-- **Workflow Orchestration**: Manage long-running workflows and tasks efficiently.  
-- **External System Communication**: Seamlessly interact with Large Language Models (LLMs), external APIs, and other systems.  
-- **Lifecycle Management**: Automatically handle the lifecycle of Kafka consumers, producers, and other connected components.  
-- **Boilerplate Reduction**: Focus on core business logic while leveraging built-in integrations for messaging and workflows.  
+- **Event Handling**: Use the `subscribe` decorator to bind user-defined handlers to specific events.
+- **Workflow Orchestration**: Manage long-running workflows and tasks efficiently.
+- **External System Communication**: Seamlessly interact with Large Language Models (LLMs), external APIs, and other systems.
+- **Lifecycle Management**: Automatically handle the lifecycle of Kafka consumers, producers, and other connected components.
+- **Boilerplate Reduction**: Focus on core business logic while leveraging built-in integrations for messaging and workflows.
 
 A `Channel` is the foundational communication layer that facilitates both event publishing and subscription.
 It abstracts Kafka producers and consumers, enabling efficient and flexible event-driven operations. Key features include:
 
-- **Event Communication**: Publish events to Kafka topics with ease.  
-- **Event Subscription**: Subscribe to Kafka topics and process events directly through the `Channel`.  
-- **Shared Resources**: Optimize resource usage by managing singleton Kafka producers and consumers across multiple agents or channels.  
-- **Seamless Integration**: Act as a communication hub, supporting both Agents and other system components.  
-- **Flexibility**: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.  
+- **Event Communication**: Publish events to Kafka topics with ease.
+- **Event Subscription**: Subscribe to Kafka topics and process events directly through the `Channel`.
+- **Shared Resources**: Optimize resource usage by managing singleton Kafka producers and consumers across multiple agents or channels.
+- **Seamless Integration**: Act as a communication hub, supporting both Agents and other system components.
+- **Flexibility**: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.
+
+<!--end-->
 
 ## Examples
 
 We encourage you to **copy/paste** from our [examples folder](examples), which includes:
 
-- [Getting Started](examples/00-getting-started): Orchestrate two agents asynchronously.
-- [Coordinator](examples/01-coordinator): Bridge multiple communication channels.
-- [Websocket Gateway](examples/02-websocket-gateway): Real-time interaction via WebSockets.
-- [LangChain Tool Calling](examples/03-langchain-tool-calling): Integrate tool calling with [LangChain](https://www.langchain.com/).
-- [Shared Context](examples/04-context): Maintain shared context across agents.
-- [LiteLLM Integration](examples/05-litellm-agent): Power agents with [LiteLLM](https://www.litellm.ai/).
-- [Multi-Agent Conversation](examples/06-multi-agent-conversation): Context aware multi-agent conversations.
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <a href="examples/00-getting-started"><strong>Getting Started</strong></a>:<br/>
+        Orchestrate two agents asynchronously.
+      </td>
+      <td>
+        <a href="examples/00-getting-started">
+          <img src="docs/assets/example-00.png" alt="Getting Started Example"/>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/01-coordinator"><strong>Coordinator</strong></a>:<br/>
+        Bridge multiple communication channels.
+      </td>
+      <td>
+        <a href="examples/01-coordinator">
+          <img src="docs/assets/example-01.png" alt="Coordinator Example"/>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/02-websocket-gateway"><strong>Websocket Gateway</strong></a>:<br/>
+        Real-time interaction via WebSockets.
+      </td>
+      <td>
+        <a href="examples/02-websocket-gateway">
+          <img src="docs/assets/example-02.png" alt="Websocket Gateway Example"/>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/03-langchain-tool-calling"><strong>LangChain Tool Calling</strong></a>:<br/>
+        Integrate tool calling with LangChain.
+      </td>
+      <td>
+        <a href="examples/03-langchain-tool-calling">
+          <img src="docs/assets/example-03.png" alt="LangChain Tool Calling Example"/>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/04-context"><strong>Shared Context</strong></a>:<br/>
+        Maintain shared context across agents.
+      </td>
+      <td>
+        <a href="examples/04-context">
+          <img src="docs/assets/example-04.png" alt="Shared Context Example"/>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/05-litellm-agent"><strong>LiteLLM Integration</strong></a>:<br/>
+        Power agents with LiteLLM.
+      </td>
+      <td>
+        <a href="examples/05-litellm-agent">
+          <img src="docs/assets/example-05.png" alt="LiteLLM Integration Example"/>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/06-multi-agent-conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
+        Context aware multi-agent conversations.
+      </td>
+      <td>
+        <a href="examples/06-multi-agent-conversation">
+          <img src="docs/assets/example-06.png" alt="Multi-Agent Conversation Example"/>
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 ### Why Copy/Paste?
 
@@ -131,7 +208,6 @@ Not everyone wants a one-size-fits-all library. With copy/paste “recipes,” y
 **4. No Hidden Coupling**  
 Sometimes, prepackaged frameworks lock in design decisions. By copying from examples, you choose exactly what gets included and how it’s used.
 
-<!--end-->
 
 ## Contribution
 
@@ -140,5 +216,3 @@ Sometimes, prepackaged frameworks lock in design decisions. By copying from exam
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE.md](LICENSE.md) file for details.
-
-
