@@ -110,7 +110,7 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
 
 ## Examples
 
-We encourage you to **copy/paste** from our [examples folder](examples), which includes:
+We encourage you to **copy/paste** from our examples:
 
 <table>
   <tbody>
