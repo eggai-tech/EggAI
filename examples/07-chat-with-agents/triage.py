@@ -9,9 +9,11 @@ agents_channel = Channel("agents")
 
 AGENT_REGISTRY = {
     "PolicyAgent": {
+        "message_type": "policy_request",
         "keywords": ["policy details", "coverage", "premium", "modify policy", "policy number"]
     },
     "BillingAgent": {
+        "message_type": "billing_request",
         "keywords": ["billing", "invoice", "payment", "premium due", "billing issue"]
     },
 }
@@ -43,7 +45,7 @@ You are an advanced Triage Assistant for a multi-agent insurance support system.
 triage_agent = LiteLlmAgent(
     name="TriageAgent",
     system_message=build_triage_system_prompt(AGENT_REGISTRY),
-    model="openai/gpt-3.5-turbo"
+    model="openai/gpt-4o-mini"
 )
 
 @triage_agent.subscribe(channel=human_channel, filter_func=lambda msg: msg["type"] == "user_message")
@@ -54,12 +56,17 @@ async def handle_user_message(msg):
         meta = msg.get("meta", {})
         meta["message_id"] = msg.get("id")
 
+        # Combine chat history
+        conversation_string = ""
+        for chat in chat_messages:
+            user = chat.get("agent", "User")
+            conversation_string += f"{user}: {chat['content']}\n"
+
         # identify the agent to target based on the user chat messages
         response = await triage_agent.completion(messages=[{
             "role": "user",
-            "content": json.dumps(chat_messages),
+            "content": f"Based on this conversation history: {conversation_string}, determine the target agent as a JSON object.",
         }])
-
 
         try:
             reply = json.loads(response.choices[0].message.content.strip())
@@ -72,30 +79,16 @@ async def handle_user_message(msg):
             return
 
         target_agent = reply.get("target")
-        print("Target agent: ", target_agent)
-
-        conversation_string = ""
-        for chat in chat_messages:
-            user = chat.get("agent", "User")
-            conversation_string += f"{user}: {chat['content']}\n"
 
         triage_to_agent_messages = [{
             "role": "user",
             "content": f"{conversation_string} \n{target_agent}: ",
         }]
 
-        if target_agent == "PolicyAgent":
-            await agents_channel.publish({
-                "type": "policy_request",
-                "payload": {
-                    "chat_messages": triage_to_agent_messages
-                },
-                "meta": meta
-            })
-        elif target_agent == "TicketingAgent":
+        if target_agent in AGENT_REGISTRY:
             await agents_channel.publish({
                 "id": str(uuid4()),
-                "type": "ticketing_request",
+                "type": AGENT_REGISTRY[target_agent]["message_type"],
                 "payload": {
                     "chat_messages": triage_to_agent_messages
                 },

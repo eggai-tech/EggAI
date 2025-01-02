@@ -80,7 +80,6 @@ async def get_policy_details(policy_number: str) -> str:
 @policy_agent.subscribe(channel=agents_channel, filter_func=lambda msg: msg["type"] == "policy_request")
 async def handle_policy_request(msg):
     try:
-        print("Handling policy request...")
         chat_messages = msg["payload"]["chat_messages"]
         response = await policy_agent.completion(messages=chat_messages)
         reply = response.choices[0].message.content
