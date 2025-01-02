@@ -171,12 +171,12 @@ We encourage you to **copy/paste** from our examples:
     </tr>
     <tr>
       <td>
-        <a href="examples/05-litellm-agent"><strong>LiteLLM Integration</strong></a>:<br/>
+        <a href="examples/05-litellm-agent"><strong>LiteLLM Agent</strong></a>:<br/>
         Power agents with LiteLLM.
       </td>
       <td>
         <a href="examples/05-litellm-agent">
-          <img src="docs/assets/example-05.png" alt="LiteLLM Integration Example"/>
+          <img src="docs/assets/example-05.png" alt="LiteLLM Agent Example"/>
         </a>
       </td>
     </tr>
