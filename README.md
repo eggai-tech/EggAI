@@ -12,8 +12,8 @@
 
 `EggAI Multi-Agent Meta Framework` is an async-first meta framework for building, deploying, and scaling multi-agent systems for modern enterprise environments. It provides:
 
-- [eggai SDK](#eggai-sdk): Essential primitives to streamline multi-agent system development.
-- [Extensive examples](#examples): Proven patterns, best practices, and integrations with popular AI frameworks.
+- <a href="#eggai-sdk">eggai SDK</a>: Essential primitives to streamline multi-agent system development.
+- <a href="#examples">Examples</a>: Proven patterns, best practices, and integrations with popular AI frameworks.
 
 By handling the complexities of distributed systems, EggAI frees developers to focus on business logic and deliver value faster.
 
