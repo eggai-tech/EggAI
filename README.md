@@ -1,4 +1,7 @@
-# EggAI Multi-Agent Meta Framework 🤖
+<img src="docs/assets/eggai-word-and-figuremark.svg" alt="EggAI word and figuremark" width="200px" style="margin-bottom: 16px;" />
+
+<!--start-->
+# Multi-Agent Meta Framework
 
 [![Python 3.x](https://img.shields.io/badge/python-3.x-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
@@ -6,23 +9,14 @@
 [![GitHub Issues](https://img.shields.io/github/issues/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/stargazers)
 
-`EggAI Multi-Agent Meta Framework` is an async-first meta framework for building, deploying, and scaling multi-agent systems for modern enterprise environments. It integrates seamlessly with popular AI libraries and includes extensive [examples](examples) to help you move quickly while staying flexible.
+`EggAI Multi-Agent Meta Framework` is an async-first meta framework for building, deploying, and scaling multi-agent systems for modern enterprise environments. It provides:
 
-## Table of Contents
+- [eggai SDK](#eggai-sdk): Essential primitives to streamline multi-agent system development.
+- [Extensive examples](#examples): Proven patterns, best practices, and integrations with popular AI frameworks.
 
-[Features](#-features) •
-[Overview](#-overview) •
-[System Architecture](#-system-architecture) •
-[Installation](#-installation) •
-[Getting Started](#-getting-started) •
-[Core Concepts](#-core-concepts) •
-[Examples](#-examples) •
-[Why Copy/Paste?](-why-copypaste) •
-[Contribution](#-contribution) •
-[License](#-license)
+By handling the complexities of distributed systems, EggAI frees developers to focus on business logic and deliver value faster.
 
-<!--start-->
-## 🌟 Features
+## Features
 
 - 🤖 **Agent Management**: Simplify the orchestration and execution of multi-agent systems.
 - 🚀 **Async-First**: Push-based APIs designed for high-concurrency, long-running and real-time processes.
@@ -32,41 +26,11 @@
 - 🛠 **Flexible Architecture**: Easily adapt or extend components without disrupting workflows.
 - 🔄 **Resilient by Design**: Built-in retry mechanisms and fault tolerance for production-grade robustness.
 
-## 📖 Overview
+## EggAI SDK
+**EggAI SDK** provides essential primitives like `Agent` and `Channel` to enable seamless communication within multi-agent systems. It also integrates easily with specialized frameworks like [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), or [LlamaIndex](https://www.llamaindex.ai/), so you can build a highly customizable and extensible environment tailored to your enterprise needs. 
 
-`EggAI Multi-Agent Meta Framework` provides the `eggai` Python library that simplifies the development of multi-agent systems.
-It allows developers to focus on business logic while handling the complexities of distributed systems.
 
-## 🛠️ Meta-Framework Approach
-EggAI is designed as a **meta-framework**, providing essential primitives like `Agent` and `Channel` to enable seamless communication within multi-agent systems. It also integrates easily with specialized frameworks like [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), or [LlamaIndex](https://www.llamaindex.ai/), so you can build a highly customizable and extensible environment tailored to your enterprise needs. 
-
-## 🏗️ System Architecture
-
-![System Architecture](./docs/assets/system-architecture.svg)
-
-1. **Human Interaction**:
-
-   - Users interact with the system via various **Human Channels**, such as chat interfaces or APIs, which are routed through the **Gateway**.
-
-2. **Gateway**:
-
-   - The Gateway acts as the entry point for all human communications and interfaces with the system to ensure secure and consistent message delivery.
-
-3. **Coordinator**:
-
-   - The **Coordinator** is the central component that manages the communication between humans and specialized agents.
-   - It determines which agent(s) to involve and facilitates the interaction through the **Agent Channels**.
-
-4. **Agents**:
-
-   - The system is composed of multiple specialized agents (Agent 1, Agent 2, Agent 3), each responsible for handling specific types of tasks or functions.
-   - Agents communicate with the Coordinator through their respective **Agent Channels**, ensuring scalability and modularity.
-
-5. **Agent and Human Channels**:
-   - **Human Channels** connect the Gateway to humans for interaction.
-   - **Agent Channels** connect the Coordinator to agents, enabling task-specific processing and delegation.
-
-## 📦 Installation
+### Installation
 
 Install `eggai` via pip:
 
@@ -74,7 +38,7 @@ Install `eggai` via pip:
 pip install eggai
 ```
 
-## 🚀 Getting Started
+### Getting Started
 
 Here's how you can quickly set up an agent to handle events in an event-driven system:
 
@@ -121,9 +85,7 @@ if __name__ == "__main__":
 
 Copy this snippet into your project, customize it, and you’re good to go!
 
-## 💡 Core Concepts
-
-### 🤖 Agent
+### Core Concepts
 
 An `Agent` is an isolated unit of business logic designed to orchestrate workflows, process events, and communicate with external systems such as LLMs and APIs.
 It reduces boilerplate while supporting complex and long-running workflows. Key features include:
@@ -134,8 +96,6 @@ It reduces boilerplate while supporting complex and long-running workflows. Key 
 - **Lifecycle Management**: Automatically handle the lifecycle of Kafka consumers, producers, and other connected components.  
 - **Boilerplate Reduction**: Focus on core business logic while leveraging built-in integrations for messaging and workflows.  
 
-### 🚇 Channel
-
 A `Channel` is the foundational communication layer that facilitates both event publishing and subscription.
 It abstracts Kafka producers and consumers, enabling efficient and flexible event-driven operations. Key features include:
 
@@ -145,21 +105,19 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
 - **Seamless Integration**: Act as a communication hub, supporting both Agents and other system components.  
 - **Flexibility**: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.  
 
-
-<!--end-->
-## 👀 Examples
+## Examples
 
 We encourage you to **copy/paste** from our [examples folder](examples), which includes:
 
-- [Getting Started](examples/00-getting-started/README.md): Orchestrate two agents asynchronously.
-- [Coordinator](examples/01-coordinator/README.md): Bridge multiple communication channels.
-- [Websocket Gateway](examples/02-websocket-gateway/README.md): Real-time interaction via WebSockets.
-- [LangChain Tool Calling](examples/03-langchain-tool-calling/README.md): Integrate tool calling with [LangChain](https://www.langchain.com/).
-- [Shared Context](examples/04-context/README.md): Maintain shared context across agents.
-- [LiteLLM Integration](examples/05-litellm-agent/README.md): Power agents with [LiteLLM](https://www.litellm.ai/).
-- [Multi-Agent Conversation](examples/06-multi-agent-conversation/README.md): Context aware multi-agent conversations.
+- [Getting Started](examples/00-getting-started): Orchestrate two agents asynchronously.
+- [Coordinator](examples/01-coordinator): Bridge multiple communication channels.
+- [Websocket Gateway](examples/02-websocket-gateway): Real-time interaction via WebSockets.
+- [LangChain Tool Calling](examples/03-langchain-tool-calling): Integrate tool calling with [LangChain](https://www.langchain.com/).
+- [Shared Context](examples/04-context): Maintain shared context across agents.
+- [LiteLLM Integration](examples/05-litellm-agent): Power agents with [LiteLLM](https://www.litellm.ai/).
+- [Multi-Agent Conversation](examples/06-multi-agent-conversation): Context aware multi-agent conversations.
 
-## 📋 Why Copy/Paste?
+### Why Copy/Paste?
 
 **1. Full Ownership and Control**  
 By copying and pasting, you have direct access to the underlying implementation. Tweak or rewrite as you see fit, the code is truly yours.
@@ -173,10 +131,14 @@ Not everyone wants a one-size-fits-all library. With copy/paste “recipes,” y
 **4. No Hidden Coupling**  
 Sometimes, prepackaged frameworks lock in design decisions. By copying from examples, you choose exactly what gets included and how it’s used.
 
-## 🤝 Contribution
+<!--end-->
+
+## Contribution
 
 `EggAI Multi-Agent Meta Framework` is open-source and we welcome contributions. If you're looking to contribute, please refer to [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## ⚖️ License
+## License
 
 This project is licensed under the MIT License. See the [LICENSE.md](LICENSE.md) file for details.
+
+
