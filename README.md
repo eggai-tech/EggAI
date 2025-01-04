@@ -12,24 +12,22 @@
 
 `EggAI Multi-Agent Meta Framework` is an async-first meta framework for building, deploying, and scaling multi-agent systems for modern enterprise environments. It provides:
 
-- <a href="#eggai-sdk">eggai SDK</a>: Essential primitives to streamline multi-agent system development.
-- <a href="#examples">Examples</a>: Proven patterns, best practices, and integrations with popular AI frameworks.
-
-By handling the complexities of distributed systems, EggAI frees developers to focus on business logic and deliver value faster.
+- <a href="#eggai-sdk">eggai SDK</a>: Core primitives for asynchronous, distributed multi-agent communication.
+- <a href="#examples">Examples</a>:  Practical implementation scenarios and integration guides with popular AI frameworks.
 
 ## Features
-
-- 🤖 **Agent Management**: Simplify the orchestration and execution of multi-agent systems.
-- 🚀 **Async-First**: Push-based APIs designed for high-concurrency, long-running and real-time processes.
-- ⚡ **Event-Driven**: Enable adaptive and responsive system behaviors triggered by real-time events.
-- 📈 **Horizontally Scalable**: Scale agent execution seamlessly to meet growing demands.
-- 🚇 **Kafka Integration**: Native support for Kafka topics ensures seamless streaming and messaging.
-- 🛠 **Flexible Architecture**: Easily adapt or extend components without disrupting workflows.
-- 🔄 **Resilient by Design**: Built-in retry mechanisms and fault tolerance for production-grade robustness.
+- 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
+- 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
+- ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
+- 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
+- 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
+- 🔄 **Resilient**: Built-in retry mechanisms and fault tolerance ensuring reliability.
+- 🚇 **Kafka Integration**: Native support for efficient streaming and messaging with Kafka.
 
 ## EggAI SDK
 
-**EggAI SDK** provides essential primitives like `Agent` and `Channel` to enable seamless communication within multi-agent systems. It also integrates easily with specialized frameworks like [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), or [LlamaIndex](https://www.llamaindex.ai/), so you can build a highly customizable and extensible environment tailored to your enterprise needs.
+**EggAI SDK** includes core components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
+
 
 ### Installation
 
