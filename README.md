@@ -10,7 +10,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/stargazers)
 
-`EggAI Multi-Agent Meta Framework` is an async-first meta framework for building, deploying, and scaling multi-agent systems. It provides:
+`EggAI Multi-Agent Meta Framework` is an async-first meta framework for building, deploying, and scaling multi-agent systems for modern enterprise environments. It provides:
 
 - <a href="#eggai-sdk">eggai SDK</a>: Core primitives for asynchronous, distributed multi-agent communication.
 - <a href="#examples">Examples</a>: Practical implementation scenarios and integration guides with popular AI frameworks.
