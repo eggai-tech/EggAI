@@ -17,8 +17,8 @@
 
 ## Features
 
-- 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
 - 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
+- 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
 - ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
 - 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
 - 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
