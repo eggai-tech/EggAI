@@ -4,7 +4,7 @@
 
 ## Examples
 
-We encourage you to **copy/paste** from our [examples folder](examples), which includes:
+We encourage you to explore and **copy/paste** from our examples for practical implementation scenarios and integration guides with popular AI frameworks.
 
 <table>
   <tbody>
@@ -83,6 +83,24 @@ We encourage you to **copy/paste** from our [examples folder](examples), which i
         <a href="examples/06-multi-agent-conversation">
           <img src="assets/example-06.png" alt="Multi-Agent Conversation Example"/>
         </a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/07-chat-with-agents"><strong>Insurance Company Support</strong></a>:<br/>
+        Merges previous components to create an insurance support system with an intuitive user interface.
+      </td>
+      <td>
+        <a href="examples/07-chat-with-agents">Example</a>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/example_08_dspy"><strong>Agents Evaluation & DSPy</strong></a>:<br/>
+        Demonstrates how to enhance agents and integrate DSPY for effective agent evaluation and improvement.
+      </td>
+      <td>
+        <a href="examples/example_08_dspy">Example</a>
       </td>
     </tr>
   </tbody>

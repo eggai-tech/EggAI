@@ -13,9 +13,10 @@
 `EggAI Multi-Agent Meta Framework` is an async-first meta framework for building, deploying, and scaling multi-agent systems for modern enterprise environments. It provides:
 
 - <a href="#eggai-sdk">eggai SDK</a>: Core primitives for asynchronous, distributed multi-agent communication.
-- <a href="#examples">Examples</a>:  Practical implementation scenarios and integration guides with popular AI frameworks.
+- <a href="#examples">Examples</a>: Practical implementation scenarios and integration guides with popular AI frameworks.
 
 ## Features
+
 - 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
 - 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
 - ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
@@ -27,7 +28,6 @@
 ## EggAI SDK
 
 **EggAI SDK** includes core components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
-
 
 ### Installation
 
@@ -108,7 +108,7 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
 
 ## Examples
 
-We encourage you to **copy/paste** from our examples:
+We encourage you to explore and **copy/paste** from our examples for practical implementation scenarios and integration guides with popular AI frameworks.
 
 <table>
   <tbody>
@@ -223,7 +223,6 @@ Not everyone wants a one-size-fits-all library. With copy/paste “recipes,” y
 
 **4. No Hidden Coupling**  
 Sometimes, prepackaged frameworks lock in design decisions. By copying from examples, you choose exactly what gets included and how it’s used.
-
 
 ## Contribution
 
