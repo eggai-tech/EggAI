@@ -86,8 +86,7 @@ Copy this snippet into your project, customize it, and you’re good to go!
 
 ### Core Concepts
 
-An `Agent` is an isolated unit of business logic designed to orchestrate workflows, process events, and communicate with external systems such as LLMs and APIs.
-It reduces boilerplate while supporting complex and long-running workflows. Key features include:
+An `Agent` is an autonomous unit of business logic designed to orchestrate workflows, process events, and communicate with external systems such as Large Language Models (LLMs) and APIs. It reduces boilerplate code while supporting complex and long-running workflows. Key features include:
 
 - **Event Handling**: Use the `subscribe` decorator to bind user-defined handlers to specific events.
 - **Workflow Orchestration**: Manage long-running workflows and tasks efficiently.
