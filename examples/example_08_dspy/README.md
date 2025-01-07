@@ -52,7 +52,7 @@ To create a robust evaluation framework, we integrated key components from previ
 
 1. **Initial Evaluation (Not Optimized)**  
    - Running the default classifier (without DSPy optimization) yielded an **initial success rate of ~59%** in our sample tests.  
-   - Example of unoptimized report: [Triage Not Optimized (59%)](tests/reports/triage-not-optimized.html).
+   - Example of unoptimized report: [Triage Not Optimized (59%)](triage-not-optimized.html).
 
 2. **DSPy Evaluation and Metric**  
    - We define a simple metric that checks **exact match**: if the `expected_target` is equal to the `actual_target`, the test result is **PASS**; otherwise, **FAIL**.
@@ -68,7 +68,7 @@ To create a robust evaluation framework, we integrated key components from previ
      ...
      New best score: 100.0 for seed 3
      ```
-   - Final optimized output: [Triage Optimized (100%)](tests/reports/triage-optimized.html)
+   - Final optimized output: [Triage Optimized (100%)](triage-optimized.html)
 
 4. **Quality Gate in CI/CD**  
    - **Pytest Integration**: The success percentage must exceed a threshold (e.g., 50% or higher) for the test suite to pass.  
