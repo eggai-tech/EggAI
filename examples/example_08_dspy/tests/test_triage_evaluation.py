@@ -13,17 +13,19 @@ from examples.example_08_dspy.src.triage import handle_user_message, AGENT_REGIS
 
 def parse_conversation(conversation):
     messages = []
-    lines = conversation.strip().split('\n')
+    lines = conversation.strip().split("\n")
     for line in lines:
         if line.startswith("User:"):
-            content = line[len("User:"):].strip()
+            content = line[len("User:") :].strip()
             messages.append({"role": "user", "content": content})
         else:
             try:
                 agent_name, content = line.split(":", 1)
                 agent_name = agent_name.strip()
                 content = content.strip()
-                messages.append({"role": "assistant", "content": content, "agent": agent_name})
+                messages.append(
+                    {"role": "assistant", "content": content, "agent": agent_name}
+                )
             except ValueError:
                 continue
     return messages
@@ -33,8 +35,10 @@ def parse_conversation(conversation):
 async def test_not_optimized_agent(monkeypatch):
     load_dotenv()
 
-    dataset_path = os.path.join(os.path.dirname(__file__), '..', 'datasets', 'triage-training.json')
-    with open(dataset_path, 'r') as f:
+    dataset_path = os.path.join(
+        os.path.dirname(__file__), "..", "datasets", "triage-training.json"
+    )
+    with open(dataset_path, "r") as f:
         dataset = json.load(f)
 
     total = len(dataset)
@@ -51,70 +55,80 @@ async def test_not_optimized_agent(monkeypatch):
 
         test_event = {
             "type": "user_message",
-            "payload": {
-                "chat_messages": chat_messages
-            }
+            "payload": {"chat_messages": chat_messages},
         }
 
         mock_publish = AsyncMock()
         monkeypatch.setattr(Channel, "publish", mock_publish)
         await handle_user_message(test_event)
 
-        if not mock_publish.called:
-            actual_target = "No publish call"
+        args, kwargs = mock_publish.call_args_list[0]
+        message_type = args[0].get("type", "agent_message")
+        meta = args[0].get("meta")
+        confidence = meta["confidence"]
+        reasoning = meta["reasoning"]
+
+        if message_type == "agent_message":
+            actual_target = "TriageAgent"
+        else:
+            actual_target = [
+                key
+                for key, value in AGENT_REGISTRY.items()
+                if value["message_type"] == message_type
+            ][0]
+
+        if actual_target == expected_target:
+            status = "PASS"
+            success += 1
+            print(f"Test Case #{test_id}: PASS")
+        else:
             status = "FAIL"
             failure += 1
-            print(f"Test Case #{test_id}: FAIL (Channel.publish was not called)")
-        else:
-            args, kwargs = mock_publish.call_args_list[0]
-            message_type = args[0].get("type", "agent_message")
-            if message_type == "agent_message":
-                actual_target = "TriageAgent"
-            else:
-                actual_target = [key for key, value in AGENT_REGISTRY.items() if value["message_type"] == message_type][0]
+            print(
+                f"Test Case #{test_id}: FAIL (Expected: {expected_target}, Got: {actual_target})"
+            )
 
-            if actual_target == expected_target:
-                status = "PASS"
-                success += 1
-                print(f"Test Case #{test_id}: PASS")
-            else:
-                status = "FAIL"
-                failure += 1
-                print(f"Test Case #{test_id}: FAIL (Expected: {expected_target}, Got: {actual_target})")
-
-        test_results.append({
-            "test_id": test_id,
-            "conversation": conversation,
-            "expected_target": expected_target,
-            "actual_target": actual_target,
-            "status": status
-        })
+        test_results.append(
+            {
+                "test_id": test_id,
+                "conversation": conversation,
+                "expected_target": expected_target,
+                "actual_target": actual_target,
+                "status": status,
+                "confidence": confidence,
+                "reasoning": reasoning,
+            }
+        )
 
     success_percentage = (success / total) * 100
-    print(f"\nTotal: {total}, Success: {success}, Failure: {failure}, Success Rate: {success_percentage:.2f}%")
+    print(
+        f"\nTotal: {total}, Success: {success}, Failure: {failure}, Success Rate: {success_percentage:.2f}%"
+    )
 
     # Prepare summary for the report
     summary = {
         "total": total,
         "success": success,
         "failure": failure,
-        "success_percentage": f"{success_percentage:.2f}"
+        "success_percentage": f"{success_percentage:.2f}",
     }
 
     # Generate the HTML report
     generate_html_report(test_results, summary)
 
     # Assert if success percentage is greater than 50%
-    assert success_percentage > 50, f"Success rate {success_percentage:.2f}% is not greater than 50%."
+    assert (
+        success_percentage > 50
+    ), f"Success rate {success_percentage:.2f}% is not greater than 50%."
 
 
-def generate_html_report(test_results, summary, output_dir='reports'):
+def generate_html_report(test_results, summary, output_dir="reports"):
     os.makedirs(output_dir, exist_ok=True)
 
     # Define the HTML template
     env = Environment(
         loader=FileSystemLoader(searchpath="./"),
-        autoescape=select_autoescape(['html', 'xml'])
+        autoescape=select_autoescape(["html", "xml"]),
     )
 
     # HTML Template with Bootstrap and DataTables for styling and interactivity
@@ -169,6 +183,8 @@ def generate_html_report(test_results, summary, output_dir='reports'):
                         <th>Conversation</th>
                         <th>Expected Target</th>
                         <th>Actual Target</th>
+                        <th>Confidence</th>
+                        <th>Reasoning</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -179,6 +195,8 @@ def generate_html_report(test_results, summary, output_dir='reports'):
                         <td><pre>{{ result.conversation }}</pre></td>
                         <td>{{ result.expected_target }}</td>
                         <td>{{ result.actual_target }}</td>
+                        <td>{{ result.confidence }}</td>
+                        <td>{{ result.reasoning }}</td>
                         <td>
                             {% if result.status == "PASS" %}
                                 <span class="pass">{{ result.status }}</span>
@@ -213,7 +231,7 @@ def generate_html_report(test_results, summary, output_dir='reports'):
     html_content = template.render(
         current_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         test_results=test_results,
-        summary=summary
+        summary=summary,
     )
 
     # Define the filename
@@ -222,7 +240,7 @@ def generate_html_report(test_results, summary, output_dir='reports'):
     filepath = os.path.join(output_dir, filename)
 
     # Save the HTML content to the file
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     print(f"Report generated and saved to {filepath}")

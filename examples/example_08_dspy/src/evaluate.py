@@ -1,14 +1,12 @@
 import json
 import dspy
 from dotenv import load_dotenv
-from dspy import MIPROv2
-
-from dspy.teleprompt import BootstrapFewShotWithRandomSearch
+from dspy.teleprompt import BootstrapFewShot
 
 from examples.example_08_dspy.src.classifier import classifier
 
 
-def load_data(path: str = "../datasets/triage-training.json"):
+def load_data(path: str = "datasets/triage-training.json"):
     """
     Loads the dataset and constructs the devset list of dspy.Example objects.
 
@@ -68,19 +66,18 @@ def run_evaluation(program, devset):
 
 def optimize(trainset):
     """
-    Optimizes the classifier using the MIPROv2 optimizer.
+    Optimizes the classifier using the BootstrapFewShotWithRandomSearch optimizer.
 
     :param trainset: A list of dspy.Example objects used for optimization.
     """
-    teleprompter = BootstrapFewShotWithRandomSearch(
+    teleprompter = BootstrapFewShot(
         metric=metric,
-        max_labeled_demos=20,
-        num_threads=20,
-        max_bootstrapped_demos=20
+        max_labeled_demos=22,
+        max_bootstrapped_demos=22
     )
     optimized_program = teleprompter.compile(classifier, trainset=trainset)
 
-    optimized_program.save("optimized_classifier_bootstrap.json")
+    optimized_program.save("src/optimized_classifier_bootstrap.json")
 
     run_evaluation(optimized_program, trainset)
 

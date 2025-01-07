@@ -31,12 +31,12 @@
     },
     {
         "conversation": "User: I lost my policy number and need assistance.",
-        "target": "TicketingAgent",
+        "target": "PolicyAgent",
         "id": "22e2ba46-368f-4e0b-95d9-56c1041465d9"
     },
     {
         "conversation": "User: I tried to access my policy details but forgot my policy number.",
-        "target": "TicketingAgent",
+        "target": "PolicyAgent",
         "id": "0d374624-1639-4b3f-9a0d-cc83956a1f54"
     },
     {
@@ -101,7 +101,7 @@
     },
     {
         "conversation": "User: I need some help with my policy but I'm not sure who to contact.",
-        "target": "TicketingAgent",
+        "target": "PolicyAgent",
         "id": "c34d4055-076b-4a6d-a2c7-4aeb40d9ead8"
     },
     {
