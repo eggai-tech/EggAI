@@ -2,79 +2,53 @@
 
 ## **A Story of Refinement and Improvement**
 
-In the quest to build intelligent and responsive multi-agent systems, continuous evaluation and enhancement of each agent's performance are paramount. The **Agent Evaluation and Enhancement** example for **EggAI** embodies this journey. Focused on refining the **TriageAgent**, this example demonstrates how to:
-
-1. **Assess agent effectiveness** using an evaluation dataset and test code.  
-2. **Optimize agent performance** using **DSPy** (including a step-by-step optimization flow).  
-3. **Establish quality gates** in CI/CD to enforce a desired success threshold and streamline agent performance improvements.
+Imagine a multi-agent landscape where messages must reach the correct destination every time. Our **TriageAgent** began with a straightforward goal: route user conversations reliably. Initial tests—guided by a dedicated JSON dataset and automated checks—revealed a commendable start yet uncovered gaps in accuracy.  
+ 
+Enter **DSPy**, transforming experiments into breakthroughs. With a simple metric (exact match of expected vs. actual targets) and **BootstrapFewShotWithRandomSearch**, the TriageAgent advanced from a modest **59% success rate** \([view report](triage-not-optimized.html)\) to a remarkable **100%** \([view report](triage-optimized.html)\). A CI/CD quality gate now ensures these gains stand firm by enforcing a minimum success threshold and preventing performance regressions.
 
 ---
 
 ## **Building on Proven Foundations**
 
-To create a robust evaluation framework, we integrated key components from previous EggAI examples:
+This progress builds on earlier EggAI work:
 
-- **WebSocket Gateway (`examples/02-websocket-gateway`)**:  
-  - **Purpose**: Facilitates real-time communication between agents and users.  
-  - **Integration**: Provides the communication backbone for sending and receiving test messages during evaluation.
+- **WebSocket Gateway** for real-time testing and message flow.  
+- **LiteLlmAgent** for swift, model-driven responses.  
+- **Triage Concept** for orchestrating how multi-agent conversations unfold.
 
-- **LiteLlmAgent (`examples/05-litellm-agent`)**:  
-  - **Purpose**: Enables efficient interaction with language models.  
-  - **Integration**: Powers the **TriageAgent**, allowing it to process and respond to user messages accurately.
-
-- **Triage Concept (`examples/06-multi-agent-conversation`)**:  
-  - **Purpose**: Implements intelligent routing of user messages to appropriate agents.  
-  - **Integration**: Serves as the foundation for enhancing the **TriageAgent**'s decision-making capabilities.
+Together, they anchor the TriageAgent’s architecture, paving the way for efficient routing and reliable outcomes.
 
 ---
 
 ## **What’s Inside?** 🗂️
 
-### **Agent Evaluation Framework**
+Within this example, a clear testing framework checks how well the TriageAgent matches each conversation to its intended agent, using data from **`triage-training.json`**. Test results are saved in JSON form and showcased in an HTML report, pinpointing precisely where improvements can be made.  
 
-- **Test Code (`tests/test_triage_evaluation.py`)**:  
-  - **Functionality**: Automates the testing of the **TriageAgent** against a predefined JSON dataset (e.g., `triage-training.json`).  
-  - **Features**:  
-    - Parses user-agent conversations.  
-    - Mocks message publishing to simulate agent responses.  
-    - Validates the **TriageAgent**’s ability to correctly route messages.  
-    - Records success and failure outcomes.  
-
-- **Dataset (`datasets/triage-training.json`)**:  
-  - **Content**: A collection of conversation samples with expected routing targets.  
-  - **Purpose**: Serves as the benchmark for evaluating the **TriageAgent**’s performance.  
-
-- **Reporting Tools**:  
-  - **JSON Results**: Logs detailed test outcomes for further analysis.  
-  - **HTML Report**: Generates a user-friendly report highlighting test successes and failures, enabling users to identify and address weaknesses in the **TriageAgent**.
-
-### **Enterprise-Grade Agent Quality and Optimization with DSPy**
-
-1. **Initial Evaluation (Not Optimized)**  
-   - Running the default classifier (without DSPy optimization) yielded an **initial success rate of ~59%** in our sample tests.  
-   - Example of unoptimized report: [Triage Not Optimized (59%)](triage-not-optimized.html).
-
-2. **DSPy Evaluation and Metric**  
-   - We define a simple metric that checks **exact match**: if the `expected_target` is equal to the `actual_target`, the test result is **PASS**; otherwise, **FAIL**.
-
-3. **DSPy Optimization**  
-   - **BootstrapFewShotWithRandomSearch**: Uses the training set to explore various prompt configurations and to automatically sample between 1 and 20 traces per predictor.  
-   - Seeks to improve overall accuracy through a series of candidate prompt sets.  
-   - **Example optimization output** (gradually improving from ~68% to 100%):  
-     ```
-     New best score: 68.18 for seed -3
-     ...
-     New best score: 95.45 for seed 0
-     ...
-     New best score: 100.0 for seed 3
-     ```
-   - Final optimized output: [Triage Optimized (100%)](triage-optimized.html)
-
-4. **Quality Gate in CI/CD**  
-   - **Pytest Integration**: The success percentage must exceed a threshold (e.g., 50% or higher) for the test suite to pass.  
-   - **SonarQube Integration** (optional): Generate `lcov` or other coverage reports to be analyzed by SonarQube, ensuring continuous monitoring of agent performance over time.
+Meanwhile, a DSPy optimization script details how we refined the TriageAgent’s logic. By iteratively sampling prompts and configurations, the agent surged to an optimal state—ready for production and ongoing enhancements.
 
 ---
+
+## **A Glimpse of DSPy Optimization**
+
+1. **Metric**: We rely on exact matches for pass/fail.  
+2. **Random Search**: The agent tests diverse prompt strategies with different seeds, aiming for incremental gains.  
+3. **Progress**: Climbing from 59% (see [not-optimized report](triage-not-optimized.html)) to 100% (see [optimized report](triage-optimized.html)). 
+     ```Going to sample between 1 and 20 traces per predictor. 
+      Will attempt to bootstrap 16 candidate sets. 
+      Average Metric: 15.00 / 22 (68.2%): 100%|██████████| 22/22 [00:00<00:00, 9053.64it/s] 
+      New best score: 68.18 for seed -3 
+      Scores so far: [68.18] 
+      .... OMITTED
+      Best score so far: 95.45 
+      36%|██████████| 22/22 [00:13<00:22,  1.64s/it] 
+      Bootstrapped 22 full traces after 8 examples for up to 1 rounds, amounting to 8 attempts. 
+      Average Metric: 22.00 / 22 (100.0%): 100%|██████████| 22/22 [00:03<00:00,  6.64it/s] 
+      New best score: 100.0 for seed 3 
+      Scores so far: [68.18, ...,  86.36, 90.91, 95.45, 90.91, 86.36, 100.0] 
+      Best score so far: 100.0
+     ```
+   - Final optimized output: [Triage Optimized (100%)](triage-optimized.html)
+4. **Quality Gate**: Pytest assertions and CI checks protect against regressions, ensuring that performance remains above a chosen threshold (e.g., 50% or higher).
 
 ## **How It Works** 🛠️
 
