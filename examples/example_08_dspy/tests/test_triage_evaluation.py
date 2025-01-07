@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from unittest.mock import AsyncMock
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -29,7 +30,7 @@ def parse_conversation(conversation):
 
 
 @pytest.mark.asyncio
-async def test_handle_user_message(monkeypatch):
+async def test_not_optimized_agent(monkeypatch):
     load_dotenv()
 
     dataset_path = os.path.join(os.path.dirname(__file__), '..', 'datasets', 'triage-training.json')
@@ -66,8 +67,8 @@ async def test_handle_user_message(monkeypatch):
             print(f"Test Case #{test_id}: FAIL (Channel.publish was not called)")
         else:
             args, kwargs = mock_publish.call_args_list[0]
-            message_type = args[0].get("type", None)
-            if message_type is None:
+            message_type = args[0].get("type", "agent_message")
+            if message_type == "agent_message":
                 actual_target = "TriageAgent"
             else:
                 actual_target = [key for key, value in AGENT_REGISTRY.items() if value["message_type"] == message_type][0]

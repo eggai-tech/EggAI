@@ -1,0 +1,106 @@
+{
+  "self": {
+    "lm": null,
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "chat_history": "User: Can you retrieve the details of my policy?\nPolicyAgent: Please provide your policy number.\nUser: P789012",
+        "reasoning": "The user is requesting to retrieve the details of their policy and has provided their policy number. This falls under the responsibilities of the PolicyAgent, who handles inquiries related to policy details.",
+        "target_agent": "PolicyAgent"
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I would like to update my address on my policy.\nPolicyAgent: Sure, please provide your new address.\nUser: 123 Main Street, Springfield.",
+        "reasoning": "The user is requesting to update their address on their policy, which is a task that falls under the responsibilities of the PolicyAgent. The conversation indicates that the PolicyAgent is already engaged in this process by asking for the new address.",
+        "target_agent": "PolicyAgent"
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I want to escalate my previous issue regarding my billing statement.",
+        "reasoning": "The user wants to escalate an issue related to their billing statement, which indicates that they have already reported this issue and are seeking further assistance. This type of request is best handled by the TicketingAgent, as they manage ticket escalations and follow-ups on existing issues.",
+        "target_agent": "TicketingAgent"
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: What's the weather like today?",
+        "reasoning": "The user's question is unrelated to policies, tickets, or triage issues. It pertains to a general inquiry about the weather, which does not fall under the scope of any of the specified agents.",
+        "target_agent": "TriageAgent"
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I need to check the status of my policy number P321654.",
+        "reasoning": "The user is inquiring about the status of their policy, which involves checking specific details related to their insurance policy. This task is best handled by the PolicyAgent, who specializes in policy-related inquiries.",
+        "target_agent": "PolicyAgent"
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I lost my policy number and need assistance.",
+        "reasoning": "The user has lost their policy number and requires assistance to retrieve it. This situation typically involves customer support related to policy details, which is best handled by the TicketingAgent.",
+        "target_agent": "TicketingAgent"
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: How's your day going?",
+        "reasoning": "The user's question is casual and does not pertain to any specific policy, ticketing, or triage issue. It does not require escalation to any agent.",
+        "target_agent": "TriageAgent"
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Can you explain the benefits covered under my current policy?",
+        "reasoning": "The user is asking for information about the benefits covered under their current policy, which falls under the domain of policy details and coverage information. This type of inquiry is best handled by the PolicyAgent, who specializes in providing information related to policies.",
+        "target_agent": "PolicyAgent"
+      },
+      {
+        "chat_history": "User: I tried to access my policy details but forgot my policy number.",
+        "target_agent": "TicketingAgent"
+      },
+      {
+        "chat_history": "User: I need some help with my policy but I'm not sure who to contact.",
+        "target_agent": "TicketingAgent"
+      }
+    ],
+    "signature": {
+      "instructions": "Given the fields `chat_history`, produce the fields `target_agent`.",
+      "fields": [
+        {
+          "prefix": "Chat History:",
+          "description": "The full chat history for context."
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Target Agent:",
+          "description": "The target agent to triage to."
+        }
+      ]
+    },
+    "extended_signature": {
+      "instructions": "Given the fields `chat_history`, produce the fields `target_agent`.",
+      "fields": [
+        {
+          "prefix": "Chat History:",
+          "description": "The full chat history for context."
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Target Agent:",
+          "description": "The target agent to triage to."
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12.3",
+      "dspy": "2.5.43",
+      "cloudpickle": "3.1.0"
+    }
+  }
+}
