@@ -27,7 +27,7 @@ Before you begin, ensure you have the following:
 - **Python** 3.10+
 - **Docker** and **Docker Compose**
 
-If you’re using OpenAI’s `ChatOpenAI`, ensure you have a valid OpenAI API key. Set it as an environment variable:
+Ensure you have a valid OpenAI API key. Set it as an environment variable:
 
 ```bash
 export OPENAI_API_KEY=your-api-key
