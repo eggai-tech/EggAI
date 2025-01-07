@@ -64,7 +64,7 @@ Meanwhile, a DSPy optimization script details how we refined the TriageAgent’s
 
 4. **Enhancing & Optimizing the Agent**:  
    - Use the insights from the report to refine the **TriageAgent**’s logic, improve keyword detection, and optimize routing guidelines.  
-   - Run **DSPy** optimization via [the provided script](#agent-optimization-script-snippet) for **BootstrapFewShotWithRandomSearch** to achieve better performance.
+   - Run [**DSPy**](https://dspy.ai/learn/optimization/optimizers/) optimization using BootstrapFewShotWithRandomSearch to achieve better performance.
 
 ---
 
