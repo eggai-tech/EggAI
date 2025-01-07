@@ -555,6 +555,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#enterprise-grade-agent-quality-and-optimization-with-dspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enterprise-Grade Agent Quality and Optimization with DSPy
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -570,42 +579,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#running-the-evaluation" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites 🔧
+      Running the Evaluation 🏆
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Prerequisites 🔧">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-install-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 1: Install Dependencies
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-start-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 2: Start Services with Docker
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-the-evaluation" class="md-nav__link">
+  <a href="#agent-optimization-script-snippet" class="md-nav__link">
     <span class="md-ellipsis">
-      Running the Evaluation 🏆
+      Agent Optimization Script Snippet
     </span>
   </a>
   
@@ -857,6 +842,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#enterprise-grade-agent-quality-and-optimization-with-dspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enterprise-Grade Agent Quality and Optimization with DSPy
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -872,42 +866,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#running-the-evaluation" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites 🔧
+      Running the Evaluation 🏆
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Prerequisites 🔧">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-install-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 1: Install Dependencies
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-start-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 2: Start Services with Docker
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-the-evaluation" class="md-nav__link">
+  <a href="#agent-optimization-script-snippet" class="md-nav__link">
     <span class="md-ellipsis">
-      Running the Evaluation 🏆
+      Agent Optimization Script Snippet
     </span>
   </a>
   
@@ -991,132 +961,227 @@
 <!-- BEGIN INCLUDE ../../examples/example_08_dspy/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
 <h1 id="agent-evaluation-and-enhancement-example-for-eggai">Agent Evaluation and Enhancement Example for EggAI 🥚🤖</h1>
 <h2 id="a-story-of-refinement-and-improvement"><strong>A Story of Refinement and Improvement</strong></h2>
-<p>In the quest to build intelligent and responsive multi-agent systems, continuous evaluation and enhancement of each agent's performance are paramount. The <strong>Agent Evaluation and Enhancement</strong> example for <strong>EggAI</strong> embodies this journey. Focused on refining the <strong>TriageAgent</strong>, this example demonstrates how to assess agent effectiveness, identify areas for improvement, and generate actionable insights through automated testing and reporting.</p>
+<p>In the quest to build intelligent and responsive multi-agent systems, continuous evaluation and enhancement of each agent's performance are paramount. The <strong>Agent Evaluation and Enhancement</strong> example for <strong>EggAI</strong> embodies this journey. Focused on refining the <strong>TriageAgent</strong>, this example demonstrates how to:</p>
+<ol>
+<li><strong>Assess agent effectiveness</strong> using an evaluation dataset and test code.  </li>
+<li><strong>Optimize agent performance</strong> using <strong>DSPy</strong> (including a step-by-step optimization flow).  </li>
+<li><strong>Establish quality gates</strong> in CI/CD to enforce a desired success threshold and streamline agent performance improvements.</li>
+</ol>
 <hr />
 <h2 id="building-on-proven-foundations"><strong>Building on Proven Foundations</strong></h2>
 <p>To create a robust evaluation framework, we integrated key components from previous EggAI examples:</p>
 <ul>
-<li><strong>WebSocket Gateway (<code>examples/02-websocket-gateway</code>)</strong>:</li>
-<li><strong>Purpose</strong>: Facilitates real-time communication between agents and users.</li>
+<li><strong>WebSocket Gateway (<code>examples/02-websocket-gateway</code>)</strong>:  </li>
+<li><strong>Purpose</strong>: Facilitates real-time communication between agents and users.  </li>
 <li>
 <p><strong>Integration</strong>: Provides the communication backbone for sending and receiving test messages during evaluation.</p>
 </li>
 <li>
-<p><strong>LiteLlmAgent (<code>examples/05-litellm-agent</code>)</strong>:</p>
+<p><strong>LiteLlmAgent (<code>examples/05-litellm-agent</code>)</strong>:  </p>
 </li>
-<li><strong>Purpose</strong>: Enables efficient interaction with language models.</li>
+<li><strong>Purpose</strong>: Enables efficient interaction with language models.  </li>
 <li>
 <p><strong>Integration</strong>: Powers the <strong>TriageAgent</strong>, allowing it to process and respond to user messages accurately.</p>
 </li>
 <li>
-<p><strong>Triage Concept (<code>examples/06-multi-agent-conversation</code>)</strong>:</p>
+<p><strong>Triage Concept (<code>examples/06-multi-agent-conversation</code>)</strong>:  </p>
 </li>
-<li><strong>Purpose</strong>: Implements intelligent routing of user messages to appropriate agents.</li>
+<li><strong>Purpose</strong>: Implements intelligent routing of user messages to appropriate agents.  </li>
 <li><strong>Integration</strong>: Serves as the foundation for enhancing the <strong>TriageAgent</strong>'s decision-making capabilities.</li>
 </ul>
 <hr />
 <h2 id="whats-inside"><strong>What’s Inside?</strong> 🗂️</h2>
 <h3 id="agent-evaluation-framework"><strong>Agent Evaluation Framework</strong></h3>
 <ul>
-<li><strong>Test Code (<code>tests/test_triage_agent.py</code>)</strong>:</li>
-<li><strong>Functionality</strong>: Automates the testing of the <strong>TriageAgent</strong> against a predefined JSON dataset.</li>
+<li><strong>Test Code (<code>tests/test_triage_evaluation.py</code>)</strong>:  </li>
+<li><strong>Functionality</strong>: Automates the testing of the <strong>TriageAgent</strong> against a predefined JSON dataset (e.g., <code>triage-training.json</code>).  </li>
 <li>
-<p><strong>Features</strong>:</p>
+<p><strong>Features</strong>:  </p>
 <ul>
-<li>Parses user-agent conversations.</li>
-<li>Mocks message publishing to simulate agent responses.</li>
-<li>Validates the <strong>TriageAgent</strong>'s ability to correctly route messages.</li>
-<li>Records success and failure outcomes.</li>
+<li>Parses user-agent conversations.  </li>
+<li>Mocks message publishing to simulate agent responses.  </li>
+<li>Validates the <strong>TriageAgent</strong>’s ability to correctly route messages.  </li>
+<li>Records success and failure outcomes.  </li>
 </ul>
 </li>
 <li>
-<p><strong>Dataset (<code>datasets/triage-training.json</code>)</strong>:</p>
+<p><strong>Dataset (<code>datasets/triage-training.json</code>)</strong>:  </p>
 </li>
-<li><strong>Content</strong>: A collection of conversation samples with expected routing targets.</li>
+<li><strong>Content</strong>: A collection of conversation samples with expected routing targets.  </li>
 <li>
-<p><strong>Purpose</strong>: Serves as the benchmark for evaluating the <strong>TriageAgent</strong>'s performance.</p>
+<p><strong>Purpose</strong>: Serves as the benchmark for evaluating the <strong>TriageAgent</strong>’s performance.  </p>
 </li>
 <li>
-<p><strong>Reporting Tools</strong>:</p>
+<p><strong>Reporting Tools</strong>:  </p>
 </li>
-<li><strong>JSON Results</strong>: Logs detailed test outcomes for further analysis.</li>
+<li><strong>JSON Results</strong>: Logs detailed test outcomes for further analysis.  </li>
 <li><strong>HTML Report</strong>: Generates a user-friendly report highlighting test successes and failures, enabling users to identify and address weaknesses in the <strong>TriageAgent</strong>.</li>
 </ul>
+<h3 id="enterprise-grade-agent-quality-and-optimization-with-dspy"><strong>Enterprise-Grade Agent Quality and Optimization with DSPy</strong></h3>
+<ol>
+<li><strong>Initial Evaluation (Not Optimized)</strong>  </li>
+<li>Running the default classifier (without DSPy optimization) yielded an <strong>initial success rate of ~59%</strong> in our sample tests.  </li>
+<li>
+<p>Example of unoptimized report: <a href="../../examples/example_08_dspy/triage-not-optimized.html">Triage Not Optimized (59%)</a>.</p>
+</li>
+<li>
+<p><strong>DSPy Evaluation and Metric</strong>  </p>
+</li>
+<li>
+<p>We define a simple metric that checks <strong>exact match</strong>: if the <code>expected_target</code> is equal to the <code>actual_target</code>, the test result is <strong>PASS</strong>; otherwise, <strong>FAIL</strong>.</p>
+</li>
+<li>
+<p><strong>DSPy Optimization</strong>  </p>
+</li>
+<li><strong>BootstrapFewShotWithRandomSearch</strong>: Uses the training set to explore various prompt configurations and to automatically sample between 1 and 20 traces per predictor.  </li>
+<li>Seeks to improve overall accuracy through a series of candidate prompt sets.  </li>
+<li><strong>Example optimization output</strong> (gradually improving from ~68% to 100%):<br />
+<code>New best score: 68.18 for seed -3
+     ...
+     New best score: 95.45 for seed 0
+     ...
+     New best score: 100.0 for seed 3</code></li>
+<li>
+<p>Final optimized output: <a href="../../examples/example_08_dspy/triage-optimized.html">Triage Optimized (100%)</a></p>
+</li>
+<li>
+<p><strong>Quality Gate in CI/CD</strong>  </p>
+</li>
+<li><strong>Pytest Integration</strong>: The success percentage must exceed a threshold (e.g., 50% or higher) for the test suite to pass.  </li>
+<li><strong>SonarQube Integration</strong> (optional): Generate <code>lcov</code> or other coverage reports to be analyzed by SonarQube, ensuring continuous monitoring of agent performance over time.</li>
+</ol>
 <hr />
 <h2 id="how-it-works"><strong>How It Works</strong> 🛠️</h2>
 <ol>
-<li><strong>Setup</strong>:</li>
+<li><strong>Setup</strong>:  </li>
 <li>
 <p>Ensure all dependencies are installed and services are running.</p>
 </li>
 <li>
-<p><strong>Running Tests</strong>:</p>
+<p><strong>Running Tests</strong>:  </p>
 </li>
 <li>
-<p>Execute the test script to evaluate the <strong>TriageAgent</strong> against the conversation dataset.</p>
+<p>Execute the test script (e.g., <code>pytest tests/test_triage_agent.py</code> or <code>test_not_optimized_agent</code>) to evaluate the <strong>TriageAgent</strong> against the conversation dataset.</p>
 </li>
 <li>
-<p><strong>Analyzing Results</strong>:</p>
+<p><strong>Analyzing Results</strong>:  </p>
 </li>
-<li>Review the console output for immediate feedback on each test case.</li>
+<li>Review the console output for immediate feedback on each test case.  </li>
 <li>
-<p>Examine the generated HTML report for a comprehensive overview of the agent's performance, including areas that need enhancement.</p>
+<p>Examine the generated HTML report for a comprehensive overview of the agent’s performance, including areas that need enhancement.  </p>
 </li>
 <li>
-<p><strong>Enhancing the Agent</strong>:</p>
+<p><strong>Enhancing &amp; Optimizing the Agent</strong>:  </p>
 </li>
-<li>Use the insights from the report to refine the <strong>TriageAgent</strong>'s logic, improve keyword detection, and optimize routing guidelines.</li>
+<li>Use the insights from the report to refine the <strong>TriageAgent</strong>’s logic, improve keyword detection, and optimize routing guidelines.  </li>
+<li>Run <strong>DSPy</strong> optimization via <a href="../../examples/example_08_dspy#agent-optimization-script-snippet">the provided script</a> for <strong>BootstrapFewShotWithRandomSearch</strong> to achieve better performance.</li>
 </ol>
-<hr />
-<h2 id="prerequisites"><strong>Prerequisites</strong> 🔧</h2>
-<p>Before diving into the evaluation, ensure you have the following set up:</p>
-<h3 id="step-1-install-dependencies"><strong>Step 1: Install Dependencies</strong></h3>
-<pre><code class="language-bash">pip install eggai litellm fastapi uvicorn pytest jinja2 python-dotenv
-</code></pre>
-<h3 id="step-2-start-services-with-docker"><strong>Step 2: Start Services with Docker</strong></h3>
-<p>This example utilizes a messaging broker. Launch the necessary services using Docker:</p>
-<pre><code class="language-bash">docker compose up -d
-</code></pre>
 <hr />
 <h2 id="running-the-evaluation"><strong>Running the Evaluation</strong> 🏆</h2>
 <ol>
-<li><strong>Navigate to the Project Directory</strong>:</li>
-</ol>
-<p><code>bash
+<li>
+<p><strong>Navigate to the Project Directory</strong>:
+   <code>bash
    cd path/to/project-directory</code></p>
-<ol>
-<li><strong>Execute the Test Script</strong>:</li>
-</ol>
-<p><code>bash
+</li>
+<li>
+<p><strong>Execute the Test Script</strong>:
+   <code>bash
    pytest tests/test_triage_agent.py</code></p>
-<ul>
-<li>
-<p><strong>Outcome</strong>: The script will run through each conversation in the dataset, evaluate the <strong>TriageAgent</strong>'s routing decisions, and output the results.</p>
 </li>
 <li>
-<p><strong>Access the HTML Report</strong>:</p>
+<p><strong>Outcome</strong>: The script will run through each conversation in the dataset, evaluate the <strong>TriageAgent</strong>’s routing decisions, and output the results.</p>
 </li>
-</ul>
-<p>After the tests complete, an HTML report will be generated in the <code>reports</code> directory. Open the report in your web browser to review detailed results.</p>
-<p><code>bash
+<li>
+<p><strong>Access the HTML Report</strong>:
+   After the tests complete, an HTML report will be generated in the <code>reports</code> directory. Open the report in your web browser to review detailed results:
+   <code>bash
    open reports/YYYYMMDD-HHMMSS-triage-agent-report.html</code></p>
+</li>
+</ol>
+<hr />
+<h2 id="agent-optimization-script-snippet"><strong>Agent Optimization Script Snippet</strong></h2>
+<p>Below is an example of how DSPy is integrated to <strong>optimize</strong> our classification approach:</p>
+<pre><code class="language-python">import json
+import dspy
+from dotenv import load_dotenv
+from dspy import MIPROv2
+from dspy.teleprompt import BootstrapFewShotWithRandomSearch
+from examples.example_08_dspy.src.classifier import classifier
+
+def load_data(path: str = &quot;../datasets/triage-training.json&quot;):
+    with open(path, &quot;r&quot;) as f:
+        ds_data = json.load(f)
+    devset = []
+    for ex in ds_data:
+        devset.append(
+            dspy.Example(
+                chat_history=ex[&quot;conversation&quot;],
+                target_agent=ex[&quot;target&quot;]
+            ).with_inputs(&quot;chat_history&quot;)
+        )
+    return devset
+
+def metric(example, pred, trace=None) -&gt; bool:
+    return example.target_agent.lower() == pred.target_agent.lower()
+
+def run_evaluation(program, devset):
+    evaluator = dspy.evaluate.Evaluate(
+        devset=devset,
+        num_threads=10,
+        display_progress=True,
+        return_outputs=True,
+        return_all_scores=True
+    )
+    score, results, all_scores = evaluator(program, metric=metric)
+    print(&quot;Final score:&quot;, score)
+
+def optimize(trainset):
+    teleprompter = BootstrapFewShotWithRandomSearch(
+        metric=metric,
+        max_labeled_demos=20,
+        num_threads=20,
+        max_bootstrapped_demos=20
+    )
+    optimized_program = teleprompter.compile(classifier, trainset=trainset)
+    optimized_program.save(&quot;optimized_classifier_bootstrap.json&quot;)
+    run_evaluation(optimized_program, trainset)
+
+def main():
+    load_dotenv()
+    devset = load_data()
+    # Evaluate current classifier (unoptimized)
+    run_evaluation(classifier, devset)
+    # Optimize using DSPy
+    optimize(devset)
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<ul>
+<li><strong>Key steps</strong>:</li>
+<li><strong>Define a metric</strong> (exact match).  </li>
+<li><strong>Use DSPy</strong> to run a random search, bootstrapping different prompt configurations.  </li>
+<li><strong>Identify the best seed</strong> that yields the highest success rate (up to 100%).  </li>
+<li><strong>Save</strong> the optimized version and re-run evaluation.</li>
+</ul>
 <hr />
 <h2 id="expected-output"><strong>Expected Output</strong> 📤</h2>
-<p>Upon running the tests, you will observe:</p>
+<p>Upon running the tests and optimizations, you will observe:</p>
 <ul>
 <li><strong>Console Output</strong>:</li>
 <li>A log of each test case indicating <strong>PASS</strong> or <strong>FAIL</strong>, along with pertinent details.</li>
+<li>A summary showing the total number of tests, successes, failures, and the overall success rate.</li>
 <li>
-<p>A summary showing the total number of tests, successes, failures, and the overall success rate.</p>
+<p>Incremental improvements in success rate during the DSPy optimization process.</p>
 </li>
 <li>
 <p><strong>HTML Report</strong>:</p>
 </li>
 <li>A visually appealing and interactive report detailing each test case.</li>
-<li>Sections highlighting the summary of results and detailed insights into each conversation's outcome.</li>
+<li>Sections highlighting the summary of results and detailed insights into each conversation’s outcome.</li>
 <li>Indicators for successful and failed tests to quickly identify areas needing attention.</li>
 </ul>
-<p><img alt="HTML Report Screenshot" src="../../assets/triage-evaluation-report.png" /></p>
 <hr />
 <h2 id="architecture-overview"><strong>Architecture Overview</strong> 🔁</h2>
 <ol>
@@ -1134,42 +1199,54 @@
 <p><strong>Result Collection</strong>:</p>
 </li>
 <li>
-<p>The test script captures the <strong>TriageAgent</strong>'s routing decisions and compares them against expected outcomes.</p>
+<p>The test script captures the <strong>TriageAgent</strong>’s routing decisions and compares them against expected outcomes.</p>
 </li>
 <li>
 <p><strong>Reporting</strong>:</p>
 </li>
-<li>Successes and failures are logged and compiled into a comprehensive HTML report for review and further enhancement.</li>
+<li>
+<p>Successes and failures are logged and compiled into a comprehensive HTML report for review and further enhancement.</p>
+</li>
+<li>
+<p><strong>Optimization (DSPy)</strong>:</p>
+</li>
+<li>Evaluates the classifier with a defined metric, then iteratively improves the prompt strategy to achieve higher success rates.</li>
 </ol>
 <hr />
 <h2 id="code-breakdown"><strong>Code Breakdown</strong> 🔬</h2>
 <h3 id="key-components"><strong>Key Components</strong></h3>
 <ol>
-<li><strong>Test Script (<code>tests/test_triage_agent.py</code>)</strong>:</li>
+<li><strong>Test Script</strong> (<code>tests/test_triage_agent.py</code> / <code>test_not_optimized_agent</code>)  </li>
 <li>
-<p><strong>Functions</strong>:</p>
+<p><strong>Functions</strong>:  </p>
 <ul>
-<li><code>parse_conversation</code>: Converts conversation text into structured message formats.</li>
-<li><code>test_handle_user_message</code>: Runs the evaluation by sending conversations to the <strong>TriageAgent</strong> and recording outcomes.</li>
+<li><code>parse_conversation</code>: Converts conversation text into structured message formats.  </li>
+<li><code>test_handle_user_message</code>: Runs the evaluation by sending conversations to the <strong>TriageAgent</strong> and recording outcomes.  </li>
 <li><code>generate_html_report</code>: Creates an HTML report using Jinja2 templates to visualize test results.</li>
 </ul>
 </li>
 <li>
-<p><strong>Dataset (<code>datasets/triage-training.json</code>)</strong>:</p>
+<p><strong>Dataset</strong> (<code>datasets/triage-training.json</code>)  </p>
 </li>
 <li>
-<p>Contains a variety of conversation scenarios to rigorously test the <strong>TriageAgent</strong>'s routing logic.</p>
+<p>Contains a variety of conversation scenarios to rigorously test the <strong>TriageAgent</strong>’s routing logic.</p>
 </li>
 <li>
-<p><strong>Reporting Mechanism</strong>:</p>
+<p><strong>Reporting Mechanism</strong>  </p>
 </li>
 <li>
 <p>Utilizes Jinja2 for templating and Bootstrap for styling to produce an intuitive and informative HTML report.</p>
 </li>
 <li>
-<p><strong>Agent Integration</strong>:</p>
+<p><strong>Agent Integration</strong>  </p>
 </li>
-<li><strong>TriageAgent</strong> leverages the <strong>LiteLlmAgent</strong> for processing and decision-making, ensuring accurate and efficient message routing.</li>
+<li>
+<p><strong>TriageAgent</strong> leverages the <strong>LiteLlmAgent</strong> for processing and decision-making, ensuring accurate and efficient message routing.</p>
+</li>
+<li>
+<p><strong>DSPy Integration</strong>  </p>
+</li>
+<li><strong>BootstrapFewShotWithRandomSearch</strong> uses the training set to find the best set of prompt examples and achieve higher success scores.</li>
 </ol>
 <hr />
 <h2 id="cleaning-up"><strong>Cleaning Up</strong> ❌</h2>
@@ -1183,24 +1260,12 @@
 <h2 id="next-steps"><strong>Next Steps</strong> 🚀</h2>
 <p>Elevate your agent evaluation and enhancement process with these actionable steps:</p>
 <ul>
-<li>
-<p><strong>Refine the Dataset</strong>: Expand the <code>triage-training.json</code> with more diverse conversation scenarios to further test the <strong>TriageAgent</strong>'s capabilities.</p>
-</li>
-<li>
-<p><strong>Enhance Reporting</strong>: Customize the HTML report to include additional metrics, visualizations, or interactive elements for deeper insights.</p>
-</li>
-<li>
-<p><strong>Automate Enhancements</strong>: Integrate the evaluation framework into a CI/CD pipeline to continuously assess and improve agent performance.</p>
-</li>
-<li>
-<p><strong>Expand Agent Capabilities</strong>: Use the insights from evaluations to introduce new features or adjust existing ones, ensuring the <strong>TriageAgent</strong> adapts to evolving user needs.</p>
-</li>
-<li>
-<p><strong>Learn More</strong>: Explore other EggAI examples to discover advanced testing methodologies and agent integration techniques.</p>
-</li>
-<li>
-<p><strong>Contribute</strong>: Share your enhancements, report issues, or contribute new features to the EggAI project to support the community.</p>
-</li>
+<li><strong>Refine the Dataset</strong>: Expand the <code>triage-training.json</code> with more diverse conversation scenarios to further test the <strong>TriageAgent</strong>’s capabilities.  </li>
+<li><strong>Enhance Reporting</strong>: Customize the HTML report to include additional metrics, visualizations, or interactive elements for deeper insights.  </li>
+<li><strong>Automate Enhancements</strong>: Integrate the evaluation framework into a CI/CD pipeline to continuously assess and improve agent performance (see <strong>Quality Gate in CI/CD</strong>).  </li>
+<li><strong>Expand Agent Capabilities</strong>: Use the insights from evaluations to introduce new features or adjust existing ones, ensuring the <strong>TriageAgent</strong> adapts to evolving user needs.  </li>
+<li><strong>Learn More</strong>: Explore other EggAI examples to discover advanced testing methodologies and agent integration techniques.  </li>
+<li><strong>Contribute</strong>: Share your enhancements, report issues, or contribute new features to the EggAI project to support the community.</li>
 </ul>
 <hr />
 <p>Thank you for embarking on the <strong>Agent Evaluation and Enhancement</strong> journey with EggAI! 🥚🤖 We hope this example empowers you to build more effective and intelligent agents, driving superior user interactions and system performance. 🙏✨</p>
