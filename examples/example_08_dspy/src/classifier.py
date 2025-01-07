@@ -2,40 +2,67 @@ import os
 from typing import Literal
 
 import dspy
-
 import dotenv
 
+# Load environment variables from .env file
 dotenv.load_dotenv()
 
+# Define valid target agents for classification
 TargetAgent = Literal["PolicyAgent", "TicketingAgent", "TriageAgent"]
 
-lm = dspy.LM("openai/gpt-4o-mini", cache=False)
-dspy.configure(lm=lm)
+# Configure the language model for the classification task
+language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
+dspy.configure(lm=language_model)
 
 
-class ClassificationSignature(dspy.Signature):
+class AgentClassificationSignature(dspy.Signature):
     """
-    You are a Triage agent in a multi-agent insurance support system.
-    Your primary responsibility is to route messages to the appropriate target agent.
-    There are following target agents to route to: PolicyAgent, TicketingAgent and TriageAgent.
-    If the request is insurance related but you are not sure where to route it to, route it to the TicketingAgent.
-    If the request is not insurance related route to TriageAgent.
+    Represents the input and output fields for the agent classification process.
+
+    Role:
+    - Acts as a Triage agent in a multi-agent insurance support system.
+
+    Responsibilities:
+    - Classifies and routes messages to appropriate target agents based on context.
+
+    Target Agents:
+    - PolicyAgent: Handles policy-related queries.
+    - TicketingAgent: Handles unresolved insurance-related queries.
+    - TriageAgent: Handles non-insurance-related queries.
+
+    Fallback Rules:
+    - Route to TicketingAgent if unsure where to send an insurance-related query.
+    - Route to TriageAgent if the query is not insurance-related.
     """
 
-    chat_history: str = dspy.InputField(desc="The full chat history for context.")
-    target_agent: TargetAgent = dspy.OutputField(desc="The target agent to triage to.")
-    confidence: float = dspy.OutputField(desc="The confidence score (between 0.0 and 1.0) for the target agent selection.")
+    # Input Fields
+    chat_history: str = dspy.InputField(
+        desc="Full chat history providing context for the classification process."
+    )
 
-classifier = dspy.ChainOfThought(signature=ClassificationSignature)
+    # Output Fields
+    target_agent: TargetAgent = dspy.OutputField(
+        desc="Target agent classified for triage based on context and rules."
+    )
+    confidence: float = dspy.OutputField(
+        desc="Confidence score (0.0 - 1.0) indicating certainty in classification."
+    )
 
-optimized_classifier = dspy.ChainOfThought(signature=ClassificationSignature)
-# path get current dir from import + optimized_classifier_bootstrap.json
-optimized_conf_path = os.path.join(
+
+# Instantiate a Chain of Thought classifier
+default_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
+optimized_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
+
+# Load optimized configuration for the classifier
+optimized_config_path = os.path.join(
     os.path.dirname(__file__), "optimized_classifier_bootstrap.json"
 )
-
-optimized_classifier.load(optimized_conf_path)
+optimized_classifier.load(optimized_config_path)
 
 if __name__ == "__main__":
-    optimized_classifier(chat_history="User: How can I update my contact information?")
-    lm.inspect_history()
+    # Example usage for classification
+    example_input = "User: How can I update my contact information?"
+    default_classifier(chat_history=example_input)
+
+    # Inspect history of the language model interactions
+    language_model.inspect_history()

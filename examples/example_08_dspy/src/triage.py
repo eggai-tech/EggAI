@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from eggai import Channel, Agent
 from examples.example_08_dspy.src.agent_registry import AGENT_REGISTRY
-from examples.example_08_dspy.src.classifier import classifier, optimized_classifier
+from examples.example_08_dspy.src.classifier import default_classifier, optimized_classifier
 
 human_channel = Channel("human")
 agents_channel = Channel("agents")
@@ -26,7 +26,7 @@ async def handle_user_message(msg):
             user = chat.get("agent", "User")
             conversation_string += f"{user}: {chat['content']}\n"
 
-        #response = classifier(chat_history=conversation_string)
+        #response = default_classifier(chat_history=conversation_string)
         # WE ARE USING THE OPTIMIZED CLASSIFIER
         response = optimized_classifier(chat_history=conversation_string)
 
