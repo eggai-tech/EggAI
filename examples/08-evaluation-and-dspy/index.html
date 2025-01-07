@@ -543,29 +543,14 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="What’s Inside? 🗂️">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#agent-evaluation-framework" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-glimpse-of-dspy-optimization" class="md-nav__link">
     <span class="md-ellipsis">
-      Agent Evaluation Framework
+      A Glimpse of DSPy Optimization
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#enterprise-grade-agent-quality-and-optimization-with-dspy" class="md-nav__link">
-    <span class="md-ellipsis">
-      Enterprise-Grade Agent Quality and Optimization with DSPy
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -830,29 +815,14 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="What’s Inside? 🗂️">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#agent-evaluation-framework" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-glimpse-of-dspy-optimization" class="md-nav__link">
     <span class="md-ellipsis">
-      Agent Evaluation Framework
+      A Glimpse of DSPy Optimization
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#enterprise-grade-agent-quality-and-optimization-with-dspy" class="md-nav__link">
-    <span class="md-ellipsis">
-      Enterprise-Grade Agent Quality and Optimization with DSPy
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -961,96 +931,43 @@
 <!-- BEGIN INCLUDE ../../examples/example_08_dspy/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
 <h1 id="agent-evaluation-and-enhancement-example-for-eggai">Agent Evaluation and Enhancement Example for EggAI 🥚🤖</h1>
 <h2 id="a-story-of-refinement-and-improvement"><strong>A Story of Refinement and Improvement</strong></h2>
-<p>In the quest to build intelligent and responsive multi-agent systems, continuous evaluation and enhancement of each agent's performance are paramount. The <strong>Agent Evaluation and Enhancement</strong> example for <strong>EggAI</strong> embodies this journey. Focused on refining the <strong>TriageAgent</strong>, this example demonstrates how to:</p>
-<ol>
-<li><strong>Assess agent effectiveness</strong> using an evaluation dataset and test code.  </li>
-<li><strong>Optimize agent performance</strong> using <strong>DSPy</strong> (including a step-by-step optimization flow).  </li>
-<li><strong>Establish quality gates</strong> in CI/CD to enforce a desired success threshold and streamline agent performance improvements.</li>
-</ol>
+<p>Imagine a multi-agent landscape where messages must reach the correct destination every time. Our <strong>TriageAgent</strong> began with a straightforward goal: route user conversations reliably. Initial tests—guided by a dedicated JSON dataset and automated checks—revealed a commendable start yet uncovered gaps in accuracy.  </p>
+<p>Enter <strong>DSPy</strong>, transforming experiments into breakthroughs. With a simple metric (exact match of expected vs. actual targets) and <strong>BootstrapFewShotWithRandomSearch</strong>, the TriageAgent advanced from a modest <strong>59% success rate</strong> (<a href="../../examples/example_08_dspy/triage-not-optimized.html">view report</a>) to a remarkable <strong>100%</strong> (<a href="../../examples/example_08_dspy/triage-optimized.html">view report</a>). A CI/CD quality gate now ensures these gains stand firm by enforcing a minimum success threshold and preventing performance regressions.</p>
 <hr />
 <h2 id="building-on-proven-foundations"><strong>Building on Proven Foundations</strong></h2>
-<p>To create a robust evaluation framework, we integrated key components from previous EggAI examples:</p>
+<p>This progress builds on earlier EggAI work:</p>
 <ul>
-<li><strong>WebSocket Gateway (<code>examples/02-websocket-gateway</code>)</strong>:  </li>
-<li><strong>Purpose</strong>: Facilitates real-time communication between agents and users.  </li>
-<li>
-<p><strong>Integration</strong>: Provides the communication backbone for sending and receiving test messages during evaluation.</p>
-</li>
-<li>
-<p><strong>LiteLlmAgent (<code>examples/05-litellm-agent</code>)</strong>:  </p>
-</li>
-<li><strong>Purpose</strong>: Enables efficient interaction with language models.  </li>
-<li>
-<p><strong>Integration</strong>: Powers the <strong>TriageAgent</strong>, allowing it to process and respond to user messages accurately.</p>
-</li>
-<li>
-<p><strong>Triage Concept (<code>examples/06-multi-agent-conversation</code>)</strong>:  </p>
-</li>
-<li><strong>Purpose</strong>: Implements intelligent routing of user messages to appropriate agents.  </li>
-<li><strong>Integration</strong>: Serves as the foundation for enhancing the <strong>TriageAgent</strong>'s decision-making capabilities.</li>
+<li><strong>WebSocket Gateway</strong> for real-time testing and message flow.  </li>
+<li><strong>LiteLlmAgent</strong> for swift, model-driven responses.  </li>
+<li><strong>Triage Concept</strong> for orchestrating how multi-agent conversations unfold.</li>
 </ul>
+<p>Together, they anchor the TriageAgent’s architecture, paving the way for efficient routing and reliable outcomes.</p>
 <hr />
 <h2 id="whats-inside"><strong>What’s Inside?</strong> 🗂️</h2>
-<h3 id="agent-evaluation-framework"><strong>Agent Evaluation Framework</strong></h3>
-<ul>
-<li><strong>Test Code (<code>tests/test_triage_evaluation.py</code>)</strong>:  </li>
-<li><strong>Functionality</strong>: Automates the testing of the <strong>TriageAgent</strong> against a predefined JSON dataset (e.g., <code>triage-training.json</code>).  </li>
-<li>
-<p><strong>Features</strong>:  </p>
-<ul>
-<li>Parses user-agent conversations.  </li>
-<li>Mocks message publishing to simulate agent responses.  </li>
-<li>Validates the <strong>TriageAgent</strong>’s ability to correctly route messages.  </li>
-<li>Records success and failure outcomes.  </li>
-</ul>
-</li>
-<li>
-<p><strong>Dataset (<code>datasets/triage-training.json</code>)</strong>:  </p>
-</li>
-<li><strong>Content</strong>: A collection of conversation samples with expected routing targets.  </li>
-<li>
-<p><strong>Purpose</strong>: Serves as the benchmark for evaluating the <strong>TriageAgent</strong>’s performance.  </p>
-</li>
-<li>
-<p><strong>Reporting Tools</strong>:  </p>
-</li>
-<li><strong>JSON Results</strong>: Logs detailed test outcomes for further analysis.  </li>
-<li><strong>HTML Report</strong>: Generates a user-friendly report highlighting test successes and failures, enabling users to identify and address weaknesses in the <strong>TriageAgent</strong>.</li>
-</ul>
-<h3 id="enterprise-grade-agent-quality-and-optimization-with-dspy"><strong>Enterprise-Grade Agent Quality and Optimization with DSPy</strong></h3>
-<ol>
-<li><strong>Initial Evaluation (Not Optimized)</strong>  </li>
-<li>Running the default classifier (without DSPy optimization) yielded an <strong>initial success rate of ~59%</strong> in our sample tests.  </li>
-<li>
-<p>Example of unoptimized report: <a href="../../examples/example_08_dspy/triage-not-optimized.html">Triage Not Optimized (59%)</a>.</p>
-</li>
-<li>
-<p><strong>DSPy Evaluation and Metric</strong>  </p>
-</li>
-<li>
-<p>We define a simple metric that checks <strong>exact match</strong>: if the <code>expected_target</code> is equal to the <code>actual_target</code>, the test result is <strong>PASS</strong>; otherwise, <strong>FAIL</strong>.</p>
-</li>
-<li>
-<p><strong>DSPy Optimization</strong>  </p>
-</li>
-<li><strong>BootstrapFewShotWithRandomSearch</strong>: Uses the training set to explore various prompt configurations and to automatically sample between 1 and 20 traces per predictor.  </li>
-<li>Seeks to improve overall accuracy through a series of candidate prompt sets.  </li>
-<li><strong>Example optimization output</strong> (gradually improving from ~68% to 100%):<br />
-<code>New best score: 68.18 for seed -3
-     ...
-     New best score: 95.45 for seed 0
-     ...
-     New best score: 100.0 for seed 3</code></li>
-<li>
-<p>Final optimized output: <a href="../../examples/example_08_dspy/triage-optimized.html">Triage Optimized (100%)</a></p>
-</li>
-<li>
-<p><strong>Quality Gate in CI/CD</strong>  </p>
-</li>
-<li><strong>Pytest Integration</strong>: The success percentage must exceed a threshold (e.g., 50% or higher) for the test suite to pass.  </li>
-<li><strong>SonarQube Integration</strong> (optional): Generate <code>lcov</code> or other coverage reports to be analyzed by SonarQube, ensuring continuous monitoring of agent performance over time.</li>
-</ol>
+<p>Within this example, a clear testing framework checks how well the TriageAgent matches each conversation to its intended agent, using data from <strong><code>triage-training.json</code></strong>. Test results are saved in JSON form and showcased in an HTML report, pinpointing precisely where improvements can be made.  </p>
+<p>Meanwhile, a DSPy optimization script details how we refined the TriageAgent’s logic. By iteratively sampling prompts and configurations, the agent surged to an optimal state—ready for production and ongoing enhancements.</p>
 <hr />
+<h2 id="a-glimpse-of-dspy-optimization"><strong>A Glimpse of DSPy Optimization</strong></h2>
+<ol>
+<li><strong>Metric</strong>: We rely on exact matches for pass/fail.  </li>
+<li><strong>Random Search</strong>: The agent tests diverse prompt strategies with different seeds, aiming for incremental gains.  </li>
+<li><strong>Progress</strong>: Climbing from 59% (see <a href="../../examples/example_08_dspy/triage-not-optimized.html">not-optimized report</a>) to 100% (see <a href="../../examples/example_08_dspy/triage-optimized.html">optimized report</a>). 
+     <code>Going to sample between 1 and 20 traces per predictor. 
+      Will attempt to bootstrap 16 candidate sets. 
+      Average Metric: 15.00 / 22 (68.2%): 100%|██████████| 22/22 [00:00&lt;00:00, 9053.64it/s] 
+      New best score: 68.18 for seed -3 
+      Scores so far: [68.18] 
+      .... OMITTED
+      Best score so far: 95.45 
+      36%|██████████| 22/22 [00:13&lt;00:22,  1.64s/it] 
+      Bootstrapped 22 full traces after 8 examples for up to 1 rounds, amounting to 8 attempts. 
+      Average Metric: 22.00 / 22 (100.0%): 100%|██████████| 22/22 [00:03&lt;00:00,  6.64it/s] 
+      New best score: 100.0 for seed 3 
+      Scores so far: [68.18, ...,  86.36, 90.91, 95.45, 90.91, 86.36, 100.0] 
+      Best score so far: 100.0</code></li>
+<li>Final optimized output: <a href="../../examples/example_08_dspy/triage-optimized.html">Triage Optimized (100%)</a></li>
+<li><strong>Quality Gate</strong>: Pytest assertions and CI checks protect against regressions, ensuring that performance remains above a chosen threshold (e.g., 50% or higher).</li>
+</ol>
 <h2 id="how-it-works"><strong>How It Works</strong> 🛠️</h2>
 <ol>
 <li><strong>Setup</strong>:  </li>
