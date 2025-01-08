@@ -2,17 +2,14 @@ import os
 from typing import Literal
 
 import dspy
-import dotenv
 
-# Load environment variables from .env file
-dotenv.load_dotenv()
-
-# Define valid target agents for classification
 TargetAgent = Literal["PolicyAgent", "TicketingAgent", "TriageAgent"]
 
-# Configure the language model for the classification task
-language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
+language_model = dspy.LM("openai/gpt-4o-mini")
 dspy.configure(lm=language_model)
+
+classifier_v3_json_path = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "optimizations_v3.json"))
 
 
 class AgentClassificationSignature(dspy.Signature):
@@ -49,20 +46,19 @@ class AgentClassificationSignature(dspy.Signature):
     )
 
 
-# Instantiate a Chain of Thought classifier
-default_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
-optimized_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
+def load_classifier():
+    classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
+    classifier.load(classifier_v3_json_path)
+    return classifier
 
-# Load optimized configuration for the classifier
-optimized_config_path = os.path.join(
-    os.path.dirname(__file__), "optimized_classifier_bootstrap.json"
-)
-optimized_classifier.load(optimized_config_path)
 
-if __name__ == "__main__":
-    # Example usage for classification
-    example_input = "User: How can I update my contact information?"
-    default_classifier(chat_history=example_input)
-
-    # Inspect history of the language model interactions
-    language_model.inspect_history()
+def optimize(program, training_data_set, overwrite=False):
+    if os.path.exists(classifier_v3_json_path) and not overwrite:
+        pass
+    teleprompter = dspy.BootstrapFewShot(
+        metric=lambda example, pred, trace=None: example.target_agent.lower() == pred.target_agent.lower(),
+        max_labeled_demos=22,
+        max_bootstrapped_demos=22
+    )
+    optimized_program = teleprompter.compile(program, trainset=training_data_set)
+    optimized_program.save(classifier_v3_json_path)

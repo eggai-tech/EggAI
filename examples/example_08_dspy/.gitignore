@@ -1,1 +1,4 @@
-tests/reports
+src/reports
+!src/reports/classifier_v1.html
+!src/reports/classifier_v2.html
+!src/reports/classifier_v3.html

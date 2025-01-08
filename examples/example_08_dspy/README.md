@@ -115,7 +115,8 @@ import dspy
 from dotenv import load_dotenv
 from dspy import MIPROv2
 from dspy.teleprompt import BootstrapFewShotWithRandomSearch
-from examples.example_08_dspy.src.classifier import classifier
+from examples.example_08_dspy.src.classifiers.v1 import classifier
+
 
 def load_data(path: str = "../datasets/triage-training.json"):
     with open(path, "r") as f:
@@ -130,8 +131,10 @@ def load_data(path: str = "../datasets/triage-training.json"):
         )
     return devset
 
+
 def metric(example, pred, trace=None) -> bool:
     return example.target_agent.lower() == pred.target_agent.lower()
+
 
 def run_evaluation(program, devset):
     evaluator = dspy.evaluate.Evaluate(
@@ -144,6 +147,7 @@ def run_evaluation(program, devset):
     score, results, all_scores = evaluator(program, metric=metric)
     print("Final score:", score)
 
+
 def optimize(trainset):
     teleprompter = BootstrapFewShotWithRandomSearch(
         metric=metric,
@@ -155,6 +159,7 @@ def optimize(trainset):
     optimized_program.save("optimized_classifier_bootstrap.json")
     run_evaluation(optimized_program, trainset)
 
+
 def main():
     load_dotenv()
     devset = load_data()
@@ -162,6 +167,7 @@ def main():
     run_evaluation(classifier, devset)
     # Optimize using DSPy
     optimize(devset)
+
 
 if __name__ == "__main__":
     main()
