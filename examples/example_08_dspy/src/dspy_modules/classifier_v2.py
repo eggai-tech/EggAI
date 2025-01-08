@@ -1,15 +1,12 @@
-import os
 from typing import Literal
 
 import dspy
+from dotenv import load_dotenv
+from examples.example_08_dspy.src.dspy_modules.lm import language_model
 
 TargetAgent = Literal["PolicyAgent", "TicketingAgent", "TriageAgent"]
 
-language_model = dspy.LM("openai/gpt-4o-mini")
 dspy.configure(lm=language_model)
-
-classifier_v3_json_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "optimizations_v3.json"))
 
 
 class AgentClassificationSignature(dspy.Signature):
@@ -24,7 +21,7 @@ class AgentClassificationSignature(dspy.Signature):
 
     Target Agents:
     - PolicyAgent: Handles policy-related queries.
-    - TicketingAgent: Handles unresolved insurance-related queries.
+    - TicketingAgent: Handles insurance related queries for customer support (e.g. contact information).
     - TriageAgent: Handles non-insurance-related queries.
 
     Fallback Rules:
@@ -45,20 +42,15 @@ class AgentClassificationSignature(dspy.Signature):
         desc="Confidence score (0.0 - 1.0) indicating certainty in classification."
     )
 
+classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
 
-def load_classifier():
-    classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
-    classifier.load(classifier_v3_json_path)
-    return classifier
-
-
-def optimize(program, training_data_set, overwrite=False):
-    if os.path.exists(classifier_v3_json_path) and not overwrite:
-        pass
-    teleprompter = dspy.BootstrapFewShot(
-        metric=lambda example, pred, trace=None: example.target_agent.lower() == pred.target_agent.lower(),
-        max_labeled_demos=22,
-        max_bootstrapped_demos=22
-    )
-    optimized_program = teleprompter.compile(program, trainset=training_data_set)
-    optimized_program.save(classifier_v3_json_path)
+if __name__ == "__main__":
+    load_dotenv()
+    classifier(chat_history="User: I need help with my policy??!!!??.")
+    last_history = language_model.history[-1]
+    cost = last_history['cost']
+    if cost:
+        print(f"Cost: {cost:.10f}$")
+        print(f"Run it {1 / cost:.0f} times to reach one dollar.")
+    else:
+        print("No cost. (cached)")

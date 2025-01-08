@@ -1,5 +1,5 @@
 from eggai import Channel, Agent
-from examples.example_08_dspy.src.classifiers.v1 import classifier
+from examples.example_08_dspy.src.dspy_modules.classifier_v3 import load
 
 human_channel = Channel("human")
 agents_channel = Channel("agents")
@@ -17,9 +17,10 @@ async def handle_user_message(msg):
     try:
         payload = msg["payload"]
         chat_messages = payload.get("chat_messages", "")
+        classifier = load()
         response = classifier(chat_history=chat_messages)
         target_agent = response.target_agent
 
         await agents_channel.publish({"target": target_agent, "payload": payload})
     except Exception as e:
-        print("Error in DSPy Triage Agent: ", e)
+        print("Error in Triage Agent: ", e)

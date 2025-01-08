@@ -1,16 +1,9 @@
 import json
 import os
 from datetime import datetime
-from os import path
 
 import dspy
-from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-
-from examples.example_08_dspy.src.classifiers.v1 import classifier as classifier_v1
-from examples.example_08_dspy.src.classifiers.v2 import classifier as classifier_v2
-from examples.example_08_dspy.src.classifiers.v3 import load_classifier as load_classifier_v3
-from examples.example_08_dspy.src.classifiers.v3 import optimize as optimize_classifier_v3
 
 
 def load_data(path: str):
@@ -197,23 +190,3 @@ def write_html_report(test_results, summary, report_name):
         f.write(html_content)
 
     return filepath
-
-
-if __name__ == "__main__":
-    load_dotenv()
-    test_dataset = load_data(path.abspath(path.join(path.dirname(__file__), "..", "datasets", "triage-testing.json")))
-    score_v1, results_v1 = run_evaluation(classifier_v1, test_dataset)
-    generate_report(results_v1, "classifier_v1")
-
-    score_v2, results_v2 = run_evaluation(classifier_v2, test_dataset)
-    generate_report(results_v2, "classifier_v2")
-
-    training_dataset = load_data(
-        path.abspath(path.join(path.dirname(__file__), "..", "datasets", "triage-training.json")))
-
-    REWRITE_OPTIMIZATION = False
-    optimize_classifier_v3(classifier_v2, training_dataset, overwrite=REWRITE_OPTIMIZATION)
-    classifier_v3 = load_classifier_v3()
-
-    score_v3, results_v3 = run_evaluation(classifier_v3, test_dataset)
-    generate_report(results_v3, "classifier_v3")

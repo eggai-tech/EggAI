@@ -93,8 +93,8 @@ To ensure continued high performance, we set up a **quality gate** within our CI
 async def test_not_optimized_agent(monkeypatch):
     ...
     success_percentage = (success / total) * 100
-    assert (success_percentage > 50), \
-        f"Success rate {success_percentage:.2f}% is not greater than 50%."
+    assert (success_percentage > 90), \
+        f"Success rate {success_percentage:.2f}% is not greater than 90%."
 ```
 
 By adjusting the assertion, you can enforce higher thresholds as your model’s performance improves.

@@ -6,11 +6,11 @@ import pytest
 from dotenv import load_dotenv
 
 from eggai import Channel
-from examples.example_08_dspy.src.triage import handle_user_message
+from examples.example_08_dspy.src.agents.triage import handle_user_message
 
 
 @pytest.mark.asyncio
-async def test_not_optimized_agent(monkeypatch):
+async def test_triage_agent(monkeypatch):
     load_dotenv()
 
     dataset_path = os.path.join(os.path.dirname(__file__), "..", "datasets", "triage-testing.json")
@@ -36,4 +36,4 @@ async def test_not_optimized_agent(monkeypatch):
             success += 1
 
     success_percentage = (success / total) * 100
-    assert (success_percentage > 50), f"Success rate {success_percentage:.2f}% is not greater than 50%."
+    assert (success_percentage > 90), f"Success rate {success_percentage:.2f}% is not greater than 90%."
