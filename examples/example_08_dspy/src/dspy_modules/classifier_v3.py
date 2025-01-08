@@ -4,9 +4,10 @@ from typing import Literal
 import dspy
 from dotenv import load_dotenv
 
-from examples.example_08_dspy.src.dspy_modules.lm import language_model
 from examples.example_08_dspy.src.dspy_modules.classifier_v2 import AgentClassificationSignature, \
     classifier as classifier_v2
+from examples.example_08_dspy.src.dspy_modules.lm import language_model
+from examples.example_08_dspy.src.dspy_modules.utils import run_and_calculate_costs
 
 TargetAgent = Literal["PolicyAgent", "TicketingAgent", "TriageAgent"]
 
@@ -39,11 +40,7 @@ def optimize(training_data_set, overwrite=False):
 if __name__ == "__main__":
     load_dotenv()
     classifier = load()
-    classifier(chat_history="User: I need help with my policy??!!!??.")
-    last_history = language_model.history[-1]
-    cost = last_history['cost']
-    if cost:
-        print(f"Cost: {cost:.10f}$")
-        print(f"Run it {1 / cost:.0f} times to reach one dollar.")
-    else:
-        print("No cost. (cached)")
+    run_and_calculate_costs(
+        classifier,
+        chat_history="User: I need help with my policy."
+    )
