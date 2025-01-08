@@ -1,277 +1,170 @@
 # Agent Evaluation and Enhancement Example for EggAI 🥚🤖
 
-## **A Story of Refinement and Improvement**
+## **A Journey of Iterative Improvement**
 
-Imagine a multi-agent landscape where messages must reach the correct destination every time. Our **TriageAgent** began with a straightforward goal: route user conversations reliably. Initial tests—guided by a dedicated JSON dataset and automated checks—revealed a commendable start yet uncovered gaps in accuracy.
-
-Enter **DSPy**, transforming experiments into breakthroughs. With a simple metric (exact match of expected vs. actual targets) and **BootstrapFewShotWithRandomSearch**, the TriageAgent advanced from a modest **59% success rate** \([view report](triage-not-optimized.html)\) to a remarkable **100%** \([view report](triage-optimized.html)\). A CI/CD quality gate now ensures these gains stand firm by enforcing a minimum success threshold and preventing performance regressions.
+Welcome to the **TriageAgent** example, where we demonstrate how iterative changes, new prompts, and **DSPy** optimization can refine a multi-agent system’s classification performance. Below is an outline of how our three classifier versions (V1, V2, and V3) evolved to produce better routing decisions within an **insurance support** context.
 
 ---
 
-## **Building on Proven Foundations**
+## **Initial Approach: Classifier V1**
 
-This progress builds on earlier EggAI work:
+The first iteration **classifier_v1** started with minimal instructions—essentially a straightforward prompt guiding the Large Language Model to classify a conversation as destined for **PolicyAgent**, **TicketingAgent**, or **TriageAgent**.
 
-- **WebSocket Gateway** for real-time testing and message flow.
-- **LiteLlmAgent** for swift, model-driven responses.
-- **Triage Concept** for orchestrating how multi-agent conversations unfold.
+- **Key Features**:
+  - Basic Python code using **DSPy** with a standard prompt.
+  - No system-level instructions or docstrings that describe context or fallback rules in detail.
 
-Together, they anchor the TriageAgent’s architecture, paving the way for efficient routing and reliable outcomes.
+- **Performance** (based on `src/reports/classifier_v1.html`):
+
+  ```
+  Date: 2025-01-08 09:15:34    Meta: classifier_v1
+
+  Summary
+  ------------
+  Total Test Cases: 22
+  Passed:          16
+  Failed:          6
+  Success Rate:    72.73%
+  ```
+
+  While **72.73%** is a decent start, there was room for improvement—especially given the complexity of insurance-related conversations.
 
 ---
 
-## **What’s Inside?** 🗂️
+## **Strengthening Context: Classifier V2**
 
-Within this example, a clear testing framework checks how well the TriageAgent matches each conversation to its intended agent, using data from **`triage-training.json`**. Test results are saved in JSON form and showcased in an HTML report, pinpointing precisely where improvements can be made.
+To improve classification accuracy, we introduced **system prompts** and **docstrings** in the **DSPy** signature as a way to provide clearer instructions and domain context. This included:
 
-Meanwhile, a DSPy optimization script details how we refined the TriageAgent’s logic. By iteratively sampling prompts and configurations, the agent surged to an optimal state—ready for production and ongoing enhancements.
+1. **Explicit Role Description**: Outlining the agent’s role in routing conversations to **PolicyAgent**, **TicketingAgent**, or **TriageAgent**.  
+2. **Fallback Rules**: Emphasizing that uncertain insurance-related queries go to **TicketingAgent** and non-insurance queries go to **TriageAgent**.  
+3. **Usage of Docstrings**: Leveraging them as part of the system prompt for the LLM.
+
+- **Performance** (based on `src/reports/classifier_v2.html`):
+
+  ```
+  Date: 2025-01-08 09:15:34    Meta: classifier_v2
+
+  Summary
+  ------------
+  Total Test Cases: 22
+  Passed:          18
+  Failed:          4
+  Success Rate:    81.82%
+  ```
+
+  This update lifted our success rate to **81.82%**—a significant improvement, simply by clarifying the classification logic in the system prompt.
 
 ---
 
-## **A Glimpse of DSPy Optimization**
+## **Optimizing with DSPy: Classifier V3**
 
-1. **Metric**: We rely on exact matches for pass/fail.
-2. **Random Search**: The agent tests diverse prompt strategies with different seeds, aiming for incremental gains.
-3. **Progress**: Climbing from 59% (see [not-optimized report](triage-not-optimized.html)) to 100% (see [optimized report](triage-optimized.html)).
-   ```Going to sample between 1 and 20 traces per predictor.
-    Will attempt to bootstrap 16 candidate sets.
-    Average Metric: 15.00 / 22 (68.2%): 100%|██████████| 22/22 [00:00<00:00, 9053.64it/s]
-    New best score: 68.18 for seed -3
-    Scores so far: [68.18]
-    .... OMITTED
-    Best score so far: 95.45
-    36%|██████████| 22/22 [00:13<00:22,  1.64s/it]
-    Bootstrapped 22 full traces after 8 examples for up to 1 rounds, amounting to 8 attempts.
-    Average Metric: 22.00 / 22 (100.0%): 100%|██████████| 22/22 [00:03<00:00,  6.64it/s]
-    New best score: 100.0 for seed 3
-    Scores so far: [68.18, ...,  86.36, 90.91, 95.45, 90.91, 86.36, 100.0]
-    Best score so far: 100.0
+To push performance further, we employed **DSPy’s optimization** features on a **training dataset**. Specifically, we used:
+
+- **`dspy.BootstrapFewShot`**: A method that automatically selects the best prompt examples from the training set, iteratively refining them through a chain-of-thought approach.
+- **Evaluation Pipeline**: After the optimization, we tested the newly-trained prompt on the **same 22 examples** from our “test set” to measure final performance.
+
+- **Performance** (based on `src/reports/classifier_v3.html`):
+
+  ```
+  Date: 2025-01-08 09:15:34    Meta: classifier_v3
+
+  Summary
+  ------------
+  Total Test Cases: 22
+  Passed:          21
+  Failed:          1
+  Success Rate:    95.45%
+  ```
+
+  With DSPy’s help, **Classifier V3** reached a **95.45%** success rate—an excellent improvement over the previous versions.
+
+---
+
+## **Quality Gate with Pytest**
+
+To ensure continued high performance, we set up a **quality gate** within our CI/CD pipeline using `pytest`. This gate will:
+
+1. **Run all test conversations** through the classifier as part of the build process.
+2. **Evaluate the success rate** (i.e., exact match of expected vs. actual target).
+3. **Fail the pipeline** (and block merges) if the success rate **falls below** a chosen threshold (e.g., 50%, 80%, or 90%, depending on project requirements).
+
+```python
+@pytest.mark.asyncio
+async def test_not_optimized_agent(monkeypatch):
+    ...
+    success_percentage = (success / total) * 100
+    assert (success_percentage > 50), \
+        f"Success rate {success_percentage:.2f}% is not greater than 50%."
+```
+
+By adjusting the assertion, you can enforce higher thresholds as your model’s performance improves.
+
+---
+
+## **How It All Comes Together**
+
+1. **Dataset** (`triage-training.json`, `triage-testing.json`):
+   - Realistic insurance conversation data for training and testing.
+
+2. **Classifiers**:
+   - **v1** (minimal instructions)
+   - **v2** (enhanced system prompt and docstrings)
+   - **v3** (fully optimized with `dspy.BootstrapFewShot`)
+
+3. **Evaluation Scripts**:
+   - Generate HTML reports detailing each test conversation, the expected routing vs. the actual routing, and pass/fail status.
+
+4. **Quality Gate**:
+   - Enforced via `pytest` and integrated into CI/CD, stopping merges that degrade the classification performance.
+
+---
+
+## **Getting Started**
+
+1. **Install Dependencies**  
+   ```bash
+   pip install eggai litellm fastapi uvicorn pytest jinja2 python-dotenv dspy
    ```
-   - Final optimized output: [Triage Optimized (100%)](triage-optimized.html)
-4. **Quality Gate**: Pytest assertions and CI checks protect against regressions, ensuring that performance remains above a chosen threshold (e.g., 50% or higher).
 
-## **How It Works** 🛠️
+2. **Set Up Environment Variable**  
+   ```bash
+   export OPENAI_API_KEY=your-api-key
+   ```
 
-1. **Setup**:
-
-   - Ensure all dependencies are installed and services are running.
-
-2. **Running Tests**:
-
-   - Execute the test script (e.g., `pytest tests/test_triage_evaluation.py` or `test_not_optimized_agent`) to evaluate the **TriageAgent** against the conversation dataset.
-
-3. **Analyzing Results**:
-
-   - Review the console output for immediate feedback on each test case.
-   - Examine the generated HTML report for a comprehensive overview of the agent’s performance, including areas that need enhancement.
-
-4. **Enhancing & Optimizing the Agent**:
-   - Use the insights from the report to refine the **TriageAgent**’s logic, improve keyword detection, and optimize routing guidelines.
-   - Run [**DSPy**](https://dspy.ai/learn/optimization/optimizers/) optimization using BootstrapFewShotWithRandomSearch to achieve better performance.
-
----
-
-## **Prerequisites** 🔧
-
-Ensure you have a valid OpenAI API key. Set it as an environment variable:
-
-```bash
-export OPENAI_API_KEY=your-api-key
-```
-
-### Install Dependencies\*\*
-
-```bash
-pip install eggai litellm fastapi uvicorn pytest jinja2 python-dotenv dspy
-```
-
----
-
-## **Running the Evaluation** 🏆
-
-1. **Execute the Test Script**:
-
+3. **Run Tests**  
    ```bash
    pytest tests/test_triage_evaluation.py
    ```
+   - This will generate a performance report (HTML) in the `reports/` directory.
 
-   - **Outcome**: The script will run through each conversation in the dataset, evaluate the **TriageAgent**’s routing decisions, and output the results.
-
-2. **Access the HTML Report**:
-   After the tests complete, an HTML report will be generated in the `reports` directory. Open the report in your web browser to review detailed results:
-   ```bash
-   open reports/YYYYMMDD-HHMMSS-triage-agent-report.html
-   ```
+4. **Optimize (Optional)**  
+   - If you want to replicate the optimization process, run the DSPy scripts provided in the codebase. This will retrain and save the improved classifier.
 
 ---
 
-## **Agent Optimization Script Snippet**
+## **Results and Reports**
 
-Below is an example of how DSPy is integrated to **optimize** our classification approach:
+Each classifier’s test run outputs an HTML report in `src/reports/` (or a configured location), summarizing:
 
-```python
-import json
-import dspy
-from dotenv import load_dotenv
-from dspy import MIPROv2
-from dspy.teleprompt import BootstrapFewShotWithRandomSearch
-from examples.example_08_dspy.src.classifiers.v1 import classifier
+- **Classifier V1**: 72.73% success.  
+- **Classifier V2**: 81.82% success.  
+- **Classifier V3**: 95.45% success.
 
-
-def load_data(path: str = "../datasets/triage-training.json"):
-    with open(path, "r") as f:
-        ds_data = json.load(f)
-    devset = []
-    for ex in ds_data:
-        devset.append(
-            dspy.Example(
-                chat_history=ex["conversation"],
-                target_agent=ex["target"]
-            ).with_inputs("chat_history")
-        )
-    return devset
-
-
-def metric(example, pred, trace=None) -> bool:
-    return example.target_agent.lower() == pred.target_agent.lower()
-
-
-def run_evaluation(program, devset):
-    evaluator = dspy.evaluate.Evaluate(
-        devset=devset,
-        num_threads=10,
-        display_progress=True,
-        return_outputs=True,
-        return_all_scores=True
-    )
-    score, results, all_scores = evaluator(program, metric=metric)
-    print("Final score:", score)
-
-
-def optimize(trainset):
-    teleprompter = BootstrapFewShotWithRandomSearch(
-        metric=metric,
-        max_labeled_demos=20,
-        num_threads=20,
-        max_bootstrapped_demos=20
-    )
-    optimized_program = teleprompter.compile(classifier, trainset=trainset)
-    optimized_program.save("optimized_classifier_bootstrap.json")
-    run_evaluation(optimized_program, trainset)
-
-
-def main():
-    load_dotenv()
-    devset = load_data()
-    # Evaluate current classifier (unoptimized)
-    run_evaluation(classifier, devset)
-    # Optimize using DSPy
-    optimize(devset)
-
-
-if __name__ == "__main__":
-    main()
-```
-
-- **Key steps**:
-  - **Define a metric** (exact match).
-  - **Use DSPy** to run a random search, bootstrapping different prompt configurations.
-  - **Identify the best seed** that yields the highest success rate (up to 100%).
-  - **Save** the optimized version and re-run evaluation.
+Inspection of these reports shows how the addition of system prompts, docstring-based context, and eventually DSPy optimization each contributed to improved results.
 
 ---
 
-## **Expected Output** 📤
+## **Next Steps**
 
-Upon running the tests and optimizations, you will observe:
-
-- **Console Output**:
-
-  - A log of each test case indicating **PASS** or **FAIL**, along with pertinent details.
-  - A summary showing the total number of tests, successes, failures, and the overall success rate.
-  - Incremental improvements in success rate during the DSPy optimization process.
-
-- **HTML Report**:
-  - A visually appealing and interactive report detailing each test case.
-  - Sections highlighting the summary of results and detailed insights into each conversation’s outcome.
-  - Indicators for successful and failed tests to quickly identify areas needing attention.
+- **Refine the Dataset**: Incorporate more diverse conversations or corner cases.  
+- **Tune the Quality Gate**: Increase the success-rate requirement to maintain high performance.  
+- **Explore More DSPy Features**: Consider advanced optimization strategies (e.g., random search, multiple seeds).  
+- **Integrate Feedback**: Employ real-world user data to continuously enhance the classifier’s routing accuracy.
 
 ---
 
-## **Architecture Overview** 🔁
+## **Conclusion**
 
-1. **Test Execution**:
+Through three iterations of classifier tuning, we moved from a basic approach to a robust, near-accurate system. DSPy’s optimization proved instrumental in reaching **95.45%** accuracy. With a CI-based quality gate in place, the **TriageAgent** can reliably grow and adapt—ensuring that only improvements make their way into production.
 
-   - The test script sends predefined conversations to the **TriageAgent** via the WebSocket gateway.
-
-2. **TriageAgent Processing**:
-
-   - Analyzes each conversation to determine the appropriate target agent based on the content and context.
-
-3. **Result Collection**:
-
-   - The test script captures the **TriageAgent**’s routing decisions and compares them against expected outcomes.
-
-4. **Reporting**:
-
-   - Successes and failures are logged and compiled into a comprehensive HTML report for review and further enhancement.
-
-5. **Optimization (DSPy)**:
-   - Evaluates the classifier with a defined metric, then iteratively improves the prompt strategy to achieve higher success rates.
-
----
-
-## **Code Breakdown** 🔬
-
-### **Key Components**
-
-1. **Test Script** (`tests/test_triage_agent.py` / `test_not_optimized_agent`)
-
-   - **Functions**:
-     - `parse_conversation`: Converts conversation text into structured message formats.
-     - `test_handle_user_message`: Runs the evaluation by sending conversations to the **TriageAgent** and recording outcomes.
-     - `generate_html_report`: Creates an HTML report using Jinja2 templates to visualize test results.
-
-2. **Dataset** (`datasets/triage-training.json`)
-
-   - Contains a variety of conversation scenarios to rigorously test the **TriageAgent**’s routing logic.
-
-3. **Reporting Mechanism**
-
-   - Utilizes Jinja2 for templating and Bootstrap for styling to produce an intuitive and informative HTML report.
-
-4. **Agent Integration**
-
-   - **TriageAgent** leverages the **LiteLlmAgent** for processing and decision-making, ensuring accurate and efficient message routing.
-
-5. **DSPy Integration**
-   - **BootstrapFewShotWithRandomSearch** uses the training set to find the best set of prompt examples and achieve higher success scores.
-
----
-
-## **Cleaning Up** ❌
-
-After completing your evaluations, gracefully shut down the services to free up resources:
-
-```bash
-docker compose down -v
-```
-
-- **Effect**: Stops and removes the Docker containers along with their associated volumes, ensuring no residual processes remain active.
-
----
-
-## **Next Steps** 🚀
-
-Elevate your agent evaluation and enhancement process with these actionable steps:
-
-- **Refine the Dataset**: Expand the `triage-training.json` with more diverse conversation scenarios to further test the **TriageAgent**’s capabilities.
-- **Enhance Reporting**: Customize the HTML report to include additional metrics, visualizations, or interactive elements for deeper insights.
-- **Automate Enhancements**: Integrate the evaluation framework into a CI/CD pipeline to continuously assess and improve agent performance (see **Quality Gate in CI/CD**).
-- **Expand Agent Capabilities**: Use the insights from evaluations to introduce new features or adjust existing ones, ensuring the **TriageAgent** adapts to evolving user needs.
-- **Learn More**: Explore other EggAI examples to discover advanced testing methodologies and agent integration techniques.
-- **Contribute**: Share your enhancements, report issues, or contribute new features to the EggAI project to support the community.
-
----
-
-Thank you for embarking on the **Agent Evaluation and Enhancement** journey with EggAI! 🥚🤖 We hope this example empowers you to build more effective and intelligent agents, driving superior user interactions and system performance. 🙏✨
+Thank you for exploring this **Agent Evaluation and Enhancement** journey with EggAI! 🥚🤖 We hope these examples inspire you to develop and continuously refine intelligent agents that seamlessly route and handle user interactions.
