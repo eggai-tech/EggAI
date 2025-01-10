@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../multi_agent_human_chat/">
+        <link rel="prev" href="../multi_agent_conversation/">
       
       
-        <link rel="next" href="../../references/agent/">
+        <link rel="next" href="../agent_evaluation_dspy/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Evaluation & DSPy - EggAI Multi-Agent Meta Framework</title>
+        <title>Multi-Agent & Human Chat - EggAI Multi-Agent Meta Framework</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#agent-evaluation-and-optimization-with-dspy" class="md-skip">
+        <a href="#multi-agent-insurance-support-system" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Evaluation & DSPy
+              Multi-Agent & Human Chat
             
           </span>
         </div>
@@ -449,27 +449,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../multi_agent_human_chat/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Multi-Agent & Human Chat
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -486,7 +465,7 @@
           
   
   <span class="md-ellipsis">
-    Evaluation & DSPy
+    Multi-Agent & Human Chat
   </span>
   
 
@@ -497,7 +476,7 @@
         
   
   <span class="md-ellipsis">
-    Evaluation & DSPy
+    Multi-Agent & Human Chat
   </span>
   
 
@@ -519,57 +498,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#classifier-evolution-v1-v2-and-v3" class="md-nav__link">
-    <span class="md-ellipsis">
-      Classifier Evolution (V1, V2, and V3)
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Classifier Evolution (V1, V2, and V3)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#initial-approach-classifier-v1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Initial Approach: Classifier V1
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#strengthening-context-classifier-v2" class="md-nav__link">
-    <span class="md-ellipsis">
-      Strengthening Context: Classifier V2
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optimizing-with-dspy-classifier-v3" class="md-nav__link">
-    <span class="md-ellipsis">
-      Optimizing with DSPy: Classifier V3
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quality-gate-with-pytest" class="md-nav__link">
-    <span class="md-ellipsis">
-      Quality Gate with Pytest
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       Prerequisites
@@ -588,18 +516,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#run-the-tests" class="md-nav__link">
+  <a href="#run-the-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Run the Tests
+      Run the Example
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run the Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sample-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sample Chat
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#clean-up" class="md-nav__link">
+  <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Clean Up
+      Cleaning Up
     </span>
   </a>
   
@@ -618,6 +561,27 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agent_evaluation_dspy/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Evaluation & DSPy
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -764,57 +728,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#classifier-evolution-v1-v2-and-v3" class="md-nav__link">
-    <span class="md-ellipsis">
-      Classifier Evolution (V1, V2, and V3)
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Classifier Evolution (V1, V2, and V3)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#initial-approach-classifier-v1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Initial Approach: Classifier V1
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#strengthening-context-classifier-v2" class="md-nav__link">
-    <span class="md-ellipsis">
-      Strengthening Context: Classifier V2
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#optimizing-with-dspy-classifier-v3" class="md-nav__link">
-    <span class="md-ellipsis">
-      Optimizing with DSPy: Classifier V3
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quality-gate-with-pytest" class="md-nav__link">
-    <span class="md-ellipsis">
-      Quality Gate with Pytest
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       Prerequisites
@@ -833,18 +746,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#run-the-tests" class="md-nav__link">
+  <a href="#run-the-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Run the Tests
+      Run the Example
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run the Example">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sample-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sample Chat
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#clean-up" class="md-nav__link">
+  <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Clean Up
+      Cleaning Up
     </span>
   </a>
   
@@ -874,78 +802,22 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../../examples/agent_evaluation_dspy/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="agent-evaluation-and-optimization-with-dspy">Agent Evaluation and Optimization with DSPy</h1>
-<p>This example shows how to iterative improve an agent using DSPy. It shows the evolution (V1, V2, and V3) of a multi-agent system's classification performance in an insurance support context.</p>
-<p>Key features:</p>
+<!-- BEGIN INCLUDE ../../../examples/multi_agent_human_chat/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="multi-agent-insurance-support-system">Multi-Agent Insurance Support System</h1>
+<p>This example shows a simple multi-agent system for insurance support. It combines a WebSocket gateway, lightweight language model agents, and a triage mechanism to deliver efficient and user-friendly support.</p>
+<p>Here is a simplified architecture overview:</p>
+<p><img alt="architecture-getting-started.svg" src="../../assets/architecture-example-06-multi-agent-conversation.svg" /></p>
 <ul>
-<li>Iterative enhancements using <strong>DSPy</strong> optimization</li>
-<li>Multiple classifier versions: <strong>V1</strong>, <strong>V2</strong>, <strong>V3</strong></li>
-<li>Improved classification logic with system prompts, docstrings, and fallback rules</li>
-<li><strong>CI/CD</strong> integration using a quality gate enforced via <strong>pytest</strong></li>
-<li>Real-world <strong>insurance support</strong> scenario for conversation routing</li>
+<li><strong>User Interaction</strong>: Engages with the system through a WebSocket-enabled chat interface.</li>
+<li><strong>TriageAgent</strong>: Analyzes incoming messages and routes them to the appropriate agent based on content.</li>
+<li><strong>Agent 1</strong>: PolicyAgent, handling policy-related inquiries using a mock <code>policies_database</code>.</li>
+<li><strong>Agent 2</strong>: TicketingAgent, managing support ticket creation and retrieval for escalated issues.</li>
+<li><strong>Channels</strong>:</li>
+<li><strong>User Channel</strong>: Facilitates interactions between the user and the agents.</li>
+<li><strong>Agents Channel</strong>: Enables communication and coordination among different agents.</li>
+<li><strong>WebSocket Gateway</strong>: Oversees real-time communication between the FastAPI server and connected clients.</li>
 </ul>
-<p>The code for this example is available <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/agent_evaluation_dspy">here</a>.</p>
-<h2 id="classifier-evolution-v1-v2-and-v3">Classifier Evolution (V1, V2, and V3)</h2>
-<h3 id="initial-approach-classifier-v1">Initial Approach: Classifier V1</h3>
-<ul>
-<li><strong>Minimal Prompting</strong>: A simple prompt directing the Large Language Model to classify a conversation for <strong>PolicyAgent</strong>, <strong>TicketingAgent</strong>, or <strong>TriageAgent</strong>.</li>
-<li><strong>Performance</strong> (from <a href="../../../examples/agent_evaluation_dspy/tests/reports/classifier_v1.html">V1 Report</a>):</li>
-</ul>
-<pre><code class="language-plaintext">Date: 2025-01-10 16:20:22 Meta: classifier_v1
-
-Summary
-------------
-Total Test Cases: 22
-Passed: 18
-Failed: 4
-Success Rate: 81.82%
-</code></pre>
-<p>Despite reaching <strong>72.73%</strong>, the approach lacked depth in instructions, leading to misclassifications for more complex queries.</p>
-<h3 id="strengthening-context-classifier-v2">Strengthening Context: Classifier V2</h3>
-<ul>
-<li><strong>Enhanced System Prompts &amp; Docstrings</strong>:</li>
-<li>Detailed agent roles (for <strong>PolicyAgent</strong>, <strong>TicketingAgent</strong>, <strong>TriageAgent</strong>).</li>
-<li>Fallback rules and insurance context clearly stated.</li>
-<li>Docstrings used as part of the system prompt for the LLM.</li>
-<li><strong>Performance</strong> (from <a href="../../../examples/agent_evaluation_dspy/tests/reports/classifier_v2.html">V2 Report</a>):</li>
-</ul>
-<pre><code class="language-plaintext">Date: 2025-01-10 16:20:30 Meta: classifier_v2
-
-Summary
-------------
-Total Test Cases: 22
-Passed: 19
-Failed: 3
-Success Rate: 86.36%
-</code></pre>
-<p>By clarifying the classification logic, <strong>Classifier V2</strong> improved to <strong>81.82%</strong>.</p>
-<h3 id="optimizing-with-dspy-classifier-v3">Optimizing with DSPy: Classifier V3</h3>
-<ul>
-<li><strong>DSPy’s BootstrapFewShot</strong>: Automated selection and refinement of the best prompt examples from the training set.</li>
-<li><strong>Performance</strong> (from <a href="../../../examples/agent_evaluation_dspy/tests/reports/classifier_v3.html">V3 Report</a>):</li>
-</ul>
-<pre><code class="language-plaintext">Date: 2025-01-10 16:20:38 Meta: classifier_v3
-
-Summary
-------------
-Total Test Cases: 22
-Passed: 21
-Failed: 1
-Success Rate: 95.45%
-</code></pre>
-<p>With <strong>Classifier V3</strong>, accuracy jumped to <strong>95.45%</strong>, showcasing the power of DSPy optimization.</p>
-<h2 id="quality-gate-with-pytest">Quality Gate with Pytest</h2>
-<p>A quality gate is integrated into <strong>CI/CD</strong> using <code>pytest</code>:</p>
-<pre><code class="language-python">@pytest.mark.asyncio
-async def test_not_optimized_agent(monkeypatch):
-    ...
-    success_percentage = (success / total) * 100
-    assert (success_percentage &gt; 90), \
-        f&quot;Success rate {success_percentage:.2f}% is not greater than 90%.&quot;
-</code></pre>
-<p>This setup fails the pipeline if performance dips below the specified threshold (e.g., <strong>90%</strong>).
-In our case, <strong>Classifier V3</strong> surpassed this benchmark, ensuring its deployment readiness.</p>
+<p>The code for the example can be found <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/multi_agent_human_chat">here</a>.</p>
 <h2 id="prerequisites">Prerequisites</h2>
 <p>Ensure you have the following dependencies installed:</p>
 <ul>
@@ -959,8 +831,8 @@ In our case, <strong>Classifier V3</strong> surpassed this benchmark, ensuring i
 <p>Clone the EggAI repository:</p>
 <pre><code class="language-bash">git clone git@github.com:eggai-tech/EggAI.git
 </code></pre>
-<p>Move into the <code>examples/agent_evaluation_dspy</code> folder:</p>
-<pre><code class="language-bash">cd examples/agent_evaluation_dspy
+<p>Move into the <code>examples/multi_agent_human_chat</code> folder:</p>
+<pre><code class="language-bash">cd examples/multi_agent_human_chat
 </code></pre>
 <p>Create and activate a virtual environment:</p>
 <pre><code class="language-bash">python -m venv venv
@@ -972,22 +844,61 @@ source venv/bin/activate  # For Windows: venv\Scripts\activate
 <p>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</p>
 <pre><code class="language-bash">docker compose up -d
 </code></pre>
-<h2 id="run-the-tests">Run the Tests</h2>
-<pre><code class="language-bash">pytest
+<h2 id="run-the-example">Run the Example</h2>
+<pre><code class="language-bash">python main.py
 </code></pre>
-<p>This generates an HTML performance report in the <code>reports/</code> directory.<br />
-It will run the triage evaluation on the configured classifier with the dataset found at <code>datasets/triage-testing.csv</code>.</p>
-<h2 id="clean-up">Clean Up</h2>
-<p>Stop and clean up the Docker containers:</p>
+<p>Upon running the example and accessing the chat interface at <a href="http://localhost:8000/../../../examples/multi_agent_human_chat">http://localhost:8000</a>, you should see a web-based chat UI:</p>
+<p><img alt="Chat UI Screenshot" src="../../assets/example-07-chat.png" /></p>
+<h3 id="sample-chat">Sample Chat</h3>
+<ol>
+<li><strong>User</strong> initiates the conversation:</li>
+</ol>
+<p><code>Hello, I need to check my policy details.</code></p>
+<ol>
+<li><strong>TriageAgent</strong> routes the message to <strong>PolicyAgent</strong>:</li>
+</ol>
+<p><code>📄 PolicyAgent:
+   Hello! I'm here to help you with your policy inquiries. Could you please provide me with your **policy number**?
+   If you don't have it handy, your **full name** will work too, and I can look up the details for you.</code></p>
+<ol>
+<li><strong>User</strong> provides the policy number:</li>
+</ol>
+<p><code>A12345</code></p>
+<ol>
+<li><strong>PolicyAgent</strong> responds with policy details:</li>
+</ol>
+<p>```
+   📄 PolicyAgent:
+   Thank you for providing your policy number. Here are the details:</p>
+<ul>
+<li><strong>Policy Number:</strong> A12345</li>
+<li><strong>Policyholder Name:</strong> John Doe</li>
+<li><strong>Coverage Details:</strong> Comprehensive</li>
+<li><strong>Premium Amount:</strong> $500</li>
+<li><strong>Due Date:</strong> January 1, 2025</li>
+</ul>
+<p>If you have any more questions or need further assistance, feel free to ask!
+   ```</p>
+<ol>
+<li><strong>User</strong> requests support for a billing issue:</li>
+</ol>
+<p><code>I need help with a billing issue.</code></p>
+<ol>
+<li><strong>TriageAgent</strong> routes the message to <strong>TicketingAgent</strong>:
+   <code>💬 TicketingAgent:
+   We have created a support ticket ESC-0001 for your issue. Our Billing team will reach out to you shortly.</code></li>
+</ol>
+<h2 id="cleaning-up">Cleaning Up</h2>
+<p>Stop and remove Docker containers:</p>
 <pre><code class="language-bash">docker compose down -v
 </code></pre>
 <h2 id="next-steps">Next Steps</h2>
-<p>Ready to explore further? Check out:</p>
 <ul>
-<li><strong>Advanced Examples:</strong> Discover more complex use cases in the <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/">examples</a> folder.</li>
-<li><strong>Contribution Guidelines:</strong> Get involved and help improve EggAI!</li>
-<li><strong>GitHub Issues:</strong> <a href="https://github.com/eggai-tech/eggai/issues">Submit a bug or feature request</a>.</li>
-<li><strong>Documentation:</strong> Refer to the official docs for deeper insights.</li>
+<li><strong>Extend Functionality</strong>: Add new agents or tools to handle more complex workflows.</li>
+<li><strong>Connect Real Data</strong>: Integrate the system with external databases or APIs.</li>
+<li><strong>Enhance UI</strong>: Improve the chat interface with features like authentication and message history.</li>
+<li><strong>Learn More</strong>: Explore other examples in the <code>examples</code> folder for advanced patterns.</li>
+<li><strong>Contribute</strong>: Share feedback or improvements with the EggAI community.</li>
 </ul>
 <!-- END INCLUDE -->
 

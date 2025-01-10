@@ -12,7 +12,7 @@
         <link rel="prev" href="../litellm_agent/">
       
       
-        <link rel="next" href="../agent_evaluation_dspy/">
+        <link rel="next" href="../multi_agent_human_chat/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#multi-agent-conversation-example-for-eggai" class="md-skip">
+        <a href="#multi-agent-conversation" class="md-skip">
           Skip to content
         </a>
       
@@ -477,204 +477,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#whats-inside" class="md-nav__link">
-    <span class="md-ellipsis">
-      What’s Inside? 🗂️
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="What’s Inside? 🗂️">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#litellmagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      LiteLlmAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flow 🌊
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flow 🌊">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#user-interaction" class="md-nav__link">
-    <span class="md-ellipsis">
-      User Interaction:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent-claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent / ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites 🔧
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Prerequisites 🔧">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-install-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 1: Install Dependencies
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-start-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 2: Start Services with Docker
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-the-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running the Example 🏆
+      Prerequisites
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#expected-output" class="md-nav__link">
+  <a href="#setup-instructions" class="md-nav__link">
     <span class="md-ellipsis">
-      Expected Output 📤
+      Setup Instructions
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture-overview" class="md-nav__link">
+  <a href="#run-the-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture Overview 🔁
+      Run the Example
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#code-breakdown" class="md-nav__link">
-    <span class="md-ellipsis">
-      Code Breakdown 🔬
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Code Breakdown 🔬">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#key-components" class="md-nav__link">
-    <span class="md-ellipsis">
-      Key Components
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Cleaning Up ❌
+      Cleaning Up
     </span>
   </a>
   
@@ -683,7 +515,7 @@
         <li class="md-nav__item">
   <a href="#next-steps" class="md-nav__link">
     <span class="md-ellipsis">
-      Next Steps 🚀
+      Next Steps
     </span>
   </a>
   
@@ -705,11 +537,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../multi_agent_human_chat.md" class="md-nav__link">
+      <a href="../multi_agent_human_chat/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    An Insurance Company Scenario
+    Multi-Agent & Human Chat
   </span>
   
 
@@ -881,204 +713,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#whats-inside" class="md-nav__link">
-    <span class="md-ellipsis">
-      What’s Inside? 🗂️
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="What’s Inside? 🗂️">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#litellmagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      LiteLlmAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flow 🌊
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flow 🌊">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#user-interaction" class="md-nav__link">
-    <span class="md-ellipsis">
-      User Interaction:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent-claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent / ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites 🔧
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Prerequisites 🔧">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-install-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 1: Install Dependencies
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-start-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 2: Start Services with Docker
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-the-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running the Example 🏆
+      Prerequisites
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#expected-output" class="md-nav__link">
+  <a href="#setup-instructions" class="md-nav__link">
     <span class="md-ellipsis">
-      Expected Output 📤
+      Setup Instructions
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture-overview" class="md-nav__link">
+  <a href="#run-the-example" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture Overview 🔁
+      Run the Example
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#code-breakdown" class="md-nav__link">
-    <span class="md-ellipsis">
-      Code Breakdown 🔬
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Code Breakdown 🔬">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#key-components" class="md-nav__link">
-    <span class="md-ellipsis">
-      Key Components
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Cleaning Up ❌
+      Cleaning Up
     </span>
   </a>
   
@@ -1087,7 +751,7 @@
         <li class="md-nav__item">
   <a href="#next-steps" class="md-nav__link">
     <span class="md-ellipsis">
-      Next Steps 🚀
+      Next Steps
     </span>
   </a>
   
@@ -1109,78 +773,51 @@
 
 
 <!-- BEGIN INCLUDE ../../../examples/multi_agent_conversation/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="multi-agent-conversation-example-for-eggai">Multi-Agent Conversation Example for EggAI 🥚🤖</h1>
-<p>Welcome to the <strong>06-multi-agent-conversation</strong> example for <strong>EggAI</strong>! This example showcases how to build a collaborative multi-agent system using EggAI, where different agents work together to handle user inquiries efficiently. In this CLI Chat example, the <strong>TriageAgent</strong> routes user messages to the appropriate agents (<strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, and <strong>EscalationAgent</strong>) to provide seamless and context-aware assistance.</p>
-<hr />
-<h2 id="whats-inside"><strong>What’s Inside?</strong> 🗂️</h2>
-<h3 id="litellmagent"><strong>LiteLlmAgent</strong>:</h3>
+<h1 id="multi-agent-conversation">Multi-Agent Conversation</h1>
+<p>This example showcases how to build a collaborative multi-agent system using the <code>eggai</code> SDK. It provides a this CLI Chat interface to interact with multiple agents.</p>
+<p>Here is a simplified architecture overview:</p>
+<p><img alt="architecture-overview-img" src="../../assets/architecture-example-06-multi-agent-conversation.svg" /></p>
+<ol>
+<li><strong>User Interaction</strong>: Users interact with the system through a CLI Chat interface.</li>
+<li><strong>TriageAgent</strong>: Analyzes incoming messages and routes them to the appropriate agent based on the content.</li>
+<li><strong>PolicyAgent</strong>: Handles policy-related inquiries using a mock <code>policies_database</code>.</li>
+<li><strong>ClaimsAgent</strong>: Manages claims-related inquiries and requests.</li>
+<li><strong>EscalationAgent</strong>: Takes care of issues that require human intervention by creating support tickets.</li>
+<li><strong>Channels</strong>:</li>
+<li><strong>User Channel</strong>: For interactions between the user and the agents.</li>
+<li><strong>Agent Channel</strong>: For communication and coordination between different agents.</li>
+</ol>
+<p>The code for the example can be found <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/multi_agent_conversation">here</a>.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>Ensure you have the following dependencies installed:</p>
 <ul>
-<li>An agent class based on the EggAI framework’s Agent class.</li>
-<li>Facilitates communication with language models through a completion wrapper function.</li>
-<li>Supports integrating tools for task-specific operations and enhanced functionality.</li>
+<li><strong>Python</strong> 3.10+</li>
+<li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
 </ul>
-<h3 id="policyagent"><strong>PolicyAgent</strong>:</h3>
-<ul>
-<li>Handles inquiries related to insurance policies, such as coverage details, premiums, and policy modifications.</li>
-<li>Utilizes a mock <code>policies_database</code> to retrieve and provide policy information.</li>
-<li>Ensures responses are polite, concise, and within the scope of policy-related queries.</li>
-</ul>
-<h3 id="claimsagent"><strong>ClaimsAgent</strong>:</h3>
-<ul>
-<li>Manages claims-related inquiries, including filing new claims, checking claim statuses, and understanding claim coverage or payouts.</li>
-<li>Provides clear instructions and maintains an empathetic tone.</li>
-<li>Escalates complex or out-of-scope requests to the <strong>TriageAgent</strong>.</li>
-</ul>
-<h3 id="escalationagent"><strong>EscalationAgent</strong>:</h3>
-<ul>
-<li>Handles issues that cannot be resolved by the PolicyAgent or ClaimsAgent.</li>
-<li>Creates support tickets and informs users that their issue will be escalated to a human support representative.</li>
-<li>Generates a unique ticket ID and specifies the relevant department for the issue.</li>
-</ul>
-<h3 id="triageagent"><strong>TriageAgent</strong>:</h3>
-<ul>
-<li>Acts as the central router for user messages.</li>
-<li>Analyzes user inquiries and directs them to the appropriate agent based on predefined guidelines.</li>
-<li>Ensures that requests are handled by the most suitable agent or escalated when necessary.</li>
-</ul>
-<h3 id="flow"><strong>Flow</strong> 🌊</h3>
-<p>The example simulates a multi-agent conversation system where user messages are intelligently routed to the appropriate agents for handling. The flow is as follows:</p>
-<h4 id="user-interaction"><strong>User Interaction</strong>:</h4>
-<ul>
-<li>A user interacts with the CLI Chat by sending messages related to their insurance needs.</li>
-</ul>
-<h4 id="triageagent_1"><strong>TriageAgent</strong>:</h4>
-<ul>
-<li>Receives the user message and determines which agent should handle the request based on the content and context.</li>
-<li>Routes the message to the <strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, or <strong>EscalationAgent</strong> as appropriate.</li>
-</ul>
-<h4 id="policyagent-claimsagent"><strong>PolicyAgent / ClaimsAgent</strong>:</h4>
-<ul>
-<li>Processes the user inquiry and provides relevant information or assistance.</li>
-<li>If the request is beyond their scope, they delegate the issue back to the <strong>TriageAgent</strong> for further handling.</li>
-</ul>
-<h4 id="escalationagent_1"><strong>EscalationAgent</strong>:</h4>
-<ul>
-<li>Manages escalated issues by creating support tickets and notifying the user.</li>
-<li>Ensures that complex or unresolved issues are directed to human support representatives.</li>
-</ul>
-<hr />
-<h2 id="prerequisites"><strong>Prerequisites</strong> 🔧</h2>
-<p>Before running this example, ensure you have the following:</p>
-<h3 id="step-1-install-dependencies">Step 1: Install Dependencies</h3>
-<pre><code class="language-bash">pip install eggai litellm
+<p>Ensure you have a valid OpenAI API key set in your environment:</p>
+<pre><code class="language-bash">export OPEN_AI_API_KEY=&quot;your-api-key&quot;
 </code></pre>
-<h3 id="step-2-start-services-with-docker">Step 2: Start Services with Docker</h3>
-<p>This example uses a messaging broker. Start the necessary services:</p>
+<h2 id="setup-instructions">Setup Instructions</h2>
+<p>Clone the EggAI repository:</p>
+<pre><code class="language-bash">git clone git@github.com:eggai-tech/EggAI.git
+</code></pre>
+<p>Move into the <code>examples/multi_agent_conversation</code> folder:</p>
+<pre><code class="language-bash">cd examples/multi_agent_conversation
+</code></pre>
+<p>Create and activate a virtual environment:</p>
+<pre><code class="language-bash">python -m venv venv
+source venv/bin/activate  # For Windows: venv\Scripts\activate
+</code></pre>
+<p>Install the required dependencies:</p>
+<pre><code class="language-bash">pip install -r requirements.txt
+</code></pre>
+<p>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</p>
 <pre><code class="language-bash">docker compose up -d
 </code></pre>
-<hr />
-<h2 id="running-the-example"><strong>Running the Example</strong> 🏆</h2>
-<p>Navigate to the <code>examples/06-multi-agent-conversation</code> folder and run the main script:</p>
+<h2 id="run-the-example">Run the Example</h2>
 <pre><code class="language-bash">python main.py
 </code></pre>
-<hr />
-<h2 id="expected-output"><strong>Expected Output</strong> 📤</h2>
+<p>Expected output:</p>
 <pre><code class="language-plaintext">Welcome to the Insurance Customer Service System!
 
 You: Hello, what's my policy's due date?
@@ -1226,71 +863,31 @@ You: exit
 
 Goodbye!
 </code></pre>
-<hr />
-<h2 id="architecture-overview"><strong>Architecture Overview</strong> 🔁</h2>
-<p><img alt="architecture-overview-img" src="../../assets/architecture-example-06-multi-agent-conversation.svg" /></p>
-<ol>
-<li><strong>User Interaction</strong>: Users interact with the system through a CLI Chat interface.</li>
-<li><strong>TriageAgent</strong>: Analyzes incoming messages and routes them to the appropriate agent based on the content.</li>
-<li><strong>PolicyAgent</strong>: Handles policy-related inquiries using a mock <code>policies_database</code>.</li>
-<li><strong>ClaimsAgent</strong>: Manages claims-related inquiries and requests.</li>
-<li><strong>EscalationAgent</strong>: Takes care of issues that require human intervention by creating support tickets.</li>
-<li><strong>Channels</strong>:</li>
-<li><strong>User Channel</strong>: For interactions between the user and the agents.</li>
-<li><strong>Agent Channel</strong>: For communication and coordination between different agents.</li>
-</ol>
-<hr />
-<h2 id="code-breakdown"><strong>Code Breakdown</strong> 🔬</h2>
-<h3 id="key-components"><strong>Key Components</strong></h3>
-<ol>
-<li><strong>LiteLlmAgent Initialization</strong>:</li>
-<li>
-<p><strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, <strong>EscalationAgent</strong>, and <strong>TriageAgent</strong> are initialized with specific system prompts and model configurations.</p>
-</li>
-<li>
-<p><strong>Mock Database</strong>:</p>
-</li>
-<li>
-<p><code>policies_database</code>: A simulated database containing policy information for demonstration purposes.</p>
-</li>
-<li>
-<p><strong>Tools</strong>:</p>
-</li>
-<li>
-<p><strong>get_policy_details</strong>: A tool used by the PolicyAgent to retrieve policy information from the <code>policies_database</code>.</p>
-</li>
-<li>
-<p><strong>Triage System Prompt</strong>:</p>
-</li>
-<li>
-<p>Defines guidelines for the TriageAgent to determine which agent should handle each user request based on keywords and context.</p>
-</li>
-<li>
-<p><strong>Message Handling</strong>:</p>
-</li>
-<li>Users interact via the CLI, and messages are processed by the TriageAgent, which routes them to the appropriate agent.</li>
-<li>
-<p>Agents communicate through structured messages, ensuring context is maintained throughout the conversation.</p>
-</li>
-<li>
-<p><strong>Main Script</strong>:</p>
-</li>
-<li>Manages the lifecycle of the CLI Chat, initializes agents, and handles user inputs and agent responses.</li>
-</ol>
-<hr />
-<h2 id="cleaning-up"><strong>Cleaning Up</strong> ❌</h2>
-<p>When you’re done, stop the services:</p>
+<p>What happens:</p>
+<ul>
+<li>A user interacts with the CLI Chat by sending messages related to their insurance needs.</li>
+<li>TriageAgent:</li>
+<li>Receives the user message and determines which agent should handle the request based on the content and context.</li>
+<li>Routes the message to the PolicyAgent, ClaimsAgent, or EscalationAgent as appropriate.</li>
+<li>PolicyAgent / ClaimsAgent:</li>
+<li>Processes the user inquiry and provides relevant information or assistance.</li>
+<li>If the request is beyond their scope, they delegate the issue back to the TriageAgent for further handling.</li>
+<li>EscalationAgent:</li>
+<li>Manages escalated issues by creating support tickets and notifying the user.</li>
+<li>Ensures that complex or unresolved issues are directed to human support representatives.</li>
+</ul>
+<h2 id="cleaning-up">Cleaning Up</h2>
+<p>Stop and remove Docker containers:</p>
 <pre><code class="language-bash">docker compose down -v
 </code></pre>
-<hr />
-<h2 id="next-steps"><strong>Next Steps</strong> 🚀</h2>
+<h2 id="next-steps">Next Steps</h2>
 <ul>
-<li><strong>Explore</strong>: Modify the example to include additional agents or enhance existing ones with more tools and capabilities.</li>
-<li><strong>Learn More</strong>: Check out other examples in the <code>examples</code> folder to discover advanced multi-agent patterns and integrations.</li>
-<li><strong>Contribute</strong>: Share your feedback, report issues, or contribute to the EggAI project to help improve the framework.</li>
+<li><strong>Extend Functionality</strong>: Add new agents or tools to handle more complex workflows.</li>
+<li><strong>Connect Real Data</strong>: Integrate the system with external databases or APIs.</li>
+<li><strong>Enhance UI</strong>: Improve the chat interface with features like authentication and message history.</li>
+<li><strong>Learn More</strong>: Explore other examples in the <code>examples</code> folder for advanced patterns.</li>
+<li><strong>Contribute</strong>: Share feedback or improvements with the EggAI community.</li>
 </ul>
-<hr />
-<p>Thank you for exploring the <strong>06-multi-agent-conversation</strong> example for EggAI! 🥚🤖 We hope this example helps you understand how to build and manage collaborative multi-agent systems to handle complex user interactions effectively. 🙏✨</p>
 <!-- END INCLUDE -->
 
 
