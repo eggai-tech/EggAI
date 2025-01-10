@@ -1,7 +1,7 @@
 import json
 import random
 
-from sdk.eggai import Channel
+from eggai import Channel
 from lite_llm_agent import LiteLlmAgent
 
 agents_channel = Channel("agents")

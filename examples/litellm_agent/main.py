@@ -1,6 +1,6 @@
 import asyncio
 
-from sdk.eggai import Channel
+from eggai import Channel
 from escalate_agent import escalation_agent
 from support_agent import support_agent
 
