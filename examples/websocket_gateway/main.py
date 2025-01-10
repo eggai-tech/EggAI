@@ -16,6 +16,9 @@ async def main():
 
     server_task = asyncio.create_task(server.serve())
     uri = "ws://localhost:8000/ws"
+
+    await asyncio.sleep(1)
+
     async with websockets.connect(uri) as websocket:
         reply = await websocket.recv()
         print(f"Connection id: {reply}")
