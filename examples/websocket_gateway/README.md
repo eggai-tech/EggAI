@@ -4,10 +4,9 @@ This example demonstrates real-time event-driven communication between humans, W
 
 Key features:
 
-- **Real-Time Communication**: Enables live, bidirectional interaction between users and the agent ecosystem through WebSocket.
-- **Scalable Coordination**: The Coordinator Agent dynamically routes tasks and events.
-- **Event-Driven Workflow**: Agents respond to specific events, providing flexibility and extensibility.
-- **Separation of Concerns**: Each agent has a clear role for easier customization and extension.
+- Real-Time Communication between users and agents using WebSocket.
+- Coordinator Agent which routes events.
+- Multi-Agent Setup with specialized agents.
 
 Here is a simplified architecture overview:
 
