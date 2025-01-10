@@ -1,2 +1,2 @@
 # Channel
-::: eggai.channel.Channel
+::: sdk.eggai.channel.Channel

@@ -1,2 +1,2 @@
 # Message
-::: eggai.schemas.MessageBase
+::: sdk.eggai.schemas.MessageBase

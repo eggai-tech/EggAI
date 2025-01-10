@@ -1,1 +1,0 @@
-{% include-markdown  "../../examples/04-context/README.md" %}

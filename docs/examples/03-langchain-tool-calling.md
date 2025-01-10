@@ -1,1 +1,0 @@
-{% include-markdown  "../../examples/03-langchain-tool-calling/README.md" %}

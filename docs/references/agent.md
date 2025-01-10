@@ -1,2 +1,2 @@
 # Agent
-::: eggai.agent.Agent
+::: sdk.eggai.agent.Agent

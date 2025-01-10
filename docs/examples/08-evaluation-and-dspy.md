@@ -1,1 +1,0 @@
-{% include-markdown  "../../examples/example_08_dspy/README.md" %}

@@ -1,1 +1,0 @@
-{% include-markdown  "../../examples/00-getting-started/README.md" %}
