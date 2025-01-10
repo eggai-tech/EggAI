@@ -33,7 +33,7 @@ services:
       - 19092:19092
       - 19644:9644
     healthcheck:
-      test: ["CMD", "rpk", "cluster", "info", "--brokers=redpanda-0:9092"]
+      test: [ "CMD", "rpk", "cluster", "info", "--brokers=redpanda-0:9092" ]
       interval: 5s
       timeout: 5s
       retries: 10

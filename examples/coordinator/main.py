@@ -1,9 +1,10 @@
 import asyncio
 
-from sdk.eggai import Channel
+from eggai import Channel
+
+from coordinator import agent as coordinator
 from email_agent import agent as email_agent
 from order_agent import agent as order_agent
-from coordinator import agent as coordinator
 
 
 async def main():
