@@ -21,4 +21,4 @@ async def forward_human_to_agents(message):
 
 @agent.subscribe(channel=human_channel, filter_func=lambda message: message["event_name"] == "notification")
 async def handle_notifications(message):
-    print("[COORDINATOR]: Received notification for human: ", message["payload"]["message"])
+    print("[COORDINATOR]: Received notification for human:", message["payload"]["message"])
