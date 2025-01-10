@@ -1,6 +1,6 @@
 import asyncio
 
-from sdk.eggai import Channel
+from eggai import Channel
 from email_agent import agent as email_agent
 
 

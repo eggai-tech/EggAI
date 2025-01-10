@@ -1,4 +1,4 @@
-from sdk.eggai import Agent
+from eggai import Agent
 from typing import Dict, List
 from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
