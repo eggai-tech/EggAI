@@ -1,6 +1,6 @@
 import json
 
-from sdk.eggai import Agent, Channel
+from eggai import Agent, Channel
 
 from memory_db import total_product_list
 from openai_client import openai_client

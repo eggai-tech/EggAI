@@ -1,6 +1,6 @@
 import asyncio
 
-from sdk.eggai import Channel
+from eggai import Channel
 
 from channels import agents_channel
 from human_agent import human_agent

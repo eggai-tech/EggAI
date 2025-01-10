@@ -1,140 +1,107 @@
-# Context Sharing Between Agents with EggAI 🧠📡
+# Context Sharing Between Agents
 
-Welcome to the **04-context** example for **EggAI**! In this demonstration, you’ll see how agents can share and utilize context across different stages of a user query without a dedicated context store. The context is now directly embedded and passed through the message events themselves. This approach streamlines the flow of information, reducing the reliance on external stores.
+This example demonstrates how agents can share and utilize context using the **eggai** sdk.
 
-In this scenario, two agents collaborate:
+Example overview:
 
-- **Product Agent**: Retrieves a list of relevant products based on a user query and includes the query context directly in its output message.
-- **Recommendation Agent**: Reads the context from the incoming message (which contains the user’s query and previously selected products) and uses it to suggest additional related items.
-
-This pattern simulates a "You may also like..." flow often seen in e-commerce.
-
----
-
-## What’s Inside? 🗂️
-
-- **Product Agent**: 
+- **Product Agent**:
   - Receives a user query (e.g., "smartphones").
-  - Searches an in-memory database of products.
-  - Returns a list of 3 best-matching products.
-  - Embeds the query’s context (such as the search term and returned product IDs) directly into the response message.
-
+  - Searches an in-memory product database and returns 3 matches.
+  - Embeds the query and product details in the shared context.
 - **Recommendation Agent**:
-  - Listens for product result events from the Product Agent.
-  - Extracts context (query, product list) from the received message.
-  - Suggests related items not in the initial product set, providing a richer and more coherent user experience.
+  - Listens for Product Agent messages.
+  - Reads the shared context (query, product list) to suggest related items.
+  - Enhances the user experience with additional, context-aware recommendations.
 
-By passing context directly in messages, we simplify the architecture and make the context chain more transparent and traceable.
+The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/shared_context).
 
----
+## Prerequisites
 
-## Prerequisites 🔧
-
-Please ensure that you have the following installed:
+Ensure you have the following dependencies installed:
 
 - **Python** 3.10+
 - **Docker** and **Docker Compose**
-- The EggAI framework (`pip install eggai`)
 
----
+Ensure you have a valid OpenAI API key set in your environment:
 
-## Architecture Overview 🔄
+```bash
+export OPEN_AI_API_KEY="your-api-key"
+```
 
-The flow is as follows:
+## Setup Instructions
 
-1. **User Query** → The Product Agent receives a search request (e.g., "I want a gaming smartphone, preferably Apple").
-2. **Database Query** → The Product Agent fetches 3 matching products from the in-memory database.
-3. **Direct Context Passing** → The Product Agent includes the original query and the chosen products’ details in the same message that publishes the results.
-4. **Recommendation Trigger** → The Recommendation Agent listens for the Product Agent's output message. Upon receipt, it extracts the context (the user query and returned products) directly from the message payload.
-5. **Additional Suggestions** → Using the provided context, the Recommendation Agent recommends related items that complement the initial search results.
-6. **Response to User** → The user receives both the initial product list and additional recommendations, demonstrating a context-rich user experience without external storage.
+Clone the EggAI repository:
 
----
+```bash
+git clone git@github.com:eggai-tech/EggAI.git
+```
 
-## Setup Instructions ⏳
+Move into the `examples/shared_context` folder:
 
-### Step 1: Create a Virtual Environment (Optional) 🌍
+```bash
+cd examples/shared_context
+```
 
-Although optional, we recommend creating a virtual environment:
+Create and activate a virtual environment:
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # For Windows: venv\Scripts\activate
 ```
 
-### Step 2: Install EggAI 🎓
-
-If you haven’t already:
+Install the required dependencies:
 
 ```bash
-pip install eggai openai
+pip install -r requirements.txt
 ```
 
-### Step 3: Start Services with Docker 🚢
-
-This example requires a messaging broker (e.g., Redpanda):
+Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
-This starts the broker and any required services.
-
----
-
-## Running the Example 🏆
-
-Navigate to the `examples/04-context` folder and run the main script (remember to set your OpenAI API key):
+## Run the Example
 
 ```bash
-OPENAI_API_KEY="your-api-key" python main.py
+python main.py
 ```
 
-**What to expect:**
+Expected output:
 
-1. **User Input**: You provide a query like: "Can you recommend a smartphone? I like gaming on it. I prefer Apple if possible."
-2. **Product Agent**: 
-   - Finds relevant products and returns three items (e.g., `iPhone 15`, `Samsung Galaxy S23`, `OnePlus 11`).
-   - The message it sends out includes the user's original query and these three product IDs in its payload.
-3. **Recommendation Agent**:
-   - Receives the Product Agent’s message, reads the embedded context, and identifies that the user prefers Apple and is interested in gaming.
-   - Suggests related items that were not included in the initial search results but match the user’s context (e.g., a high-performance Apple laptop or a gaming-focused laptop).
-4. **Console Output**: 
-   ```plaintext
-   Agent is running. Press Ctrl+C to stop.
-   User: Can you recommend a smartphone, I like gaming on it. I prefer Apple if possible
-   Product Agent:
-     - iPhone 15
-     - Samsung Galaxy S23
-     - OnePlus 11
-   Recommendation Agent:
-     - MacBook Pro 14-inch (Reason: Recommended as it offers a seamless Apple ecosystem experience for gaming and productivity.)
-     - Razer Blade 15 (Reason: Recommended for gaming enthusiasts who want top-tier performance.)
-   Task was cancelled. Cleaning up...
-   ```
+```plaintext
+Agent is running. Press Ctrl+C to stop.
+User: Can you recommend a smartphone, i like gaming on it. I prefer Apple if possible
+Search Agent:
+  - iPhone 15
+  - Samsung Galaxy S23
+  - OnePlus 11
+Recommendation Agent:
+  - MacBook Pro 14-inch (Reason: Although not a smartphone, this Apple laptop is great for gaming due to its powerful processor.)
+  - Razer Blade 15 (Reason: Recommended for gaming enthusiasts who require high-performance hardware.)
+^CTask was cancelled. Cleaning up...
+```
 
-By inspecting these messages, you’ll see the entire query context and returned products are passed along, eliminating the need for an external context holder.
+What happens:
 
----
+1. **User Query**: The Product Agent receives a search request (e.g., "I want a gaming smartphone, preferablvy Apple").
+2. **Product Search**: The Product Agent fetches matching items and includes the query and product details in its message.
+3. **Context Passing**: The Recommendation Agent extracts this context and uses it to suggest related products.
+4. **Response to User**: Users receive both the initial product list and additional recommendations, creating a context-rich experience.
 
-## Cleaning Up ❌
+## Clean Up
 
-When you’re done:
+Stop and clean up the Docker containers:
 
 ```bash
 docker compose down -v
 ```
 
-This stops running containers and removes associated volumes.
+## Next Steps
 
----
+Ready to explore further? Check out:
 
-## Next Steps 🚀
-
-- **Deeper Dives**: Check other examples in the `examples` folder for more advanced patterns.
-- **Contribution**: Contribute code, documentation, or report issues to make EggAI better.
-- **Feedback**: [Report issues or request features](https://github.com/eggai-tech/EggAI/issues).
-
----
-
-Thank you for exploring how EggAI can manage context-sharing directly through messages. This streamlined approach aims to inspire more transparent, maintainable, and context-rich multi-agent applications! 🤖🥚
+- **Advanced Examples:** Discover more complex use cases in the [examples](https://github.com/eggai-tech/EggAI/tree/main/examples/) folder.
+- **Contribution Guidelines:** Get involved and help improve EggAI!
+- **GitHub Issues:** [Submit a bug or feature request](https://github.com/eggai-tech/eggai/issues).
+- **Documentation:** Refer to the official docs for deeper insights.
