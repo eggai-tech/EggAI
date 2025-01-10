@@ -29,6 +29,9 @@ jobs:
           VERSION=$(grep '^version' sdk/pyproject.toml | sed 's/version = "//;s/"//')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Copy Readme to SDK
+        run: cp README.md sdk/
+
       - name: Build release distributions
         run: poetry build --directory=sdk --output=../dist
 
