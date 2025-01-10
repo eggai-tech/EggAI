@@ -2,13 +2,13 @@
 
 This example demonstrates integrating **LiteLLM** into the **eggai** SDK. It shows a system with two AI agents—**SupportAgent** and **EscalationAgent**—to handle customer inquiries efficiently and escalate complex issues when necessary.
 
-The code for this example is available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/litellm_agent).
-
 Key features:
 
 - LiteLLM integration
 - Tool usage
 - Collaborative between two agents
+
+The code for this example is available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/litellm_agent).
 
 ## Prerequisites
 
@@ -16,6 +16,12 @@ Ensure you have the following dependencies installed:
 
 - **Python** 3.10+
 - **Docker** and **Docker Compose**
+
+Ensure you have a valid OpenAI API key set in your environment:
+
+```bash
+export OPEN_AI_API_KEY="your-api-key"
+```
 
 ## Setup Instructions
 
@@ -81,11 +87,11 @@ What happens:
 
 - Customers submit inquiries like "What is your return policy?" via the `humans` channel.
 - **SupportAgent**: Processes general inquiries using the `GetKnowledge` tool.
-   - Responds directly if the inquiry is simple.
-   - Escalates complex issues to the EscalationAgent.
+  - Responds directly if the inquiry is simple.
+  - Escalates complex issues to the EscalationAgent.
 - **EscalationAgent**:
-   - Creates a support ticket for escalated issues using the `TicketingTool`.
-   - Publishes ticket details to the `agents` channel and informs the customer.
+  - Creates a support ticket for escalated issues using the `TicketingTool`.
+  - Publishes ticket details to the `agents` channel and informs the customer.
 
 ## Clean Up
 

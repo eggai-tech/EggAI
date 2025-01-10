@@ -44,7 +44,7 @@ Here's how you can quickly set up an agent to handle events in an event-driven s
 ```python
 import asyncio
 
-from sdk.eggai import Agent, Channel
+from eggai import Agent, Channel
 
 agent = Agent("OrderAgent")
 channel = Channel()

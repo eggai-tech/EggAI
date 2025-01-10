@@ -1,20 +1,22 @@
-# Agent Evaluation and Enhancement Example for EggAI
+# Agent Evaluation and Optimization with DSPy
 
-A journey of iterative improvement—welcome to the **TriageAgent** example, where we showcase how iterative changes, new prompts, and **DSPy** optimization can refine a multi-agent system’s classification performance in an **insurance support** context. Below is an overview of how our three classifier versions (V1, V2, and V3) evolved to produce better routing decisions.
+This example shows how to iterative improve an agent using DSPy. It shows the evolution (V1, V2, and V3) of a multi-agent system's classification performance in an insurance support context.
 
-## Key Features
+Key features:
 
-- Iterative enhancements using **DSPy** optimization  
-- Multiple classifier versions: **V1**, **V2**, **V3**  
-- Improved classification logic with system prompts, docstrings, and fallback rules  
-- **CI/CD** integration using a quality gate enforced via **pytest**  
-- Real-world **insurance support** scenario for conversation routing  
+- Iterative enhancements using **DSPy** optimization
+- Multiple classifier versions: **V1**, **V2**, **V3**
+- Improved classification logic with system prompts, docstrings, and fallback rules
+- **CI/CD** integration using a quality gate enforced via **pytest**
+- Real-world **insurance support** scenario for conversation routing
 
-## Classifier Evolution
+The code for this example is available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/agent_evaluation_dspy).
+
+## Classifier Evolution (V1, V2, and V3)
 
 ### Initial Approach: Classifier V1
 
-- **Minimal Prompting**: A simple prompt directing the Large Language Model to classify a conversation for **PolicyAgent**, **TicketingAgent**, or **TriageAgent**.  
+- **Minimal Prompting**: A simple prompt directing the Large Language Model to classify a conversation for **PolicyAgent**, **TicketingAgent**, or **TriageAgent**.
 - **Performance** (from [V1 Report](tests/reports/classifier_v1.html)):
 
 ```plaintext
@@ -85,22 +87,25 @@ async def test_not_optimized_agent(monkeypatch):
 This setup fails the pipeline if performance dips below the specified threshold (e.g., **90%**).
 In our case, **Classifier V3** surpassed this benchmark, ensuring its deployment readiness.
 
-## Conclusion
+## Prerequisites
 
-Through three iterations—V1, V2, and V3—the **TriageAgent** improved from a basic classifier (81.82%) to a high-performing one (95.45%). By leveraging system prompts, docstrings, and DSPy’s optimizers, plus enforcing a quality gate, your EggAI-based agents can reliably evolve and excel in complex routing tasks.
+Ensure you have the following dependencies installed:
+
+- **Python** 3.10+
+- **Docker** and **Docker Compose**
+
+Ensure you have a valid OpenAI API key set in your environment:
+
+```bash
+export OPEN_AI_API_KEY="your-api-key"
+```
 
 ## Setup Instructions
-
-To run the evaluation tests, you need the following prerequisites:
-
-- **Python** 3.10+  
-- **Docker** and **Docker Compose**  
-- **An OpenAI API Key** (for LLM usage)
 
 Clone the EggAI repository:
 
 ```bash
-git clone https://github.com/eggai-tech/EggAI.git
+git clone git@github.com:eggai-tech/EggAI.git
 ```
 
 Move into the `examples/agent_evaluation_dspy` folder:
@@ -122,13 +127,13 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-(Optional) Start Docker services if required by your environment, for instance:
+Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
-Run the Tests
+## Run the Tests
 
 ```bash
 pytest
@@ -137,9 +142,19 @@ pytest
 This generates an HTML performance report in the `reports/` directory.  
 It will run the triage evaluation on the configured classifier with the dataset found at `datasets/triage-testing.csv`.
 
+## Clean Up
+
+Stop and clean up the Docker containers:
+
+```bash
+docker compose down -v
+```
+
 ## Next Steps
 
-- **Refine the Dataset**: Add more diverse or corner-case scenarios.  
-- **Tune the Quality Gate**: Increase the minimum success-rate requirement in `pytest` as performance improves.  
-- **Explore Advanced DSPy Features**: Consider random search or multiple seeds for further tuning.  
-- **Incorporate Real-World Feedback**: Continuously enhance the classifier with real conversation data.
+Ready to explore further? Check out:
+
+- **Advanced Examples:** Discover more complex use cases in the [examples](https://github.com/eggai-tech/EggAI/tree/main/examples/) folder.
+- **Contribution Guidelines:** Get involved and help improve EggAI!
+- **GitHub Issues:** [Submit a bug or feature request](https://github.com/eggai-tech/eggai/issues).
+- **Documentation:** Refer to the official docs for deeper insights.
