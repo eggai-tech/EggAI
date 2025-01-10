@@ -1,4 +1,4 @@
-<img src="docs/assets/eggai-word-and-figuremark.svg" alt="EggAI word and figuremark" width="200px" style="margin-bottom: 16px;" />
+<img src="docs/docs/assets/eggai-word-and-figuremark.svg" alt="EggAI word and figuremark" width="200px" style="margin-bottom: 16px;" />
 
 <!--start-->
 
@@ -122,7 +122,7 @@ We encourage you to explore and **copy/paste** from our examples for practical i
       </td>
       <td>
         <a href="examples/getting_started">
-          <img src="docs/assets/example-00.png" alt="Getting Started Example"/>
+          <img src="docs/docs/assets/example-00.png" alt="Getting Started Example"/>
         </a>
       </td>
     </tr>
@@ -133,7 +133,7 @@ We encourage you to explore and **copy/paste** from our examples for practical i
       </td>
       <td>
         <a href="examples/coordinator">
-          <img src="docs/assets/example-01.png" alt="Coordinator Example"/>
+          <img src="docs/docs/assets/example-01.png" alt="Coordinator Example"/>
         </a>
       </td>
     </tr>
@@ -144,7 +144,7 @@ We encourage you to explore and **copy/paste** from our examples for practical i
       </td>
       <td>
         <a href="examples/websocket_gateway">
-          <img src="docs/assets/example-02.png" alt="Websocket Gateway Example"/>
+          <img src="docs/docs/assets/example-02.png" alt="Websocket Gateway Example"/>
         </a>
       </td>
     </tr>
@@ -155,7 +155,7 @@ We encourage you to explore and **copy/paste** from our examples for practical i
       </td>
       <td>
         <a href="examples/langchain_tool_calling">
-          <img src="docs/assets/example-03.png" alt="LangChain Tool Calling Example"/>
+          <img src="docs/docs/assets/example-03.png" alt="LangChain Tool Calling Example"/>
         </a>
       </td>
     </tr>
@@ -166,7 +166,7 @@ We encourage you to explore and **copy/paste** from our examples for practical i
       </td>
       <td>
         <a href="examples/shared_context">
-          <img src="docs/assets/example-04.png" alt="Shared Context Example"/>
+          <img src="docs/docs/assets/example-04.png" alt="Shared Context Example"/>
         </a>
       </td>
     </tr>
@@ -177,7 +177,7 @@ We encourage you to explore and **copy/paste** from our examples for practical i
       </td>
       <td>
         <a href="examples/litellm_agent">
-          <img src="docs/assets/example-05.png" alt="LiteLLM Agent Example"/>
+          <img src="docs/docs/assets/example-05.png" alt="LiteLLM Agent Example"/>
         </a>
       </td>
     </tr>
@@ -188,7 +188,7 @@ We encourage you to explore and **copy/paste** from our examples for practical i
       </td>
       <td>
         <a href="examples/multi_agent_conversation">
-          <img src="docs/assets/example-06.png" alt="Multi-Agent Conversation Example"/>
+          <img src="docs/docs/assets/example-06.png" alt="Multi-Agent Conversation Example"/>
         </a>
       </td>
     </tr>
