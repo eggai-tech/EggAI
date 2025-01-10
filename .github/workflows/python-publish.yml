@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - sdk/pyproject.toml
 
 permissions:
   contents: read
