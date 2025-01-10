@@ -1,8 +1,8 @@
 import json
 from aiokafka import AIOKafkaProducer
 
-from sdk.eggai.constants import DEFAULT_CHANNEL_NAME
-from sdk.eggai.settings.kafka import KafkaSettings
+from eggai.constants import DEFAULT_CHANNEL_NAME
+from eggai.settings.kafka import KafkaSettings
 
 
 class Channel:

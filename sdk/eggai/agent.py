@@ -5,10 +5,10 @@ from typing import Dict, List, Callable, Optional, Type
 
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
-from sdk.eggai.channel import Channel
-from sdk.eggai.constants import DEFAULT_CHANNEL_NAME
-from sdk.eggai.schemas import MessageBase
-from sdk.eggai.settings.kafka import KafkaSettings
+from eggai.channel import Channel
+from eggai.constants import DEFAULT_CHANNEL_NAME
+from eggai.schemas import MessageBase
+from eggai.settings.kafka import KafkaSettings
 
 
 def _get_channel_name(channel: Optional[Channel], channel_name: Optional[str]) -> str:

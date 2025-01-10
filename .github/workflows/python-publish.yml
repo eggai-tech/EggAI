@@ -34,8 +34,11 @@ jobs:
       - name: Copy Readme to SDK
         run: cp README.md sdk/
 
+      - name: Navigate to SDK
+        run: cd sdk
+
       - name: Build release distributions
-        run: poetry build --directory=sdk --output=../dist
+        run: poetry build
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
@@ -59,7 +62,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-dists
-          path: dist/
+          path: sdk/dist/
 
       - name: Check if version already published
         id: check
@@ -77,4 +80,4 @@ jobs:
         if: steps.check.outputs.already_published == 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: dist/
+          packages-dir: sdk/dist/

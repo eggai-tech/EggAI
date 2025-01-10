@@ -6,7 +6,9 @@ import pytest
 from dotenv import load_dotenv
 
 from eggai import Channel
-from examples.agent_evaluation_dspy.src.agents.triage import handle_user_message
+
+from src.agents.triage import handle_user_message
+
 
 
 @pytest.mark.asyncio
