@@ -3,8 +3,8 @@ from typing import Literal
 import dspy
 from dotenv import load_dotenv
 
-from examples.example_08_dspy.src.dspy_modules.lm import language_model
-from examples.example_08_dspy.src.dspy_modules.utils import run_and_calculate_costs
+from .lm import language_model
+from .utils import run_and_calculate_costs
 
 TargetAgent = Literal["PolicyAgent", "TicketingAgent", "TriageAgent"]
 

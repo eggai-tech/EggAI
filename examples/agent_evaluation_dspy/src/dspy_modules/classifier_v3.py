@@ -4,17 +4,15 @@ from typing import Literal
 import dspy
 from dotenv import load_dotenv
 
-from examples.agent_evaluation_dspy.src.dspy_modules.classifier_v2 import AgentClassificationSignature, \
-    classifier as classifier_v2
-from examples.agent_evaluation_dspy.src.dspy_modules.lm import language_model
-from examples.agent_evaluation_dspy.src.dspy_modules.utils import run_and_calculate_costs
+from .classifier_v2 import AgentClassificationSignature, classifier as classifier_v2
+from .lm import language_model
+from .utils import run_and_calculate_costs
 
 TargetAgent = Literal["PolicyAgent", "TicketingAgent", "TriageAgent"]
 
 dspy.configure(lm=language_model)
 
-classifier_v3_json_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "optimizations_v3.json"))
+classifier_v3_json_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "optimizations_v3.json"))
 
 
 def load():

@@ -1,4 +1,4 @@
-from examples.agent_evaluation_dspy.src.dspy_modules.lm import language_model
+from .lm import language_model
 
 
 def run_and_calculate_costs(program, chat_history):

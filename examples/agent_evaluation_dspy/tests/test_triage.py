@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 from eggai import Channel
 
-from src.agents.triage import handle_user_message
+from ..src.agents.triage import handle_user_message
+from ..datasets.loader import load_dataset
 
 
 
@@ -15,9 +16,7 @@ from src.agents.triage import handle_user_message
 async def test_triage_agent(monkeypatch):
     load_dotenv()
 
-    dataset_path = os.path.join(os.path.dirname(__file__), "..", "datasets", "triage-testing.json")
-    with open(dataset_path, "r") as f:
-        dataset = json.load(f)
+    dataset = load_dataset("triage-testing")
 
     total = len(dataset)
     success = 0

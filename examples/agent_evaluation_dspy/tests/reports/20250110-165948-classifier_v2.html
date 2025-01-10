@@ -1,0 +1,370 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>EggAI - Performance Report - Triage Agent</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+        <style>
+            body {
+                padding: 20px;
+            }
+            .summary {
+                margin-bottom: 30px;
+            }
+            .pass {
+                color: green;
+                font-weight: bold;
+            }
+            .fail {
+                color: red;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div style="margin: 0 40px">
+            <h1 class="mb-4">EggAI - Performance Report - Triage Agent</h1>
+            <p><strong>Date:</strong> 2025-01-10 16:59:48 <span style="margin-left: 20px"><b>Meta:</b> classifier_v2</span></p>
+            
+
+            <div class="summary">
+                <h3>Summary</h3>
+                <ul>
+                    <li>Total Test Cases: 22</li>
+                    <li>Passed: <span class="pass">17</span></li>
+                    <li>Failed: <span class="fail">5</span></li>
+                    <li>Success Rate: 77.27%</li>
+                </ul>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Detailed Results</h3>
+            </div>
+
+            <table id="resultsTable" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Conversation</th>
+                        <th>Expected Target</th>
+                        <th>Actual Target</th>
+                        <th>Confidence</th>
+                        <th>Reasoning</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td><pre>User: I need to verify my policy due date. My policy number is P123456.</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user is inquiring about their policy due date and has provided a policy number. This clearly indicates that the query is related to policy information, which falls under the responsibilities of the PolicyAgent.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Can you retrieve the details of my policy?
+PolicyAgent: Please provide your policy number.
+User: P789012</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user is inquiring about the details of their policy and has provided a policy number. This indicates that the query is related to policy information, which falls under the responsibilities of the PolicyAgent. Therefore, the appropriate target agent for this request is the PolicyAgent.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I want to create a new ticket for a billing issue.</pre></td>
+                        <td>TicketingAgent</td>
+                        <td>TicketingAgent</td>
+                        <td>0.95</td>
+                        <td>The user is requesting to create a new ticket specifically for a billing issue, which falls under the category of customer support related to insurance. This indicates that the query is related to ticketing and should be directed to the TicketingAgent for further assistance.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Retrieve my ticket details using ticket number T456789.</pre></td>
+                        <td>TicketingAgent</td>
+                        <td>TicketingAgent</td>
+                        <td>0.95</td>
+                        <td>The user is requesting to retrieve ticket details using a specific ticket number. This indicates a need for customer support related to an insurance ticket, which falls under the responsibilities of the TicketingAgent.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I need to verify my policy due date</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user is asking to verify their policy due date, which is a query related to their insurance policy. This falls under the category of policy-related inquiries, which should be directed to the PolicyAgent for assistance.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: What&#39;s the weather like today?</pre></td>
+                        <td>TriageAgent</td>
+                        <td>TriageAgent</td>
+                        <td>1.0</td>
+                        <td>The user&#39;s query about the weather is not related to insurance or any policy-related issues. Therefore, it should be classified as a non-insurance-related query, which falls under the responsibilities of the TriageAgent.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I lost my policy number and need assistance.</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user has lost their policy number and is seeking assistance, which indicates a need for help related to their insurance policy. This type of inquiry is best handled by the PolicyAgent, as it directly pertains to policy-related issues.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I tried to access my policy details but forgot my policy number.</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>TicketingAgent</td>
+                        <td>0.85</td>
+                        <td>The user is attempting to access their policy details but has forgotten their policy number. This indicates a need for assistance related to their insurance policy, which falls under the responsibilities of the PolicyAgent. However, since the user does not have their policy number, they may require support in retrieving this information, which could also involve the TicketingAgent for customer support. Given the context, the most appropriate classification is to route this to the TicketingAgent for further assistance.</td>
+                        <td>
+                            
+                                <span class="fail">FAIL</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Create a ticket for a claim that was denied.
+TicketingAgent: Your ticket has been created with number T654321.
+User: To what department?</pre></td>
+                        <td>TicketingAgent</td>
+                        <td>TicketingAgent</td>
+                        <td>0.9</td>
+                        <td>The user is inquiring about the department related to a claim that was denied, which is a follow-up question to a ticket creation. This indicates that the query is still related to insurance and ticketing processes. Therefore, it should be routed to the TicketingAgent for further assistance regarding the department handling the claim.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: How can I update my contact information?</pre></td>
+                        <td>TicketingAgent</td>
+                        <td>TicketingAgent</td>
+                        <td>0.95</td>
+                        <td>The user is asking about updating their contact information, which is related to customer support and falls under the category of insurance-related queries. Therefore, this query should be routed to the TicketingAgent for assistance.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I need to check the status of my policy number P321654.</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user is inquiring about the status of their insurance policy, which is a specific request related to their policy number. This type of query falls under the responsibilities of the PolicyAgent, as it directly pertains to policy-related information.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: There&#39;s an error in my billing statement and I want to report it.
+TicketingAgent: I&#39;ve created a ticket for your issue. Your ticket number is T987654.
+User: I need to know the status of my ticket.</pre></td>
+                        <td>TicketingAgent</td>
+                        <td>TicketingAgent</td>
+                        <td>0.95</td>
+                        <td>The user is inquiring about the status of a previously created ticket related to a billing error. This falls under the category of customer support inquiries, which are typically handled by the TicketingAgent. Since the user is seeking information about their ticket, it is appropriate to route this to the TicketingAgent.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Can you explain the benefits covered under my current policy?</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user is asking for information about the benefits covered under their current insurance policy, which is a policy-related query. Therefore, it is appropriate to route this to the PolicyAgent for assistance.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I would like to update my address on my policy.
+PolicyAgent: Sure</pre></td>
+                        <td> please provide your new address.
+User: 123 Main Street</td>
+                        <td>PolicyAgent</td>
+                        <td>1.0</td>
+                        <td>The user is requesting to update their address on their policy, which is a policy-related query. Therefore, it should be routed to the PolicyAgent for handling.</td>
+                        <td>
+                            
+                                <span class="fail">FAIL</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Please send me a copy of my policy statement.</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>1.0</td>
+                        <td>The user is requesting a copy of their policy statement, which is directly related to their insurance policy. This type of inquiry falls under the responsibilities of the PolicyAgent, as it pertains to policy-related queries.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I&#39;m experiencing an error when trying to log into my account.</pre></td>
+                        <td>TicketingAgent</td>
+                        <td>TriageAgent</td>
+                        <td>0.95</td>
+                        <td>The user is reporting an error related to logging into their account, which suggests a technical issue rather than a policy-related question. Since this does not pertain to insurance policies or ticketing inquiries, it is classified as a non-insurance-related query. Therefore, it should be routed to the TriageAgent.</td>
+                        <td>
+                            
+                                <span class="fail">FAIL</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I want to escalate my previous issue regarding my billing statement.</pre></td>
+                        <td>TicketingAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user is expressing a desire to escalate an issue related to their billing statement, which falls under the category of policy-related queries. This indicates that the user is seeking assistance with a specific aspect of their insurance policy, likely related to billing. Therefore, the appropriate target agent for this query is the PolicyAgent.</td>
+                        <td>
+                            
+                                <span class="fail">FAIL</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: There&#39;s a glitch in the mobile app that&#39;s preventing me from accessing my policy.</pre></td>
+                        <td>TicketingAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user is experiencing a technical issue with the mobile app that is affecting their ability to access their insurance policy. This query is related to the functionality of the app and how it interacts with their policy information, which falls under the domain of policy-related queries. Therefore, it should be directed to the PolicyAgent for resolution.</td>
+                        <td>
+                            
+                                <span class="fail">FAIL</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Tell me a fun fact about space.</pre></td>
+                        <td>TriageAgent</td>
+                        <td>TriageAgent</td>
+                        <td>1.0</td>
+                        <td>The user&#39;s query is not related to insurance or any policy-related issues. Instead, it is a general question about space, which falls outside the scope of the insurance support system. Therefore, it should be classified as a non-insurance-related query and routed to the TriageAgent.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: How&#39;s your day going?</pre></td>
+                        <td>TriageAgent</td>
+                        <td>TriageAgent</td>
+                        <td>1.0</td>
+                        <td>The user&#39;s question is a general inquiry about my day and does not pertain to insurance or any related topics. Therefore, it should be classified as a non-insurance-related query.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I need some help with my policy but I&#39;m not sure who to contact.</pre></td>
+                        <td>PolicyAgent</td>
+                        <td>PolicyAgent</td>
+                        <td>0.95</td>
+                        <td>The user explicitly mentions needing help with their policy, indicating that their query is related to insurance policy matters. This aligns with the responsibilities of the PolicyAgent, who handles policy-related queries. Therefore, the appropriate target agent for this request is the PolicyAgent.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: What&#39;s the capital of France?</pre></td>
+                        <td>TriageAgent</td>
+                        <td>TriageAgent</td>
+                        <td>1.0</td>
+                        <td>The user&#39;s question about the capital of France is not related to insurance or any policy-related queries. It falls outside the scope of the insurance support system, indicating that it is a general knowledge question. Therefore, it should be routed to the TriageAgent.</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                var table = $('#resultsTable').DataTable({
+                    "order": [[ 0, "asc" ]],
+                    "pageLength": 10
+                });
+            });
+        </script>
+    </body>
+    </html>
+    

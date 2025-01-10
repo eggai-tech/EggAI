@@ -5,18 +5,18 @@ from datetime import datetime
 import dspy
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from ..datasets.loader import load_dataset
 
-def load_data(path: str):
+
+def load_data(file: str):
     """
     Loads the dataset and constructs the devset list of dspy.Example objects.
 
     :param path: Path to the triage-training JSON file.
     :return: A list of dspy.Example objects.
     """
-    with open(path, "r") as f:
-        ds_data = json.load(f)
     devset = []
-    for ex in ds_data:
+    for ex in load_dataset(file):
         devset.append(
             dspy.Example(
                 chat_history=ex["conversation"],
@@ -35,7 +35,7 @@ def run_evaluation(program, devset):
     evaluator = dspy.evaluate.Evaluate(
         devset=devset,
         num_threads=10,
-        display_progress=True,
+        display_progress=False,
         return_outputs=True,
         return_all_scores=True
     )

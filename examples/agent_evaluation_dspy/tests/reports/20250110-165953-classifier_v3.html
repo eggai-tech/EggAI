@@ -26,16 +26,16 @@
     <body>
         <div style="margin: 0 40px">
             <h1 class="mb-4">EggAI - Performance Report - Triage Agent</h1>
-            <p><strong>Date:</strong> 2025-01-08 15:05:28 <span style="margin-left: 20px"><b>Meta:</b> classifier_v1</span></p>
+            <p><strong>Date:</strong> 2025-01-10 16:59:53 <span style="margin-left: 20px"><b>Meta:</b> classifier_v3</span></p>
             
 
             <div class="summary">
                 <h3>Summary</h3>
                 <ul>
                     <li>Total Test Cases: 22</li>
-                    <li>Passed: <span class="pass">18</span></li>
-                    <li>Failed: <span class="fail">4</span></li>
-                    <li>Success Rate: 81.82%</li>
+                    <li>Passed: <span class="pass">21</span></li>
+                    <li>Failed: <span class="fail">1</span></li>
+                    <li>Success Rate: 95.45%</li>
                 </ul>
             </div>
 
@@ -61,7 +61,7 @@
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
                         <td>0.95</td>
-                        <td>The user is asking to verify their policy due date, which directly relates to their insurance policy. This type of inquiry is best handled by the PolicyAgent, as it deals specifically with policy details and information.</td>
+                        <td>The user is asking to verify the due date of their policy, which is a policy-related inquiry. Therefore, it should be directed to the PolicyAgent for assistance.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -75,8 +75,8 @@ PolicyAgent: Please provide your policy number.
 User: P789012</pre></td>
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
-                        <td>0.95</td>
-                        <td>The user is requesting details about their policy, which indicates that the appropriate agent to handle this request is the PolicyAgent. The conversation has already established that the user has provided their policy number, which is a typical interaction for a PolicyAgent. Therefore, the confidence in this assessment is high.</td>
+                        <td>1.0</td>
+                        <td>The user is requesting to retrieve details of their policy and has provided their policy number. This is a clear policy-related inquiry that should be directed to the PolicyAgent.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -89,7 +89,7 @@ User: P789012</pre></td>
                         <td>TicketingAgent</td>
                         <td>TicketingAgent</td>
                         <td>0.95</td>
-                        <td>The user has expressed a desire to create a new ticket specifically for a billing issue. This indicates that the appropriate agent to handle this request is the TicketingAgent, as they are responsible for managing ticket creation and related inquiries.</td>
+                        <td>The user is requesting to create a new ticket for a billing issue, which falls under customer support related to insurance. Therefore, this query should be routed to the TicketingAgent.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -102,7 +102,7 @@ User: P789012</pre></td>
                         <td>TicketingAgent</td>
                         <td>TicketingAgent</td>
                         <td>0.95</td>
-                        <td>The user is requesting to retrieve ticket details using a specific ticket number. This task falls under the responsibilities of the TicketingAgent, which handles inquiries related to ticket information and management.</td>
+                        <td>The user is requesting information related to a ticket, specifically asking to retrieve details using a ticket number. This falls under the responsibilities of the TicketingAgent, which handles queries related to ticketing and customer support.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -115,7 +115,7 @@ User: P789012</pre></td>
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
                         <td>0.95</td>
-                        <td>The user is asking to verify their policy due date, which is a specific inquiry related to insurance policies. This type of request is best handled by the PolicyAgent, as it deals directly with policy-related information and verification.</td>
+                        <td>The user is asking to verify their policy due date, which is a policy-related inquiry. Therefore, it should be directed to the PolicyAgent for assistance.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -127,8 +127,8 @@ User: P789012</pre></td>
                         <td><pre>User: What&#39;s the weather like today?</pre></td>
                         <td>TriageAgent</td>
                         <td>TriageAgent</td>
-                        <td>0.1</td>
-                        <td>Reasoning: The user&#39;s question about the weather does not pertain to policies, ticketing, or triage. It is a general inquiry that falls outside the scope of the specified agents.</td>
+                        <td>0.95</td>
+                        <td>The user&#39;s question is not related to insurance or policy matters, but rather about the weather, which falls outside the scope of the insurance support system.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -141,7 +141,7 @@ User: P789012</pre></td>
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
                         <td>0.95</td>
-                        <td>The user has lost their policy number and is seeking assistance, which indicates a need for help related to their insurance policy. This type of inquiry is best handled by the PolicyAgent, as they specialize in matters related to insurance policies and can assist the user in retrieving or replacing their policy number.</td>
+                        <td>The user is requesting assistance with a lost policy number, which indicates a need for support related to their policy. This falls under the category of inquiries that should be directed to the PolicyAgent for proper resolution.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -153,8 +153,8 @@ User: P789012</pre></td>
                         <td><pre>User: I tried to access my policy details but forgot my policy number.</pre></td>
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
-                        <td>0.95</td>
-                        <td>The user is seeking assistance with accessing their policy details but has forgotten their policy number. This indicates a need for help related to their insurance policy, which falls under the responsibilities of the PolicyAgent. The user is not looking to book a ticket or report an issue that requires triage, so the other agents are not appropriate in this context.</td>
+                        <td>0.9</td>
+                        <td>The user is indicating that they are unable to access their policy details due to forgetting their policy number. This situation typically requires assistance related to policy information, which falls under the responsibilities of the PolicyAgent.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -169,7 +169,7 @@ User: To what department?</pre></td>
                         <td>TicketingAgent</td>
                         <td>TicketingAgent</td>
                         <td>0.95</td>
-                        <td>The user is inquiring about the department related to a ticket they created for a denied claim. This question pertains to the ticketing process and the specifics of the ticket created, which falls under the responsibilities of the TicketingAgent. Therefore, the appropriate agent to address this question is the TicketingAgent.</td>
+                        <td>The user is asking for information about the department related to a ticket that was created for a denied claim. This inquiry pertains to ticketing and customer support, which is the responsibility of the TicketingAgent.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -180,12 +180,12 @@ User: To what department?</pre></td>
                     <tr>
                         <td><pre>User: How can I update my contact information?</pre></td>
                         <td>TicketingAgent</td>
-                        <td>PolicyAgent</td>
-                        <td>0.9</td>
-                        <td>The user is asking about updating their contact information, which typically falls under the responsibilities of a PolicyAgent, as it relates to managing user accounts and personal information.</td>
+                        <td>TicketingAgent</td>
+                        <td>0.85</td>
+                        <td>The user is inquiring about how to update their contact information, which is typically handled by customer support or ticketing services. This query does not directly relate to policy details but rather to administrative support, making it appropriate for the TicketingAgent.</td>
                         <td>
                             
-                                <span class="fail">FAIL</span>
+                                <span class="pass">PASS</span>
                             
                         </td>
                     </tr>
@@ -195,7 +195,7 @@ User: To what department?</pre></td>
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
                         <td>0.95</td>
-                        <td>The user is inquiring about the status of their insurance policy, which indicates a need for information related to their policy details. This type of request is best handled by the PolicyAgent, as it specializes in providing information about insurance policies and their statuses.</td>
+                        <td>The user is inquiring about the status of their policy, which is a policy-related query. Therefore, it should be directed to the PolicyAgent for assistance.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -210,7 +210,7 @@ User: I need to know the status of my ticket.</pre></td>
                         <td>TicketingAgent</td>
                         <td>TicketingAgent</td>
                         <td>0.95</td>
-                        <td>The user is inquiring about the status of a previously created ticket regarding a billing error. This indicates that the user is still engaged with the TicketingAgent, as they are seeking information related to their ticket. Therefore, the appropriate agent to handle this request is the TicketingAgent.</td>
+                        <td>The user is inquiring about the status of a previously created ticket related to a billing issue. This falls under the responsibilities of the TicketingAgent, as it involves tracking and managing ticket statuses.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -223,7 +223,7 @@ User: I need to know the status of my ticket.</pre></td>
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
                         <td>0.95</td>
-                        <td>The user is asking for information about the benefits covered under their current policy, which indicates a need for detailed policy information. This type of inquiry is best handled by the PolicyAgent, as it specializes in providing information related to insurance policies and their benefits.</td>
+                        <td>The user is asking for an explanation of the benefits covered under their current policy, which is a policy-related inquiry. This type of question should be directed to the PolicyAgent for detailed information regarding policy benefits.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -233,15 +233,15 @@ User: I need to know the status of my ticket.</pre></td>
                     
                     <tr>
                         <td><pre>User: I would like to update my address on my policy.
-PolicyAgent: Sure, please provide your new address.
-User: 123 Main Street, Springfield.</pre></td>
+PolicyAgent: Sure</pre></td>
+                        <td> please provide your new address.
+User: 123 Main Street</td>
                         <td>PolicyAgent</td>
-                        <td>PolicyAgent</td>
-                        <td>0.95</td>
-                        <td>The user is requesting to update their address on their policy, which is a task that falls under the responsibilities of the PolicyAgent. The conversation indicates that the PolicyAgent is already engaged in assisting the user with this request, confirming that the target agent is indeed the PolicyAgent.</td>
+                        <td>1.0</td>
+                        <td>The user is requesting to update their address on their policy, which is a policy-related inquiry. Therefore, it should be directed to the PolicyAgent for processing.</td>
                         <td>
                             
-                                <span class="pass">PASS</span>
+                                <span class="fail">FAIL</span>
                             
                         </td>
                     </tr>
@@ -251,7 +251,7 @@ User: 123 Main Street, Springfield.</pre></td>
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
                         <td>0.95</td>
-                        <td>The user is requesting a copy of their policy statement, which pertains to their insurance policy. This type of request is best handled by the PolicyAgent, as it deals specifically with policy-related inquiries and documentation.</td>
+                        <td>The user is requesting a copy of their policy statement, which is related to their insurance policy. This type of inquiry is best handled by the PolicyAgent, as it pertains to policy documentation.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -263,8 +263,8 @@ User: 123 Main Street, Springfield.</pre></td>
                         <td><pre>User: I&#39;m experiencing an error when trying to log into my account.</pre></td>
                         <td>TicketingAgent</td>
                         <td>TicketingAgent</td>
-                        <td>0.85</td>
-                        <td>The user is facing an issue related to logging into their account, which typically requires assistance with account access or technical support. This situation is best handled by the TicketingAgent, as they can create a ticket for the user&#39;s login issue and provide the necessary support to resolve it.</td>
+                        <td>0.95</td>
+                        <td>The user is experiencing a technical issue related to logging into their account, which is not directly related to insurance policy inquiries. This type of query is best handled by the TicketingAgent, who can assist with account-related issues.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -275,12 +275,12 @@ User: 123 Main Street, Springfield.</pre></td>
                     <tr>
                         <td><pre>User: I want to escalate my previous issue regarding my billing statement.</pre></td>
                         <td>TicketingAgent</td>
-                        <td>PolicyAgent</td>
+                        <td>TicketingAgent</td>
                         <td>0.95</td>
-                        <td>The user is expressing a desire to escalate an issue related to their billing statement, which indicates a need for assistance with a billing or policy-related concern. This type of inquiry is best handled by the PolicyAgent, as they specialize in issues related to billing and policy matters.</td>
+                        <td>The user is expressing a desire to escalate an issue related to their billing statement, which indicates a need for assistance with a billing-related matter. This falls under the responsibilities of the TicketingAgent, as it involves customer support and issue resolution.</td>
                         <td>
                             
-                                <span class="fail">FAIL</span>
+                                <span class="pass">PASS</span>
                             
                         </td>
                     </tr>
@@ -290,7 +290,7 @@ User: 123 Main Street, Springfield.</pre></td>
                         <td>TicketingAgent</td>
                         <td>TicketingAgent</td>
                         <td>0.95</td>
-                        <td>The user is experiencing a technical issue with the mobile app that is affecting their ability to access their policy. This situation suggests that the user may need assistance related to the app&#39;s functionality rather than a direct policy inquiry. Therefore, the most appropriate agent to address this issue would be the TicketingAgent, as they can handle technical glitches and facilitate the resolution of the problem.</td>
+                        <td>The user is reporting a technical issue with the mobile app that is preventing them from accessing their policy. This is a technical support issue rather than a policy-related inquiry, which suggests that it should be directed to the TicketingAgent for resolution.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -302,8 +302,8 @@ User: 123 Main Street, Springfield.</pre></td>
                         <td><pre>User: Tell me a fun fact about space.</pre></td>
                         <td>TriageAgent</td>
                         <td>TriageAgent</td>
-                        <td>0.2</td>
-                        <td>Reasoning: The user is asking for a fun fact about space, which does not relate to policies, ticketing, or triage. This type of inquiry is more general knowledge and does not require the expertise of any specific agent.</td>
+                        <td>0.95</td>
+                        <td>The user&#39;s request for a fun fact about space is unrelated to insurance or policy matters, indicating a non-insurance-related query.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -314,12 +314,12 @@ User: 123 Main Street, Springfield.</pre></td>
                     <tr>
                         <td><pre>User: How&#39;s your day going?</pre></td>
                         <td>TriageAgent</td>
-                        <td>PolicyAgent</td>
-                        <td>0.0</td>
-                        <td>The chat history indicates a casual conversation with no specific inquiry related to policies, ticketing, or triage. The user is simply asking about the agent&#39;s day, which does not require the involvement of any specialized agent. Therefore, it is not appropriate to direct this to any of the specified agents.</td>
+                        <td>TriageAgent</td>
+                        <td>0.95</td>
+                        <td>The user&#39;s question is not related to insurance or policy matters, indicating a non-insurance-related query.</td>
                         <td>
                             
-                                <span class="fail">FAIL</span>
+                                <span class="pass">PASS</span>
                             
                         </td>
                     </tr>
@@ -328,8 +328,8 @@ User: 123 Main Street, Springfield.</pre></td>
                         <td><pre>User: I need some help with my policy but I&#39;m not sure who to contact.</pre></td>
                         <td>PolicyAgent</td>
                         <td>PolicyAgent</td>
-                        <td>0.95</td>
-                        <td>The user is seeking assistance with their policy, indicating that they need help related to insurance or a similar policy matter. This suggests that the appropriate agent to contact would be the PolicyAgent, who specializes in policy-related inquiries.</td>
+                        <td>0.9</td>
+                        <td>The user is looking for help with their policy but is uncertain about whom to contact. This indicates a need for assistance related to policy matters, which should be directed to the PolicyAgent.</td>
                         <td>
                             
                                 <span class="pass">PASS</span>
@@ -340,12 +340,12 @@ User: 123 Main Street, Springfield.</pre></td>
                     <tr>
                         <td><pre>User: What&#39;s the capital of France?</pre></td>
                         <td>TriageAgent</td>
-                        <td>PolicyAgent</td>
-                        <td>0.0</td>
-                        <td>The question about the capital of France is a general knowledge question that does not pertain to policies, ticketing, or triage. It is a straightforward inquiry that can be answered by anyone with basic knowledge. Therefore, it does not require the expertise of any specific agent type.</td>
+                        <td>TriageAgent</td>
+                        <td>0.95</td>
+                        <td>The user&#39;s question is not related to insurance or policy matters, but rather a general knowledge question about geography. This type of inquiry does not fall within the scope of the insurance support system.</td>
                         <td>
                             
-                                <span class="fail">FAIL</span>
+                                <span class="pass">PASS</span>
                             
                         </td>
                     </tr>

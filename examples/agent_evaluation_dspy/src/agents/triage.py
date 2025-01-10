@@ -1,5 +1,5 @@
 from eggai import Channel, Agent
-from examples.agent_evaluation_dspy.src.dspy_modules.classifier_v3 import load
+from ..dspy_modules.classifier_v3 import load
 
 human_channel = Channel("human")
 agents_channel = Channel("agents")
