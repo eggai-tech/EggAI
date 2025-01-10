@@ -32,7 +32,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build release distributions
-        run: poetry build
+        run: poetry build --directory=sdk --output=../dist
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
