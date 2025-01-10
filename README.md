@@ -117,97 +117,97 @@ We encourage you to explore and **copy/paste** from our examples for practical i
   <tbody>
     <tr>
       <td>
-        <a href="examples/00-getting-started"><strong>Getting Started</strong></a>:<br/>
+        <a href="examples/getting_started"><strong>Getting Started</strong></a>:<br/>
         Orchestrate two agents asynchronously.
       </td>
       <td>
-        <a href="examples/00-getting-started">
+        <a href="examples/getting_started">
           <img src="docs/assets/example-00.png" alt="Getting Started Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/01-coordinator"><strong>Coordinator</strong></a>:<br/>
+        <a href="examples/coordinator"><strong>Coordinator</strong></a>:<br/>
         Bridge multiple communication channels.
       </td>
       <td>
-        <a href="examples/01-coordinator">
+        <a href="examples/coordinator">
           <img src="docs/assets/example-01.png" alt="Coordinator Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/02-websocket-gateway"><strong>Websocket Gateway</strong></a>:<br/>
+        <a href="examples/websocket_gateway"><strong>Websocket Gateway</strong></a>:<br/>
         Real-time interaction via WebSockets.
       </td>
       <td>
-        <a href="examples/02-websocket-gateway">
+        <a href="examples/websocket_gateway">
           <img src="docs/assets/example-02.png" alt="Websocket Gateway Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/03-langchain-tool-calling"><strong>LangChain Tool Calling</strong></a>:<br/>
+        <a href="examples/langchain_tool_calling"><strong>LangChain Tool Calling</strong></a>:<br/>
         Integrate tool calling with LangChain.
       </td>
       <td>
-        <a href="examples/03-langchain-tool-calling">
+        <a href="examples/langchain_tool_calling">
           <img src="docs/assets/example-03.png" alt="LangChain Tool Calling Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/04-context"><strong>Shared Context</strong></a>:<br/>
+        <a href="examples/shared_context"><strong>Shared Context</strong></a>:<br/>
         Maintain shared context across agents.
       </td>
       <td>
-        <a href="examples/04-context">
+        <a href="examples/shared_context">
           <img src="docs/assets/example-04.png" alt="Shared Context Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/05-litellm-agent"><strong>LiteLLM Agent</strong></a>:<br/>
+        <a href="examples/litellm_agent"><strong>LiteLLM Agent</strong></a>:<br/>
         Power agents with LiteLLM.
       </td>
       <td>
-        <a href="examples/05-litellm-agent">
+        <a href="examples/litellm_agent">
           <img src="docs/assets/example-05.png" alt="LiteLLM Agent Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/06-multi-agent-conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
+        <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
         Context aware multi-agent conversations.
       </td>
       <td>
-        <a href="examples/06-multi-agent-conversation">
+        <a href="examples/multi_agent_conversation">
           <img src="docs/assets/example-06.png" alt="Multi-Agent Conversation Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/07-chat-with-agents"><strong>Insurance Company Support</strong></a>:<br/>
+        <a href="examples/ui_chat_with_agents"><strong>Insurance Company Support</strong></a>:<br/>
         Merges previous components to create an insurance support system with an intuitive user interface.
       </td>
       <td>
-        <a href="examples/07-chat-with-agents">Example</a>
+        <a href="examples/ui_chat_with_agents">Example</a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/example_08_dspy"><strong>Agents Evaluation & DSPy</strong></a>:<br/>
+        <a href="examples/agent_evaluation_dspy"><strong>Agents Evaluation & DSPy</strong></a>:<br/>
         Demonstrates how to enhance agents and integrate DSPY for effective agent evaluation and improvement.
       </td>
       <td>
-        <a href="examples/example_08_dspy">Example</a>
+        <a href="examples/agent_evaluation_dspy">Example</a>
       </td>
     </tr>
   </tbody>
