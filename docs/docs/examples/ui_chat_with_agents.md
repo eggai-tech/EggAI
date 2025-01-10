@@ -1,1 +1,1 @@
-{% include-markdown  "../../../examples/ui_chat_with_agents/README.md" %}
+{% include-markdown  "../../../examples/multi_agent_human_chat/README.md" %}

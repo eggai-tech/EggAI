@@ -87,11 +87,13 @@ We encourage you to explore and **copy/paste** from our examples for practical i
     </tr>
     <tr>
       <td>
-        <a href="examples/ui_chat_with_agents"><strong>Insurance Company Support</strong></a>:<br/>
-        Merges previous components to create an insurance support system with an intuitive user interface.
+        <a href="examples/multi_agent_human_chat"><strong>Multi-Agent & Human Chat</strong></a>:<br/>
+        Insurance support system with an intuitive user interface.
       </td>
       <td>
-        <a href="examples/ui_chat_with_agents">Example</a>
+        <a href="examples/multi_agent_human_chat">
+          <img src="docs/assets/multi-agent-human-chat.png" alt="Multi-Agent & Human Chat"/>
+        </a>
       </td>
     </tr>
     <tr>
@@ -100,7 +102,9 @@ We encourage you to explore and **copy/paste** from our examples for practical i
         Demonstrates how to enhance agents and integrate DSPY for effective agent evaluation and improvement.
       </td>
       <td>
-        <a href="examples/agent_evaluation_dspy">Example</a>
+        <a href="examples/agent_evaluation_dspy">
+          <img src="docs/assets/agent-evaluation-dspy.png" alt="Agents Evaluation & DSPy"/>
+        </a>
       </td>
     </tr>
   </tbody>
