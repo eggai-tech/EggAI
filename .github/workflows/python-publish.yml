@@ -34,11 +34,8 @@ jobs:
       - name: Copy Readme to SDK
         run: cp README.md sdk/
 
-      - name: Navigate to SDK
-        run: cd sdk
-
       - name: Build release distributions
-        run: poetry build
+        run: cd sdk && poetry build
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
