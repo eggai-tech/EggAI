@@ -44,19 +44,22 @@ Here's how you can quickly set up an agent to handle events in an event-driven s
 ```python
 import asyncio
 
-from eggai import Agent, Channel
+from sdk.eggai import Agent, Channel
 
 agent = Agent("OrderAgent")
 channel = Channel()
+
 
 @agent.subscribe(event_name="order_requested")
 async def handle_order_requested(event):
     print(f"[ORDER AGENT]: Received order request. Event: {event}")
     await channel.publish({"event_name": "order_created", "payload": event})
 
+
 @agent.subscribe(event_name="order_created")
 async def handle_order_created(event):
     print(f"[ORDER AGENT]: Order created. Event: {event}")
+
 
 async def main():
     await agent.run()
@@ -77,6 +80,7 @@ async def main():
         # Clean up resources
         await agent.stop()
         await channel.stop()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
