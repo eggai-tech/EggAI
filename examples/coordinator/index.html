@@ -9,18 +9,18 @@
       
       
       
-        <link rel="prev" href="../../concepts/multi-agent-system/">
+        <link rel="prev" href="../getting_started/">
       
       
-        <link rel="next" href="../01-coordinator/">
+        <link rel="next" href="../websocket_gateway/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
-        <title>Getting Started - EggAI Multi-Agent Meta Framework</title>
+        <title>Coordinator - EggAI Multi-Agent Meta Framework</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started-with-eggai-multi-agent-meta-framework" class="md-skip">
+        <a href="#advanced-use-case-multi-agent-communication-with-human-and-agent-channels" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting Started
+              Coordinator
             
           </span>
         </div>
@@ -302,6 +302,27 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -318,7 +339,7 @@
           
   
   <span class="md-ellipsis">
-    Getting Started
+    Coordinator
   </span>
   
 
@@ -329,7 +350,7 @@
         
   
   <span class="md-ellipsis">
-    Getting Started
+    Coordinator
   </span>
   
 
@@ -432,6 +453,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Running the Example 🏆">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflow-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workflow Description:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Output:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -468,28 +513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../01-coordinator/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Coordinator
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../02-websocket-gateway/" class="md-nav__link">
+      <a href="../websocket_gateway/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -510,7 +534,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../03-langchain-tool-calling/" class="md-nav__link">
+      <a href="../langchain_tool_calling/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -531,7 +555,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../04-context/" class="md-nav__link">
+      <a href="../shared-context/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -552,7 +576,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../05-litellm-agent/" class="md-nav__link">
+      <a href="../litellm_agent/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -573,7 +597,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../06-multi-agent-conversation/" class="md-nav__link">
+      <a href="../multi_agent_conversation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -594,7 +618,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../07-chat-with-agents/" class="md-nav__link">
+      <a href="../ui_chat_with_agents/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -615,11 +639,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../08-evaluation-and-dspy/" class="md-nav__link">
+      <a href="../agent_evaluation_dspy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Evaluation & DSPy
+    Agent Evaluation & DSPy
   </span>
   
 
@@ -851,6 +875,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Running the Example 🏆">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflow-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workflow Description:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Output:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -886,10 +934,16 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../examples/00-getting-started/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="getting-started-with-eggai-multi-agent-meta-framework">Getting Started with EggAI Multi-Agent Meta Framework 🤖</h1>
-<p>Welcome to the <strong>EggAI Multi-Agent Meta Framework</strong>! This guide will help you set up and run a simple use case demonstrating how to orchestrate and manage two agents in an asynchronous, event-driven architecture. Let's dive in! 🚀</p>
-<p>The code for the example can be found <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/00-getting-started">here</a></p>
+<!-- BEGIN INCLUDE ../../examples/coordinator/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="advanced-use-case-multi-agent-communication-with-human-and-agent-channels">Advanced Use Case: Multi-Agent Communication with Human and Agent Channels 🤖</h1>
+<p>Welcome to the advanced example of the <strong>EggAI Multi-Agent Meta Framework</strong>! This demo highlights a more complex workflow involving <strong>two communication channels</strong>:</p>
+<ol>
+<li><strong>Human Channel</strong>: Exposes an interface for users (or frontends) to send and receive data related to complex workflows managed by agents.</li>
+<li><strong>Agent Channel</strong>: Handles message passing and events between multiple agents.</li>
+</ol>
+<p>In this setup, a <strong>Coordinator Agent</strong> orchestrates the flow between the human channel and the worker agents: <strong>Email Agent</strong> and <strong>Order Agent</strong>.</p>
+<p>The code for the example can be found <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/01-coordinator">here</a></p>
+<p>Let’s get started! 🚀</p>
 <hr />
 <h2 id="prerequisites">Prerequisites 🔧</h2>
 <p>Before you begin, ensure you have the following tools installed:</p>
@@ -899,13 +953,20 @@
 </ul>
 <hr />
 <h2 id="overview">Overview 🔄</h2>
-<p>The example demonstrates two agents communicating and collaborating within the EggAI framework. Below is a simplified UML chart of the architecture for this example:</p>
-<p><img alt="architecture-getting-started.svg" src="../../assets/architecture-getting-started.svg" /></p>
+<p>In this demo, you will:</p>
+<ul>
+<li>Use a <strong>Human Channel</strong> to send a request to create an order.</li>
+<li>Have the <strong>Coordinator Agent</strong> process the request and distribute tasks to the worker agents.</li>
+<li>Receive a notification via the <strong>Human Channel</strong> once the task is completed.</li>
+</ul>
+<p>Below is the architecture diagram for this example:</p>
+<p><img alt="architecture-advanced-example.png" src="../../assets/architecture-coordinator.svg" /></p>
 <h3 id="key-features-highlighted">Key Features Highlighted:</h3>
 <ul>
-<li>🕴️ <strong>Agent Collaboration:</strong> Two agents working together in an event-driven environment.</li>
-<li>🛠️ <strong>Asynchronous Execution:</strong> Agents are designed to process tasks concurrently, ensuring efficiency.</li>
-<li>🛰 <strong>Scalable Infrastructure:</strong> Powered by Kafka for reliable messaging and streaming.</li>
+<li>🤝 <strong>Human-Agent Interaction:</strong> Human Channel bridges the gap between users and agents.</li>
+<li>🧑‍🤝‍🧑 <strong>Coordinator Role:</strong> Coordinator Agent orchestrates workflows and delegates tasks to worker agents.</li>
+<li>📬 <strong>Worker Agents:</strong> Specialized agents handle specific tasks, like email notifications and order processing.</li>
+<li>⚡ <strong>Event-Driven Design:</strong> Real-time updates and notifications via the Human Channel.</li>
 </ul>
 <hr />
 <h2 id="setup-instructions">Setup Instructions ⏳</h2>
@@ -929,14 +990,40 @@ source venv/bin/activate  # For Windows: venv\Scripts\activate
 - Start the necessary infrastructure components for the framework.</p>
 <hr />
 <h2 id="running-the-example">Running the Example 🏆</h2>
-<p>The example code for handling two agents is included in the <code>examples/</code> folder. Run the <code>main.py</code> file to execute the demo:</p>
+<p>The example code for this demo is included in the <code>examples/01-coordinator/main.py</code> folder. Run the <code>main.py</code> file to execute the workflow:</p>
 <pre><code class="language-bash">python main.py
 </code></pre>
-<p>What happens:
-- Agent 1 sends a message to Agent 2.
-- Agent 2 processes the message and sends a response.
-- The framework handles message passing, retries, and logging.</p>
-<p>Congratulations! You've successfully run your first EggAI Multi-Agent application. 🎉</p>
+<h3 id="workflow-description">Workflow Description:</h3>
+<ol>
+<li><strong>Request Sent to Human Channel</strong>:</li>
+<li>
+<p>The <code>main.py</code> file sends a request to create an order (<code>Laptop</code>, quantity <code>1</code>) via the Human Channel.</p>
+</li>
+<li>
+<p><strong>Coordinator Orchestrates Workflow</strong>:</p>
+</li>
+<li>
+<p>The Coordinator Agent receives the request and delegates tasks to the worker agents:</p>
+<ul>
+<li><strong>Order Agent</strong>: Processes the order creation.</li>
+<li><strong>Email Agent</strong>: Sends an email notification for the created order.</li>
+</ul>
+</li>
+<li>
+<p><strong>Notification Sent Back to Human Channel</strong>:</p>
+</li>
+<li>Once the workflow is complete, the Coordinator publishes an update to the Human Channel, notifying the user that the task has been successfully processed.</li>
+</ol>
+<h3 id="example-output">Example Output:</h3>
+<pre><code class="language-plaintext">[COORDINATOR]: action message received. Forwarding to agents channel.
+Agent is running. Press Ctrl+C to stop.
+[ORDER AGENT]: order_requested event received. Emitting order_created event.
+[EMAIL AGENT]: order_created event received. Sending email to customer.
+[EMAIL AGENT]: order_created event received. Sending notification event.
+[ORDER AGENT]: order_created event received.
+[COORDINATOR]: human=true message received. Forwarding to human channel.
+[COORDINATOR]: Received notification for human:  Order created, you will receive an email soon.
+</code></pre>
 <hr />
 <h2 id="stopping-and-cleaning-up">Stopping and Cleaning Up ❌</h2>
 <p>When you're done, stop and clean up the Docker containers to free up resources:</p>
@@ -1000,7 +1087,7 @@ source venv/bin/activate  # For Windows: venv\Scripts\activate
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

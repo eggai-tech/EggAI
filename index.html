@@ -14,7 +14,7 @@
       
       
       <link rel="icon" href="assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
@@ -418,7 +418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/00-getting-started/" class="md-nav__link">
+      <a href="examples/getting_started/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -439,7 +439,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/01-coordinator/" class="md-nav__link">
+      <a href="examples/coordinator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -460,7 +460,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/02-websocket-gateway/" class="md-nav__link">
+      <a href="examples/websocket_gateway/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -481,7 +481,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/03-langchain-tool-calling/" class="md-nav__link">
+      <a href="examples/langchain_tool_calling/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -502,7 +502,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/04-context/" class="md-nav__link">
+      <a href="examples/shared-context/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -523,7 +523,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/05-litellm-agent/" class="md-nav__link">
+      <a href="examples/litellm_agent/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -544,7 +544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/06-multi-agent-conversation/" class="md-nav__link">
+      <a href="examples/multi_agent_conversation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -565,7 +565,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/07-chat-with-agents/" class="md-nav__link">
+      <a href="examples/ui_chat_with_agents/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -586,11 +586,11 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/08-evaluation-and-dspy/" class="md-nav__link">
+      <a href="examples/agent_evaluation_dspy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Evaluation & DSPy
+    Agent Evaluation & DSPy
   </span>
   
 
@@ -864,19 +864,22 @@
 <p>Here's how you can quickly set up an agent to handle events in an event-driven system:</p>
 <pre><code class="language-python">import asyncio
 
-from eggai import Agent, Channel
+from sdk.eggai import Agent, Channel
 
 agent = Agent(&quot;OrderAgent&quot;)
 channel = Channel()
+
 
 @agent.subscribe(event_name=&quot;order_requested&quot;)
 async def handle_order_requested(event):
     print(f&quot;[ORDER AGENT]: Received order request. Event: {event}&quot;)
     await channel.publish({&quot;event_name&quot;: &quot;order_created&quot;, &quot;payload&quot;: event})
 
+
 @agent.subscribe(event_name=&quot;order_created&quot;)
 async def handle_order_created(event):
     print(f&quot;[ORDER AGENT]: Order created. Event: {event}&quot;)
+
 
 async def main():
     await agent.run()
@@ -897,6 +900,7 @@ async def main():
         # Clean up resources
         await agent.stop()
         await channel.stop()
+
 
 if __name__ == &quot;__main__&quot;:
     asyncio.run(main())
@@ -928,97 +932,97 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
   <tbody>
     <tr>
       <td>
-        <a href="examples/00-getting-started"><strong>Getting Started</strong></a>:<br/>
+        <a href="examples/getting_started"><strong>Getting Started</strong></a>:<br/>
         Orchestrate two agents asynchronously.
       </td>
       <td>
-        <a href="examples/00-getting-started">
+        <a href="examples/getting_started">
           <img src="assets/example-00.png" alt="Getting Started Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/01-coordinator"><strong>Coordinator</strong></a>:<br/>
+        <a href="examples/coordinator"><strong>Coordinator</strong></a>:<br/>
         Bridge multiple communication channels.
       </td>
       <td>
-        <a href="examples/01-coordinator">
+        <a href="examples/coordinator">
           <img src="assets/example-01.png" alt="Coordinator Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/02-websocket-gateway"><strong>Websocket Gateway</strong></a>:<br/>
+        <a href="examples/websocket_gateway"><strong>Websocket Gateway</strong></a>:<br/>
         Real-time interaction via WebSockets.
       </td>
       <td>
-        <a href="examples/02-websocket-gateway">
+        <a href="examples/websocket_gateway">
           <img src="assets/example-02.png" alt="Websocket Gateway Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/03-langchain-tool-calling"><strong>LangChain Tool Calling</strong></a>:<br/>
+        <a href="examples/langchain_tool_calling"><strong>LangChain Tool Calling</strong></a>:<br/>
         Integrate tool calling with LangChain.
       </td>
       <td>
-        <a href="examples/03-langchain-tool-calling">
+        <a href="examples/langchain_tool_calling">
           <img src="assets/example-03.png" alt="LangChain Tool Calling Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/04-context"><strong>Shared Context</strong></a>:<br/>
+        <a href="examples/shared_context"><strong>Shared Context</strong></a>:<br/>
         Maintain shared context across agents.
       </td>
       <td>
-        <a href="examples/04-context">
+        <a href="examples/shared_context">
           <img src="assets/example-04.png" alt="Shared Context Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/05-litellm-agent"><strong>LiteLLM Integration</strong></a>:<br/>
+        <a href="examples/litellm_agent"><strong>LiteLLM Agent</strong></a>:<br/>
         Power agents with LiteLLM.
       </td>
       <td>
-        <a href="examples/05-litellm-agent">
-          <img src="assets/example-05.png" alt="LiteLLM Integration Example"/>
+        <a href="examples/litellm_agent">
+          <img src="assets/example-05.png" alt="LiteLLM Agent Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/06-multi-agent-conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
+        <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
         Context aware multi-agent conversations.
       </td>
       <td>
-        <a href="examples/06-multi-agent-conversation">
+        <a href="examples/multi_agent_conversation">
           <img src="assets/example-06.png" alt="Multi-Agent Conversation Example"/>
         </a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/07-chat-with-agents"><strong>Insurance Company Support</strong></a>:<br/>
+        <a href="examples/ui_chat_with_agents"><strong>Insurance Company Support</strong></a>:<br/>
         Merges previous components to create an insurance support system with an intuitive user interface.
       </td>
       <td>
-        <a href="examples/07-chat-with-agents">Example</a>
+        <a href="examples/ui_chat_with_agents">Example</a>
       </td>
     </tr>
     <tr>
       <td>
-        <a href="examples/example_08_dspy"><strong>Agents Evaluation & DSPy</strong></a>:<br/>
+        <a href="examples/agent_evaluation_dspy"><strong>Agents Evaluation & DSPy</strong></a>:<br/>
         Demonstrates how to enhance agents and integrate DSPY for effective agent evaluation and improvement.
       </td>
       <td>
-        <a href="examples/example_08_dspy">Example</a>
+        <a href="examples/agent_evaluation_dspy">Example</a>
       </td>
     </tr>
   </tbody>
@@ -1081,7 +1085,7 @@ Sometimes, prepackaged frameworks lock in design decisions. By copying from exam
     <script id="__config" type="application/json">{"base": ".", "features": ["navigation.expand"], "search": "assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      <script src="assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

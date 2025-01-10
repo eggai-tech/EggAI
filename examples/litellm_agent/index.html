@@ -9,18 +9,18 @@
       
       
       
-        <link rel="prev" href="../02-websocket-gateway/">
+        <link rel="prev" href="../shared-context/">
       
       
-        <link rel="next" href="../04-context/">
+        <link rel="next" href="../multi_agent_conversation/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
-        <title>LangChain Tool Calling - EggAI Multi-Agent Meta Framework</title>
+        <title>LiteLLM Integration - EggAI Multi-Agent Meta Framework</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#langchain-tool-calling-agent" class="md-skip">
+        <a href="#integrating-litellm-with-eggai-framework" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              LangChain Tool Calling
+              LiteLLM Integration
             
           </span>
         </div>
@@ -305,7 +305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../00-getting-started/" class="md-nav__link">
+      <a href="../getting_started/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -326,7 +326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../01-coordinator/" class="md-nav__link">
+      <a href="../coordinator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -347,11 +347,53 @@
   
   
     <li class="md-nav__item">
-      <a href="../02-websocket-gateway/" class="md-nav__link">
+      <a href="../websocket_gateway/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     Websocket Gateway
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../langchain_tool_calling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LangChain Tool Calling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shared-context/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shared Context
   </span>
   
 
@@ -381,7 +423,7 @@
           
   
   <span class="md-ellipsis">
-    LangChain Tool Calling
+    LiteLLM Integration
   </span>
   
 
@@ -392,7 +434,7 @@
         
   
   <span class="md-ellipsis">
-    LangChain Tool Calling
+    LiteLLM Integration
   </span>
   
 
@@ -414,21 +456,54 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
-      Overview 🔄
+      What’s Inside? 🗂️
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Overview 🔄">
+    <nav class="md-nav" aria-label="What’s Inside? 🗂️">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#key-features-highlighted" class="md-nav__link">
+  <a href="#flow" class="md-nav__link">
     <span class="md-ellipsis">
-      Key Features Highlighted
+      Flow 🌊
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Flow 🌊">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#customer-inquiry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Customer Inquiry:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supportagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      SupportAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escalationagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      EscalationAgent:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -444,40 +519,22 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setup-instructions" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setup Instructions ⏳
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup Instructions ⏳">
+    <nav class="md-nav" aria-label="Prerequisites 🔧">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#step-1-create-a-virtual-environment-optional-but-recommended" class="md-nav__link">
+  <a href="#step-1-install-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 1: Create a Virtual Environment (Optional but Recommended) 🌍
+      Step 1: Install Dependencies
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#step-2-install-dependencies" class="md-nav__link">
+  <a href="#step-2-start-services-with-docker" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 2: Install Dependencies 🎓
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-3-start-required-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 3: Start Required Services with Docker 🚢
+      Step 2: Start Services with Docker
     </span>
   </a>
   
@@ -495,22 +552,40 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Running the Example 🏆">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#what-happens-next" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#expected-output" class="md-nav__link">
     <span class="md-ellipsis">
-      What Happens Next?
+      Expected output 📤
     </span>
   </a>
   
 </li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture Overview 🔁
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Code Breakdown 🔬
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Breakdown 🔬">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#example-output" class="md-nav__link">
+  <a href="#key-components" class="md-nav__link">
     <span class="md-ellipsis">
-      Example Output
+      Key Components
     </span>
   </a>
   
@@ -522,9 +597,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#stopping-and-cleaning-up" class="md-nav__link">
+  <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Stopping and Cleaning Up ❌
+      Cleaning Up ❌
     </span>
   </a>
   
@@ -555,49 +630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../04-context/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Shared Context
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../05-litellm-agent/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    LiteLLM Integration
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../06-multi-agent-conversation/" class="md-nav__link">
+      <a href="../multi_agent_conversation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -618,7 +651,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../07-chat-with-agents/" class="md-nav__link">
+      <a href="../ui_chat_with_agents/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -639,11 +672,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../08-evaluation-and-dspy/" class="md-nav__link">
+      <a href="../agent_evaluation_dspy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Evaluation & DSPy
+    Agent Evaluation & DSPy
   </span>
   
 
@@ -794,21 +827,54 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
-      Overview 🔄
+      What’s Inside? 🗂️
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Overview 🔄">
+    <nav class="md-nav" aria-label="What’s Inside? 🗂️">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#key-features-highlighted" class="md-nav__link">
+  <a href="#flow" class="md-nav__link">
     <span class="md-ellipsis">
-      Key Features Highlighted
+      Flow 🌊
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Flow 🌊">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#customer-inquiry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Customer Inquiry:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supportagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      SupportAgent:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escalationagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      EscalationAgent:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -824,40 +890,22 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#setup-instructions" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setup Instructions ⏳
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup Instructions ⏳">
+    <nav class="md-nav" aria-label="Prerequisites 🔧">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#step-1-create-a-virtual-environment-optional-but-recommended" class="md-nav__link">
+  <a href="#step-1-install-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 1: Create a Virtual Environment (Optional but Recommended) 🌍
+      Step 1: Install Dependencies
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#step-2-install-dependencies" class="md-nav__link">
+  <a href="#step-2-start-services-with-docker" class="md-nav__link">
     <span class="md-ellipsis">
-      Step 2: Install Dependencies 🎓
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-3-start-required-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 3: Start Required Services with Docker 🚢
+      Step 2: Start Services with Docker
     </span>
   </a>
   
@@ -875,22 +923,40 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Running the Example 🏆">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#what-happens-next" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#expected-output" class="md-nav__link">
     <span class="md-ellipsis">
-      What Happens Next?
+      Expected output 📤
     </span>
   </a>
   
 </li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture Overview 🔁
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Code Breakdown 🔬
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Breakdown 🔬">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#example-output" class="md-nav__link">
+  <a href="#key-components" class="md-nav__link">
     <span class="md-ellipsis">
-      Example Output
+      Key Components
     </span>
   </a>
   
@@ -902,9 +968,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#stopping-and-cleaning-up" class="md-nav__link">
+  <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
-      Stopping and Cleaning Up ❌
+      Cleaning Up ❌
     </span>
   </a>
   
@@ -934,98 +1000,124 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../examples/03-langchain-tool-calling/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="langchain-tool-calling-agent">LangChain Tool Calling Agent 🤖</h1>
-<p>This example demonstrates how to integrate <strong>LangChain</strong> tools into an <strong>EggAI</strong> agent workflow. By binding external tools to the language model, your agent can perform more complex operations—like counting emails over a certain period—directly from within a natural language prompt.</p>
-<p>The code for the example can be found <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/03-langchain-tool-calling">here</a></p>
-<h2 id="overview">Overview 🔄</h2>
-<p>In this scenario, we have a single <strong>Email Agent</strong> that:</p>
-<ol>
-<li>Listens for "email_prompt_requested" events.</li>
-<li>Uses LangChain and a bound tool to process the user's query (e.g., "How many emails did I get in the last 5 days?").</li>
-<li>Leverages the tool to compute an answer and return it to the user.</li>
-</ol>
-<h3 id="key-features-highlighted">Key Features Highlighted</h3>
+<!-- BEGIN INCLUDE ../../examples/litellm_agent/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="integrating-litellm-with-eggai-framework">Integrating LiteLLM with EggAI Framework 🧪🫶</h1>
+<p>Welcome to the <strong>05-litellm-agent</strong> example for <strong>EggAI</strong>! This example demonstrates how to integrate LiteLLM into the EggAI framework, showcasing how to handle customer inquiries in a structured and scalable way using two AI agents: <strong>SupportAgent</strong> and <strong>EscalationAgent</strong>. These agents collaborate to provide responses to customer queries, escalating issues when necessary.</p>
+<hr />
+<h2 id="whats-inside"><strong>What’s Inside?</strong> 🗂️</h2>
+<p><strong>LiteLlmAgent</strong>:
+- An agent class based on the EggAI framework’s Agent class.
+- Provides a completion wrapper function for seamless interaction with language models.
+- Supports calling tools for enhanced functionality and task-specific operations.</p>
+<p><strong>SupportAgent</strong>:
+- Uses a system prompt to handle common customer inquiries such as return policies, shipping times, and product information.
+- Leverages LiteLLM to determine whether it can respond or if the issue needs escalation.
+- Utilizes the <code>GetKnowledge</code> tool to query a simulated knowledge base.</p>
+<p><strong>EscalationAgent</strong>:
+- Handles more complex issues by creating support tickets.
+- Notifies the user and the support team about the ticket.
+- Uses the <code>TicketingTool</code> to simulate ticket creation.</p>
+<h3 id="flow"><strong>Flow</strong> 🌊</h3>
+<p>The example simulates a customer inquiry system with two agents: SupportAgent and EscalationAgent. The agents interact with each other and the customer through channels. The flow is as follows:</p>
+<h4 id="customer-inquiry"><strong>Customer Inquiry</strong>:</h4>
 <ul>
-<li><strong>LangChain Tool Integration</strong>: Seamlessly connect an external function (<code>count_emails</code>) to the LLM.</li>
-<li><strong>Event-Driven Execution</strong>: The agent reacts when it receives an "email_prompt_requested" event.</li>
-<li><strong>Single-Agent Simplicity</strong>: Focus on one agent’s workflow to understand how to add capabilities through tools.</li>
+<li>A customer sends a question, such as "What is your return policy?" or "I have a billing issue."</li>
+<li>The inquiry is published on the <code>humans</code> channel.</li>
+</ul>
+<h4 id="supportagent"><strong>SupportAgent</strong>:</h4>
+<ul>
+<li>Listens for inquiries and processes the question.</li>
+<li>Uses the <code>GetKnowledge</code> tool to fetch relevant information from the knowledge base.</li>
+<li>If the issue is straightforward, it responds directly to the customer.</li>
+<li>If the issue is complex, it escalates to the EscalationAgent.</li>
+</ul>
+<h4 id="escalationagent"><strong>EscalationAgent</strong>:</h4>
+<ul>
+<li>Listens for escalated inquiries.</li>
+<li>Creates a support ticket for the issue using the <code>TicketingTool</code>.</li>
+<li>Publishes the ticket details to the <code>agents</code> channel.</li>
+<li>Informs the customer about the escalation and provides a ticket ID.</li>
 </ul>
 <hr />
-<h2 id="prerequisites">Prerequisites 🔧</h2>
-<p>Before you begin, ensure you have the following:</p>
-<ul>
-<li><strong>Python</strong> 3.10+</li>
-<li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
-</ul>
-<p>If you’re using OpenAI’s <code>ChatOpenAI</code>, ensure you have a valid OpenAI API key. Set it as an environment variable:</p>
-<pre><code class="language-bash">export OPENAI_API_KEY=your-api-key
+<h2 id="prerequisites"><strong>Prerequisites</strong> 🔧</h2>
+<p>Before running this example, ensure you have the following:</p>
+<h3 id="step-1-install-dependencies">Step 1: Install Dependencies</h3>
+<pre><code class="language-bash">pip install eggai litellm
 </code></pre>
-<hr />
-<h2 id="setup-instructions">Setup Instructions ⏳</h2>
-<h3 id="step-1-create-a-virtual-environment-optional-but-recommended">Step 1: Create a Virtual Environment (Optional but Recommended) 🌍</h3>
-<p>To avoid dependency conflicts, create and activate a virtual environment:</p>
-<pre><code class="language-bash">python -m venv venv
-source venv/bin/activate  # For Windows: venv\\Scripts\\activate
-</code></pre>
-<h3 id="step-2-install-dependencies">Step 2: Install Dependencies 🎓</h3>
-<p>Install the EggAI framework and LangChain libraries:</p>
-<pre><code class="language-bash">pip install eggai langchain langchain-openai
-</code></pre>
-<h3 id="step-3-start-required-services-with-docker">Step 3: Start Required Services with Docker 🚢</h3>
-<p>Spin up any required services, such as Redpanda for message brokering:</p>
+<h3 id="step-2-start-services-with-docker">Step 2: Start Services with Docker</h3>
+<p>This example uses a messaging broker. Start the necessary services:</p>
 <pre><code class="language-bash">docker compose up -d
 </code></pre>
-<p>This will:
-- Run the Redpanda broker for event-based communication.</p>
 <hr />
-<h2 id="running-the-example">Running the Example 🏆</h2>
-<p>Navigate to the <code>examples/03-langchain-tool-calling</code> directory (if not already there) and run:</p>
+<h2 id="running-the-example"><strong>Running the Example</strong> 🏆</h2>
+<p>Navigate to the <code>examples/05-litellm-agent</code> folder and run the main script:</p>
 <pre><code class="language-bash">python main.py
 </code></pre>
-<h3 id="what-happens-next">What Happens Next?</h3>
-<ol>
-<li>
-<p><strong>Agent Initialization</strong>:<br />
-   The Email Agent starts and subscribes to "email_prompt_requested" events.</p>
-</li>
-<li>
-<p><strong>Prompt Publication</strong>:<br />
-   The <code>main.py</code> script publishes an event with a prompt like "How many emails did I get in the last 5 days?"</p>
-</li>
-<li>
-<p><strong>LLM + Tool Execution</strong>:<br />
-   The Email Agent receives the prompt, passes it to the LangChain pipeline, and if the LLM decides to call the <code>count_emails</code> tool, the tool is executed.</p>
-</li>
-<li>
-<p><strong>Result Delivery</strong>:<br />
-   The final answer, including the computed number of emails, is printed to the console.</p>
-</li>
-</ol>
-<h3 id="example-output">Example Output</h3>
-<pre><code class="language-plaintext">Agent is running. Press Ctrl+C to stop.
-[EMAIL AGENT Result]: [{'name': 'count_emails', 'args': {'last_n_days': 5}, 'id': 'call_V74b9bHqYCFUApTk8ndw2hif', 'type': 'tool_call', 'output': 10}]
+<h2 id="expected-output"><strong>Expected output</strong> 📤</h2>
+<pre><code class="language-plaintext">Handling customer inquiry: What is your return policy?
+Agent is running. Press Ctrl+C to stop.
+Handling customer inquiry: I have a billing issue that isn't resolved yet.
+Querying knowledge base for: return_policy
+Response from SupportAgent: {'response': 'Our return policy is 30 days from the date of purchase. Items must be in their original condition.'}
+Responding directly to the customer...
+Querying knowledge base for: billing_issue
+Response from SupportAgent: {'response': 'escalate'}
+Escalating issue to EscalationAgent...
+Creating support ticket for issue: I have a billing issue that isn't resolved yet.
+Ticket created for escalated issue:  {'ticket_id': 'TCKT1188', 'department': 'Billing Department'}
 </code></pre>
 <hr />
-<h2 id="stopping-and-cleaning-up">Stopping and Cleaning Up ❌</h2>
-<p>When you're done, bring down the Docker environment to free up resources:</p>
+<h2 id="architecture-overview">Architecture Overview 🔁</h2>
+<ol>
+<li><strong>User Query</strong>: Customers send inquiries (e.g., "What is your return policy?").</li>
+<li><strong>SupportAgent</strong>: Handles general inquiries using a knowledge base or escalates complex issues.</li>
+<li><strong>EscalationAgent</strong>: Creates support tickets for escalated issues and notifies customers.</li>
+<li><strong>Channels</strong>:</li>
+<li><strong>Humans Channel</strong>: For interactions between customers and agents.</li>
+<li><strong>Agents Channel</strong>: For communication between agents.</li>
+</ol>
+<hr />
+<h2 id="code-breakdown">Code Breakdown 🔬</h2>
+<h3 id="key-components">Key Components</h3>
+<ol>
+<li><strong>LiteLlmAgent Initialization</strong>:</li>
+<li>
+<p><code>SupportAgent</code> and <code>EscalationAgent</code> are initialized with system prompts and model configurations.</p>
+</li>
+<li>
+<p><strong>Tools</strong>:</p>
+</li>
+<li><code>GetKnowledge</code>: Used by the SupportAgent to query a simulated knowledge base.</li>
+<li>
+<p><code>TicketingTool</code>: Used by the EscalationAgent to simulate ticket creation.</p>
+</li>
+<li>
+<p><strong>Message Handling</strong>:</p>
+</li>
+<li>Agents subscribe to channels and listen for specific message types.</li>
+<li>
+<p>Context is passed seamlessly between agents using structured messages.</p>
+</li>
+<li>
+<p><strong>Main Script</strong>:</p>
+</li>
+<li>Simulates both simple and complex customer inquiries.</li>
+<li>Manages agent lifecycle and cleanup.</li>
+</ol>
+<hr />
+<h2 id="cleaning-up">Cleaning Up ❌</h2>
+<p>When you’re done, stop the services:</p>
 <pre><code class="language-bash">docker compose down -v
 </code></pre>
 <hr />
 <h2 id="next-steps">Next Steps 🚀</h2>
 <ul>
-<li><strong>Explore More Examples:</strong> Check out the <code>examples/</code> folder for additional use cases and advanced workflows.</li>
-<li><strong>Get Involved:</strong> Contribute to EggAI by following our contribution guidelines.</li>
-<li><strong>Open Issues or Suggest Features:</strong> <a href="https://github.com/eggai-tech/eggai/issues">File an issue on GitHub</a> if you encounter bugs or want to request new functionalities.</li>
-<li><strong>Dive into the Documentation:</strong> Explore the official docs to understand all configuration options, architectural best practices, and performance tuning tips.</li>
+<li><strong>Explore</strong>: Try modifying the example to include additional agents or tools.</li>
+<li><strong>Learn More</strong>: Check out other examples in the <code>examples</code> folder for advanced patterns.</li>
+<li><strong>Contribute</strong>: Share your feedback, report issues, or contribute to the EggAI project.</li>
 </ul>
-<p>For more resources:</p>
-<ul>
-<li><strong>EggAI Documentation</strong>: Visit <a href="https://github.com/eggai-tech/eggai">GitHub</a> for official docs.</li>
-<li><strong>LangChain Documentation</strong>: Learn more about tool integration and prompt templates.</li>
-<li><strong>OpenAI API Reference</strong>: Optimize your model parameters and prompts.</li>
-</ul>
-<p>Happy coding! 🤖🥚</p>
+<hr />
+<p>Thank you for exploring how LiteLLM integrates into EggAI to create efficient, context-aware multi-agent systems! 🙏🧪</p>
 <!-- END INCLUDE -->
 
 
@@ -1075,7 +1167,7 @@ source venv/bin/activate  # For Windows: venv\\Scripts\\activate
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

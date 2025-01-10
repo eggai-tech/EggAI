@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
@@ -305,7 +305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/00-getting-started/" class="md-nav__link">
+      <a href="../../examples/getting_started/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -326,7 +326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/01-coordinator/" class="md-nav__link">
+      <a href="../../examples/coordinator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -347,7 +347,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/02-websocket-gateway/" class="md-nav__link">
+      <a href="../../examples/websocket_gateway/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -368,7 +368,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/03-langchain-tool-calling/" class="md-nav__link">
+      <a href="../../examples/langchain_tool_calling/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -389,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/04-context/" class="md-nav__link">
+      <a href="../../examples/shared-context/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -410,7 +410,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/05-litellm-agent/" class="md-nav__link">
+      <a href="../../examples/litellm_agent/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -431,7 +431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/06-multi-agent-conversation/" class="md-nav__link">
+      <a href="../../examples/multi_agent_conversation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -452,7 +452,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/07-chat-with-agents/" class="md-nav__link">
+      <a href="../../examples/ui_chat_with_agents/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -473,11 +473,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/08-evaluation-and-dspy/" class="md-nav__link">
+      <a href="../../examples/agent_evaluation_dspy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Evaluation & DSPy
+    Agent Evaluation & DSPy
   </span>
   
 
@@ -605,7 +605,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#eggai.channel.Channel" class="md-nav__link">
+  <a href="#sdk.eggai.channel.Channel" class="md-nav__link">
     <span class="md-ellipsis">
       Channel
     </span>
@@ -614,7 +614,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#eggai.channel.Channel.__init__" class="md-nav__link">
+  <a href="#sdk.eggai.channel.Channel.__init__" class="md-nav__link">
     <span class="md-ellipsis">
       __init__
     </span>
@@ -623,7 +623,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#eggai.channel.Channel.publish" class="md-nav__link">
+  <a href="#sdk.eggai.channel.Channel.publish" class="md-nav__link">
     <span class="md-ellipsis">
       publish
     </span>
@@ -632,7 +632,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#eggai.channel.Channel.stop" class="md-nav__link">
+  <a href="#sdk.eggai.channel.Channel.stop" class="md-nav__link">
     <span class="md-ellipsis">
       stop
     </span>
@@ -704,7 +704,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#eggai.channel.Channel" class="md-nav__link">
+  <a href="#sdk.eggai.channel.Channel" class="md-nav__link">
     <span class="md-ellipsis">
       Channel
     </span>
@@ -713,7 +713,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#eggai.channel.Channel.__init__" class="md-nav__link">
+  <a href="#sdk.eggai.channel.Channel.__init__" class="md-nav__link">
     <span class="md-ellipsis">
       __init__
     </span>
@@ -722,7 +722,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#eggai.channel.Channel.publish" class="md-nav__link">
+  <a href="#sdk.eggai.channel.Channel.publish" class="md-nav__link">
     <span class="md-ellipsis">
       publish
     </span>
@@ -731,7 +731,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#eggai.channel.Channel.stop" class="md-nav__link">
+  <a href="#sdk.eggai.channel.Channel.stop" class="md-nav__link">
     <span class="md-ellipsis">
       stop
     </span>
@@ -761,7 +761,7 @@
 
 
 
-<a id="eggai.channel.Channel"></a>
+<a id="sdk.eggai.channel.Channel"></a>
     <div class="doc doc-contents first">
 
 
@@ -776,7 +776,7 @@ each Kafka topic has a single producer instance for optimal resource usage.</p>
 
 
               <details class="quote">
-                <summary>Source code in <code>eggai\channel.py</code></summary>
+                <summary>Source code in <code>sdk/eggai/channel.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 8</span>
 <span class="normal"> 9</span>
 <span class="normal">10</span>
@@ -942,7 +942,7 @@ each Kafka topic has a single producer instance for optimal resource usage.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="eggai.channel.Channel.__init__" class="doc doc-heading">
+<h2 id="sdk.eggai.channel.Channel.__init__" class="doc doc-heading">
             <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">DEFAULT_CHANNEL_NAME</span><span class="p">)</span></code>
 
 </h2>
@@ -978,14 +978,14 @@ each Kafka topic has a single producer instance for optimal resource usage.</p>
               </div>
             </td>
             <td>
-                  <code><span title="eggai.constants.DEFAULT_CHANNEL_NAME">DEFAULT_CHANNEL_NAME</span></code>
+                  <code><span title="sdk.eggai.constants.DEFAULT_CHANNEL_NAME">DEFAULT_CHANNEL_NAME</span></code>
             </td>
           </tr>
       </tbody>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\channel.py</code></summary>
+              <summary>Source code in <code>sdk/eggai/channel.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">19</span>
 <span class="normal">20</span>
 <span class="normal">21</span>
@@ -1014,7 +1014,7 @@ each Kafka topic has a single producer instance for optimal resource usage.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="eggai.channel.Channel.publish" class="doc doc-heading">
+<h2 id="sdk.eggai.channel.Channel.publish" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">publish</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
@@ -1071,7 +1071,7 @@ await channel.publish({
 })</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>eggai\channel.py</code></summary>
+              <summary>Source code in <code>sdk/eggai/channel.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">48</span>
 <span class="normal">49</span>
 <span class="normal">50</span>
@@ -1118,7 +1118,7 @@ await channel.publish({
 <div class="doc doc-object doc-function">
 
 
-<h2 id="eggai.channel.Channel.stop" class="doc doc-heading">
+<h2 id="sdk.eggai.channel.Channel.stop" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">stop</span><span class="p">()</span></code>
 
   <span class="doc doc-labels">
@@ -1141,7 +1141,7 @@ the <code>_producers</code> dictionary is cleared to release resources.</p>
   <p>await Channel.stop()</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>eggai\channel.py</code></summary>
+              <summary>Source code in <code>sdk/eggai/channel.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">68</span>
 <span class="normal">69</span>
 <span class="normal">70</span>
@@ -1230,7 +1230,7 @@ the <code>_producers</code> dictionary is cleared to release resources.</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

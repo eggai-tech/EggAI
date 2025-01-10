@@ -9,18 +9,18 @@
       
       
       
-        <link rel="prev" href="../05-litellm-agent/">
+        <link rel="prev" href="../multi_agent_conversation/">
       
       
-        <link rel="next" href="../07-chat-with-agents/">
+        <link rel="next" href="../agent_evaluation_dspy/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
-        <title>Multi-Agent Conversation - EggAI Multi-Agent Meta Framework</title>
+        <title>An Insurance Company Scenario - EggAI Multi-Agent Meta Framework</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#multi-agent-conversation-example-for-eggai" class="md-skip">
+        <a href="#multi-agent-insurance-support-system-example-for-eggai" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Multi-Agent Conversation
+              An Insurance Company Scenario
             
           </span>
         </div>
@@ -305,7 +305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../00-getting-started/" class="md-nav__link">
+      <a href="../getting_started/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -326,7 +326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../01-coordinator/" class="md-nav__link">
+      <a href="../coordinator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -347,7 +347,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../02-websocket-gateway/" class="md-nav__link">
+      <a href="../websocket_gateway/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -368,7 +368,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../03-langchain-tool-calling/" class="md-nav__link">
+      <a href="../langchain_tool_calling/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -389,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../04-context/" class="md-nav__link">
+      <a href="../shared-context/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -410,11 +410,32 @@
   
   
     <li class="md-nav__item">
-      <a href="../05-litellm-agent/" class="md-nav__link">
+      <a href="../litellm_agent/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     LiteLLM Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../multi_agent_conversation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-Agent Conversation
   </span>
   
 
@@ -444,7 +465,7 @@
           
   
   <span class="md-ellipsis">
-    Multi-Agent Conversation
+    An Insurance Company Scenario
   </span>
   
 
@@ -455,7 +476,7 @@
         
   
   <span class="md-ellipsis">
-    Multi-Agent Conversation
+    An Insurance Company Scenario
   </span>
   
 
@@ -477,6 +498,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#a-seamless-integration-of-proven-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      A Seamless Integration of Proven Components
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A Seamless Integration of Proven Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#foundation-from-previous-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Foundation from Previous Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
       What’s Inside? 🗂️
@@ -487,91 +532,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#litellmagent" class="md-nav__link">
+  <a href="#agents-overview" class="md-nav__link">
     <span class="md-ellipsis">
-      LiteLlmAgent:
+      Agents Overview
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#policyagent" class="md-nav__link">
+  <a href="#system-components" class="md-nav__link">
     <span class="md-ellipsis">
-      PolicyAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flow 🌊
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flow 🌊">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#user-interaction" class="md-nav__link">
-    <span class="md-ellipsis">
-      User Interaction:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent-claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent / ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
+      System Components
     </span>
   </a>
   
@@ -581,9 +553,13 @@
     </nav>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It Works 🌊
+    </span>
+  </a>
   
 </li>
       
@@ -627,6 +603,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Running the Example 🏆">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#access-the-chat-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Access the Chat Interface
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -635,6 +626,21 @@
       Expected Output 📤
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Expected Output 📤">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sample-interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sample Interaction
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -661,6 +667,15 @@
   <a href="#key-components" class="md-nav__link">
     <span class="md-ellipsis">
       Key Components
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reused-components-from-eggai-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reused Components from EggAI Examples
     </span>
   </a>
   
@@ -705,32 +720,11 @@
   
   
     <li class="md-nav__item">
-      <a href="../07-chat-with-agents/" class="md-nav__link">
+      <a href="../agent_evaluation_dspy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    An Insurance Company Scenario
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../08-evaluation-and-dspy/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Evaluation & DSPy
+    Agent Evaluation & DSPy
   </span>
   
 
@@ -881,6 +875,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#a-seamless-integration-of-proven-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      A Seamless Integration of Proven Components
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A Seamless Integration of Proven Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#foundation-from-previous-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Foundation from Previous Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-inside" class="md-nav__link">
     <span class="md-ellipsis">
       What’s Inside? 🗂️
@@ -891,91 +909,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#litellmagent" class="md-nav__link">
+  <a href="#agents-overview" class="md-nav__link">
     <span class="md-ellipsis">
-      LiteLlmAgent:
+      Agents Overview
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#policyagent" class="md-nav__link">
+  <a href="#system-components" class="md-nav__link">
     <span class="md-ellipsis">
-      PolicyAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flow 🌊
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flow 🌊">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#user-interaction" class="md-nav__link">
-    <span class="md-ellipsis">
-      User Interaction:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triageagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      TriageAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#policyagent-claimsagent" class="md-nav__link">
-    <span class="md-ellipsis">
-      PolicyAgent / ClaimsAgent:
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#escalationagent_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      EscalationAgent:
+      System Components
     </span>
   </a>
   
@@ -985,9 +930,13 @@
     </nav>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It Works 🌊
+    </span>
+  </a>
   
 </li>
       
@@ -1031,6 +980,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Running the Example 🏆">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#access-the-chat-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Access the Chat Interface
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1039,6 +1003,21 @@
       Expected Output 📤
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Expected Output 📤">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sample-interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sample Interaction
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1065,6 +1044,15 @@
   <a href="#key-components" class="md-nav__link">
     <span class="md-ellipsis">
       Key Components
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reused-components-from-eggai-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reused Components from EggAI Examples
     </span>
   </a>
   
@@ -1108,189 +1096,273 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../examples/06-multi-agent-conversation/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="multi-agent-conversation-example-for-eggai">Multi-Agent Conversation Example for EggAI 🥚🤖</h1>
-<p>Welcome to the <strong>06-multi-agent-conversation</strong> example for <strong>EggAI</strong>! This example showcases how to build a collaborative multi-agent system using EggAI, where different agents work together to handle user inquiries efficiently. In this CLI Chat example, the <strong>TriageAgent</strong> routes user messages to the appropriate agents (<strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, and <strong>EscalationAgent</strong>) to provide seamless and context-aware assistance.</p>
-<hr />
+<!-- BEGIN INCLUDE ../../examples/ui_chat_with_agents/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="multi-agent-insurance-support-system-example-for-eggai">Multi-Agent Insurance Support System Example for EggAI 🥚🤖</h1>
+<h2 id="a-seamless-integration-of-proven-components"><strong>A Seamless Integration of Proven Components</strong></h2>
+<p>Building intelligent and collaborative systems often involves integrating well-established components to create a robust solution. The <strong>Multi-Agent Insurance Support System</strong> for <strong>EggAI</strong> exemplifies this approach by weaving together functionalities from previous EggAI examples to deliver an efficient and user-friendly insurance support platform.</p>
+<h3 id="foundation-from-previous-examples"><strong>Foundation from Previous Examples</strong></h3>
+<p>This example leverages key concepts and components from three foundational EggAI examples:</p>
+<ul>
+<li><strong>WebSocket Gateway (<code>examples/02-websocket-gateway</code>)</strong>:</li>
+<li><strong>Purpose</strong>: Enables real-time, bidirectional communication between users and the server.</li>
+<li>
+<p><strong>Integration</strong>: Serves as the backbone for the chat interface, allowing seamless message exchange through WebSockets.</p>
+</li>
+<li>
+<p><strong>LiteLlmAgent (<code>examples/05-litellm-agent</code>)</strong>:</p>
+</li>
+<li><strong>Purpose</strong>: Provides a lightweight interface for integrating language models, facilitating efficient agent interactions.</li>
+<li>
+<p><strong>Integration</strong>: Powers the core agents (<strong>TriageAgent</strong>, <strong>PolicyAgent</strong>, and <strong>TicketingAgent</strong>) with language understanding and response generation capabilities.</p>
+</li>
+<li>
+<p><strong>Triage Concept (<code>examples/06-multi-agent-conversation</code>)</strong>:</p>
+</li>
+<li><strong>Purpose</strong>: Implements a central routing mechanism to direct user messages to the appropriate agent based on context.</li>
+<li><strong>Integration</strong>: Forms the intelligence behind the <strong>TriageAgent</strong>, ensuring accurate and context-aware message routing.</li>
+</ul>
 <h2 id="whats-inside"><strong>What’s Inside?</strong> 🗂️</h2>
-<h3 id="litellmagent"><strong>LiteLlmAgent</strong>:</h3>
+<h3 id="agents-overview"><strong>Agents Overview</strong></h3>
 <ul>
-<li>An agent class based on the EggAI framework’s Agent class.</li>
-<li>Facilitates communication with language models through a completion wrapper function.</li>
-<li>Supports integrating tools for task-specific operations and enhanced functionality.</li>
+<li><strong>LiteLlmAgent</strong>:</li>
+<li><strong>Role</strong>: Core agent class facilitating communication with language models.</li>
+<li>
+<p><strong>Features</strong>: Supports tool integrations for enhanced functionality and task-specific operations.</p>
+</li>
+<li>
+<p><strong>PolicyAgent</strong>:</p>
+</li>
+<li><strong>Role</strong>: Handles inquiries related to insurance policies, including coverage details, premiums, and modifications.</li>
+<li>
+<p><strong>Functionality</strong>: Accesses a mock <code>policies_database</code> to retrieve and provide accurate policy information.</p>
+</li>
+<li>
+<p><strong>TicketingAgent</strong>:</p>
+</li>
+<li><strong>Role</strong>: Manages support ticket creation and retrieval for issues requiring escalation.</li>
+<li>
+<p><strong>Functionality</strong>: Utilizes a mock <code>ticket_database</code> to store and manage support tickets, informing users about escalation to human support.</p>
+</li>
+<li>
+<p><strong>TriageAgent</strong>:</p>
+</li>
+<li><strong>Role</strong>: Central router for user messages.</li>
+<li><strong>Functionality</strong>: Analyzes user inquiries and directs them to the appropriate agent (<strong>PolicyAgent</strong> or <strong>TicketingAgent</strong>) based on predefined guidelines and context.</li>
 </ul>
-<h3 id="policyagent"><strong>PolicyAgent</strong>:</h3>
+<h3 id="system-components"><strong>System Components</strong></h3>
 <ul>
-<li>Handles inquiries related to insurance policies, such as coverage details, premiums, and policy modifications.</li>
-<li>Utilizes a mock <code>policies_database</code> to retrieve and provide policy information.</li>
-<li>Ensures responses are polite, concise, and within the scope of policy-related queries.</li>
+<li><strong>FastAPI Server with WebSocket Integration</strong>:</li>
+<li><strong>Function</strong>: Hosts the real-time communication interface and serves the HTML chat interface (<code>chat.html</code>).</li>
+<li>
+<p><strong>Access</strong>: Available at <code>http://127.0.0.1:8000/</code> with WebSocket support at <code>ws://127.0.0.1:8000/ws</code>.</p>
+</li>
+<li>
+<p><strong>User-Friendly Chat Interface</strong>:</p>
+</li>
+<li><strong>Description</strong>: A web-based UI that connects users to the WebSocket gateway, enabling real-time interaction with the multi-agent system.</li>
 </ul>
-<h3 id="claimsagent"><strong>ClaimsAgent</strong>:</h3>
-<ul>
-<li>Manages claims-related inquiries, including filing new claims, checking claim statuses, and understanding claim coverage or payouts.</li>
-<li>Provides clear instructions and maintains an empathetic tone.</li>
-<li>Escalates complex or out-of-scope requests to the <strong>TriageAgent</strong>.</li>
-</ul>
-<h3 id="escalationagent"><strong>EscalationAgent</strong>:</h3>
-<ul>
-<li>Handles issues that cannot be resolved by the PolicyAgent or ClaimsAgent.</li>
-<li>Creates support tickets and informs users that their issue will be escalated to a human support representative.</li>
-<li>Generates a unique ticket ID and specifies the relevant department for the issue.</li>
-</ul>
-<h3 id="triageagent"><strong>TriageAgent</strong>:</h3>
-<ul>
-<li>Acts as the central router for user messages.</li>
-<li>Analyzes user inquiries and directs them to the appropriate agent based on predefined guidelines.</li>
-<li>Ensures that requests are handled by the most suitable agent or escalated when necessary.</li>
-</ul>
-<h3 id="flow"><strong>Flow</strong> 🌊</h3>
-<p>The example simulates a multi-agent conversation system where user messages are intelligently routed to the appropriate agents for handling. The flow is as follows:</p>
-<h4 id="user-interaction"><strong>User Interaction</strong>:</h4>
-<ul>
-<li>A user interacts with the CLI Chat by sending messages related to their insurance needs.</li>
-</ul>
-<h4 id="triageagent_1"><strong>TriageAgent</strong>:</h4>
-<ul>
-<li>Receives the user message and determines which agent should handle the request based on the content and context.</li>
-<li>Routes the message to the <strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, or <strong>EscalationAgent</strong> as appropriate.</li>
-</ul>
-<h4 id="policyagent-claimsagent"><strong>PolicyAgent / ClaimsAgent</strong>:</h4>
-<ul>
-<li>Processes the user inquiry and provides relevant information or assistance.</li>
-<li>If the request is beyond their scope, they delegate the issue back to the <strong>TriageAgent</strong> for further handling.</li>
-</ul>
-<h4 id="escalationagent_1"><strong>EscalationAgent</strong>:</h4>
-<ul>
-<li>Manages escalated issues by creating support tickets and notifying the user.</li>
-<li>Ensures that complex or unresolved issues are directed to human support representatives.</li>
-</ul>
-<hr />
+<h2 id="how-it-works"><strong>How It Works</strong> 🌊</h2>
+<ol>
+<li><strong>User Interaction</strong>:</li>
+<li>
+<p>Users access the chat interface via <a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a> and send messages related to their insurance needs.</p>
+</li>
+<li>
+<p><strong>TriageAgent</strong>:</p>
+</li>
+<li>
+<p>Receives the user message, analyzes its content and context, and determines whether to route it to the <strong>PolicyAgent</strong> or <strong>TicketingAgent</strong>.</p>
+</li>
+<li>
+<p><strong>PolicyAgent</strong>:</p>
+</li>
+<li>If the inquiry is policy-related, the PolicyAgent retrieves information from the <code>policies_database</code> and responds accordingly.</li>
+<li>
+<p>If the request is outside its scope, it defers back to the TriageAgent for further handling.</p>
+</li>
+<li>
+<p><strong>TicketingAgent</strong>:</p>
+</li>
+<li>For issues requiring escalation, the TicketingAgent creates a support ticket in the <code>ticket_database</code> and notifies the user that their issue is being escalated to human support.</li>
+</ol>
 <h2 id="prerequisites"><strong>Prerequisites</strong> 🔧</h2>
 <p>Before running this example, ensure you have the following:</p>
-<h3 id="step-1-install-dependencies">Step 1: Install Dependencies</h3>
-<pre><code class="language-bash">pip install eggai litellm
+<h3 id="step-1-install-dependencies"><strong>Step 1: Install Dependencies</strong></h3>
+<pre><code class="language-bash">pip install eggai litellm fastapi uvicorn
 </code></pre>
-<h3 id="step-2-start-services-with-docker">Step 2: Start Services with Docker</h3>
-<p>This example uses a messaging broker. Start the necessary services:</p>
+<h3 id="step-2-start-services-with-docker"><strong>Step 2: Start Services with Docker</strong></h3>
+<p>This example uses a messaging broker. Launch the necessary services using Docker:</p>
 <pre><code class="language-bash">docker compose up -d
 </code></pre>
-<hr />
 <h2 id="running-the-example"><strong>Running the Example</strong> 🏆</h2>
-<p>Navigate to the <code>examples/06-multi-agent-conversation</code> folder and run the main script:</p>
-<pre><code class="language-bash">python main.py
-</code></pre>
-<hr />
-<h2 id="expected-output"><strong>Expected Output</strong> 📤</h2>
-<pre><code class="language-plaintext">Welcome to the Insurance Customer Service System!
-
-You: Hello, what's my policy's due date?
-
-📄 PolicyAgent:
-Hello! I'm here to help you with your policy inquiries. Could you please provide me with your **policy number**?
-If you don't have it handy, your **full name** will work too, and I can look up the details for you.
-
-You: A12345
-
-📄 PolicyAgent:
-Thank you for providing your policy number. Here are the details:
-
-- **Policy Number:** A12345
-- **Policyholder Name:** John Doe
-- **Coverage Details:** Comprehensive
-- **Premium Amount:** $500
-- **Due Date:** January 1, 2025
-
-If you have any more questions or need further assistance, feel free to ask!
-
-You: I need info about claims
-
-📝 ClaimsAgent:
-Hello! I can assist you with inquiries related to claims. Could you please specify what information you need?
-Some topics I can help with include filing a new claim, checking the status of a claim, or understanding claim coverage
-and payouts. Let me know how I can assist you today!
-
-You: Can u list my current claims?
-
-📝 ClaimsAgent:
-I can certainly help you with that. To proceed, could you please provide your claim ID or any relevant details
-that might help in locating your claims? Once I have that information, I can check your current claims and provide you
-with the necessary details.
-
-You: Sorry I lost all my data, I don't remember
-
-💬 EscalationAgent:
-We have created a support ticket ESC-654321 for your issue. Our Claims Support team will reach out to you
-shortly.
-
-You: exit
-
-Goodbye!
-</code></pre>
-<hr />
-<h2 id="architecture-overview"><strong>Architecture Overview</strong> 🔁</h2>
-<p><img alt="architecture-overview-img" src="../../assets/architecture-example-06-multi-agent-conversation.svg" /></p>
 <ol>
-<li><strong>User Interaction</strong>: Users interact with the system through a CLI Chat interface.</li>
-<li><strong>TriageAgent</strong>: Analyzes incoming messages and routes them to the appropriate agent based on the content.</li>
-<li><strong>PolicyAgent</strong>: Handles policy-related inquiries using a mock <code>policies_database</code>.</li>
-<li><strong>ClaimsAgent</strong>: Manages claims-related inquiries and requests.</li>
-<li><strong>EscalationAgent</strong>: Takes care of issues that require human intervention by creating support tickets.</li>
-<li><strong>Channels</strong>:</li>
-<li><strong>User Channel</strong>: For interactions between the user and the agents.</li>
-<li><strong>Agent Channel</strong>: For communication and coordination between different agents.</li>
+<li><strong>Navigate to the Project Directory</strong>:</li>
 </ol>
-<hr />
+<p><code>bash
+   cd path/to/project-directory</code></p>
+<ol>
+<li><strong>Run the Main Script</strong>:</li>
+</ol>
+<p><code>bash
+   python main.py</code></p>
+<ul>
+<li><strong>Outcome</strong>: Starts the FastAPI server accessible at <code>http://127.0.0.1:8000/</code> with WebSocket support at <code>ws://127.0.0.1:8000/ws</code>.</li>
+</ul>
+<h3 id="access-the-chat-interface"><strong>Access the Chat Interface</strong></h3>
+<p>Open your web browser and navigate to <a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a> to interact with the multi-agent system through the intuitive chat UI.</p>
+<h2 id="expected-output"><strong>Expected Output</strong> 📤</h2>
+<p>Upon running the example and accessing the chat interface, you should see a dynamic web-based chat UI similar to the screenshot below:</p>
+<p><img alt="Chat UI Screenshot" src="../../assets/example-07-chat.png" /></p>
+<h3 id="sample-interaction"><strong>Sample Interaction</strong></h3>
+<ol>
+<li>
+<p><strong>User</strong> initiates the conversation:
+    <code>Hello, I need to check my policy details.</code></p>
+</li>
+<li>
+<p><strong>TriageAgent</strong> routes the message to <strong>PolicyAgent</strong>:
+    <code>📄 PolicyAgent:
+    Hello! I'm here to help you with your policy inquiries. Could you please provide me with your **policy number**?
+    If you don't have it handy, your **full name** will work too, and I can look up the details for you.</code></p>
+</li>
+<li>
+<p><strong>User</strong> provides the policy number:
+    <code>A12345</code></p>
+</li>
+<li>
+<p><strong>PolicyAgent</strong> responds with policy details:
+    ```
+    📄 PolicyAgent:
+    Thank you for providing your policy number. Here are the details:</p>
+<ul>
+<li><strong>Policy Number:</strong> A12345</li>
+<li><strong>Policyholder Name:</strong> John Doe</li>
+<li><strong>Coverage Details:</strong> Comprehensive</li>
+<li><strong>Premium Amount:</strong> $500</li>
+<li><strong>Due Date:</strong> January 1, 2025</li>
+</ul>
+<p>If you have any more questions or need further assistance, feel free to ask!
+```</p>
+</li>
+<li>
+<p><strong>User</strong> requests support for a billing issue:
+    <code>I need help with a billing issue.</code></p>
+</li>
+<li>
+<p><strong>TriageAgent</strong> routes the message to <strong>TicketingAgent</strong>:
+    <code>💬 TicketingAgent:
+    We have created a support ticket ESC-0001 for your issue. Our Billing team will reach out to you shortly.</code></p>
+</li>
+</ol>
+<h2 id="architecture-overview"><strong>Architecture Overview</strong> 🔁</h2>
+<p><img alt="Architecture Overview" src="../assets/architecture-insurance-support-system.svg" /></p>
+<ol>
+<li><strong>User Interaction</strong>: Engages with the system through a WebSocket-enabled chat interface.</li>
+<li><strong>TriageAgent</strong>: Analyzes incoming messages and routes them to the appropriate agent based on content.</li>
+<li><strong>PolicyAgent</strong>: Handles policy-related inquiries using a mock <code>policies_database</code>.</li>
+<li><strong>TicketingAgent</strong>: Manages support ticket creation and retrieval for escalated issues.</li>
+<li><strong>Channels</strong>:</li>
+<li><strong>User Channel</strong>: Facilitates interactions between the user and the agents.</li>
+<li><strong>Agents Channel</strong>: Enables communication and coordination among different agents.</li>
+<li><strong>WebSocket Gateway</strong>: Oversees real-time communication between the FastAPI server and connected clients.</li>
+</ol>
 <h2 id="code-breakdown"><strong>Code Breakdown</strong> 🔬</h2>
 <h3 id="key-components"><strong>Key Components</strong></h3>
 <ol>
-<li><strong>LiteLlmAgent Initialization</strong>:</li>
+<li><strong>Agent Initialization</strong>:</li>
 <li>
-<p><strong>PolicyAgent</strong>, <strong>ClaimsAgent</strong>, <strong>EscalationAgent</strong>, and <strong>TriageAgent</strong> are initialized with specific system prompts and model configurations.</p>
+<p><strong>TriageAgent</strong>, <strong>PolicyAgent</strong>, and <strong>TicketingAgent</strong> are initialized using the <strong>LiteLlmAgent</strong> with specific system prompts and model configurations, defining their respective roles and functionalities.</p>
 </li>
 <li>
-<p><strong>Mock Database</strong>:</p>
+<p><strong>Mock Databases</strong>:</p>
+</li>
+<li><strong><code>policies_database</code></strong>: Simulates a repository of insurance policies for demonstration purposes.</li>
+<li>
+<p><strong><code>ticket_database</code></strong>: Manages support tickets, facilitating the creation and retrieval processes.</p>
 </li>
 <li>
-<p><code>policies_database</code>: A simulated database containing policy information for demonstration purposes.</p>
+<p><strong>Tools Integration</strong>:</p>
+</li>
+<li><strong>PolicyAgent Tools</strong>:<ul>
+<li><strong><code>get_policy_details</code></strong>: Retrieves specific policy information from the <code>policies_database</code>.</li>
+</ul>
 </li>
 <li>
-<p><strong>Tools</strong>:</p>
-</li>
-<li>
-<p><strong>get_policy_details</strong>: A tool used by the PolicyAgent to retrieve policy information from the <code>policies_database</code>.</p>
+<p><strong>TicketingAgent Tools</strong>:</p>
+<ul>
+<li><strong><code>create_ticket</code></strong>: Generates new support tickets.</li>
+<li><strong><code>retrieve_ticket</code></strong>: Retrieves existing support tickets based on ticket IDs.</li>
+</ul>
 </li>
 <li>
 <p><strong>Triage System Prompt</strong>:</p>
 </li>
 <li>
-<p>Defines guidelines for the TriageAgent to determine which agent should handle each user request based on keywords and context.</p>
+<p><strong>Guidelines</strong>: Provides the TriageAgent with criteria and keywords to assess and route user inquiries effectively.</p>
 </li>
 <li>
 <p><strong>Message Handling</strong>:</p>
 </li>
-<li>Users interact via the CLI, and messages are processed by the TriageAgent, which routes them to the appropriate agent.</li>
+<li><strong>WebSocket Communication</strong>: Users interact through the chat interface, with messages processed by the TriageAgent and routed to the appropriate agents.</li>
 <li>
-<p>Agents communicate through structured messages, ensuring context is maintained throughout the conversation.</p>
+<p><strong>Structured Communication</strong>: Ensures context is maintained, providing clear and relevant responses.</p>
 </li>
 <li>
-<p><strong>Main Script</strong>:</p>
+<p><strong>FastAPI Server</strong>:</p>
 </li>
-<li>Manages the lifecycle of the CLI Chat, initializes agents, and handles user inputs and agent responses.</li>
+<li>
+<p><strong>Management</strong>: Handles all WebSocket connections, routes messages through agent channels, and serves the chat interface (<code>chat.html</code>) to users.</p>
+</li>
+<li>
+<p><strong>WebSocket Manager</strong>:</p>
+</li>
+<li>
+<p><strong>Functionality</strong>: Manages connection states, routes messages between users and agents, and maintains message caches to preserve conversation context.</p>
+</li>
+<li>
+<p><strong>Main Script (<code>main.py</code>)</strong>:</p>
+</li>
+<li><strong>Initialization</strong>: Sets up all agents, configures communication channels, and launches the FastAPI server with WebSocket support.</li>
+<li><strong>Lifecycle Management</strong>: Oversees the startup and shutdown processes, ensuring that all components operate smoothly and efficiently.</li>
 </ol>
-<hr />
+<h3 id="reused-components-from-eggai-examples"><strong>Reused Components from EggAI Examples</strong></h3>
+<ul>
+<li><strong>WebSocket Gateway</strong>:</li>
+<li><strong>Source</strong>: Adapted from <code>examples/02-websocket-gateway</code>.</li>
+<li>
+<p><strong>Function</strong>: Facilitates real-time, bidirectional communication between the FastAPI server and connected clients.</p>
+</li>
+<li>
+<p><strong>LiteLlmAgent</strong>:</p>
+</li>
+<li><strong>Source</strong>: Derived from <code>examples/05-litellm-agent</code>.</li>
+<li>
+<p><strong>Function</strong>: Provides a lightweight interface for integrating language models, enabling efficient processing and response generation.</p>
+</li>
+<li>
+<p><strong>Triage Concept</strong>:</p>
+</li>
+<li><strong>Source</strong>: Inspired by <code>examples/06-multi-agent-conversation</code>.</li>
+<li><strong>Function</strong>: Implements the <strong>TriageAgent</strong>, which intelligently routes user messages to the appropriate agents based on content analysis and predefined guidelines.</li>
+</ul>
 <h2 id="cleaning-up"><strong>Cleaning Up</strong> ❌</h2>
-<p>When you’re done, stop the services:</p>
+<p>When you've finished interacting with the system, gracefully shut down the services to free up resources:</p>
 <pre><code class="language-bash">docker compose down -v
 </code></pre>
-<hr />
-<h2 id="next-steps"><strong>Next Steps</strong> 🚀</h2>
 <ul>
-<li><strong>Explore</strong>: Modify the example to include additional agents or enhance existing ones with more tools and capabilities.</li>
-<li><strong>Learn More</strong>: Check out other examples in the <code>examples</code> folder to discover advanced multi-agent patterns and integrations.</li>
-<li><strong>Contribute</strong>: Share your feedback, report issues, or contribute to the EggAI project to help improve the framework.</li>
+<li><strong>Effect</strong>: Stops and removes the Docker containers along with their associated volumes, ensuring no residual processes remain active.</li>
+</ul>
+<h2 id="next-steps"><strong>Next Steps</strong> 🚀</h2>
+<p>Expand and enhance your multi-agent system with these next steps:</p>
+<ul>
+<li><strong>Explore</strong>: Add new agents or enhance existing ones with additional tools and capabilities to handle a broader range of inquiries.</li>
+<li><strong>Integrate</strong>: Connect the system to real databases or external services for dynamic data retrieval and storage, moving beyond mock databases.</li>
+<li><strong>Enhance UI</strong>: Upgrade the <code>chat.html</code> interface to provide an even more engaging user experience, incorporating features like user authentication, message history, and real-time notifications.</li>
+<li><strong>Learn More</strong>: Dive into other examples within the <code>examples</code> folder to discover advanced multi-agent patterns, integrations, and best practices.</li>
+<li><strong>Contribute</strong>: Join the EggAI community by sharing your feedback, reporting issues, or contributing code to help improve the framework.</li>
 </ul>
 <hr />
-<p>Thank you for exploring the <strong>06-multi-agent-conversation</strong> example for EggAI! 🥚🤖 We hope this example helps you understand how to build and manage collaborative multi-agent systems to handle complex user interactions effectively. 🙏✨</p>
+<p>Thank you for exploring the <strong>Multi-Agent Insurance Support System</strong> example for EggAI! 🥚🤖 We hope this guide provides you with valuable insights into building and managing collaborative multi-agent systems to handle complex user interactions effectively. 🙏✨</p>
 <!-- END INCLUDE -->
 
 
@@ -1340,7 +1412,7 @@ Goodbye!
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>

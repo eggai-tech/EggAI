@@ -9,18 +9,18 @@
       
       
       
-        <link rel="prev" href="../03-langchain-tool-calling/">
+        <link rel="prev" href="../ui_chat_with_agents/">
       
       
-        <link rel="next" href="../05-litellm-agent/">
+        <link rel="next" href="../../references/agent/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
-        <title>Shared Context - EggAI Multi-Agent Meta Framework</title>
+        <title>Agent Evaluation & DSPy - EggAI Multi-Agent Meta Framework</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#context-sharing-between-agents-with-eggai" class="md-skip">
+        <a href="#agent-evaluation-and-enhancement-example-for-eggai" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Shared Context
+              Agent Evaluation & DSPy
             
           </span>
         </div>
@@ -305,7 +305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../00-getting-started/" class="md-nav__link">
+      <a href="../getting_started/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -326,7 +326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../01-coordinator/" class="md-nav__link">
+      <a href="../coordinator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -347,7 +347,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../02-websocket-gateway/" class="md-nav__link">
+      <a href="../websocket_gateway/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -368,11 +368,95 @@
   
   
     <li class="md-nav__item">
-      <a href="../03-langchain-tool-calling/" class="md-nav__link">
+      <a href="../langchain_tool_calling/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
     LangChain Tool Calling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shared-context/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shared Context
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../litellm_agent/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LiteLLM Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../multi_agent_conversation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-Agent Conversation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ui_chat_with_agents/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    An Insurance Company Scenario
   </span>
   
 
@@ -402,7 +486,7 @@
           
   
   <span class="md-ellipsis">
-    Shared Context
+    Agent Evaluation & DSPy
   </span>
   
 
@@ -413,7 +497,7 @@
         
   
   <span class="md-ellipsis">
-    Shared Context
+    Agent Evaluation & DSPy
   </span>
   
 
@@ -435,87 +519,72 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#whats-inside" class="md-nav__link">
+  <a href="#a-journey-of-iterative-improvement" class="md-nav__link">
     <span class="md-ellipsis">
-      What’s Inside? 🗂️
+      A Journey of Iterative Improvement
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#initial-approach-classifier-v1" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites 🔧
+      Initial Approach: Classifier V1
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture-overview" class="md-nav__link">
+  <a href="#strengthening-context-classifier-v2" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture Overview 🔄
+      Strengthening Context: Classifier V2
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#setup-instructions" class="md-nav__link">
+  <a href="#optimizing-with-dspy-classifier-v3" class="md-nav__link">
     <span class="md-ellipsis">
-      Setup Instructions ⏳
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup Instructions ⏳">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-create-a-virtual-environment-optional" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 1: Create a Virtual Environment (Optional) 🌍
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-install-eggai" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 2: Install EggAI 🎓
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-3-start-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 3: Start Services with Docker 🚢
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-the-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running the Example 🏆
+      Optimizing with DSPy: Classifier V3
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#cleaning-up" class="md-nav__link">
+  <a href="#quality-gate-with-pytest" class="md-nav__link">
     <span class="md-ellipsis">
-      Cleaning Up ❌
+      Quality Gate with Pytest
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-all-comes-together" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It All Comes Together
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting Started
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results-and-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      Results and Reports
     </span>
   </a>
   
@@ -524,7 +593,16 @@
         <li class="md-nav__item">
   <a href="#next-steps" class="md-nav__link">
     <span class="md-ellipsis">
-      Next Steps 🚀
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conclusion
     </span>
   </a>
   
@@ -534,90 +612,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../05-litellm-agent/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    LiteLLM Integration
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../06-multi-agent-conversation/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Multi-Agent Conversation
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../07-chat-with-agents/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    An Insurance Company Scenario
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../08-evaluation-and-dspy/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Evaluation & DSPy
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -764,87 +758,72 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#whats-inside" class="md-nav__link">
+  <a href="#a-journey-of-iterative-improvement" class="md-nav__link">
     <span class="md-ellipsis">
-      What’s Inside? 🗂️
+      A Journey of Iterative Improvement
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#initial-approach-classifier-v1" class="md-nav__link">
     <span class="md-ellipsis">
-      Prerequisites 🔧
+      Initial Approach: Classifier V1
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#architecture-overview" class="md-nav__link">
+  <a href="#strengthening-context-classifier-v2" class="md-nav__link">
     <span class="md-ellipsis">
-      Architecture Overview 🔄
+      Strengthening Context: Classifier V2
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#setup-instructions" class="md-nav__link">
+  <a href="#optimizing-with-dspy-classifier-v3" class="md-nav__link">
     <span class="md-ellipsis">
-      Setup Instructions ⏳
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Setup Instructions ⏳">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-create-a-virtual-environment-optional" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 1: Create a Virtual Environment (Optional) 🌍
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-install-eggai" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 2: Install EggAI 🎓
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-3-start-services-with-docker" class="md-nav__link">
-    <span class="md-ellipsis">
-      Step 3: Start Services with Docker 🚢
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#running-the-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      Running the Example 🏆
+      Optimizing with DSPy: Classifier V3
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#cleaning-up" class="md-nav__link">
+  <a href="#quality-gate-with-pytest" class="md-nav__link">
     <span class="md-ellipsis">
-      Cleaning Up ❌
+      Quality Gate with Pytest
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-all-comes-together" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It All Comes Together
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      Getting Started
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results-and-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      Results and Reports
     </span>
   </a>
   
@@ -853,7 +832,16 @@
         <li class="md-nav__item">
   <a href="#next-steps" class="md-nav__link">
     <span class="md-ellipsis">
-      Next Steps 🚀
+      Next Steps
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Conclusion
     </span>
   </a>
   
@@ -874,114 +862,167 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../examples/04-context/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="context-sharing-between-agents-with-eggai">Context Sharing Between Agents with EggAI 🧠📡</h1>
-<p>Welcome to the <strong>04-context</strong> example for <strong>EggAI</strong>! In this demonstration, you’ll see how agents can share and utilize context across different stages of a user query without a dedicated context store. The context is now directly embedded and passed through the message events themselves. This approach streamlines the flow of information, reducing the reliance on external stores.</p>
-<p>In this scenario, two agents collaborate:</p>
-<ul>
-<li><strong>Product Agent</strong>: Retrieves a list of relevant products based on a user query and includes the query context directly in its output message.</li>
-<li><strong>Recommendation Agent</strong>: Reads the context from the incoming message (which contains the user’s query and previously selected products) and uses it to suggest additional related items.</li>
-</ul>
-<p>This pattern simulates a "You may also like..." flow often seen in e-commerce.</p>
+<!-- BEGIN INCLUDE ../../examples/agent_evaluation_dspy/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="agent-evaluation-and-enhancement-example-for-eggai">Agent Evaluation and Enhancement Example for EggAI 🥚🤖</h1>
+<h2 id="a-journey-of-iterative-improvement"><strong>A Journey of Iterative Improvement</strong></h2>
+<p>Welcome to the <strong>TriageAgent</strong> example, where we demonstrate how iterative changes, new prompts, and <strong>DSPy</strong> optimization can refine a multi-agent system’s classification performance. Below is an outline of how our three classifier versions (V1, V2, and V3) evolved to produce better routing decisions within an <strong>insurance support</strong> context.</p>
 <hr />
-<h2 id="whats-inside">What’s Inside? 🗂️</h2>
+<h2 id="initial-approach-classifier-v1"><strong>Initial Approach: Classifier V1</strong></h2>
+<p>The first iteration <strong>classifier_v1</strong> started with minimal instructions—essentially a straightforward prompt guiding the Large Language Model to classify a conversation as destined for <strong>PolicyAgent</strong>, <strong>TicketingAgent</strong>, or <strong>TriageAgent</strong>.</p>
 <ul>
-<li><strong>Product Agent</strong>: </li>
-<li>Receives a user query (e.g., "smartphones").</li>
-<li>Searches an in-memory database of products.</li>
-<li>Returns a list of 3 best-matching products.</li>
+<li><strong>Key Features</strong>:</li>
+<li>Basic Python code using <strong>DSPy</strong> with a standard prompt.</li>
 <li>
-<p>Embeds the query’s context (such as the search term and returned product IDs) directly into the response message.</p>
+<p>No system-level instructions or docstrings that describe context or fallback rules in detail.</p>
 </li>
 <li>
-<p><strong>Recommendation Agent</strong>:</p>
+<p><strong>Performance</strong> (based on <code>src/reports/classifier_v1.html</code>):</p>
 </li>
-<li>Listens for product result events from the Product Agent.</li>
-<li>Extracts context (query, product list) from the received message.</li>
-<li>Suggests related items not in the initial product set, providing a richer and more coherent user experience.</li>
 </ul>
-<p>By passing context directly in messages, we simplify the architecture and make the context chain more transparent and traceable.</p>
+<p>```
+  Date: 2025-01-08 09:15:34    Meta: classifier_v1</p>
+<p>Summary</p>
 <hr />
-<h2 id="prerequisites">Prerequisites 🔧</h2>
-<p>Please ensure that you have the following installed:</p>
-<ul>
-<li><strong>Python</strong> 3.10+</li>
-<li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
-<li>The EggAI framework (<code>pip install eggai</code>)</li>
-</ul>
+<p>Total Test Cases: 22
+  Passed:          16
+  Failed:          6
+  Success Rate:    72.73%
+  ```</p>
+<p>While <strong>72.73%</strong> is a decent start, there was room for improvement—especially given the complexity of insurance-related conversations.</p>
 <hr />
-<h2 id="architecture-overview">Architecture Overview 🔄</h2>
-<p>The flow is as follows:</p>
+<h2 id="strengthening-context-classifier-v2"><strong>Strengthening Context: Classifier V2</strong></h2>
+<p>To improve classification accuracy, we introduced <strong>system prompts</strong> and <strong>docstrings</strong> in the <strong>DSPy</strong> signature as a way to provide clearer instructions and domain context. This included:</p>
 <ol>
-<li><strong>User Query</strong> → The Product Agent receives a search request (e.g., "I want a gaming smartphone, preferably Apple").</li>
-<li><strong>Database Query</strong> → The Product Agent fetches 3 matching products from the in-memory database.</li>
-<li><strong>Direct Context Passing</strong> → The Product Agent includes the original query and the chosen products’ details in the same message that publishes the results.</li>
-<li><strong>Recommendation Trigger</strong> → The Recommendation Agent listens for the Product Agent's output message. Upon receipt, it extracts the context (the user query and returned products) directly from the message payload.</li>
-<li><strong>Additional Suggestions</strong> → Using the provided context, the Recommendation Agent recommends related items that complement the initial search results.</li>
-<li><strong>Response to User</strong> → The user receives both the initial product list and additional recommendations, demonstrating a context-rich user experience without external storage.</li>
-</ol>
-<hr />
-<h2 id="setup-instructions">Setup Instructions ⏳</h2>
-<h3 id="step-1-create-a-virtual-environment-optional">Step 1: Create a Virtual Environment (Optional) 🌍</h3>
-<p>Although optional, we recommend creating a virtual environment:</p>
-<pre><code class="language-bash">python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-</code></pre>
-<h3 id="step-2-install-eggai">Step 2: Install EggAI 🎓</h3>
-<p>If you haven’t already:</p>
-<pre><code class="language-bash">pip install eggai openai
-</code></pre>
-<h3 id="step-3-start-services-with-docker">Step 3: Start Services with Docker 🚢</h3>
-<p>This example requires a messaging broker (e.g., Redpanda):</p>
-<pre><code class="language-bash">docker compose up -d
-</code></pre>
-<p>This starts the broker and any required services.</p>
-<hr />
-<h2 id="running-the-example">Running the Example 🏆</h2>
-<p>Navigate to the <code>examples/04-context</code> folder and run the main script (remember to set your OpenAI API key):</p>
-<pre><code class="language-bash">OPENAI_API_KEY=&quot;your-api-key&quot; python main.py
-</code></pre>
-<p><strong>What to expect:</strong></p>
-<ol>
-<li><strong>User Input</strong>: You provide a query like: "Can you recommend a smartphone? I like gaming on it. I prefer Apple if possible."</li>
-<li><strong>Product Agent</strong>: </li>
-<li>Finds relevant products and returns three items (e.g., <code>iPhone 15</code>, <code>Samsung Galaxy S23</code>, <code>OnePlus 11</code>).</li>
-<li>The message it sends out includes the user's original query and these three product IDs in its payload.</li>
-<li><strong>Recommendation Agent</strong>:</li>
-<li>Receives the Product Agent’s message, reads the embedded context, and identifies that the user prefers Apple and is interested in gaming.</li>
-<li>Suggests related items that were not included in the initial search results but match the user’s context (e.g., a high-performance Apple laptop or a gaming-focused laptop).</li>
-<li><strong>Console Output</strong>: 
-   ```plaintext
-   Agent is running. Press Ctrl+C to stop.
-   User: Can you recommend a smartphone, I like gaming on it. I prefer Apple if possible
-   Product Agent:<ul>
-<li>iPhone 15</li>
-<li>Samsung Galaxy S23</li>
-<li>OnePlus 11
-   Recommendation Agent:</li>
-<li>MacBook Pro 14-inch (Reason: Recommended as it offers a seamless Apple ecosystem experience for gaming and productivity.)</li>
-<li>Razer Blade 15 (Reason: Recommended for gaming enthusiasts who want top-tier performance.)
-   Task was cancelled. Cleaning up...
-   ```</li>
-</ul>
+<li><strong>Explicit Role Description</strong>: Outlining the agent’s role in routing conversations to <strong>PolicyAgent</strong>, <strong>TicketingAgent</strong>, or <strong>TriageAgent</strong>.  </li>
+<li><strong>Fallback Rules</strong>: Emphasizing that uncertain insurance-related queries go to <strong>TicketingAgent</strong> and non-insurance queries go to <strong>TriageAgent</strong>.  </li>
+<li>
+<p><strong>Usage of Docstrings</strong>: Leveraging them as part of the system prompt for the LLM.</p>
+</li>
+<li>
+<p><strong>Performance</strong> (based on <code>src/reports/classifier_v2.html</code>):</p>
 </li>
 </ol>
-<p>By inspecting these messages, you’ll see the entire query context and returned products are passed along, eliminating the need for an external context holder.</p>
+<p>```
+  Date: 2025-01-08 09:15:34    Meta: classifier_v2</p>
+<p>Summary</p>
 <hr />
-<h2 id="cleaning-up">Cleaning Up ❌</h2>
-<p>When you’re done:</p>
-<pre><code class="language-bash">docker compose down -v
-</code></pre>
-<p>This stops running containers and removes associated volumes.</p>
+<p>Total Test Cases: 22
+  Passed:          18
+  Failed:          4
+  Success Rate:    81.82%
+  ```</p>
+<p>This update lifted our success rate to <strong>81.82%</strong>—a significant improvement, simply by clarifying the classification logic in the system prompt.</p>
 <hr />
-<h2 id="next-steps">Next Steps 🚀</h2>
+<h2 id="optimizing-with-dspy-classifier-v3"><strong>Optimizing with DSPy: Classifier V3</strong></h2>
+<p>To push performance further, we employed <strong>DSPy’s optimization</strong> features on a <strong>training dataset</strong>. Specifically, we used:</p>
 <ul>
-<li><strong>Deeper Dives</strong>: Check other examples in the <code>examples</code> folder for more advanced patterns.</li>
-<li><strong>Contribution</strong>: Contribute code, documentation, or report issues to make EggAI better.</li>
-<li><strong>Feedback</strong>: <a href="https://github.com/eggai-tech/EggAI/issues">Report issues or request features</a>.</li>
+<li><strong><code>dspy.BootstrapFewShot</code></strong>: A method that automatically selects the best prompt examples from the training set, iteratively refining them through a chain-of-thought approach.</li>
+<li>
+<p><strong>Evaluation Pipeline</strong>: After the optimization, we tested the newly-trained prompt on the <strong>same 22 examples</strong> from our “test set” to measure final performance.</p>
+</li>
+<li>
+<p><strong>Performance</strong> (based on <code>src/reports/classifier_v3.html</code>):</p>
+</li>
+</ul>
+<p>```
+  Date: 2025-01-08 09:15:34    Meta: classifier_v3</p>
+<p>Summary</p>
+<hr />
+<p>Total Test Cases: 22
+  Passed:          21
+  Failed:          1
+  Success Rate:    95.45%
+  ```</p>
+<p>With DSPy’s help, <strong>Classifier V3</strong> reached a <strong>95.45%</strong> success rate—an excellent improvement over the previous versions.</p>
+<hr />
+<h2 id="quality-gate-with-pytest"><strong>Quality Gate with Pytest</strong></h2>
+<p>To ensure continued high performance, we set up a <strong>quality gate</strong> within our CI/CD pipeline using <code>pytest</code>. This gate will:</p>
+<ol>
+<li><strong>Run all test conversations</strong> through the classifier as part of the build process.</li>
+<li><strong>Evaluate the success rate</strong> (i.e., exact match of expected vs. actual target).</li>
+<li><strong>Fail the pipeline</strong> (and block merges) if the success rate <strong>falls below</strong> a chosen threshold (e.g., 50%, 80%, or 90%, depending on project requirements).</li>
+</ol>
+<pre><code class="language-python">@pytest.mark.asyncio
+async def test_not_optimized_agent(monkeypatch):
+    ...
+    success_percentage = (success / total) * 100
+    assert (success_percentage &gt; 90), \
+        f&quot;Success rate {success_percentage:.2f}% is not greater than 90%.&quot;
+</code></pre>
+<p>By adjusting the assertion, you can enforce higher thresholds as your model’s performance improves.</p>
+<hr />
+<h2 id="how-it-all-comes-together"><strong>How It All Comes Together</strong></h2>
+<ol>
+<li><strong>Dataset</strong> (<code>triage-training.json</code>, <code>triage-testing.json</code>):</li>
+<li>
+<p>Realistic insurance conversation data for training and testing.</p>
+</li>
+<li>
+<p><strong>Classifiers</strong>:</p>
+</li>
+<li><strong>v1</strong> (minimal instructions)</li>
+<li><strong>v2</strong> (enhanced system prompt and docstrings)</li>
+<li>
+<p><strong>v3</strong> (fully optimized with <code>dspy.BootstrapFewShot</code>)</p>
+</li>
+<li>
+<p><strong>Evaluation Scripts</strong>:</p>
+</li>
+<li>
+<p>Generate HTML reports detailing each test conversation, the expected routing vs. the actual routing, and pass/fail status.</p>
+</li>
+<li>
+<p><strong>Quality Gate</strong>:</p>
+</li>
+<li>Enforced via <code>pytest</code> and integrated into CI/CD, stopping merges that degrade the classification performance.</li>
+</ol>
+<hr />
+<h2 id="getting-started"><strong>Getting Started</strong></h2>
+<ol>
+<li>
+<p><strong>Install Dependencies</strong><br />
+<code>bash
+   pip install eggai litellm fastapi uvicorn pytest jinja2 python-dotenv dspy</code></p>
+</li>
+<li>
+<p><strong>Set Up Environment Variable</strong><br />
+<code>bash
+   export OPENAI_API_KEY=your-api-key</code></p>
+</li>
+<li>
+<p><strong>Run Tests</strong><br />
+<code>bash
+   pytest tests/test_triage_evaluation.py</code></p>
+</li>
+<li>
+<p>This will generate a performance report (HTML) in the <code>reports/</code> directory.</p>
+</li>
+<li>
+<p><strong>Optimize (Optional)</strong>  </p>
+</li>
+<li>If you want to replicate the optimization process, run the DSPy scripts provided in the codebase. This will retrain and save the improved classifier.</li>
+</ol>
+<hr />
+<h2 id="results-and-reports"><strong>Results and Reports</strong></h2>
+<p>Each classifier’s test run outputs an HTML report in <code>src/reports/</code> (or a configured location), summarizing:</p>
+<ul>
+<li><strong>Classifier V1</strong>: 72.73% success.  </li>
+<li><strong>Classifier V2</strong>: 81.82% success.  </li>
+<li><strong>Classifier V3</strong>: 95.45% success.</li>
+</ul>
+<p>Inspection of these reports shows how the addition of system prompts, docstring-based context, and eventually DSPy optimization each contributed to improved results.</p>
+<hr />
+<h2 id="next-steps"><strong>Next Steps</strong></h2>
+<ul>
+<li><strong>Refine the Dataset</strong>: Incorporate more diverse conversations or corner cases.  </li>
+<li><strong>Tune the Quality Gate</strong>: Increase the success-rate requirement to maintain high performance.  </li>
+<li><strong>Explore More DSPy Features</strong>: Consider advanced optimization strategies (e.g., random search, multiple seeds).  </li>
+<li><strong>Integrate Feedback</strong>: Employ real-world user data to continuously enhance the classifier’s routing accuracy.</li>
 </ul>
 <hr />
-<p>Thank you for exploring how EggAI can manage context-sharing directly through messages. This streamlined approach aims to inspire more transparent, maintainable, and context-rich multi-agent applications! 🤖🥚</p>
+<h2 id="conclusion"><strong>Conclusion</strong></h2>
+<p>Through three iterations of classifier tuning, we moved from a basic approach to a robust, near-accurate system. DSPy’s optimization proved instrumental in reaching <strong>95.45%</strong> accuracy. With a CI-based quality gate in place, the <strong>TriageAgent</strong> can reliably grow and adapt—ensuring that only improvements make their way into production.</p>
+<p>Thank you for exploring this <strong>Agent Evaluation and Enhancement</strong> journey with EggAI! 🥚🤖 We hope these examples inspire you to develop and continuously refine intelligent agents that seamlessly route and handle user interactions.</p>
 <!-- END INCLUDE -->
 
 
@@ -1031,7 +1072,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>
