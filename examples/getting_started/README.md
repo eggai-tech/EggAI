@@ -1,38 +1,41 @@
 # Getting Started with EggAI Multi-Agent Meta Framework
 
-Welcome to the **EggAI Multi-Agent Meta Framework**! This guide will help you set up and run a simple use case demonstrating how to orchestrate and manage two agents in an asynchronous, event-driven architecture. Let's dive in!
+Learn how to use the `eggai` SDK to enable asynchronous communication between two agents.
 
-The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/getting_started).
-
-## Prerequisites
-
-Before you begin, ensure you have the following tools installed:
-
-- **Python** 3.10+
-- **Docker** and **Docker Compose**
-
-## Overview
-
-The example demonstrates two agents communicating and collaborating within the EggAI framework. Below is a simplified UML chart of the architecture for this example:
-
-![architecture-getting-started.svg](../../docs/docs/assets/architecture-getting-started.svg)
-
-### Key Features Highlighted:
+Key features:
 
 - **Agent Collaboration:** Two agents working together in an event-driven environment.
 - **Asynchronous Execution:** Agents are designed to process tasks concurrently, ensuring efficiency.
 - **Scalable Infrastructure:** Powered by Kafka for reliable messaging and streaming.
 
+Here is a simplified architecture overview:
+
+![architecture-getting-started.svg](../../docs/docs/assets/architecture-getting-started.svg)
+
+The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/getting_started). Let's dive in.
+
+## Prerequisites
+
+Ensure you have the following dependencies installed:
+
+- **Python** 3.10+
+- **Docker** and **Docker Compose**
+
 ## Setup Instructions
 
-Clone or download the EggAI repository (if you haven’t already).
+Clone the EggAI repository:
+
+```bash
+git clone git@github.com:eggai-tech/EggAI.git
+```
+
 Move into the `examples/getting_started` folder:
 
 ```bash
 cd examples/getting_started
 ```
 
-To avoid dependency conflicts, create and activate a virtual environment in the `examples/getting_started` directory:
+Create and activate a virtual environment:
 
 ```bash
 python -m venv venv
@@ -45,17 +48,27 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-EggAI relies on brokers like Kafka or [Redpanda](https://github.com/redpanda-data/redpanda) and other services to function seamlessly.
-Start these services using Docker Compose:
+Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
-## Running the Example
+## Run the Example
 
 ```bash
 python main.py
+```
+
+Expected output:
+
+```
+Agent is running. Press Ctrl+C to stop.
+[ORDER AGENT]: Received request to create order. defaultdict(<function Agent._handle_messages.<locals>.<lambda> at 0x1046642c0>, {'event_name': 'order_requested', 'payload': {'product': 'Laptop', 'quantity': 1}})
+[EMAIL AGENT]: Received order created event. defaultdict(<function Agent._handle_messages.<locals>.<lambda> at 0x104664b80>, {'event_name': 'order_created', 'payload': {'product': 'Laptop', 'quantity': 1}})
+[ORDER AGENT]: Received order created event. defaultdict(<function Agent._handle_messages.<locals>.<lambda> at 0x104665da0>, {'event_name': 'order_created', 'payload': {'product': 'Laptop', 'quantity': 1}})
+^CTask was cancelled. Cleaning up...
+Done.
 ```
 
 What happens:
@@ -66,15 +79,13 @@ What happens:
 
 Congratulations! You've successfully run your first EggAI Multi-Agent application.
 
-## Stopping and Cleaning Up
+## Clean Up
 
-When you're done, stop and clean up the Docker containers to free up resources:
+Stop and clean up the Docker containers:
 
 ```bash
 docker compose down -v
 ```
-
-This will stop all running containers and remove any associated volumes.
 
 ## Next Steps
 
@@ -84,5 +95,3 @@ Ready to explore further? Check out:
 - **Contribution Guidelines:** Get involved and help improve EggAI!
 - **GitHub Issues:** [Submit a bug or feature request](https://github.com/eggai-tech/eggai/issues).
 - **Documentation:** Refer to the official docs for deeper insights.
-
-Thank you for choosing EggAI Multi-Agent Meta Framework. Happy coding!
