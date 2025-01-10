@@ -4,7 +4,7 @@ import sys
 from rich.console import Console
 from rich.prompt import Prompt
 
-from sdk.eggai import Agent
+from eggai import Agent
 from memory import messages_history_memory
 from shared import agents_channel, humans_channel
 

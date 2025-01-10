@@ -1,4 +1,4 @@
-from sdk.eggai import Channel
+from eggai import Channel
 
 agents_channel = Channel("cli.agents")
 humans_channel = Channel("cli.humans")

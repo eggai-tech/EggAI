@@ -1,6 +1,6 @@
 import asyncio
 
-from sdk.eggai import Channel
+from eggai import Channel
 from claims import claims_agent
 from escalation import escalation_agent
 from policy import policy_agent

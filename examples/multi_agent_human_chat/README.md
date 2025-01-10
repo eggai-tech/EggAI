@@ -137,7 +137,3 @@ docker compose down -v
 - **Enhance UI**: Improve the chat interface with features like authentication and message history.
 - **Learn More**: Explore other examples in the `examples` folder for advanced patterns.
 - **Contribute**: Share feedback or improvements with the EggAI community.
-
----
-
-Thank you for exploring the Multi-Agent Insurance Support System example! Let us know how we can help you build efficient, scalable multi-agent systems.

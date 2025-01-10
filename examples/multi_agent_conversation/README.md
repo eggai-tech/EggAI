@@ -2,87 +2,74 @@
 
 Welcome to the **06-multi-agent-conversation** example for **EggAI**! This example showcases how to build a collaborative multi-agent system using EggAI, where different agents work together to handle user inquiries efficiently. In this CLI Chat example, the **TriageAgent** routes user messages to the appropriate agents (**PolicyAgent**, **ClaimsAgent**, and **EscalationAgent**) to provide seamless and context-aware assistance.
 
----
+Here is a simplified architecture overview:
 
-## **What’s Inside?** 🗂️
+![architecture-overview-img](../../docs/docs/assets/architecture-example-06-multi-agent-conversation.svg)
 
-### **LiteLlmAgent**:
-- An agent class based on the EggAI framework’s Agent class.
-- Facilitates communication with language models through a completion wrapper function.
-- Supports integrating tools for task-specific operations and enhanced functionality.
+1. **User Interaction**: Users interact with the system through a CLI Chat interface.
+2. **TriageAgent**: Analyzes incoming messages and routes them to the appropriate agent based on the content.
+3. **PolicyAgent**: Handles policy-related inquiries using a mock `policies_database`.
+4. **ClaimsAgent**: Manages claims-related inquiries and requests.
+5. **EscalationAgent**: Takes care of issues that require human intervention by creating support tickets.
+6. **Channels**:
+   - **User Channel**: For interactions between the user and the agents.
+   - **Agent Channel**: For communication and coordination between different agents.
 
-### **PolicyAgent**:
-- Handles inquiries related to insurance policies, such as coverage details, premiums, and policy modifications.
-- Utilizes a mock `policies_database` to retrieve and provide policy information.
-- Ensures responses are polite, concise, and within the scope of policy-related queries.
+The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/multi_agent_conversation).
 
-### **ClaimsAgent**:
-- Manages claims-related inquiries, including filing new claims, checking claim statuses, and understanding claim coverage or payouts.
-- Provides clear instructions and maintains an empathetic tone.
-- Escalates complex or out-of-scope requests to the **TriageAgent**.
+## Prerequisites
 
-### **EscalationAgent**:
-- Handles issues that cannot be resolved by the PolicyAgent or ClaimsAgent.
-- Creates support tickets and informs users that their issue will be escalated to a human support representative.
-- Generates a unique ticket ID and specifies the relevant department for the issue.
+Ensure you have the following dependencies installed:
 
-### **TriageAgent**:
-- Acts as the central router for user messages.
-- Analyzes user inquiries and directs them to the appropriate agent based on predefined guidelines.
-- Ensures that requests are handled by the most suitable agent or escalated when necessary.
+- **Python** 3.10+
+- **Docker** and **Docker Compose**
 
-### **Flow** 🌊
-
-The example simulates a multi-agent conversation system where user messages are intelligently routed to the appropriate agents for handling. The flow is as follows:
-
-#### **User Interaction**:
-- A user interacts with the CLI Chat by sending messages related to their insurance needs.
-
-#### **TriageAgent**:
-- Receives the user message and determines which agent should handle the request based on the content and context.
-- Routes the message to the **PolicyAgent**, **ClaimsAgent**, or **EscalationAgent** as appropriate.
-
-#### **PolicyAgent / ClaimsAgent**:
-- Processes the user inquiry and provides relevant information or assistance.
-- If the request is beyond their scope, they delegate the issue back to the **TriageAgent** for further handling.
-
-#### **EscalationAgent**:
-- Manages escalated issues by creating support tickets and notifying the user.
-- Ensures that complex or unresolved issues are directed to human support representatives.
-
----
-
-## **Prerequisites** 🔧
-
-Before running this example, ensure you have the following:
-
-### Step 1: Install Dependencies
+Ensure you have a valid OpenAI API key set in your environment:
 
 ```bash
-pip install eggai litellm
+export OPEN_AI_API_KEY="your-api-key"
 ```
 
-### Step 2: Start Services with Docker
+## Setup Instructions
 
-This example uses a messaging broker. Start the necessary services:
+Clone the EggAI repository:
+
+```bash
+git clone git@github.com:eggai-tech/EggAI.git
+```
+
+Move into the `examples/multi_agent_conversation` folder:
+
+```bash
+cd examples/multi_agent_conversation
+```
+
+Create and activate a virtual environment:
+
+```bash
+python -m venv venv
+source venv/bin/activate  # For Windows: venv\Scripts\activate
+```
+
+Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
 
 ```bash
 docker compose up -d
 ```
 
----
-
-## **Running the Example** 🏆
-
-Navigate to the `examples/06-multi-agent-conversation` folder and run the main script:
+## Run the Example
 
 ```bash
 python main.py
 ```
 
----
-
-## **Expected Output** 📤
+Expected output:
 
 ```plaintext
 Welcome to the Insurance Customer Service System!
@@ -131,64 +118,31 @@ You: exit
 Goodbye!
 ```
 
----
+What happens:
 
-## **Architecture Overview** 🔁
+- A user interacts with the CLI Chat by sending messages related to their insurance needs.
+- TriageAgent:
+  - Receives the user message and determines which agent should handle the request based on the content and context.
+  - Routes the message to the PolicyAgent, ClaimsAgent, or EscalationAgent as appropriate.
+- PolicyAgent / ClaimsAgent:
+  - Processes the user inquiry and provides relevant information or assistance.
+  - If the request is beyond their scope, they delegate the issue back to the TriageAgent for further handling.
+- EscalationAgent:
+  - Manages escalated issues by creating support tickets and notifying the user.
+  - Ensures that complex or unresolved issues are directed to human support representatives.
 
-![architecture-overview-img](../../docs/docs/assets/architecture-example-06-multi-agent-conversation.svg)
+## Cleaning Up
 
-1. **User Interaction**: Users interact with the system through a CLI Chat interface.
-2. **TriageAgent**: Analyzes incoming messages and routes them to the appropriate agent based on the content.
-3. **PolicyAgent**: Handles policy-related inquiries using a mock `policies_database`.
-4. **ClaimsAgent**: Manages claims-related inquiries and requests.
-5. **EscalationAgent**: Takes care of issues that require human intervention by creating support tickets.
-6. **Channels**:
-   - **User Channel**: For interactions between the user and the agents.
-   - **Agent Channel**: For communication and coordination between different agents.
-
----
-
-## **Code Breakdown** 🔬
-
-### **Key Components**
-
-1. **LiteLlmAgent Initialization**:
-   - **PolicyAgent**, **ClaimsAgent**, **EscalationAgent**, and **TriageAgent** are initialized with specific system prompts and model configurations.
-   
-2. **Mock Database**:
-   - `policies_database`: A simulated database containing policy information for demonstration purposes.
-
-3. **Tools**:
-   - **get_policy_details**: A tool used by the PolicyAgent to retrieve policy information from the `policies_database`.
-
-4. **Triage System Prompt**:
-   - Defines guidelines for the TriageAgent to determine which agent should handle each user request based on keywords and context.
-
-5. **Message Handling**:
-   - Users interact via the CLI, and messages are processed by the TriageAgent, which routes them to the appropriate agent.
-   - Agents communicate through structured messages, ensuring context is maintained throughout the conversation.
-
-6. **Main Script**:
-   - Manages the lifecycle of the CLI Chat, initializes agents, and handles user inputs and agent responses.
-
----
-
-## **Cleaning Up** ❌
-
-When you’re done, stop the services:
+Stop and remove Docker containers:
 
 ```bash
 docker compose down -v
 ```
 
----
+## Next Steps
 
-## **Next Steps** 🚀
-
-- **Explore**: Modify the example to include additional agents or enhance existing ones with more tools and capabilities.
-- **Learn More**: Check out other examples in the `examples` folder to discover advanced multi-agent patterns and integrations.
-- **Contribute**: Share your feedback, report issues, or contribute to the EggAI project to help improve the framework.
-
----
-
-Thank you for exploring the **06-multi-agent-conversation** example for EggAI! 🥚🤖 We hope this example helps you understand how to build and manage collaborative multi-agent systems to handle complex user interactions effectively. 🙏✨
+- **Extend Functionality**: Add new agents or tools to handle more complex workflows.
+- **Connect Real Data**: Integrate the system with external databases or APIs.
+- **Enhance UI**: Improve the chat interface with features like authentication and message history.
+- **Learn More**: Explore other examples in the `examples` folder for advanced patterns.
+- **Contribute**: Share feedback or improvements with the EggAI community.
