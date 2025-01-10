@@ -1,6 +1,6 @@
-# Multi-Agent Conversation Example for EggAI 🥚🤖
+# Multi-Agent Conversation
 
-Welcome to the **06-multi-agent-conversation** example for **EggAI**! This example showcases how to build a collaborative multi-agent system using EggAI, where different agents work together to handle user inquiries efficiently. In this CLI Chat example, the **TriageAgent** routes user messages to the appropriate agents (**PolicyAgent**, **ClaimsAgent**, and **EscalationAgent**) to provide seamless and context-aware assistance.
+This example showcases how to build a collaborative multi-agent system using the `eggai` SDK. It provides a this CLI Chat interface to interact with multiple agents.
 
 Here is a simplified architecture overview:
 
