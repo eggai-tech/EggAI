@@ -4,7 +4,7 @@ from typing import Optional, Callable
 
 import litellm
 
-from eggai import Agent
+from sdk.eggai import Agent
 
 def function_to_json_schema(func: Callable) -> dict:
     parameters = {"type": "object", "properties": {}, "required": []}
