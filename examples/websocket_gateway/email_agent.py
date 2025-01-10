@@ -1,4 +1,4 @@
-from sdk.eggai import Agent, Channel
+from eggai import Agent, Channel
 
 agent = Agent("EmailAgent")
 channel = Channel()

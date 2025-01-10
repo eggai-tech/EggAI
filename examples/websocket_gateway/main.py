@@ -2,7 +2,7 @@ import asyncio
 import json
 
 import websockets
-from sdk.eggai import Channel
+from eggai import Channel
 
 from coordinator import start_coordinator, stop_coordinator
 from email_agent import start_email_agent, stop_email_agent
