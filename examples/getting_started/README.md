@@ -1,8 +1,12 @@
+Below is the updated guide with the step to navigate into `examples/getting_started` **before** installing prerequisites.
+
+---
+
 # Getting Started with EggAI Multi-Agent Meta Framework
 
 Welcome to the **EggAI Multi-Agent Meta Framework**! This guide will help you set up and run a simple use case demonstrating how to orchestrate and manage two agents in an asynchronous, event-driven architecture. Let's dive in!
 
-The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/00-getting-started)
+The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/00-getting-started).
 
 ---
 
@@ -23,38 +27,36 @@ The example demonstrates two agents communicating and collaborating within the E
 
 ### Key Features Highlighted:
 
-- **Agent Collaboration:** Two agents working together in an event-driven environment.
-- **Asynchronous Execution:** Agents are designed to process tasks concurrently, ensuring efficiency.
+- **Agent Collaboration:** Two agents working together in an event-driven environment.  
+- **Asynchronous Execution:** Agents are designed to process tasks concurrently, ensuring efficiency.  
 - **Scalable Infrastructure:** Powered by Kafka for reliable messaging and streaming.
 
 ---
 
 ## Setup Instructions
 
-### Step 1: Create a Virtual Environment (Optional but Recommended)
+Clone or download the EggAI repository (if you haven’t already).
+Move into the `examples/getting_started` folder:
 
-To avoid dependency conflicts, create and activate a virtual environment:
+```bash
+cd examples/getting_started
+```
+
+To avoid dependency conflicts, create and activate a virtual environment in the `examples/getting_started` directory:
 
 ```bash
 python -m venv venv
 source venv/bin/activate  # For Windows: venv\Scripts\activate
 ```
 
----
-
-### Step 2: Install the EggAI Library
-
-Use `pip` to install requirements:
+Install the required dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-### Step 3: Start Required Services with Docker
-
-EggAI relies on brokers like Kafka or [Redpanda](https://github.com/redpanda-data/redpanda) and other services to function seamlessly. Start these services using Docker Compose:
+EggAI relies on brokers like Kafka or [Redpanda](https://github.com/redpanda-data/redpanda) and other services to function seamlessly. 
+Start these services using Docker Compose:
 
 ```bash
 docker compose up -d
@@ -67,10 +69,6 @@ This command will:
 ---
 
 ## Running the Example
-
-1. Navigate to the `examples/getting_started` directory.
-2. Open `main.py` with your favorite editor.
-3. Run the `main.py` file to execute the demo:
 
 ```bash
 python main.py
