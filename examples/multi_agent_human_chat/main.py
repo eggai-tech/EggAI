@@ -2,7 +2,7 @@ import asyncio
 
 from dotenv import load_dotenv
 
-from sdk.eggai import Channel
+from eggai import Channel
 from server import server
 from triage import triage_agent
 from policy import policy_agent

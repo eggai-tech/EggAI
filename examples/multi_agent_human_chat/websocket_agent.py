@@ -1,6 +1,6 @@
 import uuid
 
-from sdk.eggai import Channel, Agent
+from eggai import Channel, Agent
 from fastapi import FastAPI, Query
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
