@@ -45,7 +45,7 @@ In this demo, you will:
 
 Below is a conceptual architecture diagram for this example:
 
-![architecture-advanced-example.png](../../docs/assets/architecture-gateway.svg)
+![architecture-advanced-example.png](../../docs/docs/assets/architecture-gateway.svg)
 
 ### Key Features Highlighted
 

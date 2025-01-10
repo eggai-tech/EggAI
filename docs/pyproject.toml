@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "eggai-docs"
+version = "0.99"
+description = "EggAI Documentation"
+authors = ["Stefano Tucci <stefanotucci89@gmail.com>"]
+license = "MIT"
+homepage = "https://eggai-tech.github.io/EggAI/"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+mkdocs = "^1.6.1"
+mkdocstrings = {extras = ["python"], version = "^0.27.0"}
+mkdocs-material = "^9.5.48"
+mkdocs-include-markdown-plugin = "^7.1.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

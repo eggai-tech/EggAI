@@ -19,7 +19,7 @@ Before you begin, ensure you have the following tools installed:
 
 The example demonstrates two agents communicating and collaborating within the EggAI framework. Below is a simplified UML chart of the architecture for this example:
 
-![architecture-getting-started.svg](../../docs/assets/architecture-getting-started.svg)
+![architecture-getting-started.svg](../../docs/docs/assets/architecture-getting-started.svg)
 
 ### Key Features Highlighted:
 

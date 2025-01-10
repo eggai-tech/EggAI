@@ -1,5 +1,6 @@
 site_name: EggAI Multi-Agent Meta Framework
 copyright: Copyright &copy; 2024 EggAI Technologies GmbH
+docs_dir: docs
 
 theme:
   name: material
@@ -16,15 +17,15 @@ nav:
     - "Agent": concepts/agent.md
     - "Multi-Agent System": concepts/multi-agent-system.md
   - Examples:
-    - "Getting Started": examples/getting_started.md
-    - "Coordinator": examples/coordinator.md
-    - "Websocket Gateway": examples/websocket_gateway.md
-    - "LangChain Tool Calling": examples/langchain_tool_calling.md
-    - "Shared Context": examples/shared-context.md
-    - "LiteLLM Integration": examples/litellm_agent.md
-    - "Multi-Agent Conversation": examples/multi_agent_conversation.md
-    - "An Insurance Company Scenario": examples/ui_chat_with_agents.md
-    - "Agent Evaluation & DSPy": examples/agent_evaluation_dspy.md
+    - "Getting Started": examples/00-getting-started.md
+    - "Coordinator": examples/01-coordinator.md
+    - "Websocket Gateway": examples/02-websocket-gateway.md
+    - "LangChain Tool Calling": examples/03-langchain-tool-calling.md
+    - "Shared Context": examples/04-context.md
+    - "LiteLLM Integration": examples/05-litellm-agent.md
+    - "Multi-Agent Conversation": examples/06-multi-agent-conversation.md
+    - "An Insurance Company Scenario": examples/07-chat-with-agents.md
+    - "Evaluation & DSPy": examples/08-evaluation-and-dspy.md
   - References:
     - "Agent": references/agent.md
     - "Channel": references/channel.md
@@ -38,7 +39,7 @@ plugins:
 - mkdocstrings:
     handlers:
       python:
-        paths: [sdk/eggai]
+        paths: [../sdk]
 
 extra:
   generator: false

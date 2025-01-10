@@ -32,7 +32,7 @@ In this demo, you will:
 
 Below is the architecture diagram for this example:
 
-![architecture-advanced-example.png](../../docs/assets/architecture-coordinator.svg)
+![architecture-advanced-example.png](../../docs/docs/assets/architecture-coordinator.svg)
 
 ### Key Features Highlighted:
 
