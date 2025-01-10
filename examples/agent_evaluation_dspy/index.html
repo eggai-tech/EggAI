@@ -9,18 +9,18 @@
       
       
       
-        <link rel="prev" href="../ui_chat_with_agents/">
+        <link rel="prev" href="../multi_agent_conversation/">
       
       
         <link rel="next" href="../../references/agent/">
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
-        <title>Agent Evaluation & DSPy - EggAI Multi-Agent Meta Framework</title>
+        <title>Evaluation & DSPy - EggAI Multi-Agent Meta Framework</title>
       
     
     
@@ -107,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Agent Evaluation & DSPy
+              Evaluation & DSPy
             
           </span>
         </div>
@@ -389,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../shared-context/" class="md-nav__link">
+      <a href="../shared_context/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -452,7 +452,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../ui_chat_with_agents/" class="md-nav__link">
+      <a href="../multi_agent_human_chat.md" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -486,7 +486,7 @@
           
   
   <span class="md-ellipsis">
-    Agent Evaluation & DSPy
+    Evaluation & DSPy
   </span>
   
 
@@ -497,7 +497,7 @@
         
   
   <span class="md-ellipsis">
-    Agent Evaluation & DSPy
+    Evaluation & DSPy
   </span>
   
 
@@ -519,15 +519,25 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#a-journey-of-iterative-improvement" class="md-nav__link">
+  <a href="#key-features" class="md-nav__link">
     <span class="md-ellipsis">
-      A Journey of Iterative Improvement
+      Key Features
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
+  <a href="#classifier-evolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Classifier Evolution
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Classifier Evolution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#initial-approach-classifier-v1" class="md-nav__link">
     <span class="md-ellipsis">
       Initial Approach: Classifier V1
@@ -535,8 +545,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#strengthening-context-classifier-v2" class="md-nav__link">
     <span class="md-ellipsis">
       Strengthening Context: Classifier V2
@@ -544,13 +554,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#optimizing-with-dspy-classifier-v3" class="md-nav__link">
     <span class="md-ellipsis">
       Optimizing with DSPy: Classifier V3
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -564,27 +579,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-it-all-comes-together" class="md-nav__link">
+  <a href="#conclusion" class="md-nav__link">
     <span class="md-ellipsis">
-      How It All Comes Together
+      Conclusion
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+  <a href="#setup-instructions" class="md-nav__link">
     <span class="md-ellipsis">
-      Getting Started
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#results-and-reports" class="md-nav__link">
-    <span class="md-ellipsis">
-      Results and Reports
+      Setup Instructions
     </span>
   </a>
   
@@ -594,15 +600,6 @@
   <a href="#next-steps" class="md-nav__link">
     <span class="md-ellipsis">
       Next Steps
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#conclusion" class="md-nav__link">
-    <span class="md-ellipsis">
-      Conclusion
     </span>
   </a>
   
@@ -758,15 +755,25 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#a-journey-of-iterative-improvement" class="md-nav__link">
+  <a href="#key-features" class="md-nav__link">
     <span class="md-ellipsis">
-      A Journey of Iterative Improvement
+      Key Features
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
+  <a href="#classifier-evolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Classifier Evolution
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Classifier Evolution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#initial-approach-classifier-v1" class="md-nav__link">
     <span class="md-ellipsis">
       Initial Approach: Classifier V1
@@ -774,8 +781,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#strengthening-context-classifier-v2" class="md-nav__link">
     <span class="md-ellipsis">
       Strengthening Context: Classifier V2
@@ -783,13 +790,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#optimizing-with-dspy-classifier-v3" class="md-nav__link">
     <span class="md-ellipsis">
       Optimizing with DSPy: Classifier V3
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -803,27 +815,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-it-all-comes-together" class="md-nav__link">
+  <a href="#conclusion" class="md-nav__link">
     <span class="md-ellipsis">
-      How It All Comes Together
+      Conclusion
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
+  <a href="#setup-instructions" class="md-nav__link">
     <span class="md-ellipsis">
-      Getting Started
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#results-and-reports" class="md-nav__link">
-    <span class="md-ellipsis">
-      Results and Reports
+      Setup Instructions
     </span>
   </a>
   
@@ -833,15 +836,6 @@
   <a href="#next-steps" class="md-nav__link">
     <span class="md-ellipsis">
       Next Steps
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#conclusion" class="md-nav__link">
-    <span class="md-ellipsis">
-      Conclusion
     </span>
   </a>
   
@@ -862,86 +856,68 @@
                   
 
 
-<!-- BEGIN INCLUDE ../../examples/agent_evaluation_dspy/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="agent-evaluation-and-enhancement-example-for-eggai">Agent Evaluation and Enhancement Example for EggAI 🥚🤖</h1>
-<h2 id="a-journey-of-iterative-improvement"><strong>A Journey of Iterative Improvement</strong></h2>
-<p>Welcome to the <strong>TriageAgent</strong> example, where we demonstrate how iterative changes, new prompts, and <strong>DSPy</strong> optimization can refine a multi-agent system’s classification performance. Below is an outline of how our three classifier versions (V1, V2, and V3) evolved to produce better routing decisions within an <strong>insurance support</strong> context.</p>
-<hr />
-<h2 id="initial-approach-classifier-v1"><strong>Initial Approach: Classifier V1</strong></h2>
-<p>The first iteration <strong>classifier_v1</strong> started with minimal instructions—essentially a straightforward prompt guiding the Large Language Model to classify a conversation as destined for <strong>PolicyAgent</strong>, <strong>TicketingAgent</strong>, or <strong>TriageAgent</strong>.</p>
+<!-- BEGIN INCLUDE ../../../examples/agent_evaluation_dspy/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
+<h1 id="agent-evaluation-and-enhancement-example-for-eggai">Agent Evaluation and Enhancement Example for EggAI</h1>
+<p>A journey of iterative improvement—welcome to the <strong>TriageAgent</strong> example, where we showcase how iterative changes, new prompts, and <strong>DSPy</strong> optimization can refine a multi-agent system’s classification performance in an <strong>insurance support</strong> context. Below is an overview of how our three classifier versions (V1, V2, and V3) evolved to produce better routing decisions.</p>
+<h2 id="key-features">Key Features</h2>
 <ul>
-<li><strong>Key Features</strong>:</li>
-<li>Basic Python code using <strong>DSPy</strong> with a standard prompt.</li>
-<li>
-<p>No system-level instructions or docstrings that describe context or fallback rules in detail.</p>
-</li>
-<li>
-<p><strong>Performance</strong> (based on <code>src/reports/classifier_v1.html</code>):</p>
-</li>
+<li>Iterative enhancements using <strong>DSPy</strong> optimization  </li>
+<li>Multiple classifier versions: <strong>V1</strong>, <strong>V2</strong>, <strong>V3</strong>  </li>
+<li>Improved classification logic with system prompts, docstrings, and fallback rules  </li>
+<li><strong>CI/CD</strong> integration using a quality gate enforced via <strong>pytest</strong>  </li>
+<li>Real-world <strong>insurance support</strong> scenario for conversation routing  </li>
 </ul>
-<p>```
-  Date: 2025-01-08 09:15:34    Meta: classifier_v1</p>
-<p>Summary</p>
-<hr />
-<p>Total Test Cases: 22
-  Passed:          16
-  Failed:          6
-  Success Rate:    72.73%
-  ```</p>
-<p>While <strong>72.73%</strong> is a decent start, there was room for improvement—especially given the complexity of insurance-related conversations.</p>
-<hr />
-<h2 id="strengthening-context-classifier-v2"><strong>Strengthening Context: Classifier V2</strong></h2>
-<p>To improve classification accuracy, we introduced <strong>system prompts</strong> and <strong>docstrings</strong> in the <strong>DSPy</strong> signature as a way to provide clearer instructions and domain context. This included:</p>
-<ol>
-<li><strong>Explicit Role Description</strong>: Outlining the agent’s role in routing conversations to <strong>PolicyAgent</strong>, <strong>TicketingAgent</strong>, or <strong>TriageAgent</strong>.  </li>
-<li><strong>Fallback Rules</strong>: Emphasizing that uncertain insurance-related queries go to <strong>TicketingAgent</strong> and non-insurance queries go to <strong>TriageAgent</strong>.  </li>
-<li>
-<p><strong>Usage of Docstrings</strong>: Leveraging them as part of the system prompt for the LLM.</p>
-</li>
-<li>
-<p><strong>Performance</strong> (based on <code>src/reports/classifier_v2.html</code>):</p>
-</li>
-</ol>
-<p>```
-  Date: 2025-01-08 09:15:34    Meta: classifier_v2</p>
-<p>Summary</p>
-<hr />
-<p>Total Test Cases: 22
-  Passed:          18
-  Failed:          4
-  Success Rate:    81.82%
-  ```</p>
-<p>This update lifted our success rate to <strong>81.82%</strong>—a significant improvement, simply by clarifying the classification logic in the system prompt.</p>
-<hr />
-<h2 id="optimizing-with-dspy-classifier-v3"><strong>Optimizing with DSPy: Classifier V3</strong></h2>
-<p>To push performance further, we employed <strong>DSPy’s optimization</strong> features on a <strong>training dataset</strong>. Specifically, we used:</p>
+<h2 id="classifier-evolution">Classifier Evolution</h2>
+<h3 id="initial-approach-classifier-v1">Initial Approach: Classifier V1</h3>
 <ul>
-<li><strong><code>dspy.BootstrapFewShot</code></strong>: A method that automatically selects the best prompt examples from the training set, iteratively refining them through a chain-of-thought approach.</li>
-<li>
-<p><strong>Evaluation Pipeline</strong>: After the optimization, we tested the newly-trained prompt on the <strong>same 22 examples</strong> from our “test set” to measure final performance.</p>
-</li>
-<li>
-<p><strong>Performance</strong> (based on <code>src/reports/classifier_v3.html</code>):</p>
-</li>
+<li><strong>Minimal Prompting</strong>: A simple prompt directing the Large Language Model to classify a conversation for <strong>PolicyAgent</strong>, <strong>TicketingAgent</strong>, or <strong>TriageAgent</strong>.  </li>
+<li><strong>Performance</strong> (from <a href="../../../examples/agent_evaluation_dspy/tests/reports/classifier_v1.html">V1 Report</a>):</li>
 </ul>
-<p>```
-  Date: 2025-01-08 09:15:34    Meta: classifier_v3</p>
-<p>Summary</p>
-<hr />
-<p>Total Test Cases: 22
-  Passed:          21
-  Failed:          1
-  Success Rate:    95.45%
-  ```</p>
-<p>With DSPy’s help, <strong>Classifier V3</strong> reached a <strong>95.45%</strong> success rate—an excellent improvement over the previous versions.</p>
-<hr />
-<h2 id="quality-gate-with-pytest"><strong>Quality Gate with Pytest</strong></h2>
-<p>To ensure continued high performance, we set up a <strong>quality gate</strong> within our CI/CD pipeline using <code>pytest</code>. This gate will:</p>
-<ol>
-<li><strong>Run all test conversations</strong> through the classifier as part of the build process.</li>
-<li><strong>Evaluate the success rate</strong> (i.e., exact match of expected vs. actual target).</li>
-<li><strong>Fail the pipeline</strong> (and block merges) if the success rate <strong>falls below</strong> a chosen threshold (e.g., 50%, 80%, or 90%, depending on project requirements).</li>
-</ol>
+<pre><code class="language-plaintext">Date: 2025-01-10 16:20:22 Meta: classifier_v1
+
+Summary
+------------
+Total Test Cases: 22
+Passed: 18
+Failed: 4
+Success Rate: 81.82%
+</code></pre>
+<p>Despite reaching <strong>72.73%</strong>, the approach lacked depth in instructions, leading to misclassifications for more complex queries.</p>
+<h3 id="strengthening-context-classifier-v2">Strengthening Context: Classifier V2</h3>
+<ul>
+<li><strong>Enhanced System Prompts &amp; Docstrings</strong>:</li>
+<li>Detailed agent roles (for <strong>PolicyAgent</strong>, <strong>TicketingAgent</strong>, <strong>TriageAgent</strong>).</li>
+<li>Fallback rules and insurance context clearly stated.</li>
+<li>Docstrings used as part of the system prompt for the LLM.</li>
+<li><strong>Performance</strong> (from <a href="../../../examples/agent_evaluation_dspy/tests/reports/classifier_v2.html">V2 Report</a>):</li>
+</ul>
+<pre><code class="language-plaintext">Date: 2025-01-10 16:20:30 Meta: classifier_v2
+
+Summary
+------------
+Total Test Cases: 22
+Passed: 19
+Failed: 3
+Success Rate: 86.36%
+</code></pre>
+<p>By clarifying the classification logic, <strong>Classifier V2</strong> improved to <strong>81.82%</strong>.</p>
+<h3 id="optimizing-with-dspy-classifier-v3">Optimizing with DSPy: Classifier V3</h3>
+<ul>
+<li><strong>DSPy’s BootstrapFewShot</strong>: Automated selection and refinement of the best prompt examples from the training set.</li>
+<li><strong>Performance</strong> (from <a href="../../../examples/agent_evaluation_dspy/tests/reports/classifier_v3.html">V3 Report</a>):</li>
+</ul>
+<pre><code class="language-plaintext">Date: 2025-01-10 16:20:38 Meta: classifier_v3
+
+Summary
+------------
+Total Test Cases: 22
+Passed: 21
+Failed: 1
+Success Rate: 95.45%
+</code></pre>
+<p>With <strong>Classifier V3</strong>, accuracy jumped to <strong>95.45%</strong>, showcasing the power of DSPy optimization.</p>
+<h2 id="quality-gate-with-pytest">Quality Gate with Pytest</h2>
+<p>A quality gate is integrated into <strong>CI/CD</strong> using <code>pytest</code>:</p>
 <pre><code class="language-python">@pytest.mark.asyncio
 async def test_not_optimized_agent(monkeypatch):
     ...
@@ -949,80 +925,45 @@ async def test_not_optimized_agent(monkeypatch):
     assert (success_percentage &gt; 90), \
         f&quot;Success rate {success_percentage:.2f}% is not greater than 90%.&quot;
 </code></pre>
-<p>By adjusting the assertion, you can enforce higher thresholds as your model’s performance improves.</p>
-<hr />
-<h2 id="how-it-all-comes-together"><strong>How It All Comes Together</strong></h2>
-<ol>
-<li><strong>Dataset</strong> (<code>triage-training.json</code>, <code>triage-testing.json</code>):</li>
-<li>
-<p>Realistic insurance conversation data for training and testing.</p>
-</li>
-<li>
-<p><strong>Classifiers</strong>:</p>
-</li>
-<li><strong>v1</strong> (minimal instructions)</li>
-<li><strong>v2</strong> (enhanced system prompt and docstrings)</li>
-<li>
-<p><strong>v3</strong> (fully optimized with <code>dspy.BootstrapFewShot</code>)</p>
-</li>
-<li>
-<p><strong>Evaluation Scripts</strong>:</p>
-</li>
-<li>
-<p>Generate HTML reports detailing each test conversation, the expected routing vs. the actual routing, and pass/fail status.</p>
-</li>
-<li>
-<p><strong>Quality Gate</strong>:</p>
-</li>
-<li>Enforced via <code>pytest</code> and integrated into CI/CD, stopping merges that degrade the classification performance.</li>
-</ol>
-<hr />
-<h2 id="getting-started"><strong>Getting Started</strong></h2>
-<ol>
-<li>
-<p><strong>Install Dependencies</strong><br />
-<code>bash
-   pip install eggai litellm fastapi uvicorn pytest jinja2 python-dotenv dspy</code></p>
-</li>
-<li>
-<p><strong>Set Up Environment Variable</strong><br />
-<code>bash
-   export OPENAI_API_KEY=your-api-key</code></p>
-</li>
-<li>
-<p><strong>Run Tests</strong><br />
-<code>bash
-   pytest tests/test_triage_evaluation.py</code></p>
-</li>
-<li>
-<p>This will generate a performance report (HTML) in the <code>reports/</code> directory.</p>
-</li>
-<li>
-<p><strong>Optimize (Optional)</strong>  </p>
-</li>
-<li>If you want to replicate the optimization process, run the DSPy scripts provided in the codebase. This will retrain and save the improved classifier.</li>
-</ol>
-<hr />
-<h2 id="results-and-reports"><strong>Results and Reports</strong></h2>
-<p>Each classifier’s test run outputs an HTML report in <code>src/reports/</code> (or a configured location), summarizing:</p>
+<p>This setup fails the pipeline if performance dips below the specified threshold (e.g., <strong>90%</strong>).
+In our case, <strong>Classifier V3</strong> surpassed this benchmark, ensuring its deployment readiness.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Through three iterations—V1, V2, and V3—the <strong>TriageAgent</strong> improved from a basic classifier (81.82%) to a high-performing one (95.45%). By leveraging system prompts, docstrings, and DSPy’s optimizers, plus enforcing a quality gate, your EggAI-based agents can reliably evolve and excel in complex routing tasks.</p>
+<h2 id="setup-instructions">Setup Instructions</h2>
+<p>To run the evaluation tests, you need the following prerequisites:</p>
 <ul>
-<li><strong>Classifier V1</strong>: 72.73% success.  </li>
-<li><strong>Classifier V2</strong>: 81.82% success.  </li>
-<li><strong>Classifier V3</strong>: 95.45% success.</li>
+<li><strong>Python</strong> 3.10+  </li>
+<li><strong>Docker</strong> and <strong>Docker Compose</strong>  </li>
+<li><strong>An OpenAI API Key</strong> (for LLM usage)</li>
 </ul>
-<p>Inspection of these reports shows how the addition of system prompts, docstring-based context, and eventually DSPy optimization each contributed to improved results.</p>
-<hr />
-<h2 id="next-steps"><strong>Next Steps</strong></h2>
+<p>Clone the EggAI repository:</p>
+<pre><code class="language-bash">git clone https://github.com/eggai-tech/EggAI.git
+</code></pre>
+<p>Move into the <code>examples/agent_evaluation_dspy</code> folder:</p>
+<pre><code class="language-bash">cd examples/agent_evaluation_dspy
+</code></pre>
+<p>Create and activate a virtual environment:</p>
+<pre><code class="language-bash">python -m venv venv
+source venv/bin/activate  # For Windows: venv\Scripts\activate
+</code></pre>
+<p>Install the required dependencies:</p>
+<pre><code class="language-bash">pip install -r requirements.txt
+</code></pre>
+<p>(Optional) Start Docker services if required by your environment, for instance:</p>
+<pre><code class="language-bash">docker compose up -d
+</code></pre>
+<p>Run the Tests</p>
+<pre><code class="language-bash">pytest
+</code></pre>
+<p>This generates an HTML performance report in the <code>reports/</code> directory.<br />
+It will run the triage evaluation on the configured classifier with the dataset found at <code>datasets/triage-testing.csv</code>.</p>
+<h2 id="next-steps">Next Steps</h2>
 <ul>
-<li><strong>Refine the Dataset</strong>: Incorporate more diverse conversations or corner cases.  </li>
-<li><strong>Tune the Quality Gate</strong>: Increase the success-rate requirement to maintain high performance.  </li>
-<li><strong>Explore More DSPy Features</strong>: Consider advanced optimization strategies (e.g., random search, multiple seeds).  </li>
-<li><strong>Integrate Feedback</strong>: Employ real-world user data to continuously enhance the classifier’s routing accuracy.</li>
+<li><strong>Refine the Dataset</strong>: Add more diverse or corner-case scenarios.  </li>
+<li><strong>Tune the Quality Gate</strong>: Increase the minimum success-rate requirement in <code>pytest</code> as performance improves.  </li>
+<li><strong>Explore Advanced DSPy Features</strong>: Consider random search or multiple seeds for further tuning.  </li>
+<li><strong>Incorporate Real-World Feedback</strong>: Continuously enhance the classifier with real conversation data.</li>
 </ul>
-<hr />
-<h2 id="conclusion"><strong>Conclusion</strong></h2>
-<p>Through three iterations of classifier tuning, we moved from a basic approach to a robust, near-accurate system. DSPy’s optimization proved instrumental in reaching <strong>95.45%</strong> accuracy. With a CI-based quality gate in place, the <strong>TriageAgent</strong> can reliably grow and adapt—ensuring that only improvements make their way into production.</p>
-<p>Thank you for exploring this <strong>Agent Evaluation and Enhancement</strong> journey with EggAI! 🥚🤖 We hope these examples inspire you to develop and continuously refine intelligent agents that seamlessly route and handle user interactions.</p>
 <!-- END INCLUDE -->
 
 
@@ -1072,7 +1013,7 @@ async def test_not_optimized_agent(monkeypatch):
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
     
   </body>

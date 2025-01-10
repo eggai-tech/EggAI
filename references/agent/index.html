@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
     
     
       
@@ -389,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/shared-context/" class="md-nav__link">
+      <a href="../../examples/shared_context/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -452,7 +452,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../examples/ui_chat_with_agents/" class="md-nav__link">
+      <a href="../../examples/multi_agent_human_chat.md" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -477,7 +477,7 @@
         
   
   <span class="md-ellipsis">
-    Agent Evaluation & DSPy
+    Evaluation & DSPy
   </span>
   
 
@@ -584,7 +584,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent" class="md-nav__link">
+  <a href="#eggai.agent.Agent" class="md-nav__link">
     <span class="md-ellipsis">
       Agent
     </span>
@@ -593,7 +593,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent.__init__" class="md-nav__link">
+  <a href="#eggai.agent.Agent.__init__" class="md-nav__link">
     <span class="md-ellipsis">
       __init__
     </span>
@@ -602,7 +602,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent.run" class="md-nav__link">
+  <a href="#eggai.agent.Agent.run" class="md-nav__link">
     <span class="md-ellipsis">
       run
     </span>
@@ -611,7 +611,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent.stop" class="md-nav__link">
+  <a href="#eggai.agent.Agent.stop" class="md-nav__link">
     <span class="md-ellipsis">
       stop
     </span>
@@ -620,7 +620,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent.subscribe" class="md-nav__link">
+  <a href="#eggai.agent.Agent.subscribe" class="md-nav__link">
     <span class="md-ellipsis">
       subscribe
     </span>
@@ -713,7 +713,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent" class="md-nav__link">
+  <a href="#eggai.agent.Agent" class="md-nav__link">
     <span class="md-ellipsis">
       Agent
     </span>
@@ -722,7 +722,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent.__init__" class="md-nav__link">
+  <a href="#eggai.agent.Agent.__init__" class="md-nav__link">
     <span class="md-ellipsis">
       __init__
     </span>
@@ -731,7 +731,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent.run" class="md-nav__link">
+  <a href="#eggai.agent.Agent.run" class="md-nav__link">
     <span class="md-ellipsis">
       run
     </span>
@@ -740,7 +740,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent.stop" class="md-nav__link">
+  <a href="#eggai.agent.Agent.stop" class="md-nav__link">
     <span class="md-ellipsis">
       stop
     </span>
@@ -749,7 +749,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sdk.eggai.agent.Agent.subscribe" class="md-nav__link">
+  <a href="#eggai.agent.Agent.subscribe" class="md-nav__link">
     <span class="md-ellipsis">
       subscribe
     </span>
@@ -779,7 +779,7 @@
 
 
 
-<a id="sdk.eggai.agent.Agent"></a>
+<a id="eggai.agent.Agent"></a>
     <div class="doc doc-contents first">
 
 
@@ -795,7 +795,7 @@
 
 
               <details class="quote">
-                <summary>Source code in <code>sdk/eggai/agent.py</code></summary>
+                <summary>Source code in <code>eggai\agent.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 28</span>
 <span class="normal"> 29</span>
 <span class="normal"> 30</span>
@@ -952,7 +952,7 @@
 <span class="normal">181</span>
 <span class="normal">182</span>
 <span class="normal">183</span>
-<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">Agent</span><span class="p">:</span>
+<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Agent</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A message-based agent for subscribing to events and handling messages with user-defined functions.</span>
 
@@ -962,7 +962,7 @@
 <span class="sd">    - Utilize Kafka as the messaging backend.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize the Agent with a unique name.</span>
 
@@ -977,7 +977,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_channels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_running_task</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="nf">subscribe</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">channel_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_CHANNEL_NAME</span><span class="p">,</span>
             <span class="n">channel</span><span class="p">:</span> <span class="n">Channel</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1001,7 +1001,7 @@
 <span class="sd">            async def handle_order_created(message):</span>
 <span class="sd">                print(f&quot;Order created: {message}&quot;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
             <span class="n">channel_name_to_use</span> <span class="o">=</span> <span class="n">_get_channel_name</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="n">channel_name</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
                 <span class="s2">&quot;channel&quot;</span><span class="p">:</span> <span class="n">channel_name_to_use</span><span class="p">,</span>
@@ -1014,7 +1014,7 @@
             <span class="k">return</span> <span class="n">func</span>
         <span class="k">return</span> <span class="n">decorator</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_start_producer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_start_producer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize and start the Kafka producer.</span>
 
@@ -1027,7 +1027,7 @@
             <span class="p">)</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_producer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_start_consumer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_start_consumer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize and start the Kafka consumer.</span>
 
@@ -1044,7 +1044,7 @@
             <span class="p">)</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consumer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_handle_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_handle_messages</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Asynchronously handle incoming messages from Kafka topics.</span>
 
@@ -1076,7 +1076,7 @@
         <span class="k">finally</span><span class="p">:</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consumer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Start the agent by initializing the Kafka producer and consumer, and begin handling messages.</span>
 
@@ -1092,7 +1092,7 @@
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_consumer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_running_task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_messages</span><span class="p">())</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Stop the agent gracefully by cancelling the running task and stopping the producer.</span>
 
@@ -1127,7 +1127,7 @@
 <div class="doc doc-object doc-function">
 
 
-<h2 id="sdk.eggai.agent.Agent.__init__" class="doc doc-heading">
+<h2 id="eggai.agent.Agent.__init__" class="doc doc-heading">
             <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></code>
 
 </h2>
@@ -1169,7 +1169,7 @@
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>sdk/eggai/agent.py</code></summary>
+              <summary>Source code in <code>eggai\agent.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">38</span>
 <span class="normal">39</span>
 <span class="normal">40</span>
@@ -1183,7 +1183,7 @@
 <span class="normal">48</span>
 <span class="normal">49</span>
 <span class="normal">50</span>
-<span class="normal">51</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="normal">51</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initialize the Agent with a unique name.</span>
 
@@ -1206,7 +1206,7 @@
 <div class="doc doc-object doc-function">
 
 
-<h2 id="sdk.eggai.agent.Agent.run" class="doc doc-heading">
+<h2 id="eggai.agent.Agent.run" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">run</span><span class="p">()</span></code>
 
   <span class="doc doc-labels">
@@ -1246,7 +1246,7 @@ incoming messages.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>sdk/eggai/agent.py</code></summary>
+              <summary>Source code in <code>eggai\agent.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">152</span>
 <span class="normal">153</span>
 <span class="normal">154</span>
@@ -1261,7 +1261,7 @@ incoming messages.</p>
 <span class="normal">163</span>
 <span class="normal">164</span>
 <span class="normal">165</span>
-<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Start the agent by initializing the Kafka producer and consumer, and begin handling messages.</span>
 
@@ -1285,7 +1285,7 @@ incoming messages.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="sdk.eggai.agent.Agent.stop" class="doc doc-heading">
+<h2 id="eggai.agent.Agent.stop" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">stop</span><span class="p">()</span></code>
 
   <span class="doc doc-labels">
@@ -1324,7 +1324,7 @@ incoming messages.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>sdk/eggai/agent.py</code></summary>
+              <summary>Source code in <code>eggai\agent.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">168</span>
 <span class="normal">169</span>
 <span class="normal">170</span>
@@ -1341,7 +1341,7 @@ incoming messages.</p>
 <span class="normal">181</span>
 <span class="normal">182</span>
 <span class="normal">183</span>
-<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="normal">184</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Stop the agent gracefully by cancelling the running task and stopping the producer.</span>
 
@@ -1367,7 +1367,7 @@ incoming messages.</p>
 <div class="doc doc-object doc-function">
 
 
-<h2 id="sdk.eggai.agent.Agent.subscribe" class="doc doc-heading">
+<h2 id="eggai.agent.Agent.subscribe" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">subscribe</span><span class="p">(</span><span class="n">channel_name</span><span class="o">=</span><span class="n">DEFAULT_CHANNEL_NAME</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">filter_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">message_type</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 </h2>
@@ -1402,7 +1402,7 @@ incoming messages.</p>
               </div>
             </td>
             <td>
-                  <code><span title="sdk.eggai.constants.DEFAULT_CHANNEL_NAME">DEFAULT_CHANNEL_NAME</span></code>
+                  <code><span title="eggai.constants.DEFAULT_CHANNEL_NAME">DEFAULT_CHANNEL_NAME</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -1410,7 +1410,7 @@ incoming messages.</p>
                 <code>channel</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="sdk.eggai.channel.Channel" href="../channel/#sdk.eggai.channel.Channel">Channel</a></code>
+                  <code><a class="autorefs autorefs-internal" title="eggai.channel.Channel" href="../channel/#eggai.channel.Channel">Channel</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1442,7 +1442,7 @@ incoming messages.</p>
                 <code>message_type</code>
             </td>
             <td>
-                  <code><span title="typing.Type">Type</span>[<a class="autorefs autorefs-internal" title="sdk.eggai.schemas.MessageBase" href="../message/#sdk.eggai.schemas.MessageBase">MessageBase</a>]</code>
+                  <code><span title="typing.Type">Type</span>[<a class="autorefs autorefs-internal" title="eggai.schemas.MessageBase" href="../message/#eggai.schemas.MessageBase">MessageBase</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1487,7 +1487,7 @@ async def handle_order_created(message):
     print(f"Order created: {message}")</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>sdk/eggai/agent.py</code></summary>
+              <summary>Source code in <code>eggai\agent.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">53</span>
 <span class="normal">54</span>
 <span class="normal">55</span>
@@ -1523,7 +1523,7 @@ async def handle_order_created(message):
 <span class="normal">85</span>
 <span class="normal">86</span>
 <span class="normal">87</span>
-<span class="normal">88</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">subscribe</span><span class="p">(</span>
+<span class="normal">88</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">channel_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_CHANNEL_NAME</span><span class="p">,</span>
         <span class="n">channel</span><span class="p">:</span> <span class="n">Channel</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1547,7 +1547,7 @@ async def handle_order_created(message):
 <span class="sd">        async def handle_order_created(message):</span>
 <span class="sd">            print(f&quot;Order created: {message}&quot;)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
         <span class="n">channel_name_to_use</span> <span class="o">=</span> <span class="n">_get_channel_name</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="n">channel_name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
             <span class="s2">&quot;channel&quot;</span><span class="p">:</span> <span class="n">channel_name_to_use</span><span class="p">,</span>
@@ -1620,7 +1620,7 @@ async def handle_order_created(message):
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
       
     
   </body>
