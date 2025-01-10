@@ -26,7 +26,7 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          VERSION=$(grep '^version' pyproject.toml | sed 's/version = "//;s/"//')
+          VERSION=$(grep '^version' sdk/pyproject.toml | sed 's/version = "//;s/"//')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build release distributions
