@@ -53,10 +53,10 @@ By clarifying the classification logic, **Classifier V2** improved to **81.82%**
 
 ### Optimizing with DSPy: Classifier V3
 
-- **DSPy’s BootstrapFewShot**: Automated selection and refinement of the best prompt examples from the training set.  
-- **Evaluation Pipeline**: The newly-trained prompt was tested on the same 22 examples, yielding:
+- **DSPy’s BootstrapFewShot**: Automated selection and refinement of the best prompt examples from the training set.
+- **Performance** (from [V3 Report](tests/reports/classifier_v3.html)):
 
-  ```plaintext
+```plaintext
 Date: 2025-01-10 16:20:38 Meta: classifier_v3
 
 Summary
@@ -85,13 +85,17 @@ async def test_not_optimized_agent(monkeypatch):
 This setup fails the pipeline if performance dips below the specified threshold (e.g., **90%**).
 In our case, **Classifier V3** surpassed this benchmark, ensuring its deployment readiness.
 
-## Prerequisites
+## Conclusion
+
+Through three iterations—V1, V2, and V3—the **TriageAgent** improved from a basic classifier (81.82%) to a high-performing one (95.45%). By leveraging system prompts, docstrings, and DSPy’s optimizers, plus enforcing a quality gate, your EggAI-based agents can reliably evolve and excel in complex routing tasks.
+
+## Setup Instructions
+
+To run the evaluation tests, you need the following prerequisites:
 
 - **Python** 3.10+  
 - **Docker** and **Docker Compose**  
 - **An OpenAI API Key** (for LLM usage)
-
-## Setup Instructions
 
 Clone the EggAI repository:
 
@@ -124,7 +128,7 @@ pip install -r requirements.txt
 docker compose up -d
 ```
 
-## Run the Tests
+Run the Tests
 
 ```bash
 pytest
@@ -133,30 +137,9 @@ pytest
 This generates an HTML performance report in the `reports/` directory.  
 It will run the triage evaluation on the configured classifier with the dataset found at `datasets/triage-testing.csv`.
 
-## (Optional) Optimize with DSPy
-
-If you want to replicate the optimization process:
-
-1. Ensure your **OpenAI** API key is set:
-
-   ```bash
-   export OPENAI_API_KEY=your-api-key
-   ```
-2. Run the **DSPy** scripts provided in the codebase to retrain and save the improved classifier.  
-
-## Results and Reports
-
-- **Classifier V1**: 81.82% success ([Full Report](tests/reports/classifier_v1.html))  
-- **Classifier V2**: 86.36% success ([Full Report](tests/reports/classifier_v2.html))  
-- **Classifier V3**: 95.45% success ([Full Report](tests/reports/classifier_v3.html))
-
 ## Next Steps
 
 - **Refine the Dataset**: Add more diverse or corner-case scenarios.  
 - **Tune the Quality Gate**: Increase the minimum success-rate requirement in `pytest` as performance improves.  
 - **Explore Advanced DSPy Features**: Consider random search or multiple seeds for further tuning.  
 - **Incorporate Real-World Feedback**: Continuously enhance the classifier with real conversation data.
-
-## Conclusion
-
-Through three iterations—V1, V2, and V3—the **TriageAgent** improved from a basic classifier (81.82%) to a high-performing one (95.45%). By leveraging system prompts, docstrings, and DSPy’s optimizers, plus enforcing a quality gate, your EggAI-based agents can reliably evolve and excel in complex routing tasks.
