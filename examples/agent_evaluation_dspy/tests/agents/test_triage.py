@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from dotenv import load_dotenv
 
-from sdk.eggai import Channel
+from eggai import Channel
 from examples.agent_evaluation_dspy.src.agents.triage import handle_user_message
 
 
