@@ -58,10 +58,6 @@ Start these services using Docker Compose:
 docker compose up -d
 ```
 
-This command will:
-- Spin up the [Redpanda](https://github.com/redpanda-data/redpanda) broker.
-- Start the necessary infrastructure components for the framework.
-
 ---
 
 ## Running the Example
