@@ -1,7 +1,3 @@
-Below is the updated guide with the step to navigate into `examples/getting_started` **before** installing prerequisites.
-
----
-
 # Getting Started with EggAI Multi-Agent Meta Framework
 
 Welcome to the **EggAI Multi-Agent Meta Framework**! This guide will help you set up and run a simple use case demonstrating how to orchestrate and manage two agents in an asynchronous, event-driven architecture. Let's dive in!
