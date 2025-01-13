@@ -4,8 +4,6 @@ networks:
     driver: bridge
 volumes:
   redpanda-0: null
-  redpanda-1: null
-  redpanda-2: null
 services:
   redpanda-0:
     command:
