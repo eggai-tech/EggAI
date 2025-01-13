@@ -30,7 +30,7 @@ Failed: 4
 Success Rate: 81.82%
 ```
 
-Despite reaching **72.73%**, the approach lacked depth in instructions, leading to misclassifications for more complex queries.
+Despite reaching **81.82%**, the approach lacked depth in instructions, leading to misclassifications for more complex queries.
 
 ### Strengthening Context: Classifier V2
 
@@ -51,7 +51,7 @@ Failed: 3
 Success Rate: 86.36%
 ```
 
-By clarifying the classification logic, **Classifier V2** improved to **81.82%**.
+By clarifying the classification logic, **Classifier V2** improved to **86.36%**.
 
 ### Optimizing with DSPy: Classifier V3
 
