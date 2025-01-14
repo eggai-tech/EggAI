@@ -1,8 +1,10 @@
 <img src="docs/docs/assets/eggai-word-and-figuremark.svg" alt="EggAI word and figuremark" width="200px" style="margin-bottom: 16px;" />
 
-<!--start-->
-
 # Multi-Agent Meta Framework
+
+Documentation: [EggAI Docs](https://docs.egg-ai.com/)
+
+<!--start-->
 
 [![Python 3.x](https://img.shields.io/badge/python-3.x-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](https://opensource.org/licenses/MIT)
