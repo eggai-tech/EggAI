@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#safe-and-trustworthy-ai-agents-with-guardrails" class="md-skip">
+        <a href="#safe-agents-with-guardrailsai" class="md-skip">
           Skip to content
         </a>
       
@@ -812,7 +812,7 @@
 
 
 <!-- BEGIN INCLUDE ../../../examples/safe_agents_guardrails/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="safe-and-trustworthy-ai-agents-with-guardrails">Safe and Trustworthy AI Agents with Guardrails</h1>
+<h1 id="safe-agents-with-guardrailsai">Safe Agents with Guardrails.ai</h1>
 <p>Large Language Model (LLM) agents are powerful tools capable of responding to various user queries—whether trivial,
 complex, or potentially harmful. However, unguarded AI systems can inadvertently produce inappropriate, toxic, or
 misleading content. <strong>Guardrails</strong> become essential here to ensure that LLM outputs stay within acceptable boundaries,
@@ -823,7 +823,7 @@ preserving both user trust and brand integrity.</p>
 <p>In this example, we show how to build an LLM-powered agent that is <strong>guarded</strong> against unwanted or harmful outputs. We
 use <strong><a href="https://github.com/ShreyaR/guardrails">Guardrails.ai</a></strong> for toxicity filtering and <strong>DSPy</strong> for core language
 model functionalities. We also added <strong>PII Masking</strong> with Presidio, ensuring sensitive data (like emails) is replaced
-with <code>&lt;EMAIL&gt;</code> before further processing:</p>
+with <code>&lt;EMAIL_ADDRESS&gt;</code> before further processing:</p>
 <p><img alt="Presidio Detection Flow" src="https://microsoft.github.io/presidio/assets/detection_flow.gif" /><br />
 <em>Source: <a href="https://microsoft.github.io/presidio">Microsoft Presidio</a></em></p>
 <p>The result is a multi-agentic system that can handle user queries responsibly while maintaining a high level of safety
@@ -832,17 +832,15 @@ and reliability. Code for this example is available
 <h2 id="overview-of-the-approach">Overview of the Approach</h2>
 <p><strong>Input Guard</strong>: The <code>answers_agent</code> subscribes to new messages on the <code>agents</code> channel. Upon receiving a
 <code>"question"</code>,
-we:
- - <strong>Check PII</strong>: If emails are found, they are masked with <code>&lt;EMAIL_ADDRESS&gt;</code> (via Presidio).
- - <strong>Check Toxicity</strong>: If the text is still deemed toxic, we publish an <code>INPUT_GUARDRAIL</code> error and stop processing.</p>
+we:</p>
+<p>Check PII: If emails are found, they are masked with <code>&lt;EMAIL_ADDRESS&gt;</code> (via Presidio).
+Check Toxicity: If the text is still deemed toxic, we publish an <code>INPUT_GUARDRAIL</code> error and stop processing.</p>
 <p><strong>Answer Generation</strong>: If the input is safe, the agent calls <code>wiki_qa(question=question)</code> to generate an answer.
 This specialized module searches an offline Wikipedia corpus to provide relevant information.</p>
 <p><strong>Output Guard</strong>: We run the toxicity check again on the generated answer. If the answer is flagged, we publish an
 <code>OUTPUT_GUARDRAIL</code> error, preventing any harmful content from reaching the user.</p>
-<ol>
-<li><strong>Publishing the Result</strong>: If both the question and answer pass guardrails, the safe, validated answer is published
-   back to the <code>agents</code> channel for consumption by other parts of the system.</li>
-</ol>
+<p><strong>Publishing the Result</strong>: If both the question and answer pass guardrails, the safe, validated answer is published
+   back to the <code>agents</code> channel for consumption by other parts of the system.</p>
 <h2 id="prerequisites">Prerequisites</h2>
 <ul>
 <li><strong>Python</strong> 3.10+</li>
@@ -852,38 +850,26 @@ This specialized module searches an offline Wikipedia corpus to provide relevant
   export OPEN_AI_API_KEY="your-api-key"</code></li>
 </ul>
 <h2 id="setup-instructions">Setup Instructions</h2>
-<ol>
-<li>Clone the EggAI repository:</li>
-</ol>
-<p><code>bash
-   git clone git@github.com:eggai-tech/EggAI.git</code></p>
-<ol>
-<li>Move into the <code>examples/litellm_agent</code> folder:</li>
-</ol>
-<p><code>bash
-   cd examples/litellm_agent</code></p>
-<ol>
-<li>Create and activate a virtual environment:</li>
-</ol>
-<p><code>bash
-   python -m venv venv
-   source venv/bin/activate  # For Windows: venv\Scripts\activate</code></p>
-<ol>
-<li>Install the required dependencies:</li>
-</ol>
-<p><code>bash
-   pip install -r requirements.txt</code></p>
-<ol>
-<li>Configure Guardrails:</li>
-</ol>
-<p><code>bash
-   guardrails configure
-   guardrails hub install hub://guardrails/toxic_language</code></p>
-<ol>
-<li>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</li>
-</ol>
-<p><code>bash
-   docker compose up -d</code></p>
+<p>Clone the EggAI repository:</p>
+<pre><code class="language-bash">git clone git@github.com:eggai-tech/EggAI.git
+</code></pre>
+<p>Move into the <code>examples/litellm_agent</code> folder:</p>
+<pre><code class="language-bash">cd examples/litellm_agent
+</code></pre>
+<p>Create and activate a virtual environment:</p>
+<pre><code class="language-bash">python -m venv venv
+source venv/bin/activate  # For Windows: venv\Scripts\activate
+</code></pre>
+<p>Install the required dependencies:</p>
+<pre><code class="language-bash">pip install -r requirements.txt
+</code></pre>
+<p>Configure Guardrails:</p>
+<pre><code class="language-bash">guardrails configure
+guardrails hub install hub://guardrails/toxic_language
+</code></pre>
+<p>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</p>
+<pre><code class="language-bash">docker compose up -d
+</code></pre>
 <h2 id="run-the-example">Run the Example</h2>
 <pre><code class="language-bash">python main.py
 </code></pre>
