@@ -100,12 +100,23 @@ We encourage you to explore and **copy/paste** from our examples for practical i
     </tr>
     <tr>
       <td>
-        <a href="examples/agent_evaluation_dspy"><strong>Agents Evaluation & DSPy</strong></a>:<br/>
-        Demonstrates how to enhance agents and integrate DSPY for effective agent evaluation and improvement.
+        <a href="examples/agent_evaluation_dspy"><strong>Agent Evaluation & Optimization with DSPy</strong></a>:<br/>
+        Data-driven development with DSPy.
       </td>
       <td>
         <a href="examples/agent_evaluation_dspy">
           <img src="assets/agent-evaluation-dspy.png" alt="Agents Evaluation & DSPy"/>
+        </a>
+      </td>
+    </tr>
+      <tr>
+      <td>
+        <a href="examples/agent_evaluation_dspy"><strong>Safe Agents with Guardrails AI</strong></a>:<br/>
+        Guarding LLM agents against toxicity and PII leakage.
+      </td>
+      <td>
+        <a href="examples/safe_agents_guardrails">
+          <img src="assets/safe-agents-guardrails.png" alt="Agents Evaluation & DSPy"/>
         </a>
       </td>
     </tr>
