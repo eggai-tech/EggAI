@@ -1,4 +1,4 @@
-# Safe and Trustworthy AI Agents with Guardrails
+# Safe Agents with Guardrails.ai
 
 Large Language Model (LLM) agents are powerful tools capable of responding to various user queries—whether trivial,
 complex, or potentially harmful. However, unguarded AI systems can inadvertently produce inappropriate, toxic, or
@@ -13,7 +13,7 @@ Below is a visualization of how an agent without guards compares to one with gua
 In this example, we show how to build an LLM-powered agent that is **guarded** against unwanted or harmful outputs. We
 use **[Guardrails.ai](https://github.com/ShreyaR/guardrails)** for toxicity filtering and **DSPy** for core language
 model functionalities. We also added **PII Masking** with Presidio, ensuring sensitive data (like emails) is replaced
-with `<EMAIL>` before further processing:
+with `<EMAIL_ADDRESS>` before further processing:
 
 ![Presidio Detection Flow](https://microsoft.github.io/presidio/assets/detection_flow.gif)  
 *Source: [Microsoft Presidio](https://microsoft.github.io/presidio)*
@@ -27,8 +27,9 @@ and reliability. Code for this example is available
 **Input Guard**: The `answers_agent` subscribes to new messages on the `agents` channel. Upon receiving a
 `"question"`,
 we:
- - **Check PII**: If emails are found, they are masked with `<EMAIL_ADDRESS>` (via Presidio).
- - **Check Toxicity**: If the text is still deemed toxic, we publish an `INPUT_GUARDRAIL` error and stop processing.
+
+Check PII: If emails are found, they are masked with `<EMAIL_ADDRESS>` (via Presidio).
+Check Toxicity: If the text is still deemed toxic, we publish an `INPUT_GUARDRAIL` error and stop processing.
 
 **Answer Generation**: If the input is safe, the agent calls `wiki_qa(question=question)` to generate an answer.
 This specialized module searches an offline Wikipedia corpus to provide relevant information.
@@ -36,7 +37,7 @@ This specialized module searches an offline Wikipedia corpus to provide relevant
 **Output Guard**: We run the toxicity check again on the generated answer. If the answer is flagged, we publish an
 `OUTPUT_GUARDRAIL` error, preventing any harmful content from reaching the user.
 
-4. **Publishing the Result**: If both the question and answer pass guardrails, the safe, validated answer is published
+**Publishing the Result**: If both the question and answer pass guardrails, the safe, validated answer is published
    back to the `agents` channel for consumption by other parts of the system.
 
 ## Prerequisites
@@ -50,43 +51,43 @@ This specialized module searches an offline Wikipedia corpus to provide relevant
 
 ## Setup Instructions
 
-1. Clone the EggAI repository:
+Clone the EggAI repository:
 
-   ```bash
-   git clone git@github.com:eggai-tech/EggAI.git
-   ```
+```bash
+git clone git@github.com:eggai-tech/EggAI.git
+```
 
-2. Move into the `examples/litellm_agent` folder:
+Move into the `examples/litellm_agent` folder:
 
-   ```bash
-   cd examples/litellm_agent
-   ```
+```bash
+cd examples/litellm_agent
+```
 
-3. Create and activate a virtual environment:
+Create and activate a virtual environment:
 
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # For Windows: venv\Scripts\activate
-   ```
+```bash
+python -m venv venv
+source venv/bin/activate  # For Windows: venv\Scripts\activate
+```
 
-4. Install the required dependencies:
+Install the required dependencies:
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-5. Configure Guardrails:
+Configure Guardrails:
 
-   ```bash
-   guardrails configure
-   guardrails hub install hub://guardrails/toxic_language
-   ```
+```bash
+guardrails configure
+guardrails hub install hub://guardrails/toxic_language
+```
 
-6. Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
+Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
 
-   ```bash
-   docker compose up -d
-   ```
+```bash
+docker compose up -d
+```
 
 ## Run the Example
 
