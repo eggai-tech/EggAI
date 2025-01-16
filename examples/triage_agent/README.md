@@ -1,6 +1,6 @@
-# Intent Classification Agent with EggAI
+# Triage Agent with classification and routing
 
-This example demonstrates how to build and implement an intent classification agent using EggAI. The agent acts as a
+This example demonstrates how to build and implement an triage agent using EggAI. The agent acts as a
 *Triage*, processing user messages and routing them to the appropriate target agents based on the intent of the
 conversation. The TriageAgent uses a custom classification model to determine whether a message is policy-related,
 ticketing-related, or non-insurance-related.
