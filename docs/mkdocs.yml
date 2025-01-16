@@ -27,6 +27,7 @@ nav:
     - "Multi-Agent & Human Chat": examples/multi_agent_human_chat.md
     - "Evaluation & DSPy": examples/agent_evaluation_dspy.md
     - "Safe agents & Guardrails": examples/safe_agents_guardrails.md
+    - "Intent classification": examples/intent_classification.md
   - References:
     - "Agent": references/agent.md
     - "Channel": references/channel.md
