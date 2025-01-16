@@ -227,6 +227,17 @@ We encourage you to explore and **copy/paste** from our examples for practical i
         </a>
       </td>
     </tr>
+     <tr>
+      <td>
+        <a href="examples/intent_classification"><strong>Intent Classification</strong></a>:<br/>
+        Classify user messages into target agents.
+      </td>
+      <td>
+        <a href="examples/intent_classification">
+          <img src="docs/docs/assets/intent-classification.png" alt="Agents Evaluation & DSPy"/>
+        </a>
+      </td>
+    </tr>
   </tbody>
 </table>
 
