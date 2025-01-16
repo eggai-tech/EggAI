@@ -122,11 +122,11 @@ We encourage you to explore and **copy/paste** from our examples for practical i
     </tr>
     <tr>
       <td>
-        <a href="examples/intent_classification"><strong>Triage Agent</strong></a>:<br/>
+        <a href="examples/triage_agent"><strong>Triage Agent</strong></a>:<br/>
         Triage Agent with classification and routing.
       </td>
       <td>
-        <a href="examples/intent_classification">
+        <a href="examples/triage_agent">
           <img src="assets/triage-agent.png" alt="Triage Agent"/>
         </a>
       </td>
