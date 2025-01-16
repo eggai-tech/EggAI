@@ -223,18 +223,18 @@ We encourage you to explore and **copy/paste** from our examples for practical i
       </td>
       <td>
         <a href="examples/safe_agents_guardrails">
-          <img src="docs/docs/assets/safe-agents-guardrails.png" alt="Agents Evaluation & DSPy"/>
+          <img src="docs/docs/assets/safe-agents-guardrails.png" alt="Safe Agents with Guardrails AI"/>
         </a>
       </td>
     </tr>
-     <tr>
+    <tr>
       <td>
-        <a href="examples/intent_classification"><strong>Intent Classification</strong></a>:<br/>
-        Classify user messages into target agents.
+        <a href="examples/intent_classification"><strong>Triage Agent</strong></a>:<br/>
+        Triage Agent with classification and routing.
       </td>
       <td>
         <a href="examples/intent_classification">
-          <img src="docs/docs/assets/intent-classification.png" alt="Agents Evaluation & DSPy"/>
+          <img src="docs/docs/assets/triage-agent.png" alt="Triage Agent"/>
         </a>
       </td>
     </tr>
