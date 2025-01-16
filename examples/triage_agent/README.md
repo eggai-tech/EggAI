@@ -1,7 +1,7 @@
 # Intent Classification Agent with EggAI
 
-This example demonstrates how to build and implement an intent classification agent using EggAI. The agent acts as a *
-*Triage**, processing user messages and routing them to the appropriate target agents based on the intent of the
+This example demonstrates how to build and implement an intent classification agent using EggAI. The agent acts as a
+*Triage*, processing user messages and routing them to the appropriate target agents based on the intent of the
 conversation. The TriageAgent uses a custom classification model to determine whether a message is policy-related,
 ticketing-related, or non-insurance-related.
 
@@ -11,9 +11,10 @@ Key features:
   `TicketingAgent`, or `TriageAgent`.
 - **Chain of Thought Reasoning**: Employs the `dspy` library for reasoning and structured decision-making in the
   classification process.
-- **Testing Suite**: Includes test datasets and pytest-based evaluation to ensure performance accuracy above 90%.
+- **Testing Suite**: Includes test datasets and pytest-based evaluation to ensure performance of the intent classifier.
 
-The code for this example is available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/intent_classification).
+The code for this example is
+available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/intent_classification).
 
 ## Prerequisites
 
