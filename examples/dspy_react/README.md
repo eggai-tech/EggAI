@@ -1,19 +1,16 @@
-# EggAI: Advanced Agents with DSPy ReAct
+# ReActive Agents with DSPy
 
-This example demonstrates how to integrate a complex ReAct module into EggAI agents for dynamic question-answering
-tasks. DSPy supports ReAct, an LLM agent designed to tackle complex tasks in an interactive fashion. ReAct is composed
-of an iterative loop of interpretation, decision and action-based activities ("Thought, Action, and Observation") based
-on an evolving set of input and output fields. Through this real-time iterative approach, the ReAct agent can both
-analyze and adapt to its responses over time as new information becomes available. Below, we explain how the example
-works step by step.
+This example demonstrates how to integrate DSPy’s powerful *ReAct* module into EggAI agents for dynamic, real-time question-answering tasks.
+*ReAct* enables agents to tackle complex problems by continuously refining their responses through an iterative cycle of reasoning (*Thought*), decision-making (*Action*), and feedback (*Observation*). As the agent processes information, it adjusts its actions based on ongoing observations, allowing it to adapt and improve over time. This flexible, real-time iterative approach makes ReAct ideal for tasks that require dynamic reasoning, rapid decision-making, and continuous adaptation to new information.
 
 The code for this example is available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/dspy_react).
 
 ## How it works
 
-In this example, we demonstrate how to test the ReAct agent by sending a message to the agent channel. 
+In this example, we test the ReAct agent by sending a question to the agent channel.
+The agent dynamically processes the question and iteratively refines its responses.
 
-For instance:
+For example:
 
 ```python
  await agents_channel.publish({
@@ -22,30 +19,33 @@ For instance:
     })
 ```
 
-**Available tools**: The `react_module` ReAct contains two tools: `evaluate_math` for
-mathematical operations and `search_wikipedia` for retrieving relevant information from a ColBERTv2 model.
+### Available tools
+The `react_module` ReAct contains two tools:
+- `evaluate_math`: Handles mathematical operations.
+- `search_wikipedia` Retrieves relevant information from a ColBERTv2 model.
 
-**Agent Input**: The agent receives a question: *"Give me the year of construction of the Eiffel Tower summed with the
-year of construction of the Empire State Building."*
+### Agent Input
+The agent receives the question: _"Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building."_
 
-**First Thought**: The agent reasons: *"I need to find the years of construction for both the Eiffel Tower and the
-Empire State Building in order to sum them."* It uses the `search_wikipedia` tool to query for construction years.
+### First Thought
+The agent begins by reasoning: _"I need to find the years of construction for both the Eiffel Tower and the Empire State Building in order to sum them."_ It uses the `search_wikipedia` tool to gather relevant data.
 
-**Iterative Search**: The agent iteratively refines its search queries when initial results don’t contain the required
-information. It tries broader and more specific queries, such as: *"Eiffel Tower construction year, Empire State
-Building construction year."* *"Eiffel Tower construction year."* *"Empire State Building construction year."* *"Eiffel
-Tower history construction year."*
+### Iterative Search
+The agent iteratively refines its search queries when initial results don’t contain the required
+information. It tries broader and more specific queries, such as: _"Eiffel Tower construction year, Empire State
+Building construction year."_ _"Eiffel Tower construction year."_ _"Empire State Building construction year."_ _"Eiffel
+Tower history construction year."_
 
 **Observation and Refinement**: Each search produces observations, such as articles or snippets, which the agent
 analyzes to determine if they contain the necessary information. When relevant data is missing, it generates a new
 query.
 
-**Reasoning and Calculation**: After retrieving sufficient information, the agent reasons: *"The construction year of
+**Reasoning and Calculation**: After retrieving sufficient information, the agent reasons: _"The construction year of
 the Eiffel Tower is 1887, and the Empire State Building was constructed from 1930 to 1931. To find the total, I will sum
-1887 and 1931 (the year it was completed)."* The agent uses the `evaluate_math` tool to calculate the sum: *1887 +
-1931 = 3818.*
+1887 and 1931 (the year it was completed)."_ The agent uses the `evaluate_math` tool to calculate the sum: _1887 +
+1931 = 3818._
 
-**Output**: The agent produces a final answer: *"3818"*, which is returned as the result.
+**Output**: The agent produces a final answer: _"3818"_, which is returned as the result.
 
 ## Key Takeaways
 
