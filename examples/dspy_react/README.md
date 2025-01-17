@@ -7,6 +7,8 @@ on an evolving set of input and output fields. Through this real-time iterative 
 analyze and adapt to its responses over time as new information becomes available. Below, we explain how the example
 works step by step.
 
+The code for this example is available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/dspy_react).
+
 ## Under the Hood
 
 ```python
