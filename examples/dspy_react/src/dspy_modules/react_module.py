@@ -1,6 +1,9 @@
 import dspy
 from dotenv import load_dotenv
 
+language_model = dspy.LM('openai/gpt-4o-mini')
+dspy.configure(lm=language_model)
+
 transactions_list = [
     {"description": "Initial Balance", "type": "credit", "amount": 5000.0, "date": "2022-01-01"},
     {"description": "Taxes", "type": "credit", "amount": 100.0, "date": "2022-01-02"},
