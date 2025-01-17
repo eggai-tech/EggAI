@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.48">
     
     
       
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#eggai-advanced-agents-with-dspy-react" class="md-skip">
+        <a href="#reactive-agents-with-dspy" class="md-skip">
           Skip to content
         </a>
       
@@ -588,6 +588,75 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="How it works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available tools
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-input" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent Input
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#first-thought" class="md-nav__link">
+    <span class="md-ellipsis">
+      First Thought
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iterative-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      Iterative Search
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observation-and-refinement" class="md-nav__link">
+    <span class="md-ellipsis">
+      Observation and Refinement
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reasoning-and-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reasoning and Calculation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -800,6 +869,75 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="How it works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#available-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available tools
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-input" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent Input
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#first-thought" class="md-nav__link">
+    <span class="md-ellipsis">
+      First Thought
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iterative-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      Iterative Search
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observation-and-refinement" class="md-nav__link">
+    <span class="md-ellipsis">
+      Observation and Refinement
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reasoning-and-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Reasoning and Calculation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -872,43 +1010,43 @@
 
 
 <!-- BEGIN INCLUDE ../../../examples/dspy_react/README.md '&lt;!--start--&gt;' '&lt;!--end--&gt;' -->
-<h1 id="eggai-advanced-agents-with-dspy-react">EggAI: Advanced Agents with DSPy ReAct</h1>
-<p>This example demonstrates how to integrate a complex ReAct module into EggAI agents for dynamic question-answering
-tasks. DSPy supports ReAct, an LLM agent designed to tackle complex tasks in an interactive fashion. ReAct is composed
-of an iterative loop of interpretation, decision and action-based activities ("Thought, Action, and Observation") based
-on an evolving set of input and output fields. Through this real-time iterative approach, the ReAct agent can both
-analyze and adapt to its responses over time as new information becomes available. Below, we explain how the example
-works step by step.</p>
+<h1 id="reactive-agents-with-dspy">ReActive Agents with DSPy</h1>
+<p>This example demonstrates how to integrate DSPy’s powerful <em>ReAct</em> module into EggAI agents for dynamic, real-time question-answering tasks.
+<em>ReAct</em> enables agents to tackle complex problems by continuously refining their responses through an iterative cycle of reasoning (<em>Thought</em>), decision-making (<em>Action</em>), and feedback (<em>Observation</em>). As the agent processes information, it adjusts its actions based on ongoing observations, allowing it to adapt and improve over time. This flexible, real-time iterative approach makes ReAct ideal for tasks that require dynamic reasoning, rapid decision-making, and continuous adaptation to new information.</p>
 <p>The code for this example is available <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/dspy_react">here</a>.</p>
 <h2 id="how-it-works">How it works</h2>
-<p>In this example, we demonstrate how to test the ReAct agent by sending a message to the agent channel. </p>
-<p>For instance:</p>
+<p>In this example, we test the ReAct agent by sending a question to the agent channel.
+The agent dynamically processes the question and iteratively refines its responses.</p>
+<p>For example:</p>
 <pre><code class="language-python"> await agents_channel.publish({
         &quot;type&quot;: &quot;question&quot;,
         &quot;payload&quot;: &quot;Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building.&quot;
     })
 </code></pre>
-<p><strong>Available tools</strong>: The <code>react_module</code> ReAct contains two tools: <code>evaluate_math</code> for
-mathematical operations and <code>search_wikipedia</code> for retrieving relevant information from a ColBERTv2 model.</p>
-<p><strong>Agent Input</strong>: The agent receives a question: <em>"Give me the year of construction of the Eiffel Tower summed with the
-year of construction of the Empire State Building."</em></p>
-<p><strong>First Thought</strong>: The agent reasons: <em>"I need to find the years of construction for both the Eiffel Tower and the
-Empire State Building in order to sum them."</em> It uses the <code>search_wikipedia</code> tool to query for construction years.</p>
-<p><strong>Iterative Search</strong>: The agent iteratively refines its search queries when initial results don’t contain the required
-information. It tries broader and more specific queries, such as: <em>"Eiffel Tower construction year, Empire State
-Building construction year."</em> <em>"Eiffel Tower construction year."</em> <em>"Empire State Building construction year."</em> <em>"Eiffel
-Tower history construction year."</em></p>
-<p><strong>Observation and Refinement</strong>: Each search produces observations, such as articles or snippets, which the agent
-analyzes to determine if they contain the necessary information. When relevant data is missing, it generates a new
-query.</p>
-<p><strong>Reasoning and Calculation</strong>: After retrieving sufficient information, the agent reasons: <em>"The construction year of
-the Eiffel Tower is 1887, and the Empire State Building was constructed from 1930 to 1931. To find the total, I will sum
-1887 and 1931 (the year it was completed)."</em> The agent uses the <code>evaluate_math</code> tool to calculate the sum: <em>1887 +
-1931 = 3818.</em></p>
-<p><strong>Output</strong>: The agent produces a final answer: <em>"3818"</em>, which is returned as the result.</p>
+<h3 id="available-tools">Available tools</h3>
+<p>The <code>react_module</code> contains two tools:
+- <code>evaluate_math</code>: Handles mathematical operations.
+- <code>search_wikipedia</code> Interacts with a Wikipedia Search API which uses a ColBERTv2 model.</p>
+<h3 id="agent-input">Agent Input</h3>
+<p>The agent receives the question: <em>"Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building."</em></p>
+<h3 id="first-thought">First Thought</h3>
+<p>The agent begins by reasoning: <em>"I need to find the years of construction for both the Eiffel Tower and the Empire State Building in order to sum them."</em> It uses the <code>search_wikipedia</code> tool to gather relevant data.</p>
+<h3 id="iterative-search">Iterative Search</h3>
+<p>If initial results don’t provide sufficient information, the agent refines its search by querying more specific terms:
+- <em>"Eiffel Tower construction year, Empire State Building construction year."</em>
+- <em>"Eiffel Tower construction year."</em>
+- <em>"Empire State Building construction year."</em>
+- <em>"Eiffel Tower history construction year."</em></p>
+<h3 id="observation-and-refinement">Observation and Refinement</h3>
+<p>The agent analyzes the results of each search, refining its queries as needed. When relevant data is missing, it generates new queries until the necessary information is found.</p>
+<h3 id="reasoning-and-calculation">Reasoning and Calculation</h3>
+<p>Once the agent has sufficient information, it reasons: <em>"The construction year of
+the Eiffel Tower is 1887, and the Empire State Building was constructed from 1930 to 1931. To find the total, I will sum 1887 and 1931 (the year it was completed)."</em> The agent uses the <code>evaluate_math</code> tool to perform the calculation: <em>1887 + 1931 = 3818.</em></p>
+<h3 id="output">Output</h3>
+<p>The agent returns the final answer: <em>"3818"</em>.</p>
 <h2 id="key-takeaways">Key Takeaways</h2>
-<p>This example illustrates the power of integrating DSPy’s ReAct framework into EggAI agents. By leveraging iterative
-reasoning and dynamic tool usage, the agent can:</p>
+<p>This example shows the power of integrating DSPy’s ReAct module into EggAI agents.
+By leveraging iterative reasoning and dynamic tool usage, the agent can:</p>
 <ul>
 <li>Adapt its queries based on observations.</li>
 <li>Combine tools (e.g., mathematical evaluation and information retrieval) for complex reasoning.</li>
@@ -1006,7 +1144,7 @@ or the EggAI community.</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>
