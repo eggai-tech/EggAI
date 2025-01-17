@@ -9,7 +9,11 @@ works step by step.
 
 The code for this example is available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/dspy_react).
 
-## Under the Hood
+## How it works
+
+In this example, we demonstrate how to test the ReAct agent by sending a message to the agent channel. 
+
+For instance:
 
 ```python
  await agents_channel.publish({
@@ -18,7 +22,7 @@ The code for this example is available [here](https://github.com/eggai-tech/EggA
     })
 ```
 
-**Initialization of the ReAct Agent**: The `react_module` ReAct agent is initialized contains two tools: `evaluate_math` for
+**Available tools**: The `react_module` ReAct contains two tools: `evaluate_math` for
 mathematical operations and `search_wikipedia` for retrieving relevant information from a ColBERTv2 model.
 
 **Agent Input**: The agent receives a question: *"Give me the year of construction of the Eiffel Tower summed with the
