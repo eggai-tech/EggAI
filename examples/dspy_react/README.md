@@ -1,6 +1,4 @@
-from src.dspy_modules.react_module import react_module
-
-# EggAI and ReAct with DSPy: Wikipedia Q&A Example
+# EggAI: Advanced Agents with DSPy ReAct
 
 This example demonstrates how to integrate a complex ReAct module into EggAI agents for dynamic question-answering
 tasks. DSPy supports ReAct, an LLM agent designed to tackle complex tasks in an interactive fashion. ReAct is composed

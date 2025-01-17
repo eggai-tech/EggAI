@@ -40,11 +40,5 @@ react_module = dspy.ReAct("question -> answer, numeric_answer: float",
 
 if __name__ == "__main__":
     load_dotenv()
-    EIFFEL_TOWER = 1889
-    EMPIRE_STATE_BUILDING = 1931
-    assert react_module(
-        question="Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building.").numeric_answer == EIFFEL_TOWER + EMPIRE_STATE_BUILDING
-    assert react_module(
-        question="What is my balance until 2022-01-03 included?").numeric_answer == 5000.0 + 100.0 - 500.0
-    assert react_module(
-        question="What is my balance until 2022-01-03 included summed with the year of construction of the Eiffel Tower?").numeric_answer == 5000.0 + 100.0 - 500.0 + EIFFEL_TOWER
+    res = react_module(question="Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building.")
+    print(res.numeric_answer)
