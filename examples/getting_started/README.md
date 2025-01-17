@@ -1,6 +1,6 @@
-# Getting Started with EggAI Multi-Agent Meta Framework
+# Getting Started
 
-Learn how to use the `eggai` SDK to enable asynchronous communication between two agents.
+Learn how to create two agents and setup the communication using the `eggai` SDK.
 
 Key features:
 
@@ -76,6 +76,8 @@ What happens:
 - Agent 1 sends a message to Agent 2.
 - Agent 2 processes the message and sends a response.
 - The framework handles message passing, retries, and logging.
+
+<img src="../../docs/docs/assets/redpanda-console.png" alt="Redpanda Console"/>
 
 Congratulations! You've successfully run your first EggAI Multi-Agent application.
 
