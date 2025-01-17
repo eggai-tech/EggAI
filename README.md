@@ -17,7 +17,15 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 - <a href="#eggai-sdk">eggai SDK</a>: Core components for asynchronous, distributed multi-agent communication.
 - <a href="#examples">Examples</a>: Practical implementation scenarios and integration guides with popular AI frameworks.
 
-## Features
+## Meta Framework
+
+A meta framework is a high-level structure that provides reusable components and tools for building applications, offering flexibility, scalability, and adaptability for diverse use cases. We chose this approach to avoid overly opinionated code and ensure greater customization.
+
+## EggAI SDK
+
+**EggAI SDK** includes core components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
+
+### Features
 
 - 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
 - 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
@@ -26,10 +34,6 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 - 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
 - 🔄 **Resilient**: Built-in retry mechanisms and fault tolerance ensuring reliability.
 - 🚇 **Kafka Integration**: Native support for efficient streaming and messaging with Kafka.
-
-## EggAI SDK
-
-**EggAI SDK** includes core components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
 
 ### Installation
 
