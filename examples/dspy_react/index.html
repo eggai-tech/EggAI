@@ -582,9 +582,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#under-the-hood" class="md-nav__link">
+  <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
-      Under the Hood
+      How it works
     </span>
   </a>
   
@@ -794,9 +794,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#under-the-hood" class="md-nav__link">
+  <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
-      Under the Hood
+      How it works
     </span>
   </a>
   
@@ -880,13 +880,15 @@ on an evolving set of input and output fields. Through this real-time iterative 
 analyze and adapt to its responses over time as new information becomes available. Below, we explain how the example
 works step by step.</p>
 <p>The code for this example is available <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/dspy_react">here</a>.</p>
-<h2 id="under-the-hood">Under the Hood</h2>
+<h2 id="how-it-works">How it works</h2>
+<p>In this example, we demonstrate how to test the ReAct agent by sending a message to the agent channel. </p>
+<p>For instance:</p>
 <pre><code class="language-python"> await agents_channel.publish({
         &quot;type&quot;: &quot;question&quot;,
         &quot;payload&quot;: &quot;Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building.&quot;
     })
 </code></pre>
-<p><strong>Initialization of the ReAct Agent</strong>: The <code>react_module</code> ReAct agent is initialized contains two tools: <code>evaluate_math</code> for
+<p><strong>Available tools</strong>: The <code>react_module</code> ReAct contains two tools: <code>evaluate_math</code> for
 mathematical operations and <code>search_wikipedia</code> for retrieving relevant information from a ColBERTv2 model.</p>
 <p><strong>Agent Input</strong>: The agent receives a question: <em>"Give me the year of construction of the Eiffel Tower summed with the
 year of construction of the Empire State Building."</em></p>
