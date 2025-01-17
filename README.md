@@ -26,10 +26,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/getting_started"><strong>Getting Started</strong></a>:<br/>
-        Orchestrate two agents asynchronously.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-        </div>
+        Orchestrate two agents asynchronously.<br/>
+        Tags: Communication
       </td>
       <td style="width: 60%;">
         <a href="examples/getting_started">
@@ -40,11 +38,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/coordinator"><strong>Coordinator</strong></a>:<br/>
-        Bridge multiple communication channels.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Pattern</div>
-        </div>
+        Bridge multiple communication channels.<br/>
+        Tags: Communication, Pattern
       </td>
       <td style="width: 60%;">
         <a href="examples/coordinator">
@@ -55,11 +50,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/websocket_gateway"><strong>Websocket Gateway</strong></a>:<br/>
-        Real-time interaction via WebSockets.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Realtime</div>
-        </div>
+        Real-time interaction via WebSockets.<br/>
+        Tags: Communication, Realtime
       </td>
       <td style="width: 60%;">
         <a href="examples/websocket_gateway">
@@ -70,11 +62,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/langchain_tool_calling"><strong>LangChain Tool Calling</strong></a>:<br/>
-        Integrate tool calling with LangChain.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Tool Calling</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">LangChain</div>
-        </div>
+        Integrate tool calling with LangChain.<br/>
+        Tags: Tool Calling, LangChain
       </td>
       <td style="width: 60%;">
         <a href="examples/langchain_tool_calling">
@@ -85,11 +74,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/shared_context"><strong>Shared Context</strong></a>:<br/>
-        Maintain shared context across agents.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Memory</div>
-        </div>
+        Maintain shared context across agents.<br/>
+        Tags: Communication, Memory
       </td>
       <td style="width: 60%;">
         <a href="examples/shared_context">
@@ -100,10 +86,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/litellm_agent"><strong>LiteLLM Agent</strong></a>:<br/>
-        Power agents with LiteLLM.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">LiteLLM</div>
-        </div>
+        Power agents with LiteLLM.<br/>
+        Tags: LiteLLM
       </td>
       <td style="width: 60%;">
         <a href="examples/litellm_agent">
@@ -114,11 +98,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/triage_agent"><strong>Triage Agent</strong></a>:<br/>
-        Triage Agent with classification and routing.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Classification</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Routing</div>
-        </div>
+        Triage Agent with classification and routing.<br/>
+        Tags: Classification, Routing
       </td>
       <td style="width: 60%;">
         <a href="examples/triage_agent">
@@ -129,13 +110,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
-        Context aware multi-agent conversations.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Classification</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Routing</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Chat</div>
-        </div>
+        Context aware multi-agent conversations.<br/>
+        Tags: Communication, Classification, Routing, Chat
       </td>
       <td style="width: 60%;">
         <a href="examples/multi_agent_conversation">
@@ -146,14 +122,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/multi_agent_human_chat"><strong>Multi-Agent & Human Chat</strong></a>:<br/>
-        Insurance support system with an intuitive user interface.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Realtime</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Classification</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Routing</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Chat</div>
-        </div>
+        Insurance support system with an intuitive user interface.<br/>
+        Tags: Communication, Realtime, Classification, Routing, Chat
       </td>
       <td style="width: 60%;">
         <a href="examples/multi_agent_human_chat">
@@ -164,12 +134,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/agent_evaluation_dspy"><strong>Agent Evaluation & Optimization with DSPy</strong></a>:<br/>
-        Data-driven development with DSPy.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">DSPy</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Evaluation</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Optimization</div>
-        </div>
+        Data-driven development with DSPy.<br/>
+        Tags: DSPy, Evaluation, Optimization
       </td>
       <td style="width: 60%;">
         <a href="examples/agent_evaluation_dspy">
@@ -180,11 +146,8 @@ Practical implementation scenarios and integration guides with popular AI framew
       <tr>
       <td style="width: 40%;">
         <a href="examples/agent_evaluation_dspy"><strong>Safe Agents with Guardrails AI</strong></a>:<br/>
-        Guarding LLM agents against toxicity and PII leakage.
-         <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">DSPy</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Guardrails</div>
-        </div>
+        Guarding LLM agents against toxicity and PII leakage.<br/>
+        Tags: DSPy, Guardrails
       </td>
       <td style="width: 60%;">
         <a href="examples/safe_agents_guardrails">
@@ -195,12 +158,8 @@ Practical implementation scenarios and integration guides with popular AI framew
     <tr>
       <td style="width: 40%;">
         <a href="examples/dspy_react"><strong>DSPy ReAct</strong></a>:<br/>
-        Advanced Agents with DSPy ReAct.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">DSPy</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Tool Calling</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">React</div>
-        </div>
+        Advanced Agents with DSPy ReAct.<br/>
+        Tags: DSPy, Tool Calling, React
       </td>
       <td style="width: 60%;">
         <a href="examples/dspy_react">
