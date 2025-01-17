@@ -185,6 +185,17 @@ We encourage you to explore and **copy/paste** from our examples for practical i
     </tr>
     <tr>
       <td>
+        <a href="examples/triage_agent"><strong>Triage Agent</strong></a>:<br/>
+        Triage Agent with classification and routing.
+      </td>
+      <td>
+        <a href="examples/triage_agent">
+          <img src="docs/docs/assets/triage-agent.png" alt="Triage Agent"/>
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>
         <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
         Context aware multi-agent conversations.
       </td>
@@ -229,12 +240,12 @@ We encourage you to explore and **copy/paste** from our examples for practical i
     </tr>
     <tr>
       <td>
-        <a href="examples/triage_agent"><strong>Triage Agent</strong></a>:<br/>
-        Triage Agent with classification and routing.
+        <a href="examples/dspy_react"><strong>DSPy ReAct</strong></a>:<br/>
+        Advanced Agents with DSPy ReAct.
       </td>
       <td>
-        <a href="examples/triage_agent">
-          <img src="docs/docs/assets/triage-agent.png" alt="Triage Agent"/>
+        <a href="examples/dspy_react">
+          <img src="docs/docs/assets/react-agent-dspy.png" alt="DSPy ReAct"/>
         </a>
       </td>
     </tr>

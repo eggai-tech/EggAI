@@ -23,11 +23,12 @@ nav:
     - "LangChain Tool Calling": examples/langchain_tool_calling.md
     - "Shared Context": examples/shared_context.md
     - "LiteLLM Integration": examples/litellm_agent.md
+    - "Triage agent": examples/triage_agent.md
     - "Multi-Agent Conversation": examples/multi_agent_conversation.md
     - "Multi-Agent & Human Chat": examples/multi_agent_human_chat.md
     - "Evaluation & DSPy": examples/agent_evaluation_dspy.md
     - "Safe agents & Guardrails": examples/safe_agents_guardrails.md
-    - "Triage agent": examples/triage_agent.md
+    - "Advanced Agents with DSPy ReAct": examples/dspy_react.md
   - References:
     - "Agent": references/agent.md
     - "Channel": references/channel.md
