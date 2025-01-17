@@ -14,7 +14,6 @@ conversation,target
 "User: Can you explain the benefits covered under my current policy?","PolicyAgent"
 "User: I would like to update my address on my policy.\nPolicyAgent: Sure, please provide your new address.\nUser: 123 Main Street, Springfield.","PolicyAgent"
 "User: Please send me a copy of my policy statement.","PolicyAgent"
-"User: How can I consult my Policy details?\nPolicyAgent: You can visit www.insurance.com and log in.\n User: I'm experiencing an error when trying to log into I need assistance.","TicketingAgent"
 "User: I want to escalate my previous issue regarding my billing statement.","TicketingAgent"
 "User: There's a glitch in the mobile app that's preventing me from accessing my policy.","TicketingAgent"
 "User: Tell me a fun fact about space.","TriageAgent"

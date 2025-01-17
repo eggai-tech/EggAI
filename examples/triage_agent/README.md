@@ -1,17 +1,20 @@
 # Triage Agent with classification and routing
 
-This example demonstrates how to build and implement an triage agent using EggAI. The agent acts as a
-*Triage*, processing user messages and routing them to the appropriate target agents based on the intent of the
-conversation. The TriageAgent uses a custom classification model to determine whether a message is policy-related,
-ticketing-related, or non-insurance-related.
+This example demonstrates how to build and implement a Triage Agent using EggAI. The Triage Agent is designed to handle
+incoming messages, classify them based on predefined criteria (e.g., urgency, type, or category), and route them to the
+appropriate agents or services for further processing. By ensuring efficient task delegation and resource utilization,
+the Triage Agent plays a critical role in optimizing workflows.
 
-Key features:
+## Key Features:
 
-- **Intent Classification**: Automatically classifies user messages into one of three target agents: `PolicyAgent`,
+- **Message Classification**: Automatically classifies user messages into one of three target agents: `PolicyAgent`,
   `TicketingAgent`, or `TriageAgent`.
-- **Chain of Thought Reasoning**: Employs the `dspy` library for reasoning and structured decision-making in the
-  classification process.
-- **Testing Suite**: Includes test datasets and pytest-based evaluation to ensure performance of the intent classifier.
+- **Dynamic Routing**: Routes messages to the most suitable agents or services based on the classification outcome,
+  enabling efficient and accurate task handling.
+- **Chain of Thought Reasoning**: Utilizes the `dspy` library for structured decision-making, enhancing the reasoning
+  process in message classification.
+- **Comprehensive Testing Suite**: Includes test datasets and pytest-based evaluation to validate the performance and
+  accuracy of the classification model.
 
 The code for this example is
 available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/intent_classification).

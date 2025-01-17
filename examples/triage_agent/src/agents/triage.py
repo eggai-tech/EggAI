@@ -1,5 +1,5 @@
 from eggai import Channel, Agent
-from ..dspy_modules.intent_classifier import intent_classifier
+from ..dspy_modules.triage_module import triage_module
 
 human_channel = Channel("human")
 agents_channel = Channel("agents")
@@ -17,7 +17,7 @@ async def handle_user_message(msg):
     try:
         payload = msg["payload"]
         chat_messages = payload.get("chat_messages", "")
-        response = intent_classifier(chat_history=chat_messages)
+        response = triage_module(chat_history=chat_messages)
         target_agent = response.target_agent
 
         await agents_channel.publish({"target": target_agent, "payload": payload})

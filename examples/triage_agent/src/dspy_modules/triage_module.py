@@ -11,7 +11,7 @@ TargetAgent = Literal["PolicyAgent", "TicketingAgent", "TriageAgent"]
 dspy.configure(lm=language_model)
 
 
-class AgentClassificationSignature(dspy.Signature):
+class TriageSignature(dspy.Signature):
     """
     Extract the intent of a user message and classify it to the appropriate target agent.
 
@@ -34,11 +34,11 @@ class AgentClassificationSignature(dspy.Signature):
     )
 
 
-intent_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
+triage_module = dspy.ChainOfThought(signature=TriageSignature)
 
 if __name__ == "__main__":
     load_dotenv()
     run_and_calculate_costs(
-        intent_classifier,
+        triage_module,
         chat_history="User: I need help with my policy."
     )
