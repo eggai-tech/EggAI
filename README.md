@@ -14,110 +14,12 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 
 `EggAI Multi-Agent Meta Framework` is an async-first meta framework for building scalable multi-agent systems for modern enterprise environments. It provides:
 
-- <a href="#eggai-sdk">eggai SDK</a>: Core components for asynchronous, distributed multi-agent communication.
 - <a href="#examples">Examples</a>: Practical implementation scenarios and integration guides with popular AI frameworks.
-
-## Meta Framework
-
-A meta framework is a high-level structure that provides reusable components and tools for building applications, offering flexibility, scalability, and adaptability for diverse use cases. We chose this approach to avoid overly opinionated code and ensure greater customization.
-
-## EggAI SDK
-
-**EggAI SDK** includes core components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
-
-### Features
-
-- 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
-- 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
-- ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
-- 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
-- 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
-- 🔄 **Resilient**: Built-in retry mechanisms and fault tolerance ensuring reliability.
-- 🚇 **Kafka Integration**: Native support for efficient streaming and messaging with Kafka.
-
-### Installation
-
-Install `eggai` via pip:
-
-```bash
-pip install eggai
-```
-
-### Getting Started
-
-Here's how you can quickly set up an agent to handle events in an event-driven system:
-
-```python
-import asyncio
-
-from eggai import Agent, Channel
-
-agent = Agent("OrderAgent")
-channel = Channel()
-
-
-@agent.subscribe(event_name="order_requested")
-async def handle_order_requested(event):
-    print(f"[ORDER AGENT]: Received order request. Event: {event}")
-    await channel.publish({"event_name": "order_created", "payload": event})
-
-
-@agent.subscribe(event_name="order_created")
-async def handle_order_created(event):
-    print(f"[ORDER AGENT]: Order created. Event: {event}")
-
-
-async def main():
-    await agent.run()
-    await channel.publish({
-        "event_name": "order_requested",
-        "payload": {
-            "product": "Laptop",
-            "quantity": 1
-        }
-    })
-
-    try:
-        print("Agent is running. Press Ctrl+C to stop.")
-        await asyncio.Event().wait()
-    except asyncio.exceptions.CancelledError:
-        print("Task was cancelled. Cleaning up...")
-    finally:
-        # Clean up resources
-        await agent.stop()
-        await channel.stop()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-Copy this snippet into your project, customize it, and you’re good to go!
-
-### Core Concepts
-
-An `Agent` is an autonomous unit of business logic designed to orchestrate workflows, process events, and communicate with external systems such as Large Language Models (LLMs) and APIs. It reduces boilerplate code while supporting complex and long-running workflows. Key features include:
-
-- **Event Handling**: Use the `subscribe` decorator to bind user-defined handlers to specific events.
-- **Workflow Orchestration**: Manage long-running workflows and tasks efficiently.
-- **External System Communication**: Seamlessly interact with Large Language Models (LLMs), external APIs, and other systems.
-- **Lifecycle Management**: Automatically handle the lifecycle of Kafka consumers, producers, and other connected components.
-- **Boilerplate Reduction**: Focus on core business logic while leveraging built-in integrations for messaging and workflows.
-
-A `Channel` is the foundational communication layer that facilitates both event publishing and subscription.
-It abstracts Kafka producers and consumers, enabling efficient and flexible event-driven operations. Key features include:
-
-- **Event Communication**: Publish events to Kafka topics with ease.
-- **Event Subscription**: Subscribe to Kafka topics and process events directly through the `Channel`.
-- **Shared Resources**: Optimize resource usage by managing singleton Kafka producers and consumers across multiple agents or channels.
-- **Seamless Integration**: Act as a communication hub, supporting both Agents and other system components.
-- **Flexibility**: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.
-
-<!--end-->
+- <a href="#eggai-sdk">eggai SDK</a>: Core components for asynchronous, distributed multi-agent communication.
 
 ## Examples
 
-We encourage you to explore and **copy/paste** from our examples for practical implementation scenarios and integration guides with popular AI frameworks.
+Practical implementation scenarios and integration guides with popular AI frameworks. We encourage you to explore and **copy/paste** from our examples for your projects.
 
 <table style="width: 100%">
   <tbody>
@@ -308,6 +210,100 @@ We encourage you to explore and **copy/paste** from our examples for practical i
     </tr>
   </tbody>
 </table>
+
+## EggAI SDK
+
+**EggAI SDK** includes core components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
+
+### Features
+
+- 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
+- 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
+- ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
+- 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
+- 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
+- 🔄 **Resilient**: Built-in retry mechanisms and fault tolerance ensuring reliability.
+- 🚇 **Kafka Integration**: Native support for efficient streaming and messaging with Kafka.
+
+### Installation
+
+Install `eggai` via pip:
+
+```bash
+pip install eggai
+```
+
+### Getting Started
+
+Here's how you can quickly set up an agent to handle events in an event-driven system:
+
+```python
+import asyncio
+
+from eggai import Agent, Channel
+
+agent = Agent("OrderAgent")
+channel = Channel()
+
+
+@agent.subscribe(event_name="order_requested")
+async def handle_order_requested(event):
+    print(f"[ORDER AGENT]: Received order request. Event: {event}")
+    await channel.publish({"event_name": "order_created", "payload": event})
+
+
+@agent.subscribe(event_name="order_created")
+async def handle_order_created(event):
+    print(f"[ORDER AGENT]: Order created. Event: {event}")
+
+
+async def main():
+    await agent.run()
+    await channel.publish({
+        "event_name": "order_requested",
+        "payload": {
+            "product": "Laptop",
+            "quantity": 1
+        }
+    })
+
+    try:
+        print("Agent is running. Press Ctrl+C to stop.")
+        await asyncio.Event().wait()
+    except asyncio.exceptions.CancelledError:
+        print("Task was cancelled. Cleaning up...")
+    finally:
+        # Clean up resources
+        await agent.stop()
+        await channel.stop()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+Copy this snippet into your project, customize it, and you’re good to go!
+
+### Core Concepts
+
+An `Agent` is an autonomous unit of business logic designed to orchestrate workflows, process events, and communicate with external systems such as Large Language Models (LLMs) and APIs. It reduces boilerplate code while supporting complex and long-running workflows. Key features include:
+
+- **Event Handling**: Use the `subscribe` decorator to bind user-defined handlers to specific events.
+- **Workflow Orchestration**: Manage long-running workflows and tasks efficiently.
+- **External System Communication**: Seamlessly interact with Large Language Models (LLMs), external APIs, and other systems.
+- **Lifecycle Management**: Automatically handle the lifecycle of Kafka consumers, producers, and other connected components.
+- **Boilerplate Reduction**: Focus on core business logic while leveraging built-in integrations for messaging and workflows.
+
+A `Channel` is the foundational communication layer that facilitates both event publishing and subscription.
+It abstracts Kafka producers and consumers, enabling efficient and flexible event-driven operations. Key features include:
+
+- **Event Communication**: Publish events to Kafka topics with ease.
+- **Event Subscription**: Subscribe to Kafka topics and process events directly through the `Channel`.
+- **Shared Resources**: Optimize resource usage by managing singleton Kafka producers and consumers across multiple agents or channels.
+- **Seamless Integration**: Act as a communication hub, supporting both Agents and other system components.
+- **Flexibility**: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.
+
+<!--end-->
 
 ### Why Copy/Paste?
 
