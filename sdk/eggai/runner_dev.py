@@ -4,9 +4,9 @@ from eggai import Agent, Channel, KafkaTransport
 
 transport = KafkaTransport()
 
-agent = Agent("Agent1", transport=transport)
-channel = Channel(transport=transport)
-channel2 = Channel(transport=transport)
+agent = Agent("Agent1")
+channel = Channel()
+channel2 = Channel()
 
 
 @agent.subscribe(channel=channel)
