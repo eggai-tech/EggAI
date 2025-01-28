@@ -5,9 +5,8 @@ from typing import Dict, List, Callable, Optional, Type
 from eggai.channel import Channel
 from eggai.constants import DEFAULT_CHANNEL_NAME
 from eggai.schemas import MessageBase
-from eggai.settings.kafka import KafkaSettings
 from eggai.transport.base import BaseTransport
-from eggai.transport.kafka import KafkaTransport
+from eggai.transport.zeromq import ZeroMQTransport
 
 
 def _get_channel_name(channel: Optional[Channel], channel_name: Optional[str]) -> str:
@@ -24,20 +23,14 @@ class Agent:
             self,
             name: str,
             transport: BaseTransport = None,
-            kafka_settings: KafkaSettings = None
     ):
         """
         :param name: The name of the agent (used as an identifier).
         :param transport: A concrete transport instance (KafkaTransport, ZeroMQTransport, etc.).
                           If None, defaults to KafkaTransport with the given kafka_settings.
-        :param kafka_settings: (Optional) Kafka settings if using default KafkaTransport.
         """
         self.name = name
-        self.kafka_settings = kafka_settings or KafkaSettings()
-        self.transport = transport or KafkaTransport(
-            bootstrap_servers=self.kafka_settings.BOOTSTRAP_SERVERS,
-        )
-
+        self.transport = transport or ZeroMQTransport()
         self._handlers: List[Dict] = []
         self._channels = set()
         self._running_task = None
@@ -102,6 +95,7 @@ class Agent:
         # Start the transport with the given channels
         await self.transport.start(channels=self._channels, group_id=f"{self.name}_group")
         self._running_task = asyncio.create_task(self._consume_loop())
+        await asyncio.sleep(0.1)
         self._running = True
 
     async def stop(self):

@@ -10,21 +10,17 @@ channel = Channel()
 
 @agent.subscribe(filter_func=lambda event: event["event_name"] == "order_requested")
 async def handle_order_requested(event):
-    print(f"[ORDER AGENT]: Received order request. Event: {event}")
-    await channel.publish({"event_name": "order_created", "payload": event})
+    print(f"[ORDER AGENT]: Received order request. Event: {event['payload']}")
+    await channel.publish({"event_name": "order_created", "payload": event["payload"]})
 
 
 @agent.subscribe(filter_func=lambda event: event["event_name"] == "order_created")
 async def handle_order_created(event):
-    print(f"[ORDER AGENT]: Order created. Event: {event}")
+    print(f"[ORDER AGENT]: Order created. Event: {event['payload']}")
 
 
 async def run_test_scenario():
-    # Start the agent
     await agent.run()
-
-    # Publish an order_requested event
-
     await channel.publish({
         "event_name": "order_requested",
         "payload": {
@@ -32,11 +28,7 @@ async def run_test_scenario():
             "quantity": 1
         }
     })
-
-    # Give the agent time to process
     await asyncio.sleep(2)
-
-    # Stop agent and channel
     await channel.stop()
     await agent.stop()
 

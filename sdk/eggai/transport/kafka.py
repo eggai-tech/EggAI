@@ -1,4 +1,3 @@
-# transport/kafka.py
 import asyncio
 import json
 from typing import Set, Dict, Any, Awaitable, Callable
@@ -6,11 +5,12 @@ from typing import Set, Dict, Any, Awaitable, Callable
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
 from .base import BaseTransport
+from ..settings.kafka import KafkaSettings
 
 
 class KafkaTransport(BaseTransport):
-    def __init__(self, bootstrap_servers: str, auto_offset_reset: str = "latest"):
-        self.bootstrap_servers = bootstrap_servers
+    def __init__(self, config: KafkaSettings = KafkaSettings(), auto_offset_reset: str = "latest"):
+        self.bootstrap_servers = config.BOOTSTRAP_SERVERS
         self.auto_offset_reset = auto_offset_reset
 
         self._producer: AIOKafkaProducer = None
