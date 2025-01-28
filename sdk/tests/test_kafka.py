@@ -1,9 +1,12 @@
 import asyncio
+
 import pytest
+
 from eggai import Agent, Channel
 
 agent = Agent("OrderAgent")
 channel = Channel()
+
 
 @agent.subscribe(filter_func=lambda event: event["event_name"] == "order_requested")
 async def handle_order_requested(event):
@@ -15,11 +18,13 @@ async def handle_order_requested(event):
 async def handle_order_created(event):
     print(f"[ORDER AGENT]: Order created. Event: {event}")
 
+
 async def run_test_scenario():
     # Start the agent
     await agent.run()
 
     # Publish an order_requested event
+
     await channel.publish({
         "event_name": "order_requested",
         "payload": {
