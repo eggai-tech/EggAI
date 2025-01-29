@@ -33,6 +33,7 @@ classifiers = [
 python = "^3.10"
 aiokafka = "^0.12.0"
 pydantic = "^2.10.5"
+pyzmq = "^26.2.0"
 
 [tool.poetry.group.dev.dependencies]
 twine = "^6.0.1"
