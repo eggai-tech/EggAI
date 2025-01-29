@@ -61,7 +61,7 @@ def plug_fastapi_websocket(route: str, app: FastAPI):
 
 
 async def start_websocket_gateway():
-    await websocket_gateway_agent.run()
+    await websocket_gateway_agent.start()
 
 async def stop_websocket_gateway():
     await websocket_gateway_agent.stop()

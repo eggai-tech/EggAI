@@ -23,7 +23,7 @@ escalation_agent = LiteLlmAgent(
         "• Do not provide speculative or incorrect information.\n"
         "• Ensure the ticket ID follows the format 'ESC-XXXXXX' where 'X' is a digit.\n"
     ),
-    model="openai/gpt-4",
+    model="openai/gpt-4o-mini",
 )
 
 ticket_database = [{

@@ -28,7 +28,7 @@ policy_agent = LiteLlmAgent(
         "• Stay within the scope of handling policy-related inquiries.\n"
         "• Always strive to provide accurate and prompt assistance.\n"
     ),
-    model="openai/gpt-4"
+    model="openai/gpt-4o-mini"
 )
 
 policies_database = [

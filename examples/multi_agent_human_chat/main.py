@@ -1,37 +1,34 @@
 import asyncio
 
 from dotenv import load_dotenv
+from eggai import eggai_stop
+from eggai.transport import eggai_set_default_transport, KafkaTransport
 
-from eggai import Channel
+from escalation_agent import escalation_agent
+from policies_agent import policy_agent
 from server import server
 from triage_agent import triage_agent
-from policies_agent import policy_agent
-from escalation_agent import escalation_agent
 
 
 async def main():
-    await triage_agent.run()
-    await policy_agent.run()
-    await escalation_agent.run()
+    load_dotenv()
+    # UNCOMMENT THIS IF YOU WANT TO RUN IT WITH KAFKA
+    # eggai_set_default_transport(lambda: KafkaTransport())
+
+    await triage_agent.start()
+    await policy_agent.start()
+    await escalation_agent.start()
 
     server_task = asyncio.create_task(server.serve())
 
     try:
         print("Agent is running. Press Ctrl+C to stop.")
         await asyncio.Event().wait()
-    except asyncio.exceptions.CancelledError:
-        print("Task was cancelled. Cleaning up...")
-    finally:
-        await triage_agent.stop()
-        await policy_agent.stop()
-        await escalation_agent.stop()
-        await Channel.stop()
-        server_task.cancel()
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        pass
+    await eggai_stop()
+    server_task.cancel()
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Exiting...")
+    asyncio.run(main())
