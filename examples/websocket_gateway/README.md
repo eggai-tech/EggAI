@@ -10,7 +10,7 @@ Key features:
 
 Here is a simplified architecture overview:
 
-![architecture-advanced-example.png](../../https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-gateway.svg)
+![architecture-advanced-example.png](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-gateway.svg)
 
 - **WebsocketGateway Agent**: Bridges human interfaces (e.g., web UI) and the agent ecosystem via WebSocket.
 - **Coordinator Agent**: Routes messages and orchestrates the workflow.

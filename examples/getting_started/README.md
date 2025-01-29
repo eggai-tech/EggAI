@@ -10,7 +10,7 @@ Key features:
 
 Here is a simplified architecture overview:
 
-![architecture-getting-started.svg](../../https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-getting-started.svg)
+![architecture-getting-started.svg](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-getting-started.svg)
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/getting_started). Let's dive in.
 
@@ -77,7 +77,7 @@ What happens:
 - Agent 2 processes the message and sends a response.
 - The framework handles message passing, retries, and logging.
 
-<img src="../../https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/redpanda-console.png" alt="Redpanda Console"/>
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/redpanda-console.png" alt="Redpanda Console"/>
 
 Congratulations! You've successfully run your first EggAI Multi-Agent application.
 
