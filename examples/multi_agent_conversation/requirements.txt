@@ -1,4 +1,4 @@
-eggai==0.1.16
+eggai
 python-dotenv==1.0.1
 litellm==1.57.5
 rich==13.9.4

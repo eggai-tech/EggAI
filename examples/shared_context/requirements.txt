@@ -1,2 +1,2 @@
-eggai==0.1.16
+eggai
 openai==1.59.6

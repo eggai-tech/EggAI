@@ -14,13 +14,6 @@ Here is a simplified architecture overview:
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/getting_started). Let's dive in.
 
-## Prerequisites
-
-Ensure you have the following dependencies installed:
-
-- **Python** 3.10+
-- **Docker** and **Docker Compose**
-
 ## Setup Instructions
 
 Clone the EggAI repository:
@@ -46,12 +39,6 @@ Install the required dependencies:
 
 ```bash
 pip install -r requirements.txt
-```
-
-Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
-
-```bash
-docker compose up -d
 ```
 
 ## Run the Example
@@ -80,14 +67,6 @@ What happens:
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/redpanda-console.png" alt="Redpanda Console"/>
 
 Congratulations! You've successfully run your first EggAI Multi-Agent application.
-
-## Clean Up
-
-Stop and clean up the Docker containers:
-
-```bash
-docker compose down -v
-```
 
 ## Next Steps
 
