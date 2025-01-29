@@ -182,7 +182,7 @@ Practical implementation scenarios and integration guides with popular AI framew
 - 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
 - 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
 - 🔄 **Resilient**: Built-in retry mechanisms and fault tolerance ensuring reliability.
-- 🚇 **Kafka Integration**: Native support for efficient streaming and messaging with Kafka.
+- 🚇 **Kafka & ZeroMQ Integration**: Native support for efficient streaming and messaging with Kafka and ZeroMQ.
 
 ### Installation
 

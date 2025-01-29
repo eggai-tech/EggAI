@@ -4,7 +4,7 @@ from typing import Callable, Set, Dict, Any
 class BaseTransport(ABC):
     """
     An abstract interface for message transport backends,
-    e.g., Kafka, ZeroMQ, RabbitMQ, etc.
+    e.g., Kafka, ZeroMQ, etc.
     """
 
     @abstractmethod

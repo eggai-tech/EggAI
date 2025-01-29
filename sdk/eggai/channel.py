@@ -7,7 +7,7 @@ from eggai.transport.base import BaseTransport
 
 class Channel:
     """
-    A class to interact with Kafka channels for event publishing.
+    A class to interact with channels for event publishing.
     """
 
     _channels: Dict[str, "Channel"] = {}
