@@ -33,6 +33,7 @@ nav:
     - "Agent": references/agent.md
     - "Channel": references/channel.md
     - "Message": references/message.md
+    - "Transport": references/transport.md
 
 plugins:
 - include-markdown:
