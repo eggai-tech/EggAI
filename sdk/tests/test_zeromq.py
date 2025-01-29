@@ -45,6 +45,6 @@ async def test_events(capfd):
     # Check if the agent printed the expected lines
     assert "[ORDER AGENT]: Received order request. Event:" in stdout
     assert "[ORDER AGENT]: Order created. Event:" in stdout
-    # Optionally, you could check for expected payload data in the outpgit ut
+    # Optionally, you could check for expected payload data in the output
     assert "Laptop" in stdout
     assert "quantity" in stdout
