@@ -4,7 +4,7 @@ This example shows a simple multi-agent system for insurance support. It combine
 
 Here is a simplified architecture overview:
 
-![architecture-getting-started.svg](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-example-06-multi-agent-conversation.svg)
+![architecture-getting-started.svg](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat-2.svg)
 
 - **User Interaction**: Engages with the system through a WebSocket-enabled chat interface.
 - **TriageAgent**: Analyzes incoming messages and routes them to the appropriate agent based on content.
