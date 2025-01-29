@@ -21,6 +21,13 @@ Here is a simplified architecture overview:
 
 The example code is available [here](https://github.com/eggai-tech/EggAI/tree/main/examples/coordinator).
 
+## Prerequisites
+
+Ensure you have the following dependencies installed:
+
+- **Python** 3.10+
+- **Docker** and **Docker Compose**
+
 ## Setup Instructions
 
 Clone the EggAI repository:
@@ -46,6 +53,12 @@ Install the required dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
+
+```bash
+docker compose up -d
 ```
 
 ## Run the Example
@@ -81,6 +94,14 @@ What happens:
 
 3. **Notification Sent to Human Channel**:
    - Once the task is completed, the Coordinator Agent notifies the Human Channel.
+
+## Clean Up
+
+Stop and clean up the Docker containers:
+
+```bash
+docker compose down -v
+```
 
 ## Next Steps
 

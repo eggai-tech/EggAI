@@ -1,4 +1,4 @@
-eggai
+eggai==0.1.16
 dspy-ai==2.5.43
 python-dotenv==1.0.1
 pytest==8.3.4

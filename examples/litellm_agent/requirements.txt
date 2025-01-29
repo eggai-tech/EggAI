@@ -1,2 +1,2 @@
-eggai
+eggai==0.1.16
 litellm==1.57.5
