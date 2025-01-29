@@ -2,11 +2,10 @@ import asyncio
 
 import pytest
 
-from eggai import Agent, Channel, KafkaTransport
+from eggai import Agent, Channel
 
-kafka_transport = KafkaTransport()
-agent = Agent("OrderAgent", transport=kafka_transport)
-channel = Channel(transport=kafka_transport)
+agent = Agent("OrderAgent")
+channel = Channel()
 
 
 @agent.subscribe(filter_func=lambda event: event["event_name"] == "order_requested")

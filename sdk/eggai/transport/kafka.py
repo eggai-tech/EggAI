@@ -23,6 +23,8 @@ class KafkaTransport(BaseTransport):
         """
         Start the Kafka producers/consumers for the given channels.
         """
+        if self._running:
+            return
         self._channels = channels
         # Initialize the producer
         self._producer = AIOKafkaProducer(bootstrap_servers=self.bootstrap_servers)
