@@ -11,7 +11,7 @@ Key features include:
 
 Here is a simplified architecture overview:
 
-![architecture-advanced-example.png](../../docs/docs/assets/architecture-coordinator.svg)
+![architecture-advanced-example.png](../../https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-coordinator.svg)
 
 - **Human Channel**: Allows users or frontends to send and receive workflow-related data.
 - **Agent Channel**: Manages message passing and events between agents.

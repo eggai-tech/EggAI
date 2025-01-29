@@ -4,7 +4,7 @@ This example showcases how to build a collaborative multi-agent system using the
 
 Here is a simplified architecture overview:
 
-![architecture-overview-img](../../docs/docs/assets/architecture-example-06-multi-agent-conversation.svg)
+![architecture-overview-img](../../https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-example-06-multi-agent-conversation.svg)
 
 1. **User Interaction**: Users interact with the system through a CLI Chat interface.
 2. **TriageAgent**: Analyzes incoming messages and routes them to the appropriate agent based on the content.

@@ -1,4 +1,4 @@
-<img src="docs/docs/assets/eggai-word-and-figuremark.svg" alt="EggAI word and figuremark" width="200px" style="margin-bottom: 16px;" />
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/eggai-word-and-figuremark.svg" alt="EggAI word and figuremark" width="200px" style="margin-bottom: 16px;" />
 
 # Multi-Agent Meta Framework
 
@@ -31,7 +31,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/getting_started">
-          <img src="docs/docs/assets/example-00.png" alt="Getting Started Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-00.png" alt="Getting Started Example"/>
         </a>
       </td>
     </tr>
@@ -43,7 +43,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/coordinator">
-          <img src="docs/docs/assets/example-01.png" alt="Coordinator Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-01.png" alt="Coordinator Example"/>
         </a>
       </td>
     </tr>
@@ -55,7 +55,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/websocket_gateway">
-          <img src="docs/docs/assets/example-02.png" alt="Websocket Gateway Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-02.png" alt="Websocket Gateway Example"/>
         </a>
       </td>
     </tr>
@@ -67,7 +67,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/langchain_tool_calling">
-          <img src="docs/docs/assets/example-03.png" alt="LangChain Tool Calling Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-03.png" alt="LangChain Tool Calling Example"/>
         </a>
       </td>
     </tr>
@@ -79,7 +79,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/shared_context">
-          <img src="docs/docs/assets/example-04.png" alt="Shared Context Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-04.png" alt="Shared Context Example"/>
         </a>
       </td>
     </tr>
@@ -91,7 +91,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/litellm_agent">
-          <img src="docs/docs/assets/example-05.png" alt="LiteLLM Agent Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-05.png" alt="LiteLLM Agent Example"/>
         </a>
       </td>
     </tr>
@@ -103,7 +103,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/triage_agent">
-          <img src="docs/docs/assets/triage-agent.png" alt="Triage Agent"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-agent.png" alt="Triage Agent"/>
         </a>
       </td>
     </tr>
@@ -115,7 +115,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/multi_agent_conversation">
-          <img src="docs/docs/assets/example-06.png" alt="Multi-Agent Conversation Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-06.png" alt="Multi-Agent Conversation Example"/>
         </a>
       </td>
     </tr>
@@ -127,7 +127,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/multi_agent_human_chat">
-          <img src="docs/docs/assets/multi-agent-human-chat.png" alt="Multi-Agent & Human Chat"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat.png" alt="Multi-Agent & Human Chat"/>
         </a>
       </td>
     </tr>
@@ -139,7 +139,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/agent_evaluation_dspy">
-          <img src="docs/docs/assets/agent-evaluation-dspy.png" alt="Agents Evaluation & DSPy"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-evaluation-dspy.png" alt="Agents Evaluation & DSPy"/>
         </a>
       </td>
     </tr>
@@ -151,7 +151,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/safe_agents_guardrails">
-          <img src="docs/docs/assets/safe-agents-guardrails.png" alt="Safe Agents with Guardrails AI"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/safe-agents-guardrails.png" alt="Safe Agents with Guardrails AI"/>
         </a>
       </td>
     </tr>
@@ -163,7 +163,7 @@ Practical implementation scenarios and integration guides with popular AI framew
       </td>
       <td style="width: 60%;">
         <a href="examples/dspy_react">
-          <img src="docs/docs/assets/react-agent-dspy.png" alt="DSPy ReAct"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/react-agent-dspy.png" alt="DSPy ReAct"/>
         </a>
       </td>
     </tr>
