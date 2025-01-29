@@ -18,14 +18,18 @@ class Channel:
         :param name: Channel (topic) name.
         :param transport: A concrete transport instance.
         """
-        self.name = name
-        self.transport = transport if transport is not None else get_default_transport()
+        self._name = name
+        self._transport = transport
         self._connected = False
         self._stop_registered = False
 
     async def _ensure_connected(self):
         if not self._connected:
-            await self.transport.connect(group_id=None)  # publish-only
+
+            if self._transport is None:
+                self._transport = get_default_transport()
+
+            await self._transport.connect(group_id=None)  # publish-only
             self._connected = True
             # Auto-register stop
             if not self._stop_registered:
@@ -37,9 +41,9 @@ class Channel:
         Lazy-connect on first publish
         """
         await self._ensure_connected()
-        await self.transport.publish(self.name, message)
+        await self._transport.publish(self._name, message)
 
     async def stop(self):
         if self._connected:
-            await self.transport.disconnect()
+            await self._transport.disconnect()
             self._connected = False

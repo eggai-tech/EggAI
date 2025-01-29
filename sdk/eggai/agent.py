@@ -21,8 +21,8 @@ class Agent:
         :param transport: A concrete transport instance (KafkaTransport, InMemoryTransport, etc.).
                           If None, defaults to InMemoryTransport.
         """
-        self.name = name
-        self.transport = transport if transport is not None else get_default_transport()
+        self._name = name
+        self._transport = transport
         # Each entry is (channel_name, filter_func, handler)
         self._subscriptions: List[Tuple[str, Callable[[Dict[str, Any]], bool], Callable]] = []
 
@@ -39,7 +39,7 @@ class Agent:
         If channel is None, we assume "eggai.channel".
         filter_func is optional, defaults to lambda e: True
         """
-        channel_name = channel.name if channel else "eggai.channel"
+        channel_name = channel._name if channel else "eggai.channel"
 
         def decorator(handler: Callable[[Dict[str, Any]], "asyncio.Future"]):
             self._subscriptions.append((channel_name, filter_func, handler))
@@ -51,8 +51,11 @@ class Agent:
         if self._started:
             return
 
+        if self._transport is None:
+            self._transport = get_default_transport()
+
         # Connect with group_id=self.name for consumption
-        await self.transport.connect(group_id=self.name)
+        await self._transport.connect(group_id=self._name)
         self._started = True
 
         if not self._stop_registered:
@@ -73,9 +76,9 @@ class Agent:
                         await handler(event)
 
             # Subscribe our aggregator to the transport
-            await self.transport.subscribe(ch_name, aggregator)
+            await self._transport.subscribe(ch_name, aggregator)
 
     async def stop(self):
         if self._started:
-            await self.transport.disconnect()
+            await self._transport.disconnect()
             self._started = False
