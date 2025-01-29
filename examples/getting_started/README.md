@@ -50,12 +50,9 @@ python main.py
 Expected output:
 
 ```
-Agent is running. Press Ctrl+C to stop.
-[ORDER AGENT]: Received request to create order. defaultdict(<function Agent._handle_messages.<locals>.<lambda> at 0x1046642c0>, {'event_name': 'order_requested', 'payload': {'product': 'Laptop', 'quantity': 1}})
-[EMAIL AGENT]: Received order created event. defaultdict(<function Agent._handle_messages.<locals>.<lambda> at 0x104664b80>, {'event_name': 'order_created', 'payload': {'product': 'Laptop', 'quantity': 1}})
-[ORDER AGENT]: Received order created event. defaultdict(<function Agent._handle_messages.<locals>.<lambda> at 0x104665da0>, {'event_name': 'order_created', 'payload': {'product': 'Laptop', 'quantity': 1}})
-^CTask was cancelled. Cleaning up...
-Done.
+[ORDER AGENT]: Received request to create order. {'event_name': 'order_requested', 'payload': {'product': 'Laptop', 'quantity': 1}}
+[ORDER AGENT]: Received order created event. {'event_name': 'order_created', 'payload': {'product': 'Laptop', 'quantity': 1}}
+[EMAIL AGENT]: Received order created event. {'event_name': 'order_created', 'payload': {'product': 'Laptop', 'quantity': 1}}
 ```
 
 What happens:
