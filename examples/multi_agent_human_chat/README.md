@@ -9,7 +9,7 @@ Here is a simplified architecture overview:
 - **User Interaction**: Engages with the system through a WebSocket-enabled chat interface.
 - **TriageAgent**: Analyzes incoming messages and routes them to the appropriate agent based on content.
 - **Agent 1**: PolicyAgent, handling policy-related inquiries using a mock `policies_database`.
-- **Agent 2**: TicketingAgent, managing support ticket creation and retrieval for escalated issues.
+- **Agent 2**: EscalationAgent, managing support ticket creation and retrieval for escalated issues.
 - **Channels**:
   - **User Channel**: Facilitates interactions between the user and the agents.
   - **Agents Channel**: Enables communication and coordination among different agents.
@@ -116,9 +116,9 @@ Upon running the example and accessing the chat interface at [http://localhost:8
    I need help with a billing issue.
    ```
 
-6. **TriageAgent** routes the message to **TicketingAgent**:
+6. **TriageAgent** routes the message to **EscalationAgent**:
    ```
-   💬 TicketingAgent:
+   💬 EscalationAgent:
    We have created a support ticket ESC-0001 for your issue. Our Billing team will reach out to you shortly.
    ```
 

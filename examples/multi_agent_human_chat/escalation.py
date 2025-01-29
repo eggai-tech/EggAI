@@ -6,8 +6,8 @@ from lite_llm_agent import LiteLlmAgent
 agents_channel = Channel("agents")
 human_channel = Channel("human")
 
-ticketing_agent = LiteLlmAgent(
-    name="TicketingAgent",
+escalation_agent = LiteLlmAgent(
+    name="EscalationAgent",
     system_message=(
         "You are the Escalation Assistant within an insurance customer service system. "
         "Your role is to handle inquiries and issues that cannot be resolved by the ClaimsAgent or PolicyAgent.\n\n"
@@ -32,7 +32,7 @@ ticket_database = [{
     "issue": "Billing issue",
 }]
 
-@ticketing_agent.tool()
+@escalation_agent.tool()
 def create_ticket(department, issue):
     """
     Create a ticket and return as JSON object with fields:
@@ -52,7 +52,7 @@ def create_ticket(department, issue):
     })
     return ticket_database[-1]
 
-@ticketing_agent.tool()
+@escalation_agent.tool()
 def retrieve_ticket(ticket_id):
     """
     Get the ticket details from the ticket ID. If the ticket is not found, return an error message.
@@ -66,14 +66,14 @@ def retrieve_ticket(ticket_id):
 
     return {"error": "Ticket not found."}
 
-@ticketing_agent.subscribe(channel=agents_channel, filter_func=lambda msg: msg["type"] == "ticketing_request")
+@escalation_agent.subscribe(channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_request")
 async def handle_ticket_message(msg):
     try:
         chat_messages = msg["payload"]["chat_messages"]
-        response = await ticketing_agent.completion(messages=chat_messages)
+        response = await escalation_agent.completion(messages=chat_messages)
         reply = response.choices[0].message.content
         meta = msg.get("meta", {})
-        meta["agent"] = "TicketingAgent"
+        meta["agent"] = "EscalationAgent"
         await human_channel.publish({
             "id": str(uuid4()),
             "type": "agent_message",
@@ -81,4 +81,4 @@ async def handle_ticket_message(msg):
             "payload": reply,
         })
     except Exception as e:
-        print(f"Error in TicketingAgent: {e}")
+        print(f"Error in EscalationAgent: {e}")

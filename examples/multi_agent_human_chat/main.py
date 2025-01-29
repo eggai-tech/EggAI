@@ -6,13 +6,13 @@ from eggai import Channel
 from server import server
 from triage import triage_agent
 from policy import policy_agent
-from ticketing import ticketing_agent
+from escalation import escalation_agent
 
 
 async def main():
     await triage_agent.run()
     await policy_agent.run()
-    await ticketing_agent.run()
+    await escalation_agent.run()
 
     server_task = asyncio.create_task(server.serve())
 
@@ -24,7 +24,7 @@ async def main():
     finally:
         await triage_agent.stop()
         await policy_agent.stop()
-        await ticketing_agent.stop()
+        await escalation_agent.stop()
         await Channel.stop()
         server_task.cancel()
 
