@@ -8,8 +8,8 @@ Here is a simplified architecture overview:
 
 - **User Interaction**: Engages with the system through a WebSocket-enabled chat interface.
 - **TriageAgent**: Analyzes incoming messages and routes them to the appropriate agent based on content.
-- **Agent 1**: PoliciesAgent, handling policy-related inquiries using a mock `policies_database`.
-- **Agent 2**: EscalationAgent, managing support ticket creation and retrieval for escalated issues.
+- **PoliciesAgent**: Handles policy-related inquiries using a mock `policies_database`.
+- **EscalationAgent**: Manages support ticket creation and retrieval for escalated issues.
 - **Channels**:
   - **User Channel**: Facilitates interactions between the user and the agents.
   - **Agents Channel**: Enables communication and coordination among different agents.
