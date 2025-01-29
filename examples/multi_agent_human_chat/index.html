@@ -890,12 +890,12 @@
 <h1 id="multi-agent-insurance-support-system">Multi-Agent Insurance Support System</h1>
 <p>This example shows a simple multi-agent system for insurance support. It combines a WebSocket gateway, lightweight language model agents, and a triage mechanism to deliver efficient and user-friendly support.</p>
 <p>Here is a simplified architecture overview:</p>
-<p><img alt="architecture-getting-started.svg" src="../../assets/architecture-example-06-multi-agent-conversation.svg" /></p>
+<p><img alt="architecture-getting-started.svg" src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat-2.svg" /></p>
 <ul>
 <li><strong>User Interaction</strong>: Engages with the system through a WebSocket-enabled chat interface.</li>
 <li><strong>TriageAgent</strong>: Analyzes incoming messages and routes them to the appropriate agent based on content.</li>
-<li><strong>Agent 1</strong>: PolicyAgent, handling policy-related inquiries using a mock <code>policies_database</code>.</li>
-<li><strong>Agent 2</strong>: TicketingAgent, managing support ticket creation and retrieval for escalated issues.</li>
+<li><strong>PoliciesAgent</strong>: Handles policy-related inquiries using a mock <code>policies_database</code>.</li>
+<li><strong>EscalationAgent</strong>: Manages support ticket creation and retrieval for escalated issues.</li>
 <li><strong>Channels</strong>:</li>
 <li><strong>User Channel</strong>: Facilitates interactions between the user and the agents.</li>
 <li><strong>Agents Channel</strong>: Enables communication and coordination among different agents.</li>
@@ -932,16 +932,16 @@ source venv/bin/activate  # For Windows: venv\Scripts\activate
 <pre><code class="language-bash">python main.py
 </code></pre>
 <p>Upon running the example and accessing the chat interface at <a href="http://localhost:8000/../../../examples/multi_agent_human_chat">http://localhost:8000</a>, you should see a web-based chat UI:</p>
-<p><img alt="Chat UI Screenshot" src="../../assets/example-07-chat.png" /></p>
+<p><img alt="Chat UI Screenshot" src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-07-chat.png" /></p>
 <h3 id="sample-chat">Sample Chat</h3>
 <ol>
 <li><strong>User</strong> initiates the conversation:</li>
 </ol>
 <p><code>Hello, I need to check my policy details.</code></p>
 <ol>
-<li><strong>TriageAgent</strong> routes the message to <strong>PolicyAgent</strong>:</li>
+<li><strong>TriageAgent</strong> routes the message to <strong>PoliciesAgent</strong>:</li>
 </ol>
-<p><code>📄 PolicyAgent:
+<p><code>📄 PoliciesAgent:
    Hello! I'm here to help you with your policy inquiries. Could you please provide me with your **policy number**?
    If you don't have it handy, your **full name** will work too, and I can look up the details for you.</code></p>
 <ol>
@@ -949,10 +949,10 @@ source venv/bin/activate  # For Windows: venv\Scripts\activate
 </ol>
 <p><code>A12345</code></p>
 <ol>
-<li><strong>PolicyAgent</strong> responds with policy details:</li>
+<li><strong>PoliciesAgent</strong> responds with policy details:</li>
 </ol>
 <p>```
-   📄 PolicyAgent:
+   📄 PoliciesAgent:
    Thank you for providing your policy number. Here are the details:</p>
 <ul>
 <li><strong>Policy Number:</strong> A12345</li>
@@ -968,8 +968,8 @@ source venv/bin/activate  # For Windows: venv\Scripts\activate
 </ol>
 <p><code>I need help with a billing issue.</code></p>
 <ol>
-<li><strong>TriageAgent</strong> routes the message to <strong>TicketingAgent</strong>:
-   <code>💬 TicketingAgent:
+<li><strong>TriageAgent</strong> routes the message to <strong>EscalationAgent</strong>:
+   <code>💬 EscalationAgent:
    We have created a support ticket ESC-0001 for your issue. Our Billing team will reach out to you shortly.</code></li>
 </ol>
 <h2 id="cleaning-up">Cleaning Up</h2>

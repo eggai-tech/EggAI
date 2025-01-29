@@ -351,15 +351,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      Prerequisites
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#setup-instructions" class="md-nav__link">
     <span class="md-ellipsis">
       Setup Instructions
@@ -372,15 +363,6 @@
   <a href="#run-the-example" class="md-nav__link">
     <span class="md-ellipsis">
       Run the Example
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#clean-up" class="md-nav__link">
-    <span class="md-ellipsis">
-      Clean Up
     </span>
   </a>
   
@@ -797,15 +779,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      Prerequisites
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#setup-instructions" class="md-nav__link">
     <span class="md-ellipsis">
       Setup Instructions
@@ -818,15 +791,6 @@
   <a href="#run-the-example" class="md-nav__link">
     <span class="md-ellipsis">
       Run the Example
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#clean-up" class="md-nav__link">
-    <span class="md-ellipsis">
-      Clean Up
     </span>
   </a>
   
@@ -866,14 +830,8 @@
 <li><strong>Scalable Infrastructure:</strong> Powered by Kafka for reliable messaging and streaming.</li>
 </ul>
 <p>Here is a simplified architecture overview:</p>
-<p><img alt="architecture-getting-started.svg" src="../../assets/architecture-getting-started.svg" /></p>
+<p><img alt="architecture-getting-started.svg" src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-getting-started.svg" /></p>
 <p>The code for the example can be found <a href="https://github.com/eggai-tech/EggAI/tree/main/examples/getting_started">here</a>. Let's dive in.</p>
-<h2 id="prerequisites">Prerequisites</h2>
-<p>Ensure you have the following dependencies installed:</p>
-<ul>
-<li><strong>Python</strong> 3.10+</li>
-<li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
-</ul>
 <h2 id="setup-instructions">Setup Instructions</h2>
 <p>Clone the EggAI repository:</p>
 <pre><code class="language-bash">git clone git@github.com:eggai-tech/EggAI.git
@@ -887,9 +845,6 @@ source venv/bin/activate  # For Windows: venv\Scripts\activate
 </code></pre>
 <p>Install the required dependencies:</p>
 <pre><code class="language-bash">pip install -r requirements.txt
-</code></pre>
-<p>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</p>
-<pre><code class="language-bash">docker compose up -d
 </code></pre>
 <h2 id="run-the-example">Run the Example</h2>
 <pre><code class="language-bash">python main.py
@@ -908,12 +863,8 @@ Done.
 <li>Agent 2 processes the message and sends a response.</li>
 <li>The framework handles message passing, retries, and logging.</li>
 </ul>
-<p><img src="../../docs/docs/assets/redpanda-console.png" alt="Redpanda Console"/></p>
+<p><img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/redpanda-console.png" alt="Redpanda Console"/></p>
 <p>Congratulations! You've successfully run your first EggAI Multi-Agent application.</p>
-<h2 id="clean-up">Clean Up</h2>
-<p>Stop and clean up the Docker containers:</p>
-<pre><code class="language-bash">docker compose down -v
-</code></pre>
 <h2 id="next-steps">Next Steps</h2>
 <p>Ready to explore further? Check out:</p>
 <ul>
