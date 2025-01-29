@@ -8,7 +8,7 @@ agents_channel = Channel("agents")
 human_channel = Channel("human")
 
 policy_agent = LiteLlmAgent(
-    name="PolicyAgent",
+    name="PoliciesAgent",
     system_message=(
         "You are the Policy Agent for an insurance company. Your primary responsibility is to assist users with inquiries related to insurance policies, including coverage details, premiums, and policy modifications.\n\n"
         "Key Instructions:\n"
@@ -84,7 +84,7 @@ async def handle_policy_request(msg):
         response = await policy_agent.completion(messages=chat_messages)
         reply = response.choices[0].message.content
         meta = msg.get("meta", {})
-        meta["agent"] = "PolicyAgent"
+        meta["agent"] = "PoliciesAgent"
         await human_channel.publish({
             "id": str(uuid4()),
             "type": "agent_message",
@@ -92,4 +92,4 @@ async def handle_policy_request(msg):
             "payload": reply,
         })
     except Exception as e:
-        print(f"Error in PolicyAgent: {e}")
+        print(f"Error in PoliciesAgent: {e}")

@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
 
-from websocket_agent import plug_fastapi_websocket, start_websocket_gateway, stop_websocket_gateway
+from websocket_gateway import plug_fastapi_websocket, start_websocket_gateway, stop_websocket_gateway
 
 api = FastAPI()
 config = uvicorn.Config(api, host="127.0.0.1", port=8000, log_level="info")

@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 
 from eggai import Channel
 from server import server
-from triage import triage_agent
-from policy import policy_agent
-from escalation import escalation_agent
+from triage_agent import triage_agent
+from policies_agent import policy_agent
+from escalation_agent import escalation_agent
 
 
 async def main():

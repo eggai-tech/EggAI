@@ -8,7 +8,7 @@ Here is a simplified architecture overview:
 
 - **User Interaction**: Engages with the system through a WebSocket-enabled chat interface.
 - **TriageAgent**: Analyzes incoming messages and routes them to the appropriate agent based on content.
-- **Agent 1**: PolicyAgent, handling policy-related inquiries using a mock `policies_database`.
+- **Agent 1**: PoliciesAgent, handling policy-related inquiries using a mock `policies_database`.
 - **Agent 2**: EscalationAgent, managing support ticket creation and retrieval for escalated issues.
 - **Channels**:
   - **User Channel**: Facilitates interactions between the user and the agents.
@@ -81,10 +81,10 @@ Upon running the example and accessing the chat interface at [http://localhost:8
    Hello, I need to check my policy details.
    ```
 
-2. **TriageAgent** routes the message to **PolicyAgent**:
+2. **TriageAgent** routes the message to **PoliciesAgent**:
 
    ```
-   📄 PolicyAgent:
+   📄 PoliciesAgent:
    Hello! I'm here to help you with your policy inquiries. Could you please provide me with your **policy number**?
    If you don't have it handy, your **full name** will work too, and I can look up the details for you.
    ```
@@ -95,10 +95,10 @@ Upon running the example and accessing the chat interface at [http://localhost:8
    A12345
    ```
 
-4. **PolicyAgent** responds with policy details:
+4. **PoliciesAgent** responds with policy details:
 
    ```
-   📄 PolicyAgent:
+   📄 PoliciesAgent:
    Thank you for providing your policy number. Here are the details:
 
    - **Policy Number:** A12345

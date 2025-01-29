@@ -8,7 +8,7 @@ human_channel = Channel("human")
 agents_channel = Channel("agents")
 
 AGENT_REGISTRY = {
-    "PolicyAgent": {
+    "PoliciesAgent": {
         "message_type": "policy_request",
         "keywords": [
             "policy details",
@@ -39,7 +39,7 @@ def build_triage_system_prompt(agent_registry):
     guidelines += "• If the user is asking about claims-related topics such as 'file a claim', 'claim status', 'accident', or 'incident', target = 'EscalationAgent'.\n"
     guidelines += (
         "Respond only with a JSON object indicating the target agent. Do not include any additional text or explanation.\n"
-        'Example: {"target": "PolicyAgent"}\n'
+        'Example: {"target": "PoliciesAgent"}\n'
         "Remember: You must never provide any text other than the JSON object with the key 'target'."
     )
 

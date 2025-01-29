@@ -10,7 +10,7 @@ escalation_agent = LiteLlmAgent(
     name="EscalationAgent",
     system_message=(
         "You are the Escalation Assistant within an insurance customer service system. "
-        "Your role is to handle inquiries and issues that cannot be resolved by the ClaimsAgent or PolicyAgent.\n\n"
+        "Your role is to handle inquiries and issues that cannot be resolved by the ClaimsAgent or PoliciesAgent.\n\n"
         "Your Responsibilities:\n"
         "• Politely inform the user that their issue will be escalated to a human support representative.\n"
         "• Generate a unique ticket ID for reference (e.g., ESC-123456).\n"
