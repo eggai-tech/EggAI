@@ -1,83 +1,99 @@
 import asyncio
 import json
-from typing import Set, Dict, Any, Awaitable, Callable
+from typing import (
+    Dict, Any, Optional, Callable
+)
 
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+import aiokafka
 
-from .base import BaseTransport
-from ..settings.kafka import KafkaSettings
+from eggai.transport.base import Transport
 
 
-class KafkaTransport(BaseTransport):
-    def __init__(self, config: KafkaSettings = KafkaSettings(), auto_offset_reset: str = "latest"):
-        self.bootstrap_servers = config.BOOTSTRAP_SERVERS
+class KafkaTransport(Transport):
+    def __init__(
+            self,
+            bootstrap_servers: str = "localhost:19092",
+            auto_offset_reset: str = "latest",
+            rebalance_timeout_ms: int = 1000
+    ):
+        self.bootstrap_servers = bootstrap_servers
         self.auto_offset_reset = auto_offset_reset
+        self.rebalance_timeout_ms = rebalance_timeout_ms
 
-        self._producer: AIOKafkaProducer = None
-        self._consumer: AIOKafkaConsumer = None
-        self._channels: Set[str] = set()
-        self._consume_task = None
-        self._running = False
+        self.producer: Optional[aiokafka.AIOKafkaProducer] = None
+        self.consumer: Optional[aiokafka.AIOKafkaConsumer] = None
+        self._consume_task: Optional[asyncio.Task] = None
 
-    async def start(self, channels: Set[str], group_id: str = ""):
-        """
-        Start the Kafka producers/consumers for the given channels.
-        """
-        if self._running:
-            return
-        self._channels = channels
-        # Initialize the producer
-        self._producer = AIOKafkaProducer(bootstrap_servers=self.bootstrap_servers)
-        await self._producer.start()
+        # For each channel, we hold a single aggregator callback
+        # Because the aggregator might handle multiple filters
+        self._subscriptions: Dict[str, Callable[[Dict[str, Any]], "asyncio.Future"]] = {}
 
-        # Initialize the consumer
-        self._consumer = AIOKafkaConsumer(
-            *self._channels,
-            bootstrap_servers=self.bootstrap_servers,
-            group_id=group_id or None,
-            auto_offset_reset=self.auto_offset_reset,
-        )
-        await self._consumer.start()
-        self._running = True
+    async def connect(self, group_id: Optional[str] = None):
+        if not self.producer:
+            self.producer = aiokafka.AIOKafkaProducer(
+                bootstrap_servers=self.bootstrap_servers
+            )
+            await self.producer.start()
 
-    async def stop(self):
-        """
-        Stop all Kafka producers and consumers.
-        """
-        self._running = False
+        if group_id is not None and not self.consumer:
+            self.consumer = aiokafka.AIOKafkaConsumer(
+                bootstrap_servers=self.bootstrap_servers,
+                group_id=group_id,
+                auto_offset_reset=self.auto_offset_reset,
+                rebalance_timeout_ms=self.rebalance_timeout_ms
+            )
+            await self.consumer.start()
 
-        if self._consumer:
-            await self._consumer.stop()
-            self._consumer = None
+            # If we already have subscriptions, subscribe
+            if self._subscriptions:
+                self.consumer.subscribe(list(self._subscriptions.keys()))
+                if not self._consume_task:
+                    self._consume_task = asyncio.create_task(self._consume_loop())
 
-        if self._producer:
-            await self._producer.stop()
-            self._producer = None
-
+    async def disconnect(self):
         if self._consume_task:
             self._consume_task.cancel()
+            try:
+                await self._consume_task
+            except asyncio.CancelledError:
+                pass
             self._consume_task = None
 
-    async def produce(self, channel: str, message: Dict[str, Any]):
-        """
-        Publish a message to Kafka.
-        """
-        if not self._producer:
-            raise RuntimeError("KafkaTransport is not started or producer is missing.")
-        await self._producer.send_and_wait(channel, json.dumps(message).encode("utf-8"))
+        if self.consumer:
+            await self.consumer.stop()
+            self.consumer = None
 
-    async def consume(self, on_message: Callable[[str, Dict[str, Any]], Awaitable]):
-        """
-        Continuously consume messages from Kafka and call on_message(channel, msg_dict).
-        This method is designed to run inside a task (e.g., create_task).
-        """
-        if not self._consumer:
-            raise RuntimeError("KafkaTransport is not started or consumer is missing.")
+        if self.producer:
+            await self.producer.stop()
+            self.producer = None
 
+    async def publish(self, channel: str, message: Dict[str, Any]):
+        if not self.producer:
+            raise RuntimeError("Transport not connected. Call `connect()` first.")
+        data = json.dumps(message).encode("utf-8")
+        await self.producer.send_and_wait(channel, data)
+
+    async def subscribe(
+            self, channel: str, callback: Callable[[Dict[str, Any]], "asyncio.Future"]
+    ):
+        # We store exactly one aggregator callback per channel
+        self._subscriptions[channel] = callback
+
+        if self.consumer:
+            self.consumer.subscribe(list(self._subscriptions.keys()))
+
+        if self.consumer and not self._consume_task:
+            self._consume_task = asyncio.create_task(self._consume_loop())
+
+    async def _consume_loop(self):
         try:
-            async for msg in self._consumer:
-                channel_name = msg.topic
-                message = json.loads(msg.value.decode("utf-8"))
-                await on_message(channel_name, message)
+            async for msg in self.consumer:
+                channel = msg.topic
+                event = json.loads(msg.value.decode("utf-8"))
+                cb = self._subscriptions.get(channel)
+                if cb:
+                    await cb(event)
         except asyncio.CancelledError:
             pass
+        except Exception as e:
+            print(f"KafkaTransport consume loop error: {e}")

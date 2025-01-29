@@ -199,24 +199,25 @@ Here's how you can quickly set up an agent to handle events in an event-driven s
 ```python
 import asyncio
 
-from eggai import Agent, Channel
+from eggai import Agent, Channel, eggai_stop
 
 agent = Agent("OrderAgent")
 channel = Channel()
 
 
-@agent.subscribe(filter_func=lambda event: event["event_name"] == "order_requested")
+@agent.subscribe(filter_func=lambda e: e.get("event_name") == "order_requested")
 async def handle_order_requested(event):
     print(f"[ORDER AGENT]: Received order request. Event: {event}")
     await channel.publish({"event_name": "order_created", "payload": event})
 
-@agent.subscribe(filter_func=lambda event: event["event_name"] == "order_created")
+
+@agent.subscribe(filter_func=lambda e: e.get("event_name") == "order_created")
 async def handle_order_created(event):
     print(f"[ORDER AGENT]: Order created. Event: {event}")
 
 
 async def main():
-    await agent.run()
+    await agent.start()
     await channel.publish({
         "event_name": "order_requested",
         "payload": {
@@ -226,14 +227,11 @@ async def main():
     })
 
     try:
-        print("Agent is running. Press Ctrl+C to stop.")
         await asyncio.Event().wait()
-    except asyncio.exceptions.CancelledError:
-        print("Task was cancelled. Cleaning up...")
-    finally:
-        # Clean up resources
-        await agent.stop()
-        await channel.stop()
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        pass
+
+    await eggai_stop()
 
 
 if __name__ == "__main__":

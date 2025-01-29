@@ -1,2 +1,2 @@
 # Transport
-::: eggai.transport.base.BaseTransport
+::: eggai.transport.Transport

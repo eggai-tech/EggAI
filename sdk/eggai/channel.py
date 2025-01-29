@@ -1,61 +1,45 @@
-from typing import Dict
+from typing import (
+    Dict, Any, Optional
+)
 
-from eggai.transport.zeromq import ZeroMQTransport
-from eggai.constants import DEFAULT_CHANNEL_NAME
-from eggai.transport.base import BaseTransport
+from .stop import register_stop
+from .transport.base import Transport, get_default_transport
 
 
 class Channel:
     """
-    A class to interact with channels for event publishing.
+    A channel that publishes messages to a given 'name' on its own Transport.
+    Default name is "eggai.channel".
+    Lazy connection on first publish.
     """
 
-    _channels: Dict[str, "Channel"] = {}
-
-    def __new__(
-        cls,
-        name: str = DEFAULT_CHANNEL_NAME,
-        transport: BaseTransport = None,
-    ):
-        if name in cls._channels:
-            return cls._channels[name]
-
-        instance = super().__new__(cls)
-        cls._channels[name] = instance
-        return instance
-
-    def __init__(
-        self,
-        name: str = DEFAULT_CHANNEL_NAME,
-        transport: BaseTransport = None,
-    ):
+    def __init__(self, name: str = "eggai.channel", transport: Optional[Transport] = None):
         """
         :param name: Channel (topic) name.
-        :param transport: A concrete transport instance. If None, defaults to 0MQ.
+        :param transport: A concrete transport instance.
         """
-        # Only initialize if not already initialized
-        if not hasattr(self, "_initialized"):
-            self.name = name
-            self.transport = transport or ZeroMQTransport()
-            self._started = False
-            self._initialized = True
+        self.name = name
+        self.transport = transport if transport is not None else get_default_transport()
+        self._connected = False
+        self._stop_registered = False
 
-    async def _start(self):
-        if not self._started:
-            await self.transport.start(channels={self.name}, group_id="")
-            self._started = True
+    async def _ensure_connected(self):
+        if not self._connected:
+            await self.transport.connect(group_id=None)  # publish-only
+            self._connected = True
+            # Auto-register stop
+            if not self._stop_registered:
+                register_stop(self.stop)
+                self._stop_registered = True
 
-    async def publish(self, event: dict):
-        if not self._started:
-            await self._start()
-        await self.transport.produce(self.name, event)
+    async def publish(self, message: Dict[str, Any]):
+        """
+        Lazy-connect on first publish
+        """
+        await self._ensure_connected()
+        await self.transport.publish(self.name, message)
 
     async def stop(self):
-        if self._started:
-            await self.transport.stop()
-            self._started = False
-
-    async def consume(self, on_message):
-        if not self._started:
-            await self._start()
-        await self.transport.consume(on_message)
+        if self._connected:
+            await self.transport.disconnect()
+            self._connected = False

@@ -1,1 +1,0 @@
-DEFAULT_CHANNEL_NAME = "eggai.events"

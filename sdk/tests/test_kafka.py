@@ -2,7 +2,8 @@ import asyncio
 
 import pytest
 
-from eggai import Agent, Channel, KafkaTransport
+from eggai import Agent, Channel, eggai_stop
+from eggai.transport import KafkaTransport, eggai_set_default_transport
 
 kafka_transport = KafkaTransport()
 agent = Agent("OrderAgent", transport=kafka_transport)
@@ -20,8 +21,10 @@ async def handle_order_created(event):
     print(f"[ORDER AGENT]: Order created. Event: {event['payload']}")
 
 
-async def run_test_scenario():
-    await agent.run()
+@pytest.mark.asyncio
+async def test_kafka(capfd):
+    eggai_set_default_transport(lambda: KafkaTransport())
+    await agent.start()
     await channel.publish({
         "event_name": "order_requested",
         "payload": {
@@ -30,14 +33,8 @@ async def run_test_scenario():
         }
     })
     await asyncio.sleep(2)
-    await channel.stop()
-    await agent.stop()
 
-
-@pytest.mark.asyncio
-async def test_events(capfd):
-    # Run the scenario
-    await run_test_scenario()
+    await eggai_stop()
 
     # Capture output
     captured = capfd.readouterr()
