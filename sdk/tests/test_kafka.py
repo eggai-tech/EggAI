@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from eggai import Agent, Channel, eggai_stop
+from eggai import Agent, Channel
 from eggai.transport import KafkaTransport, eggai_set_default_transport
 
 kafka_transport = KafkaTransport()
@@ -33,8 +33,6 @@ async def test_kafka(capfd):
         }
     })
     await asyncio.sleep(2)
-
-    await eggai_stop()
 
     # Capture output
     captured = capfd.readouterr()

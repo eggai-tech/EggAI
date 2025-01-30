@@ -199,11 +199,10 @@ Here's how you can quickly set up an agent to handle events in an event-driven s
 ```python
 import asyncio
 
-from eggai import Agent, Channel, eggai_stop
+from eggai import Agent, Channel
 
 agent = Agent("OrderAgent")
 channel = Channel()
-
 
 @agent.subscribe(filter_func=lambda e: e.get("event_name") == "order_requested")
 async def handle_order_requested(event):
@@ -227,11 +226,10 @@ async def main():
     })
 
     try:
+        # Wait indefinitely until interrupted
         await asyncio.Event().wait()
     except (KeyboardInterrupt, asyncio.CancelledError):
         pass
-
-    await eggai_stop()
 
 
 if __name__ == "__main__":

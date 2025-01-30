@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from eggai import Agent, Channel, eggai_stop
+from eggai import Agent, Channel, eggai_cleanup
 
 agent = Agent("OrderAgent")
 channel = Channel()
@@ -20,7 +20,7 @@ async def handle_order_created(event):
 
 
 @pytest.mark.asyncio
-async def test_events(capfd):
+async def test_simple_scenario(capfd):
     await agent.start()
     await channel.publish({
         "event_name": "order_requested",
@@ -30,7 +30,6 @@ async def test_events(capfd):
         }
     })
     await asyncio.sleep(2)
-    await eggai_stop()
 
     # Capture output
     captured = capfd.readouterr()
