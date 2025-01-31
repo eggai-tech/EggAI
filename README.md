@@ -225,13 +225,6 @@ async def main():
         }
     })
 
-    try:
-        # Wait indefinitely until interrupted
-        await asyncio.Event().wait()
-    except (KeyboardInterrupt, asyncio.CancelledError):
-        pass
-
-
 if __name__ == "__main__":
     asyncio.run(main())
 ```

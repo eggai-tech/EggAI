@@ -2,7 +2,7 @@ from typing import (
     Dict, Any, Optional
 )
 
-from .stop import register_stop
+from .hooks import register_stop
 from .transport.base import Transport, get_default_transport
 
 

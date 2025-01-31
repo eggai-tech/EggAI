@@ -6,7 +6,7 @@ from typing import (
 
 from .channel import Channel
 from .transport.base import Transport, get_default_transport
-from .stop import register_stop
+from .hooks import register_stop
 
 
 class Agent:
