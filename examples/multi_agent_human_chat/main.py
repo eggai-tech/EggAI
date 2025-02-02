@@ -21,7 +21,8 @@ async def main():
     language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
     dspy.configure(lm=language_model)
 
-    eggai_set_default_transport(lambda: KafkaTransport())
+    # Uncomment if you want to use KafkaTransport for all agents
+    # eggai_set_default_transport(lambda: KafkaTransport())
 
     await policies_agent.start()
     await escalation_agent.start()
