@@ -1,30 +1,46 @@
+import asyncio
+import json
 from uuid import uuid4
 
-from eggai import Channel
-from lite_llm_agent import LiteLlmAgent
+import dspy
+from dotenv import load_dotenv
+from eggai import Channel, Agent
 
-agents_channel = Channel("agents")
-human_channel = Channel("human")
 
-escalation_agent = LiteLlmAgent(
-    name="EscalationAgent",
-    system_message=(
-        "You are the Escalation Assistant within an insurance customer service system. "
-        "Your role is to handle inquiries and issues that cannot be resolved by the ClaimsAgent or PoliciesAgent.\n\n"
-        "Your Responsibilities:\n"
-        "• Politely inform the user that their issue will be escalated to a human support representative.\n"
-        "• Generate a unique ticket ID for reference (e.g., ESC-123456).\n"
-        "• Specify the appropriate department or team (e.g., 'Technical Support', 'Billing') that will address the issue.\n\n"
-        "Response Format:\n"
-        "Provide a concise, courteous message following this structure:\n"
-        "    'We have created a support ticket ESC-123456 for your issue. Our Technical Support team will reach out to you shortly.'\n\n"
-        "Guidelines:\n"
-        "• Maintain a polite and professional tone.\n"
-        "• Do not provide speculative or incorrect information.\n"
-        "• Ensure the ticket ID follows the format 'ESC-XXXXXX' where 'X' is a digit.\n"
-    ),
-    model="openai/gpt-4o-mini",
-)
+class EscalationAgentSignature(dspy.Signature):
+    """
+    You are the Escalation Assistant within an insurance customer service system.
+
+    ROLE:
+      - Handle issues that the ClaimsAgent or PoliciesAgent cannot resolve.
+      - Inform the user politely that their issue will be escalated to a human representative.
+      - Generate a unique ticket ID for reference (e.g., ESC-123456).
+      - Specify the appropriate department or team (e.g., "Technical Support", "Billing")
+        that will address the issue.
+
+    RESPONSE FORMAT:
+      - Provide a concise, courteous message, for example:
+          "We have created a support ticket ESC-123456 for your issue.
+           Our Technical Support team will reach out to you shortly."
+
+    GUIDELINES:
+      - Maintain a polite and professional tone.
+      - Avoid speculative or incorrect information.
+      - Ensure the ticket ID follows the format 'ESC-XXXXXX' (6 digits).
+      - You Always ask confirm to a ticket, showing the user what are you filling details, before creating a ticket
+      - You have two tools available:
+          1) create_ticket(department, issue)
+          2) retrieve_ticket(ticket_id)
+
+    Input Fields:
+      - chat_history: A string containing the conversation context so far.
+
+    Output Fields:
+      - final_response: The final text response to the user.
+    """
+    chat_history: str = dspy.InputField(desc="Full conversation context.")
+    final_response: str = dspy.OutputField(desc="Escalation message including ticket ID and department.")
+
 
 ticket_database = [{
     "ticket_id": "ESC-123456",
@@ -32,53 +48,86 @@ ticket_database = [{
     "issue": "Billing issue",
 }]
 
-@escalation_agent.tool()
 def create_ticket(department, issue):
     """
-    Create a ticket and return as JSON object with fields:
-    - ticket_id: str (e.g., "ESC-123456")
-    - department: str (can be "Technical Support" or "Billing")
-    - issue: str (e.g., "Billing issue")
-
-    :arg department: str - The department or team that will handle the issue, can be "Technical Support" or "Billing".
-    :arg issue: str - The issue or problem that the user is facing.
+    Create a ticket and return it as a JSON object with:
+      - ticket_id (e.g., ESC-123456)
+      - department (e.g., Technical Support)
+      - issue (brief description of the user's problem)
     """
     print("[Tool] Creating ticket for:", department, "-", issue)
-    ticket_id = f"ESC-{len(ticket_database) + 1}"
+    ticket_id = f"ESC-{len(ticket_database) + 1:06d}"  # e.g. ESC-000002
     ticket_database.append({
         "ticket_id": ticket_id,
         "department": department,
         "issue": issue,
     })
-    return ticket_database[-1]
+    return json.dumps(ticket_database[-1])
 
-@escalation_agent.tool()
+
 def retrieve_ticket(ticket_id):
     """
-    Get the ticket details from the ticket ID. If the ticket is not found, return an error message.
-
-    :arg ticket_id: str - The ticket ID to get the details for.
+    Return ticket details (as JSON) for ticket_id,
+    or an error message if the ticket isn't found.
     """
     print("[Tool] Retrieving ticket details for:", ticket_id)
     for ticket in ticket_database:
         if ticket["ticket_id"] == ticket_id:
-            return ticket
+            return json.dumps(ticket)
+    return json.dumps({"error": "Ticket not found."})
 
-    return {"error": "Ticket not found."}
 
-@escalation_agent.subscribe(channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_request")
-async def handle_ticket_message(msg):
+escalation_react = dspy.ReAct(
+    EscalationAgentSignature,
+    tools=[create_ticket, retrieve_ticket]
+)
+
+escalation_agent = Agent(name="EscalationAgent")
+
+agents_channel = Channel("agents")
+human_channel = Channel("human")
+
+
+@escalation_agent.subscribe(
+    channel=agents_channel,
+    filter_func=lambda msg: msg["type"] == "escalation_request"
+)
+async def handle_escalation(msg):
     try:
+        # Convert chat messages into a single conversation string
         chat_messages = msg["payload"]["chat_messages"]
-        response = await escalation_agent.completion(messages=chat_messages)
-        reply = response.choices[0].message.content
+        conversation_string = ""
+        for chat in chat_messages:
+            role = chat.get("role", "User")
+            conversation_string += f"{role}: {chat['content']}\n"
+
+        # Generate the ReAct result
+        response = escalation_react(chat_history=conversation_string)
+        final_text = response.final_response
+
+        # Publish the response back to the user
         meta = msg.get("meta", {})
         meta["agent"] = "EscalationAgent"
         await human_channel.publish({
             "id": str(uuid4()),
             "type": "agent_message",
             "meta": meta,
-            "payload": reply,
+            "payload": final_text,
         })
     except Exception as e:
         print(f"Error in EscalationAgent: {e}")
+
+
+if __name__ == "__main__":
+    load_dotenv()
+    language_model = dspy.LM("openai/gpt-4o-mini")
+    dspy.configure(lm=language_model)
+    # Quick test of the chain directly
+    test_conversation = (
+        "User: My issue wasn't resolved by PoliciesAgent. I'm still having trouble.\n"
+        "EscalationAgent: Certainly. Could you describe the issue in more detail?\n"
+        "User: It's about my billing setup. The website keeps throwing an error.\n"
+    )
+    result = escalation_react(chat_history=test_conversation)
+    print("EscalationAgent says:")
+    print(result.final_response)

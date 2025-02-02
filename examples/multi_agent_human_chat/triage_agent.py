@@ -1,61 +1,64 @@
 import json
+from typing import Literal
 from uuid import uuid4
 
-from eggai import Channel
-from lite_llm_agent import LiteLlmAgent
+import dspy
+from eggai import Channel, Agent
 
 human_channel = Channel("human")
 agents_channel = Channel("agents")
 
+TargetAgent = Literal["PoliciesAgent", "BillingAgent", "EscalationAgent", "TriageAgent"]
+
 AGENT_REGISTRY = {
     "PoliciesAgent": {
         "message_type": "policy_request",
-        "keywords": [
-            "policy details",
-            "coverage",
-            "premium",
-            "modify policy",
-            "policy number",
-        ],
+        "description": "Handles policy-related queries"
     },
     "BillingAgent": {
         "message_type": "billing_request",
-        "keywords": ["billing", "invoice", "payment", "premium due", "billing issue"],
+        "description": "Handles billing-related queries"
     },
     "EscalationAgent": {
         "message_type": "escalation_request",
-        "keywords": ["file a claim", "claim status", "accident", "incident"],
+        "description": "Handles escalated queries"
     },
 }
 
 
-def build_triage_system_prompt(agent_registry):
-    guidelines = "Guidelines:\n"
-    for agent_name, agent_info in agent_registry.items():
-        keywords = ", ".join(agent_info.get("keywords", []))
-        guidelines += (
-            f"• If the user is asking about {keywords}, target = '{agent_name}'.\n"
-        )
-    guidelines += "• If the user is asking about claims-related topics such as 'file a claim', 'claim status', 'accident', or 'incident', target = 'EscalationAgent'.\n"
-    guidelines += (
-        "Respond only with a JSON object indicating the target agent. Do not include any additional text or explanation.\n"
-        'Example: {"target": "PoliciesAgent"}\n'
-        "Remember: You must never provide any text other than the JSON object with the key 'target'."
+class AgentClassificationSignature(dspy.Signature):
+    """
+    Represents the input and output fields for the agent classification process.
+
+    Role:
+    - Acts as a Triage agent in a multi-agent insurance support system.
+
+    Responsibilities:
+    - Classifies and routes messages to appropriate target agents based on context.
+
+    Target Agents:
+    """ + "".join([f"\n- {agent}: {desc}" for agent, desc in AGENT_REGISTRY.items()]) + """
+
+    Fallback Rules:
+    - Route to TriageAgent if the target agent is not recognized.
+    """
+
+    # Input Fields
+    chat_history: str = dspy.InputField(
+        desc="Full chat history providing context for the classification process."
     )
 
-    system_prompt = f"""
-You are an advanced Triage Assistant for a multi-agent insurance support system. Your primary responsibility is to analyze the user’s message and determine the most appropriate agent to handle the request.
+    # Output Fields
+    target_agent: TargetAgent = dspy.OutputField(
+        desc="Target agent classified for triage based on context and rules."
+    )
 
-{guidelines}
-"""
-    return system_prompt
+    fall_back_reason: str = dspy.OutputField(
+        desc="A kind message to the user explaining why the message was not understood."
+    )
 
-
-triage_agent = LiteLlmAgent(
-    name="TriageAgent",
-    system_message=build_triage_system_prompt(AGENT_REGISTRY),
-    model="openai/gpt-4o-mini",
-)
+triage_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
+triage_agent = Agent(name="TriageAgent")
 
 
 @triage_agent.subscribe(
@@ -75,37 +78,17 @@ async def handle_user_message(msg):
             conversation_string += f"{user}: {chat['content']}\n"
 
         # identify the agent to target based on the user chat messages
-        response = await triage_agent.completion(
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Based on this conversation history: {conversation_string}, determine the target agent as a JSON object.",
-                }
-            ]
-        )
-
-        try:
-            reply = json.loads(response.choices[0].message.content.strip())
-        except json.JSONDecodeError:
-            await agents_channel.publish(
-                {
-                    "type": "response",
-                    "agent": "TriageAgent",
-                    "payload": "There was an error processing your request. Please try again.",
-                }
-            )
-            return
-
-        target_agent = reply.get("target")
-
+        response = triage_classifier(chat_history=conversation_string)
+        target_agent = response.target_agent
         triage_to_agent_messages = [
+
             {
                 "role": "user",
                 "content": f"{conversation_string} \n{target_agent}: ",
             }
         ]
 
-        if target_agent in AGENT_REGISTRY:
+        if target_agent in AGENT_REGISTRY and target_agent != "TriageAgent":
             await agents_channel.publish(
                 {
                     "id": str(uuid4()),
@@ -121,7 +104,7 @@ async def handle_user_message(msg):
                     "id": str(uuid4()),
                     "type": "agent_message",
                     "meta": meta,
-                    "payload": "I'm sorry, I couldn't understand your request. Could you please clarify?",
+                    "payload": response.fall_back_reason,
                 }
             )
     except Exception as e:

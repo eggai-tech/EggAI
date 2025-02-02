@@ -1,6 +1,5 @@
-eggai==0.1.22
+eggai==0.1.24
 python-dotenv==1.0.1
-uvicorn==0.34.0
 fastapi==0.115.6
-litellm==1.59.9
+dspy-ai==2.5.43
 websockets==14.1
