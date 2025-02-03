@@ -1,5 +1,7 @@
+import asyncio
 import uuid
 
+import uvicorn
 from eggai import Channel, Agent
 from fastapi import FastAPI, Query
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -24,7 +26,7 @@ async def handle_human_messages(message):
 
 messages_cache = {}
 
-def plug_fastapi_websocket(route: str, app: FastAPI):
+def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     @app.websocket(route)
     async def websocket_handler(websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")):
         if connection_id is None:
@@ -36,11 +38,17 @@ def plug_fastapi_websocket(route: str, app: FastAPI):
         await websocket_manager.send_message_to_connection(connection_id, {"connection_id": connection_id})
         try:
             while True:
-                data = await websocket.receive_json()
+                try:
+                    data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
+                except asyncio.TimeoutError:
+                    if server.should_exit:
+                        break
+                    continue
                 message_id = str(uuid.uuid4())
                 content = data.get("payload")
                 await websocket_manager.attach_message_id(message_id, connection_id)
-                messages_cache[connection_id].append({"role": "user", "content": content, "id": message_id, "agent": "User"})
+                messages_cache[connection_id].append(
+                    {"role": "user", "content": content, "id": message_id, "agent": "User"})
                 await human_channel.publish({
                     "id": message_id,
                     "type": "user_message",
@@ -58,10 +66,3 @@ def plug_fastapi_websocket(route: str, app: FastAPI):
         finally:
             await websocket_manager.disconnect(connection_id)
             print(f"[WEBSOCKET GATEWAY]: WebSocket connection {connection_id} closed.")
-
-
-async def start_websocket_gateway():
-    await websocket_gateway_agent.start()
-
-async def stop_websocket_gateway():
-    await websocket_gateway_agent.stop()

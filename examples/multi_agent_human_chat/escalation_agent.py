@@ -1,5 +1,6 @@
 import asyncio
 import json
+from typing import Literal
 from uuid import uuid4
 
 import dspy
@@ -18,19 +19,13 @@ class EscalationAgentSignature(dspy.Signature):
       - Specify the appropriate department or team (e.g., "Technical Support", "Billing")
         that will address the issue.
 
-    RESPONSE FORMAT:
-      - Provide a concise, courteous message, for example:
-          "We have created a support ticket ESC-123456 for your issue.
-           Our Technical Support team will reach out to you shortly."
-
     GUIDELINES:
       - Maintain a polite and professional tone.
       - Avoid speculative or incorrect information.
       - Ensure the ticket ID follows the format 'ESC-XXXXXX' (6 digits).
-      - You Always ask confirm to a ticket, showing the user what are you filling details, before creating a ticket
-      - You have two tools available:
-          1) create_ticket(department, issue)
-          2) retrieve_ticket(ticket_id)
+      - You Always ask confirm before creating a ticket, showing the user what are you filling details
+        and ask for confirmation. Never create a ticket without asking more details.
+      - You don't know the ticket ID before creating it, so you need to generate it.
 
     Input Fields:
       - chat_history: A string containing the conversation context so far.
@@ -39,6 +34,7 @@ class EscalationAgentSignature(dspy.Signature):
       - final_response: The final text response to the user.
     """
     chat_history: str = dspy.InputField(desc="Full conversation context.")
+
     final_response: str = dspy.OutputField(desc="Escalation message including ticket ID and department.")
 
 
@@ -46,21 +42,23 @@ ticket_database = [{
     "ticket_id": "ESC-123456",
     "department": "Technical Support",
     "issue": "Billing issue",
+    "notes": "User reported an error on the website."
 }]
 
-def create_ticket(department, issue):
+def create_ticket(department, issue_description, notes):
     """
     Create a ticket and return it as a JSON object with:
       - ticket_id (e.g., ESC-123456)
       - department (e.g., Technical Support)
       - issue (brief description of the user's problem)
     """
-    print("[Tool] Creating ticket for:", department, "-", issue)
+    print("[Tool] Creating ticket for:", department, "-", issue_description)
     ticket_id = f"ESC-{len(ticket_database) + 1:06d}"  # e.g. ESC-000002
     ticket_database.append({
         "ticket_id": ticket_id,
         "department": department,
-        "issue": issue,
+        "issue": issue_description,
+        "notes": notes
     })
     return json.dumps(ticket_database[-1])
 
