@@ -6,7 +6,7 @@ from typing import (
 
 from .channel import Channel
 from .transport.base import Transport, get_default_transport
-from .hooks import register_stop
+from .hooks import eggai_register_stop
 
 
 class Agent:
@@ -59,7 +59,7 @@ class Agent:
         self._started = True
 
         if not self._stop_registered:
-            register_stop(self.stop)
+            await eggai_register_stop(self.stop)
             self._stop_registered = True
 
         # Group this agent's subscriptions by channel name

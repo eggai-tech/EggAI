@@ -2,7 +2,7 @@ from typing import (
     Dict, Any, Optional
 )
 
-from .hooks import register_stop
+from .hooks import eggai_register_stop
 from .transport.base import Transport, get_default_transport
 
 
@@ -33,7 +33,7 @@ class Channel:
             self._connected = True
             # Auto-register stop
             if not self._stop_registered:
-                register_stop(self.stop)
+                await eggai_register_stop(self.stop)
                 self._stop_registered = True
 
     async def publish(self, message: Dict[str, Any]):

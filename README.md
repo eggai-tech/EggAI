@@ -199,7 +199,7 @@ Here's how you can quickly set up an agent to handle events in an event-driven s
 ```python
 import asyncio
 
-from eggai import Agent, Channel
+from eggai import Agent, Channel, eggai_main
 
 agent = Agent("OrderAgent")
 channel = Channel()
@@ -215,6 +215,7 @@ async def handle_order_created(event):
     print(f"[ORDER AGENT]: Order created. Event: {event}")
 
 
+@eggai_main
 async def main():
     await agent.start()
     await channel.publish({
@@ -224,6 +225,8 @@ async def main():
             "quantity": 1
         }
     })
+    
+    await asyncio.Future() # Keep the event loop running
 
 if __name__ == "__main__":
     asyncio.run(main())
