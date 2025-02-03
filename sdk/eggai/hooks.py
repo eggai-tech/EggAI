@@ -1,6 +1,7 @@
 import asyncio
 import signal
 import sys
+import atexit
 
 # Global variables for shutdown handling.
 _STOP_CALLBACKS = []
@@ -66,8 +67,17 @@ def _install_signal_handlers():
         possible_signals.append(signal.SIGTERM)
 
     def signal_handler():
-        print("EggAI: Signal received. Initiating shutdown...", flush=True)
-        loop.call_soon_threadsafe(_get_exit_event().set)
+        try:
+            _get_exit_event().set()
+        except RuntimeError:
+            pass
+        import sys
+        try:
+            sys.exit(0)
+        except SystemExit:
+            pass
+
+    atexit.register(signal_handler)
 
     for s in possible_signals:
         try:
@@ -112,6 +122,7 @@ def eggai_main(func):
         except asyncio.CancelledError:
             print("EggAI: Application interrupted by user.", flush=True)
             exit_event.set()
+            await asyncio.sleep(0.1)
         finally:
             if exit_event.is_set():
                 main_task.cancel()
@@ -119,6 +130,9 @@ def eggai_main(func):
                     await main_task
                 except asyncio.CancelledError:
                     pass
+            if not exit_event.is_set():
+                exit_event.set()
+                await asyncio.sleep(0.1)
             await eggai_cleanup()
 
     return wrapper
