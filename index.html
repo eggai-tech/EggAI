@@ -702,7 +702,7 @@
             
   
   <span class="md-ellipsis">
-    References
+    SDK
   </span>
   
 
@@ -712,7 +712,7 @@
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
-            References
+            SDK
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -723,7 +723,7 @@
   
   
     <li class="md-nav__item">
-      <a href="references/agent/" class="md-nav__link">
+      <a href="sdk/agent/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -744,7 +744,7 @@
   
   
     <li class="md-nav__item">
-      <a href="references/channel/" class="md-nav__link">
+      <a href="sdk/channel/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -765,7 +765,7 @@
   
   
     <li class="md-nav__item">
-      <a href="references/message/" class="md-nav__link">
+      <a href="sdk/message/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -786,7 +786,7 @@
   
   
     <li class="md-nav__item">
-      <a href="references/transport/" class="md-nav__link">
+      <a href="sdk/transport/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1107,7 +1107,7 @@
 <li>📈 <strong>Horizontally Scalable</strong>: Seamless scaling of agent execution to meet growing demands.</li>
 <li>🛠 <strong>Flexible Architecture</strong>: Adaptable and extensible components without disrupting workflows.</li>
 <li>🔄 <strong>Resilient</strong>: Built-in retry mechanisms and fault tolerance ensuring reliability.</li>
-<li>🚇 <strong>Kafka &amp; ZeroMQ Integration</strong>: Native support for message streaming with Kafka and ZeroMQ.</li>
+<li>🚇 <strong>Kafka Integration</strong>: Native support for message streaming with Kafka.</li>
 </ul>
 <h3 id="installation">Installation</h3>
 <p>Install <code>eggai</code> via pip:</p>
@@ -1117,11 +1117,10 @@
 <p>Here's how you can quickly set up an agent to handle events in an event-driven system:</p>
 <pre><code class="language-python">import asyncio
 
-from eggai import Agent, Channel, eggai_stop
+from eggai import Agent, Channel
 
 agent = Agent(&quot;OrderAgent&quot;)
 channel = Channel()
-
 
 @agent.subscribe(filter_func=lambda e: e.get(&quot;event_name&quot;) == &quot;order_requested&quot;)
 async def handle_order_requested(event):
@@ -1143,14 +1142,6 @@ async def main():
             &quot;quantity&quot;: 1
         }
     })
-
-    try:
-        await asyncio.Event().wait()
-    except (KeyboardInterrupt, asyncio.CancelledError):
-        pass
-
-    await eggai_stop()
-
 
 if __name__ == &quot;__main__&quot;:
     asyncio.run(main())
