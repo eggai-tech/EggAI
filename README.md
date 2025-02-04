@@ -12,14 +12,14 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 [![GitHub Issues](https://img.shields.io/github/issues/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/stargazers)
 
-`EggAI Multi-Agent Meta Framework` is an async-first meta framework for building scalable multi-agent systems for modern enterprise environments. It provides:
+`EggAI Multi-Agent Meta Framework` is an async-first meta framework for building enterprise-grade multi-agent systems. It provides:
 
 - <a href="#examples">Examples</a>: Practical implementation scenarios using popular AI frameworks such as DSPy, LiteLLM and LangChain.
 - <a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication with Kafka and InMemory transports.
 
 ### Features
 
-- 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
+- 🤖 **Agent Orchestration**: Designed for seamless multi-agent collaboration.
 - 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
 - ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
 - 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
