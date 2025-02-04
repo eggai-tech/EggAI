@@ -51,6 +51,7 @@ server = uvicorn.Server(
 add_websocket_gateway("/ws", api, server)
 
 
+# Start agents and server
 @eggai_main
 async def main():
     load_dotenv()
