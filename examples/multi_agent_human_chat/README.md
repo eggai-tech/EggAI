@@ -12,7 +12,7 @@ Users interact with the system through a WebSocket-enabled chat interface.
 
 ## Agents Overview
 
-Autonomous agents collaborate with clear defined roles, objectives and skills.
+Agents collaborate with clear defined roles, objectives and skills.
 
 ### **TriageAgent**
 
