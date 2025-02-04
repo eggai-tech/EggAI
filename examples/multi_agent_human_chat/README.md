@@ -6,17 +6,43 @@ This example shows a simple multi-agent system for insurance support.
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/multi_agent_human_chat).
 
-## Agents Overview
-
-- **TriageAgent**: Analyzes incoming messages and routes them to the appropriate agent based on content.
-- **PoliciesAgent**: Handles policy-related inquiries using a mock `policies_database`.
-- **EscalationAgent**: Manages support ticket creation and retrieval for escalated issues.
-
 ## User Interaction
 
 Users interact with the system through a WebSocket-enabled chat interface.
 
 ![Chat UI Screenshot](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/support-chat.png)
+
+## Agents Overview
+
+### **TriageAgent**
+
+**Role**: Analyze incoming messages and route them to the appropriate agent based on content.  
+**Objective**: Ensure that user inquiries are efficiently assigned to the right agent.  
+**Skill**: Content classification and routing.
+
+### **PoliciesAgent**
+
+**Role**: Handle policy-related inquiries using a mock `policies_database`.  
+**Objective**: Provide accurate and detailed information about user policies.  
+**Skill**: Policy management expertise.
+
+### **BillingAgent**
+
+**Role**: Assist customers with billing-related inquiries such as due amounts, billing cycles, and payment statuses.  
+**Objective**: Resolve billing-related questions efficiently and provide updates to billing records as needed.  
+**Skill**: Billing expertise and data management.
+
+### **EscalationAgent**
+
+**Role**: Manage support ticket creation and retrieval for escalated issues that other agents cannot resolve.  
+**Objective**: Ensure unresolved issues are properly documented and assigned to the correct human support teams.  
+**Skill**: Escalation management and ticket tracking.
+
+### **WebSocketGatewayAgent**
+
+**Role**: Oversee real-time communication between the FastAPI server and connected clients.  
+**Objective**: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.  
+**Skill**: Real-time communication, session management, and message handling.
 
 ## Architecture Overview
 
