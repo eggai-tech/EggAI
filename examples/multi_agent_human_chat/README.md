@@ -16,7 +16,7 @@ The code for the example can be found [here](https://github.com/eggai-tech/EggAI
 
 Users interact with the system through a WebSocket-enabled chat interface.
 
-![Chat UI Screenshot](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-07-chat.png)
+![Chat UI Screenshot](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/support-chat.png)
 
 ## Architecture Overview
 
