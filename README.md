@@ -21,150 +21,150 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 
 Practical implementation scenarios and integration guides with popular AI frameworks. We encourage you to explore and **copy/paste** from our examples for your projects.
 
-<table style="width: 100%">
+<table style="width: 100%;">
   <tbody>
     <tr>
-      <td style="width: 40%;">
-        <a href="examples/getting_started"><strong>Getting Started</strong></a>:<br/>
-        Orchestrate two agents asynchronously.<br/>
-        Tags: Communication
-      </td>
-      <td style="width: 60%;">
+      <td style="width: 15%;">
         <a href="examples/getting_started">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-00.png" alt="Getting Started Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-00.png" alt="Getting Started" width="80"/>
         </a>
+      </td>
+      <td>
+        <a href="examples/getting_started"><strong>Getting Started</strong></a><br/>
+        Orchestrate two agents asynchronously.<br/>
+        <small>Tags: Communication</small>
       </td>
     </tr>
     <tr>
-      <td style="width: 40%;">
-        <a href="examples/coordinator"><strong>Coordinator</strong></a>:<br/>
-        Bridge multiple communication channels.<br/>
-        Tags: Communication, Pattern
-      </td>
-      <td style="width: 60%;">
+      <td>
         <a href="examples/coordinator">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-01.png" alt="Coordinator Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-01.png" alt="Coordinator" width="80"/>
         </a>
+      </td>
+      <td>
+        <a href="examples/coordinator"><strong>Coordinator</strong></a><br/>
+        Bridge multiple communication channels.<br/>
+        <small>Tags: Communication, Pattern</small>
       </td>
     </tr>
     <tr>
-      <td style="width: 40%;">
-        <a href="examples/websocket_gateway"><strong>Websocket Gateway</strong></a>:<br/>
-        Real-time interaction via WebSockets.<br/>
-        Tags: Communication, Realtime
-      </td>
-      <td style="width: 60%;">
+      <td>
         <a href="examples/websocket_gateway">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-02.png" alt="Websocket Gateway Example"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-02.png" alt="Websocket Gateway" width="80"/>
         </a>
+      </td>
+      <td>
+        <a href="examples/websocket_gateway"><strong>Websocket Gateway</strong></a><br/>
+        Real-time interaction via WebSockets.<br/>
+        <small>Tags: Communication, Realtime</small>
       </td>
     </tr>
     <tr>
-      <td style="width: 40%;">
-        <a href="examples/langchain_tool_calling"><strong>LangChain Tool Calling</strong></a>:<br/>
-        Integrate tool calling with LangChain.<br/>
-        Tags: Tool Calling, LangChain
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/langchain_tool_calling">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-03.png" alt="LangChain Tool Calling Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/shared_context"><strong>Shared Context</strong></a>:<br/>
-        Maintain shared context across agents.<br/>
-        Tags: Communication, Memory
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/shared_context">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-04.png" alt="Shared Context Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/litellm_agent"><strong>LiteLLM Agent</strong></a>:<br/>
-        Power agents with LiteLLM.<br/>
-        Tags: LiteLLM
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/litellm_agent">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-05.png" alt="LiteLLM Agent Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/triage_agent"><strong>Triage Agent</strong></a>:<br/>
-        Triage Agent with classification and routing.<br/>
-        Tags: Classification, Routing
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/triage_agent">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-agent.png" alt="Triage Agent"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
-        Context aware multi-agent conversations.<br/>
-        Tags: Communication, Classification, Routing, Chat
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/multi_agent_conversation">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-06.png" alt="Multi-Agent Conversation Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/multi_agent_human_chat"><strong>Multi-Agent & Human Chat</strong></a>:<br/>
-        Insurance support system with an intuitive user interface.<br/>
-        Tags: Communication, Realtime, Classification, Routing, Chat
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/multi_agent_human_chat">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat.png" alt="Multi-Agent & Human Chat"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/agent_evaluation_dspy"><strong>Agent Evaluation & Optimization with DSPy</strong></a>:<br/>
-        Data-driven development with DSPy.<br/>
-        Tags: DSPy, Evaluation, Optimization
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/agent_evaluation_dspy">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-evaluation-dspy.png" alt="Agents Evaluation & DSPy"/>
-        </a>
-      </td>
-    </tr>
-      <tr>
-      <td style="width: 40%;">
-        <a href="examples/agent_evaluation_dspy"><strong>Safe Agents with Guardrails AI</strong></a>:<br/>
-        Guarding LLM agents against toxicity and PII leakage.<br/>
-        Tags: DSPy, Guardrails
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/safe_agents_guardrails">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/safe-agents-guardrails.png" alt="Safe Agents with Guardrails AI"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/dspy_react"><strong>DSPy ReAct</strong></a>:<br/>
-        Advanced Agents with DSPy ReAct.<br/>
-        Tags: DSPy, Tool Calling, React
-      </td>
-      <td style="width: 60%;">
+      <td>
         <a href="examples/dspy_react">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/react-agent-dspy.png" alt="DSPy ReAct"/>
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/react-agent-dspy.png" alt="DSPy ReAct" width="80"/>
         </a>
+      </td>
+      <td>
+        <a href="examples/dspy_react"><strong>DSPy ReAct Agent</strong></a><br/>
+        Advanced Agents with DSPy ReAct.<br/>
+        <small>Tags: DSPy, Tool Calling, React</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/langchain_tool_calling">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-03.png" alt="LangChain Tool Calling" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/langchain_tool_calling"><strong>LangChain Agent</strong></a><br/>
+        Integrate tool calling with LangChain.<br/>
+        <small>Tags: Tool Calling, LangChain</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/litellm_agent">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-05.png" alt="LiteLLM Agent" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/litellm_agent"><strong>LiteLLM Agent</strong></a><br/>
+        Power agents with LiteLLM.<br/>
+        <small>Tags: LiteLLM</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/agent_evaluation_dspy">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-evaluation-dspy.png" alt="Agent Evaluation & DSPy" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/agent_evaluation_dspy"><strong>Agent Evaluation & Optimization with DSPy</strong></a><br/>
+        Data-driven development with DSPy.<br/>
+        <small>Tags: DSPy, Evaluation, Optimization</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/safe_agents_guardrails">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/safe-agents-guardrails.png" alt="Safe Agents with Guardrails AI" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/safe_agents_guardrails"><strong>Safe Agents with Guardrails AI</strong></a><br/>
+        Guarding LLM agents against toxicity and PII leakage.<br/>
+        <small>Tags: DSPy, Guardrails</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/triage_agent">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-agent.png" alt="Triage Agent" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/triage_agent"><strong>Triage Agent</strong></a><br/>
+        Triage Agent with classification and routing.<br/>
+        <small>Tags: Classification, Routing</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/shared_context">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-04.png" alt="Shared Context" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/shared_context"><strong>Shared Context</strong></a><br/>
+        Maintain shared context across agents.<br/>
+        <small>Tags: Communication, Memory</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/multi_agent_conversation">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-06.png" alt="Multi-Agent Conversation" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a><br/>
+        Context-aware multi-agent conversations.<br/>
+        <small>Tags: Communication, Classification, Routing, Chat</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/multi_agent_human_chat">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat.png" alt="Multi-Agent Insurance Support System" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/multi_agent_human_chat"><strong>Multi-Agent Insurance Support System</strong></a><br/>
+        Insurance support system with a support chat UI.<br/>
+        <small>Tags: Communication, Realtime, Classification, Routing, Chat</small>
       </td>
     </tr>
   </tbody>
@@ -225,7 +225,7 @@ async def main():
             "quantity": 1
         }
     })
-    
+
     await asyncio.Future() # Keep the event loop running
 
 if __name__ == "__main__":
