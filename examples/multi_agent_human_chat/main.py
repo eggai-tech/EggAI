@@ -13,17 +13,23 @@ from agents.billing_agent import billing_agent
 from agents.escalation_agent import escalation_agent
 from agents.policies_agent import policies_agent
 from agents.triage_agent import triage_agent
-from agents.websocket_gateway_agent import add_websocket_gateway, websocket_gateway_agent
+from agents.websocket_gateway_agent import (
+    add_websocket_gateway,
+    websocket_gateway_agent,
+)
 
+# Create FastAPI
 api = FastAPI()
 
+
+# Serve static public folder for HTTP requests
 @api.get("/", response_class=HTMLResponse)
 async def read_root():
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        html_file_path = os.path.join(current_dir, "public/chat.html")
+        html_file_path = os.path.join(current_dir, "public/index.html")
         if not os.path.isfile(html_file_path):
-            raise FileNotFoundError(f"chat.html not found at {html_file_path}")
+            raise FileNotFoundError("File not found")
         with open(html_file_path, "r", encoding="utf-8") as file:
             file_content = file.read()
 
@@ -36,7 +42,12 @@ async def read_root():
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-server = uvicorn.Server(uvicorn.Config(api, host="127.0.0.1", port=8000, log_level="info"))
+# Create Uvicorn server
+server = uvicorn.Server(
+    uvicorn.Config(api, host="127.0.0.1", port=8000, log_level="info")
+)
+
+# Add WebSocket API handler
 add_websocket_gateway("/ws", api, server)
 
 
