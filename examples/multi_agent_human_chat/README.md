@@ -21,7 +21,7 @@ The code for the example can be found [here](https://github.com/eggai-tech/EggAI
 
 Ensure you have the following dependencies installed:
 
-- **Python** 3.10+
+- **Python** 3.10>=3.12
 - **Docker** and **Docker Compose**
 
 Ensure you have a valid OpenAI API key set in your environment:

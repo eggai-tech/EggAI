@@ -1,5 +1,4 @@
-import json
-from typing import Literal
+from typing import Literal, Optional
 from uuid import uuid4
 
 import dspy
@@ -13,21 +12,22 @@ TargetAgent = Literal["PoliciesAgent", "BillingAgent", "EscalationAgent", "Triag
 AGENT_REGISTRY = {
     "PoliciesAgent": {
         "message_type": "policy_request",
-        "description": "Handles policy-related queries"
+        "description": "Handles policy-related queries",
     },
     "BillingAgent": {
         "message_type": "billing_request",
-        "description": "Handles billing-related queries"
+        "description": "Handles billing-related queries",
     },
     "EscalationAgent": {
         "message_type": "escalation_request",
-        "description": "Handles escalated queries"
+        "description": "Handles escalated queries",
     },
 }
 
 
 class AgentClassificationSignature(dspy.Signature):
-    """
+    (
+        """
     Represents the input and output fields for the agent classification process.
 
     Role:
@@ -35,13 +35,22 @@ class AgentClassificationSignature(dspy.Signature):
 
     Responsibilities:
     - Classifies and routes messages to appropriate target agents based on context.
+    - Handles small talk or casual greetings directly.
 
     Target Agents:
-    """ + "".join([f"\n- {agent}: {desc}" for agent, desc in AGENT_REGISTRY.items()]) + """
+    """
+        + "".join([f"\n- {agent}: {desc}" for agent, desc in AGENT_REGISTRY.items()])
+        + """
+
+    Smalltalk Rules:
+    - Route to TriageAgent if the target agent is not recognized.
+    - Respond to small talk or casual greetings with a friendly message, such as: 'Hello! 👋 How can I assist you with your insurance today? Feel free to ask about policies, billing, claims, or anything else!'
 
     Fallback Rules:
     - Route to TriageAgent if the target agent is not recognized.
+    - Provide helpful guidance if the message intent is not recognized.
     """
+    )
 
     # Input Fields
     chat_history: str = dspy.InputField(
@@ -53,9 +62,14 @@ class AgentClassificationSignature(dspy.Signature):
         desc="Target agent classified for triage based on context and rules."
     )
 
-    fall_back_reason: str = dspy.OutputField(
+    small_talk_message: Optional[str] = dspy.OutputField(
+        desc="A friendly response to small talk or casual greetings if small talk intent is identified."
+    )
+
+    fall_back_message: Optional[str] = dspy.OutputField(
         desc="A kind message to the user explaining why the message was not understood."
     )
+
 
 triage_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
 triage_agent = Agent(name="TriageAgent")
@@ -81,7 +95,6 @@ async def handle_user_message(msg):
         response = triage_classifier(chat_history=conversation_string)
         target_agent = response.target_agent
         triage_to_agent_messages = [
-
             {
                 "role": "user",
                 "content": f"{conversation_string} \n{target_agent}: ",
@@ -98,13 +111,14 @@ async def handle_user_message(msg):
                 }
             )
         else:
+            message_to_send = response.small_talk_message or response.fall_back_message or ""
             meta["agent"] = "TriageAgent"
             await human_channel.publish(
                 {
                     "id": str(uuid4()),
                     "type": "agent_message",
                     "meta": meta,
-                    "payload": response.fall_back_reason,
+                    "payload": message_to_send,
                 }
             )
     except Exception as e:

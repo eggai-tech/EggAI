@@ -1,245 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Multi-Agent Chat</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    window.tailwind = {
-      config: {
-        darkMode: 'class'
+  <head>
+    <meta charset="UTF-8" />
+    <title>Multi-Agent Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      window.tailwind = {
+        config: {
+          darkMode: "class",
+        },
+      };
+    </script>
+    <style>
+      #messages::-webkit-scrollbar {
+        width: 8px;
       }
-    }
-  </script>
-  <style>
-    #messages::-webkit-scrollbar {
-      width: 8px;
-    }
-    #messages::-webkit-scrollbar-thumb {
-      background-color: rgba(100, 100, 100, 0.3);
-      border-radius: 4px;
-    }
-    html, body {
-      height: 100%;
-    }
-  </style>
-</head>
-<body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
-  <div id="root"></div>
+      #messages::-webkit-scrollbar-thumb {
+        background-color: rgba(100, 100, 100, 0.3);
+        border-radius: 4px;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+    <div id="root"></div>
 
-  <!-- Babel Standalone to transform our JSX/ES6 in the browser -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Babel Standalone to transform our JSX/ES6 in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Our React code -->
-  <script type="text/babel" data-type="module">
-    import React, { useEffect, useRef, useState } from "https://esm.sh/react@18.2.0";
-    import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
+    <!-- Our React code -->
+    <script type="text/babel" data-type="module">
+      import React, {
+        useEffect,
+        useRef,
+        useState,
+      } from "https://esm.sh/react@18.2.0";
+      import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
 
-    const AGENTS = {
-      TriageAgent: {
-        emoji: "🔍",
-        bgColor: "bg-purple-100",
-        darkBgColor: "dark:bg-purple-700",
-        textColor: "text-purple-800",
-        darkTextColor: "dark:text-purple-200"
-      },
-      PoliciesAgent: {
-        emoji: "🛡️",
-        bgColor: "bg-blue-100",
-        darkBgColor: "dark:bg-blue-700",
-        textColor: "text-blue-800",
-        darkTextColor: "dark:text-blue-200"
-      },
-      EscalationAgent: {
-        emoji: "🎫",
-        bgColor: "bg-yellow-100",
-        darkBgColor: "dark:bg-yellow-700",
-        textColor: "text-yellow-800",
-        darkTextColor: "dark:text-yellow-200"
-      },
-      BillingAgent: {
+      const AGENTS = {
+        TriageAgent: {
+          emoji: "🔍",
+          bgColor: "bg-purple-100",
+          darkBgColor: "dark:bg-purple-700",
+          textColor: "text-purple-800",
+          darkTextColor: "dark:text-purple-200",
+        },
+        PoliciesAgent: {
+          emoji: "🛡️",
+          bgColor: "bg-blue-100",
+          darkBgColor: "dark:bg-blue-700",
+          textColor: "text-blue-800",
+          darkTextColor: "dark:text-blue-200",
+        },
+        EscalationAgent: {
+          emoji: "🎫",
+          bgColor: "bg-yellow-100",
+          darkBgColor: "dark:bg-yellow-700",
+          textColor: "text-yellow-800",
+          darkTextColor: "dark:text-yellow-200",
+        },
+        BillingAgent: {
           emoji: "💳",
           bgColor: "bg-red-100",
           darkBgColor: "dark:bg-red-700",
           textColor: "text-red-800",
-          darkTextColor: "dark:text-red-200"
-      },
-    };
+          darkTextColor: "dark:text-red-200",
+        },
+      };
 
-    function App() {
-      const [messages, setMessages] = useState([]);
-      const [darkMode, setDarkMode] = useState(false);
-      const [connectionStatus, setConnectionStatus] = useState("Connecting...");
-      const [inputValue, setInputValue] = useState("");
-      const [connectionId, setConnectionId] = useState(null);
-      const wsRef = useRef(null);
-      const messagesEndRef = useRef(null);
+      function App() {
+        const [messages, setMessages] = useState([]);
+        const [darkMode, setDarkMode] = useState(false);
+        const [connectionStatus, setConnectionStatus] =
+          useState("Connecting...");
+        const [inputValue, setInputValue] = useState("");
+        const [connectionId, setConnectionId] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const wsRef = useRef(null);
+        const messagesEndRef = useRef(null);
 
-      useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, [messages]);
+        useEffect(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, [messages]);
 
-      useEffect(() => {
-        const stored = localStorage.getItem("darkMode") === "enabled";
-        setDarkMode(stored);
-        document.documentElement.classList.toggle("dark", stored);
-      }, []);
+        useEffect(() => {
+          const stored = localStorage.getItem("darkMode") === "enabled";
+          setDarkMode(stored);
+          document.documentElement.classList.toggle("dark", stored);
+        }, []);
 
-      useEffect(() => {
-        initWebSocket();
-        return () => wsRef.current?.close();
-      }, []);
+        useEffect(() => {
+          initWebSocket();
+          return () => wsRef.current?.close();
+        }, []);
 
-      function initWebSocket() {
-        const uri = "ws://localhost:8000/ws";
-        const socket = new WebSocket(uri);
-        wsRef.current = socket;
-        socket.onopen = () => setConnectionStatus("Connected");
-        socket.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (!connectionId && data.connection_id) {
-              setConnectionId(data.connection_id);
-              localStorage.setItem("connection_id", data.connection_id);
+        function initWebSocket() {
+          const uri = "ws://localhost:8000/ws";
+          const socket = new WebSocket(uri);
+          wsRef.current = socket;
+          socket.onopen = () => setConnectionStatus("Connected");
+          socket.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (!connectionId && data.connection_id) {
+                setConnectionId(data.connection_id);
+                localStorage.setItem("connection_id", data.connection_id);
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    sender: "System",
+                    text: `Connection established. ID: ${data.connection_id}`,
+                  },
+                ]);
+                return;
+              }
+              const sender = data.sender || "TriageAgent";
+              const content = data.content || "";
+              setMessages((prev) => [...prev, { sender, text: content }]);
+            } catch {
               setMessages((prev) => [
                 ...prev,
-                { sender: "System", text: `Connection established. ID: ${data.connection_id}` }
+                {
+                  sender: "System",
+                  text: "An error occurred while processing a message.",
+                },
               ]);
-              return;
+            } finally {
+              setLoading(false);
             }
-            const sender = data.sender || "TriageAgent";
-            const content = data.content || "";
-            setMessages((prev) => [...prev, { sender, text: content }]);
-          } catch {
-            setMessages((prev) => [
-              ...prev,
-              { sender: "System", text: "An error occurred while processing a message." }
-            ]);
-          }
-        };
-        socket.onerror = () => {};
-        socket.onclose = () => {
-          setConnectionStatus("Disconnected. Reconnecting...");
-          setTimeout(initWebSocket, 3000);
-        };
-      }
-
-      function sendMessage() {
-        const text = inputValue.trim();
-        if (!text || !wsRef.current) return;
-        if (wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ payload: text }));
-          setMessages((prev) => [...prev, { sender: "You", text }]);
-          setInputValue("");
-        } else {
-          alert("Connection is not open yet.");
+          };
+          socket.onerror = () => {};
+          socket.onclose = () => {
+            setConnectionStatus("Disconnected. Reconnecting...");
+            setTimeout(initWebSocket, 3000);
+          };
         }
-      }
 
-      function toggleDarkMode() {
-        const newMode = !darkMode;
-        setDarkMode(newMode);
-        document.documentElement.classList.toggle("dark", newMode);
-        localStorage.setItem("darkMode", newMode ? "enabled" : "disabled");
-      }
+        function sendMessage() {
+          const text = inputValue.trim();
+          if (!text || !wsRef.current) return;
+          if (wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ payload: text }));
+            setMessages((prev) => [...prev, { sender: "You", text }]);
+            setInputValue("");
+            setLoading(true);
+          } else {
+            alert("Connection is not open yet.");
+          }
+        }
 
-      return (
-        <div className="flex flex-col h-50 p-4">
-          <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col">
-            <div className="bg-blue-500 dark:bg-gray-700 text-white p-4 rounded-t-lg flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Support Chat</h2>
-              <div className="flex items-center space-x-4">
-                <span className="text-sm">{connectionStatus}</span>
-                <button className="text-2xl" onClick={toggleDarkMode} title="Toggle Dark Mode">
-                  {darkMode ? "☀️" : "🌒"}
+        function toggleDarkMode() {
+          const newMode = !darkMode;
+          setDarkMode(newMode);
+          document.documentElement.classList.toggle("dark", newMode);
+          localStorage.setItem("darkMode", newMode ? "enabled" : "disabled");
+        }
+
+        return (
+          <div className="flex flex-col h-50 p-4">
+            <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col">
+              <div className="bg-blue-500 dark:bg-gray-700 text-white p-4 rounded-t-lg flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Support Chat</h2>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm">{connectionStatus}</span>
+                  <button
+                    className="text-2xl"
+                    onClick={toggleDarkMode}
+                    title="Toggle Dark Mode"
+                  >
+                    {darkMode ? "☀️" : "🌒"}
+                  </button>
+                </div>
+              </div>
+              <div
+                id="messages"
+                className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-700"
+              >
+                {messages.map((msg, i) => {
+                  if (msg.sender === "System") {
+                    return (
+                      <div key={i} className="flex justify-center mb-4">
+                        <div className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 p-2 rounded-lg max-w-2xl w-full text-center italic">
+                          {msg.text}
+                        </div>
+                      </div>
+                    );
+                  }
+                  if (msg.sender === "You") {
+                    return (
+                      <div key={i} className="flex justify-end mb-4">
+                        <div className="mr-3 bg-green-100 dark:bg-green-700 text-green-800 dark:text-green-200 p-2 rounded-lg max-w-2xl">
+                          <p className="text-sm">{msg.text}</p>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            You
+                          </span>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-green-200 dark:bg-green-600 flex items-center justify-center text-2xl">
+                            🙂
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  const agent = AGENTS[msg.sender] || {
+                    emoji: "💬",
+                    bgColor: "bg-gray-200",
+                    darkBgColor: "dark:bg-gray-600",
+                    textColor: "text-gray-800",
+                    darkTextColor: "dark:text-gray-200",
+                  };
+                  return (
+                    <div key={i} className="flex mb-4">
+                      <div className="flex-shrink-0">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl
+                          ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
+                        >
+                          {agent.emoji}
+                        </div>
+                      </div>
+                      <div
+                        className={`ml-3 p-2 rounded-lg max-w-2xl
+                        ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
+                      >
+                        <p className="text-sm">{msg.text}</p>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {msg.sender}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {loading && (
+                  <div className="flex mb-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-2xl">
+                        {/* Tailwind’s animate-spin will rotate the spinner */}
+                        <span className="animate-spin">⏳</span>
+                      </div>
+                    </div>
+                    <div className="ml-3 p-2 rounded-lg max-w-2xl bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
+                      <p className="text-sm">Agent is typing...</p>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+              <div className="p-4 border-t dark:border-gray-600 flex items-center bg-gray-100 dark:bg-gray-800">
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg p-2
+                           bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                />
+                <button
+                  onClick={sendMessage}
+                  className="ml-2 bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700"
+                >
+                  Send
                 </button>
               </div>
             </div>
-            <div id="messages" className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-700">
-              {messages.map((msg, i) => {
-                if (msg.sender === "System") {
-                  return (
-                    <div key={i} className="flex justify-center mb-4">
-                      <div className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 p-2 rounded-lg max-w-2xl w-full text-center italic">
-                        {msg.text}
-                      </div>
-                    </div>
-                  );
-                }
-                if (msg.sender === "You") {
-                  return (
-                    <div key={i} className="flex justify-end mb-4">
-                      <div className="mr-3 bg-green-100 dark:bg-green-700 text-green-800 dark:text-green-200 p-2 rounded-lg max-w-2xl">
-                        <p className="text-sm">{msg.text}</p>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">You</span>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-green-200 dark:bg-green-600 flex items-center justify-center text-2xl">
-                          🙂
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-                const agent = AGENTS[msg.sender] || {
-                  emoji: "💬",
-                  bgColor: "bg-gray-200",
-                  darkBgColor: "dark:bg-gray-600",
-                  textColor: "text-gray-800",
-                  darkTextColor: "dark:text-gray-200"
-                };
-                return (
-                  <div key={i} className="flex mb-4">
-                    <div className="flex-shrink-0">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl
-                          ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
-                      >
-                        {agent.emoji}
-                      </div>
-                    </div>
-                    <div
-                      className={`ml-3 p-2 rounded-lg max-w-2xl
-                        ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
-                    >
-                      <p className="text-sm">{msg.text}</p>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{msg.sender}</span>
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-            <div className="p-4 border-t dark:border-gray-600 flex items-center bg-gray-100 dark:bg-gray-800">
-              <input
-                type="text"
-                placeholder="Type your message..."
-                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg p-2
-                           bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-              />
-              <button
-                onClick={sendMessage}
-                className="ml-2 bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700"
-              >
-                Send
-              </button>
-            </div>
           </div>
-        </div>
-      );
-    }
+        );
+      }
 
-    const root = createRoot(document.getElementById("root"));
-    root.render(<App />);
-  </script>
-</body>
+      const root = createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
 </html>
