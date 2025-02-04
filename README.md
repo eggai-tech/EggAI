@@ -19,7 +19,7 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 
 ### Features
 
-- 🤖 **Agent Orchestration**: Designed for seamless multi-agent collaboration.
+- 🤖 **Multi-Agent Orchestration**: Designed for seamless multi-agent collaboration.
 - 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
 - ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
 - 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
