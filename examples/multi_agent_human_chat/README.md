@@ -14,6 +14,8 @@ Users interact with the system through a WebSocket-enabled chat interface.
 
 ## Agents Overview
 
+Autonomous agents collaborate with clear defined roles, objectives and skills.
+
 ### **TriageAgent**
 
 **Role**: Analyze incoming messages and route them to the appropriate agent based on content.  
