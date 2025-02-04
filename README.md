@@ -15,7 +15,17 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 `EggAI Multi-Agent Meta Framework` is an async-first meta framework for building scalable multi-agent systems for modern enterprise environments. It provides:
 
 - <a href="#examples">Examples</a>: Practical implementation scenarios using popular AI frameworks such as DSPy, LiteLLM and LangChain.
-- <a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication.
+- <a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication with Kafka and InMemory transports.
+
+### Features
+
+- 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
+- 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
+- ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
+- 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
+- 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
+- 🔄 **Resilient**: Built-in retry mechanisms and fault tolerance ensuring reliability.
+- 🚇 **Kafka Integration**: Native support for message streaming with Kafka.
 
 ## Examples
 
@@ -174,15 +184,6 @@ Practical implementation scenarios and integration guides with popular AI framew
 
 **EggAI SDK** includes core components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
 
-### Features
-
-- 🤖 **Agent Management**: Streamlined orchestration and execution of multi-agent systems.
-- 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
-- ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
-- 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
-- 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
-- 🔄 **Resilient**: Built-in retry mechanisms and fault tolerance ensuring reliability.
-- 🚇 **Kafka Integration**: Native support for message streaming with Kafka.
 
 ### Installation
 
