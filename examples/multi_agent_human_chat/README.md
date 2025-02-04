@@ -1,8 +1,6 @@
 # Multi-Agent Insurance Support System
 
-AI agents collaborate to deliver efficient, personalized customer support.
-
-This example shows a simple multi-agent system for insurance support.
+AI agents collaborate in a multi-agent system to provide effective and personalized insurance support.
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/multi_agent_human_chat).
 
