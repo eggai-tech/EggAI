@@ -24,10 +24,11 @@ Ensure you have the following dependencies installed:
 - **Python** 3.10>=3.12
 - **Docker** and **Docker Compose**
 
-Ensure you have a valid OpenAI API key set in your environment:
+Ensure you have a valid OpenAI API key and Guardrails AI token set in your environment:
 
 ```bash
 export OPEN_AI_API_KEY="your-api-key"
+export GUARDRAILS_TOKEN="your-guardrails-ai-token"
 ```
 
 ## Setup Instructions
@@ -55,6 +56,13 @@ Install the required dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+Configure Guardrails:
+
+```bash
+guardrails configure --token $GUARDRAILS_TOKEN
+guardrails hub install hub://guardrails/toxic_language
 ```
 
 Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
