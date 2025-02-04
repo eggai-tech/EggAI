@@ -31,7 +31,7 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 
 Practical implementation scenarios and integration guides with popular AI frameworks. We encourage you to explore and **copy/paste** from our examples for your projects.
 
-If you're new to EggAI, we recommend starting with the [Getting Started]("examples/getting_started") example to learn the basics. If you want to see a more extensive multi-agent system in action, check out the [Multi-Agent Insurance Support System]("examples/multi_agent_human_chat") example.
+If you're new to EggAI, we recommend starting with the [Getting Started](examples/getting_started) example to learn the basics. If you want to see a more extensive multi-agent system in action, check out the [Multi-Agent Insurance Support System](examples/multi_agent_human_chat) example.
 
 <table style="width: 100%;">
   <tbody>
