@@ -6,7 +6,7 @@ from eggai import Channel, Agent
 from fastapi import FastAPI, Query
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from websocket_manager import WebSocketManager
+from agents.websocket_manager import WebSocketManager
 
 websocket_manager = WebSocketManager()
 human_channel = Channel("human")

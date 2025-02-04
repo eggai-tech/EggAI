@@ -9,11 +9,11 @@ from eggai.transport import eggai_set_default_transport, KafkaTransport
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
 
-from billing_agent import billing_agent
-from escalation_agent import escalation_agent
-from policies_agent import policies_agent
-from triage_agent import triage_agent
-from websocket_gateway import add_websocket_gateway, websocket_gateway_agent
+from agents.billing_agent import billing_agent
+from agents.escalation_agent import escalation_agent
+from agents.policies_agent import policies_agent
+from agents.triage_agent import triage_agent
+from agents.websocket_gateway_agent import add_websocket_gateway, websocket_gateway_agent
 
 api = FastAPI()
 
@@ -21,7 +21,7 @@ api = FastAPI()
 async def read_root():
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        html_file_path = os.path.join(current_dir, "chat.html")
+        html_file_path = os.path.join(current_dir, "public/chat.html")
         if not os.path.isfile(html_file_path):
             raise FileNotFoundError(f"chat.html not found at {html_file_path}")
         with open(html_file_path, "r", encoding="utf-8") as file:
