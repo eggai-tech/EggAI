@@ -1,7 +1,6 @@
 import asyncio
 import uuid
 
-import eggai
 import uvicorn
 from eggai import Channel, Agent
 from fastapi import FastAPI, Query
