@@ -206,11 +206,35 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#meta-framework" class="md-nav__link">
     <span class="md-ellipsis">
-      Features
+      Meta Framework
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Meta Framework">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ai-framework-integrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      AI Framework Integrations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-agent-evaluations" class="md-nav__link">
+    <span class="md-ellipsis">
+      AI Agent Evaluations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -259,21 +283,6 @@
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#examples_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Examples
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#why-copypaste" class="md-nav__link">
@@ -834,11 +843,35 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#meta-framework" class="md-nav__link">
     <span class="md-ellipsis">
-      Features
+      Meta Framework
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Meta Framework">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ai-framework-integrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      AI Framework Integrations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-agent-evaluations" class="md-nav__link">
+    <span class="md-ellipsis">
+      AI Agent Evaluations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -888,21 +921,6 @@
   
 </li>
         
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#examples_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      Examples
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
           <li class="md-nav__item">
   <a href="#why-copypaste" class="md-nav__link">
     <span class="md-ellipsis">
@@ -941,20 +959,257 @@
 <a href="https://github.com/eggai-tech/eggai/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge&amp;logo=github&amp;logoColor=white" /></a>
 <a href="https://github.com/eggai-tech/eggai/issues"><img alt="GitHub Issues" src="https://img.shields.io/github/issues/eggai-tech/eggai?style=for-the-badge&amp;logo=github&amp;logoColor=white" /></a>
 <a href="https://github.com/eggai-tech/eggai/stargazers"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/eggai-tech/eggai?style=for-the-badge&amp;logo=github&amp;logoColor=white" /></a></p>
-<p><code>EggAI Multi-Agent Meta Framework</code>  makes it easy to build enterprise-grade multi-agent systems with quality-controlled output. It provides:</p>
+<p><code>EggAI Multi-Agent Meta Framework</code> makes it easy to build enterprise-grade multi-agent systems with quality-controlled output, using an async-first, distributed and composable architecture. It provides:</p>
 <ul>
 <li><a href="#examples">Examples</a>: Practical implementation scenarios using popular AI frameworks.</li>
 <li><a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication.</li>
 </ul>
-<h3 id="features">Features</h3>
-<ul>
-<li>🤖 <strong>Multi-Agent Orchestration</strong>: Designed for seamless multi-agent collaboration.</li>
-<li>🛠️ <strong>Framework-Agnostic</strong>: You can use AI frameworks such as DSPy, LiteLLM and LangChain</li>
-<li>📦 <strong>Composable</strong>: Modular and adaptable agentic capabilities that integrate seamlessly.</li>
-<li>🚀 <strong>Async-First</strong>: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.</li>
-<li>📈 <strong>Horizontally Scalable</strong>: Seamless scaling of agent execution to meet growing demands.</li>
-<li>🚇 <strong>Kafka Integration</strong>: Native support for message streaming with Kafka.</li>
-</ul>
+<h3 id="meta-framework">Meta Framework</h3>
+<p>The EggAI Multi-Agent Meta Framework is a framework-agnostic AI orchestration layer designed for flexibility and scalability. It enables seamless integration with popular AI frameworks.</p>
+<h4 id="ai-framework-integrations">AI Framework Integrations</h4>
+<details>
+<summary>DSPy Agent</summary>
+
+
+<pre><code class="language-python"># Install `eggai` and `dspy` and set OPENAI_API_KEY in the environment
+
+import asyncio
+import dspy
+from eggai import Agent, Channel, eggai_main
+
+dspy.configure(lm=dspy.LM(&quot;openai/gpt-4o-mini&quot;))
+qa_model = dspy.Predict(&quot;question -&gt; answer&quot;)
+agent, channel = Agent(&quot;QAAgent&quot;), Channel()
+
+@agent.subscribe(filter_func=lambda event: event.get(&quot;event_name&quot;) == &quot;question_created&quot;)
+async def handle_question(event):
+    question = event[&quot;payload&quot;][&quot;question&quot;]
+    answer = qa_model(question=question).answer
+    print(f&quot;[QAAgent] Question: {question} | Answer: {answer}&quot;)
+
+    await channel.publish({
+        &quot;event_name&quot;: &quot;answer_generated&quot;,
+        &quot;payload&quot;: {&quot;question&quot;: question, &quot;answer&quot;: answer}
+    })
+
+@eggai_main
+async def main():
+    await agent.start()
+    await channel.publish({
+        &quot;event_name&quot;: &quot;question_created&quot;,
+        &quot;payload&quot;: {&quot;question&quot;: &quot;When was the Eiffel Tower built?&quot;}
+    })
+    await asyncio.Future()
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+
+</details>
+
+<details>
+<summary>LangChain Agent</summary>
+
+
+<pre><code class="language-python"># Install `eggai` and `langchain` and set OPENAI_API_KEY in the environment
+
+import asyncio
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import HumanMessage
+from eggai import Agent, Channel, eggai_main
+
+llm = ChatOpenAI(model_name=&quot;gpt-4o&quot;, temperature=0)
+agent, channel = Agent(&quot;QAAgent&quot;), Channel()
+
+@agent.subscribe(filter_func=lambda event: event.get(&quot;event_name&quot;) == &quot;question_created&quot;)
+async def handle_question(event):
+    question = event[&quot;payload&quot;][&quot;question&quot;]
+    answer = llm([HumanMessage(content=question)]).content
+
+    print(f&quot;[QAAgent] Question: {question} | Answer: {answer}&quot;)
+
+    await channel.publish({
+        &quot;event_name&quot;: &quot;answer_generated&quot;,
+        &quot;payload&quot;: {&quot;question&quot;: question, &quot;answer&quot;: answer}
+    })
+
+@eggai_main
+async def main():
+    await agent.start()
+    await channel.publish({
+        &quot;event_name&quot;: &quot;question_created&quot;,
+        &quot;payload&quot;: {&quot;question&quot;: &quot;When was the Eiffel Tower built?&quot;}
+    })
+    await asyncio.Future()
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+
+</details>
+
+<details>
+<summary>LiteLLM Agent</summary>
+
+
+<pre><code class="language-python"># Install `eggai` and `litellm` and set OPENAI_API_KEY in the environment
+
+import asyncio
+import litellm
+from eggai import Agent, Channel, eggai_main
+
+litellm.model = &quot;gpt-4o&quot;
+agent, channel = Agent(&quot;QAAgent&quot;), Channel()
+
+@agent.subscribe(filter_func=lambda event: event.get(&quot;event_name&quot;) == &quot;question_created&quot;)
+async def handle_question(event):
+    question = event[&quot;payload&quot;][&quot;question&quot;]
+    answer = litellm.completion(model=litellm.model, messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: question}])[&quot;choices&quot;][0][&quot;message&quot;][&quot;content&quot;]
+
+    print(f&quot;[QAAgent] Question: {question} | Answer: {answer}&quot;)
+
+    await channel.publish({
+        &quot;event_name&quot;: &quot;answer_generated&quot;,
+        &quot;payload&quot;: {&quot;question&quot;: question, &quot;answer&quot;: answer}
+    })
+
+@eggai_main
+async def main():
+    await agent.start()
+    await channel.publish({
+        &quot;event_name&quot;: &quot;question_created&quot;,
+        &quot;payload&quot;: {&quot;question&quot;: &quot;When was the Eiffel Tower built?&quot;}
+    })
+    await asyncio.Future()
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+
+</details>
+
+<details>
+<summary>LlamaIndex Agent</summary>
+
+
+<pre><code class="language-python"># Install `eggai` and `llama_index` and set OPENAI_API_KEY in the environment
+
+import asyncio
+from llama_index.llms.openai import OpenAI
+from eggai import Agent, Channel, eggai_main
+
+llm = OpenAI(model=&quot;gpt-4o&quot;)
+agent, channel = Agent(&quot;QAAgent&quot;), Channel()
+
+@agent.subscribe(filter_func=lambda event: event.get(&quot;event_name&quot;) == &quot;question_created&quot;)
+async def handle_question(event):
+    question = event[&quot;payload&quot;][&quot;question&quot;]
+    answer = llm.complete(question).text
+
+    print(f&quot;[QAAgent] Question: {question} | Answer: {answer}&quot;)
+
+    await channel.publish({
+        &quot;event_name&quot;: &quot;answer_generated&quot;,
+        &quot;payload&quot;: {&quot;question&quot;: question, &quot;answer&quot;: answer}
+    })
+
+@eggai_main
+async def main():
+    await agent.start()
+    await channel.publish({
+        &quot;event_name&quot;: &quot;question_created&quot;,
+        &quot;payload&quot;: {&quot;question&quot;: &quot;When was the Eiffel Tower built?&quot;}
+    })
+    await asyncio.Future()
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+
+</details>
+
+<h4 id="ai-agent-evaluations">AI Agent Evaluations</h4>
+<details>
+<summary>Agent Evaluation using LLM as a Judge metrics</summary>
+
+
+<pre><code class="language-python"># Install `eggai` and `dspy` and set OPENAI_API_KEY in the environment
+# Make sure to have the agent implementation in the `agent.py` file defined
+
+import asyncio
+import pytest
+import dspy
+from agent import agent
+from eggai import Agent, Channel
+
+dspy.configure(lm=dspy.LM(&quot;openai/gpt-4o-mini&quot;))
+
+ground_truth = [
+    {&quot;question&quot;: &quot;When was the Eiffel Tower built?&quot;, &quot;answer&quot;: &quot;The Eiffel Tower was built between 1887 and 1889.&quot;},
+    {&quot;question&quot;: &quot;Who wrote Hamlet?&quot;, &quot;answer&quot;: &quot;Hamlet was written by William Shakespeare.&quot;},
+    {&quot;question&quot;: &quot;What is the capital of France?&quot;, &quot;answer&quot;: &quot;The capital of France is Paris.&quot;},
+]
+
+class EvaluationSignature(dspy.Signature):
+    question: str = dspy.InputField(desc=&quot;Ground truth question.&quot;)
+    agent_answer: str = dspy.InputField(desc=&quot;Agent-generated answer.&quot;)
+    ground_truth_answer: str = dspy.InputField(desc=&quot;Expected correct answer.&quot;)
+
+    judgment: bool = dspy.OutputField(desc=&quot;Pass (True) or Fail (False).&quot;)
+    reasoning: str = dspy.OutputField(desc=&quot;Detailed justification in Markdown.&quot;)
+    precision_score: float = dspy.OutputField(desc=&quot;Precision score (0.0 to 1.0).&quot;)
+
+test_agent = Agent(&quot;TestAgent&quot;)
+test_channel = Channel()
+event_received = asyncio.Event()
+received_event = None
+
+@test_agent.subscribe(filter_func=lambda event: event.get(&quot;event_name&quot;) == &quot;answer_generated&quot;)
+async def handle_answer(event):
+    global received_event
+    received_event = event
+    event_received.set()
+
+@pytest.mark.asyncio
+async def test_qa_agent():
+    await agent.start()
+    await test_agent.start()
+
+    for item in ground_truth:
+        event_received.clear()
+
+        await test_channel.publish({&quot;event_name&quot;: &quot;question_created&quot;, &quot;payload&quot;: {&quot;question&quot;: item[&quot;question&quot;]}})
+
+        try:
+            await asyncio.wait_for(event_received.wait(), timeout=5.0)
+        except asyncio.TimeoutError:
+            pytest.fail(f&quot;Timeout: No 'answer_generated' event was published for question: {item['question']}&quot;)
+
+        assert received_event is not None, &quot;No 'answer_generated' event was received.&quot;
+        assert received_event[&quot;event_name&quot;] == &quot;answer_generated&quot;, &quot;Unexpected event type received.&quot;
+        assert &quot;answer&quot; in received_event[&quot;payload&quot;], &quot;The 'answer' key is missing in the payload.&quot;
+
+        agent_answer = received_event[&quot;payload&quot;][&quot;answer&quot;]
+        question = received_event[&quot;payload&quot;][&quot;question&quot;]
+        ground_truth_answer = item[&quot;answer&quot;]
+
+        assert question == item[&quot;question&quot;], f&quot;Incorrect question in the answer payload: {question}&quot;
+
+        eval_model = dspy.asyncify(dspy.Predict(EvaluationSignature))
+        evaluation_result = await eval_model(
+            question=question,
+            agent_answer=agent_answer,
+            ground_truth_answer=ground_truth_answer
+        )
+
+        assert isinstance(evaluation_result.judgment, bool), &quot;Judgment must be a boolean.&quot;
+        assert isinstance(evaluation_result.reasoning, str), &quot;Reasoning must be a string.&quot;
+        assert isinstance(evaluation_result.precision_score, float), &quot;Precision score must be a float.&quot;
+        assert 0.8 &lt;= evaluation_result.precision_score &lt;= 1.0, &quot;Precision score must be between 0.8 and 1.0.&quot;
+</code></pre>
+
+</details>
+
 <h2 id="examples">Examples</h2>
 <p>Practical implementation scenarios and integration guides with popular AI frameworks. We encourage you to explore and <strong>copy/paste</strong> from our examples for your projects.</p>
 <p>If you're new to EggAI, we recommend starting with the <a href="../../examples/getting_started">Getting Started</a> example to learn the basics. If you want to see a more extensive multi-agent system in action, check out the <a href="../../examples/multi_agent_human_chat">Multi-Agent Insurance Support System</a> example.</p>
@@ -1168,200 +1423,6 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
 <li><strong>Seamless Integration</strong>: Act as a communication hub, supporting both Agents and other system components.</li>
 <li><strong>Flexibility</strong>: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.</li>
 </ul>
-<!-- END INCLUDE -->
-
-<h2 id="examples_1">Examples</h2>
-<p>We encourage you to explore and <strong>copy/paste</strong> from our examples for practical implementation scenarios and integration guides with popular AI frameworks.</p>
-<table style="width: 100%">
-  <tbody>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/getting_started"><strong>Getting Started</strong></a>:<br/>
-        Orchestrate two agents asynchronously.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/getting_started">
-          <img src="assets/example-00.png" alt="Getting Started Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/coordinator"><strong>Coordinator</strong></a>:<br/>
-        Bridge multiple communication channels.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Pattern</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/coordinator">
-          <img src="assets/example-01.png" alt="Coordinator Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/websocket_gateway"><strong>Websocket Gateway</strong></a>:<br/>
-        Real-time interaction via WebSockets.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Realtime</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/websocket_gateway">
-          <img src="assets/example-02.png" alt="Websocket Gateway Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/langchain_tool_calling"><strong>LangChain Tool Calling</strong></a>:<br/>
-        Integrate tool calling with LangChain.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Tool Calling</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">LangChain</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/langchain_tool_calling">
-          <img src="assets/example-03.png" alt="LangChain Tool Calling Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/shared_context"><strong>Shared Context</strong></a>:<br/>
-        Maintain shared context across agents.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Memory</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/shared_context">
-          <img src="assets/example-04.png" alt="Shared Context Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/litellm_agent"><strong>LiteLLM Agent</strong></a>:<br/>
-        Power agents with LiteLLM.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">LiteLLM</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/litellm_agent">
-          <img src="assets/example-05.png" alt="LiteLLM Agent Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/triage_agent"><strong>Triage Agent</strong></a>:<br/>
-        Triage Agent with classification and routing.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Classification</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Routing</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/triage_agent">
-          <img src="assets/triage-agent.png" alt="Triage Agent"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a>:<br/>
-        Context aware multi-agent conversations.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Classification</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Routing</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Chat</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/multi_agent_conversation">
-          <img src="assets/example-06.png" alt="Multi-Agent Conversation Example"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/multi_agent_human_chat"><strong>Multi-Agent & Human Chat</strong></a>:<br/>
-        Insurance support system with an intuitive user interface.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Communication</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Realtime</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Classification</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Routing</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Chat</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/multi_agent_human_chat">
-          <img src="assets/multi-agent-human-chat.png" alt="Multi-Agent & Human Chat"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/agent_evaluation_dspy"><strong>Agent Evaluation & Optimization with DSPy</strong></a>:<br/>
-        Data-driven development with DSPy.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">DSPy</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Evaluation</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Optimization</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/agent_evaluation_dspy">
-          <img src="assets/agent-evaluation-dspy.png" alt="Agents Evaluation & DSPy"/>
-        </a>
-      </td>
-    </tr>
-      <tr>
-      <td style="width: 40%;">
-        <a href="examples/agent_evaluation_dspy"><strong>Safe Agents with Guardrails AI</strong></a>:<br/>
-        Guarding LLM agents against toxicity and PII leakage.
-         <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">DSPy</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Guardrails</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/safe_agents_guardrails">
-          <img src="assets/safe-agents-guardrails.png" alt="Safe Agents with Guardrails AI"/>
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td style="width: 40%;">
-        <a href="examples/dspy_react"><strong>DSPy ReAct</strong></a>:<br/>
-        Advanced Agents with DSPy ReAct.
-        <div style="padding-top: 8px; color: #000;">
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">DSPy</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">Tool Calling</div>
-          <div style="margin-top: 2px; display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 12px; background-color: #fff;">React</div>
-        </div>
-      </td>
-      <td style="width: 60%;">
-        <a href="examples/dspy_react">
-          <img src="assets/react-agent-dspy.png" alt="DSPy ReAct"/>
-        </a>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
 <h3 id="why-copypaste">Why Copy/Paste?</h3>
 <p><strong>1. Full Ownership and Control</strong><br />
 By copying and pasting, you have direct access to the underlying implementation. Tweak or rewrite as you see fit, the code is truly yours.</p>
@@ -1371,6 +1432,7 @@ Just like decoupling design from implementation, copying code (rather than insta
 Not everyone wants a one-size-fits-all library. With copy/paste “recipes,” you can integrate only the parts you need.</p>
 <p><strong>4. No Hidden Coupling</strong><br />
 Sometimes, prepackaged frameworks lock in design decisions. By copying from examples, you choose exactly what gets included and how it’s used.</p>
+<!-- END INCLUDE -->
 
 
 
