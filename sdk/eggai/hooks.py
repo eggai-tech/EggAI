@@ -52,12 +52,7 @@ async def eggai_cleanup():
     _STOP_CALLBACKS.clear()
     print("EggAI: Cleanup done.", flush=True)
 
-    if sys.platform == "_win32":
-        try:
-            sys.exit(0)
-        except SystemExit:
-            pass
-
+    if sys.platform == "win32":
         tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
         [task.cancel() for task in tasks]
         try:

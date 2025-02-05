@@ -1,14 +1,14 @@
 import asyncio
-import sys
 import uuid
 
+import eggai
 import uvicorn
 from eggai import Channel, Agent
 from fastapi import FastAPI, Query
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from .guardrails import toxic_language_guard
 
 from agents.websocket_manager import WebSocketManager
+from .guardrails import toxic_language_guard
 
 websocket_manager = WebSocketManager()
 human_channel = Channel("human")
@@ -45,7 +45,7 @@ messages_cache = {}
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     @app.websocket(route)
     async def websocket_handler(
-        websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
+            websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
     ):
         if server.should_exit:
             websocket.state.closed = True
@@ -66,9 +66,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 except asyncio.TimeoutError:
                     if server.should_exit:
                         await websocket_manager.disconnect(connection_id)
-                        if sys.platform != "win32":
-                            import eggai
-                            await eggai.eggai_cleanup()
+                        await eggai.eggai_cleanup()
                         break
                     continue
                 message_id = str(uuid.uuid4())

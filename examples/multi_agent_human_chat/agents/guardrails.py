@@ -1,16 +1,15 @@
-from guardrails import Guard
+from guardrails import AsyncGuard
 from guardrails.hub import ToxicLanguage
 
 
-_toxic_language_guard = Guard().use(
+_toxic_language_guard = AsyncGuard().use(
     ToxicLanguage, threshold=0.5, validation_method="sentence", on_fail="noop"
 )
 
 
 async def toxic_language_guard(text: str):
-    result = _toxic_language_guard.validate(text)
+    result = await _toxic_language_guard.validate(text)
     if result.validation_passed is False:
-        print("validation failed")
         return None
     return result.validated_output
 
