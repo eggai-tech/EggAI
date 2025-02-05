@@ -27,6 +27,8 @@ The EggAI Multi-Agent Meta Framework is a framework-agnostic AI orchestration la
 <summary>DSPy Agent</summary>
 
 ```python
+# Install `eggai` and `dspy` and set OPENAI_API_KEY in the environment
+
 import asyncio
 import dspy
 from eggai import Agent, Channel, eggai_main
@@ -64,6 +66,8 @@ if __name__ == "__main__":
 <summary>LangChain Agent</summary>
 
 ```python
+# Install `eggai` and `langchain` and set OPENAI_API_KEY in the environment
+
 import asyncio
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage
@@ -102,6 +106,8 @@ if __name__ == "__main__":
 <summary>LiteLLM Agent</summary>
 
 ```python
+# Install `eggai` and `litellm` and set OPENAI_API_KEY in the environment
+
 import asyncio
 import litellm
 from eggai import Agent, Channel, eggai_main
@@ -139,6 +145,8 @@ if __name__ == "__main__":
 <summary>LlamaIndex Agent</summary>
 
 ```python
+# Install `eggai` and `llama_index` and set OPENAI_API_KEY in the environment
+
 import asyncio
 from llama_index.llms.openai import OpenAI
 from eggai import Agent, Channel, eggai_main
