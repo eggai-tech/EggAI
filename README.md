@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
 ```python
 # Install `eggai` and `dspy` and set OPENAI_API_KEY in the environment
-# Make sure to have the agent implementation in the `dspy_agent.py` file defined
+# Make sure to have the DSPy agent implementation in the `dspy_agent.py` file defined
 
 import asyncio
 import pytest
