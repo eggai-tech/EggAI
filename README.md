@@ -183,17 +183,17 @@ if __name__ == "__main__":
 #### AI Agent Evaluations
 
 <details>
-<summary>DSPy Agent Evaluation</summary>
+<summary>Agent Evaluation using LLM as a Judge metrics</summary>
 
 ```python
 # Install `eggai` and `dspy` and set OPENAI_API_KEY in the environment
-# Make sure to have the DSPy agent implementation in the `dspy_agent.py` file defined
+# Make sure to have the agent implementation in the `agent.py` file defined
 
 import asyncio
 import pytest
 import dspy
-from dspy_agent import agent, channel
-from eggai import Agent
+from agent import agent
+from eggai import Agent, Channel
 
 dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
 
@@ -213,6 +213,7 @@ class EvaluationSignature(dspy.Signature):
     precision_score: float = dspy.OutputField(desc="Precision score (0.0 to 1.0).")
 
 test_agent = Agent("TestAgent")
+test_channel = Channel()
 event_received = asyncio.Event()
 received_event = None
 
@@ -230,7 +231,7 @@ async def test_qa_agent():
     for item in ground_truth:
         event_received.clear()
 
-        await channel.publish({"event_name": "question_created", "payload": {"question": item["question"]}})
+        await test_channel.publish({"event_name": "question_created", "payload": {"question": item["question"]}})
 
         try:
             await asyncio.wait_for(event_received.wait(), timeout=5.0)
