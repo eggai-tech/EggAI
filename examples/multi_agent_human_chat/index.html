@@ -1081,38 +1081,38 @@
 <li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
 </ul>
 <p>Ensure you have a valid OpenAI API key and Guardrails AI token set in your environment:</p>
-<pre><code class="language-bash">export OPEN_AI_API_KEY=&quot;your-api-key&quot;
-export GUARDRAILS_TOKEN=&quot;your-guardrails-ai-token&quot;
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPEN_AI_API_KEY</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GUARDRAILS_TOKEN</span><span class="o">=</span><span class="s2">&quot;your-guardrails-ai-token&quot;</span>
+</span></code></pre></div>
 <h3 id="setup-instructions">Setup Instructions</h3>
 <p>Clone the EggAI repository:</p>
-<pre><code class="language-bash">git clone git@github.com:eggai-tech/EggAI.git
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:eggai-tech/EggAI.git
+</span></code></pre></div>
 <p>Move into the <code>examples/multi_agent_human_chat</code> folder:</p>
-<pre><code class="language-bash">cd examples/multi_agent_human_chat
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd</span><span class="w"> </span>examples/multi_agent_human_chat
+</span></code></pre></div>
 <p>Create and activate a virtual environment:</p>
-<pre><code class="language-bash">python -m venv venv
-source venv/bin/activate  # For Windows: venv\Scripts\activate
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w">  </span><span class="c1"># For Windows: venv\Scripts\activate</span>
+</span></code></pre></div>
 <p>Install the required dependencies:</p>
-<pre><code class="language-bash">pip install -r requirements.txt
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</span></code></pre></div>
 <p>Configure Guardrails:</p>
-<pre><code class="language-bash">guardrails configure --token $GUARDRAILS_TOKEN
-guardrails hub install hub://guardrails/toxic_language
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>guardrails<span class="w"> </span>configure<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GUARDRAILS_TOKEN</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>guardrails<span class="w"> </span>hub<span class="w"> </span>install<span class="w"> </span>hub://guardrails/toxic_language
+</span></code></pre></div>
 <p>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</p>
-<pre><code class="language-bash">docker compose up -d
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</span></code></pre></div>
 <h3 id="run-the-example">Run the Example</h3>
-<pre><code class="language-bash">python main.py
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>main.py
+</span></code></pre></div>
 <p>Upon running the example and accessing the chat interface at <a href="http://localhost:8000/../../../examples/multi_agent_human_chat">http://localhost:8000</a>, you should see a web-based chat UI.</p>
 <h3 id="cleaning-up">Cleaning Up</h3>
 <p>Stop and remove Docker containers:</p>
-<pre><code class="language-bash">docker compose down -v
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v
+</span></code></pre></div>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
 <li><strong>Extend Functionality</strong>: Add new agents or tools to handle more complex workflows.</li>

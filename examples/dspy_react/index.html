@@ -1039,11 +1039,11 @@
 <p>In this example, we test the ReAct agent by sending a question to the agent channel.
 The agent dynamically processes the question and iteratively refines its responses.</p>
 <p>For example:</p>
-<pre><code class="language-python"> await agents_channel.publish({
-        &quot;type&quot;: &quot;question&quot;,
-        &quot;payload&quot;: &quot;Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building.&quot;
-    })
-</code></pre>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a> <span class="k">await</span> <span class="n">agents_channel</span><span class="o">.</span><span class="n">publish</span><span class="p">({</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;question&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="s2">&quot;payload&quot;</span><span class="p">:</span> <span class="s2">&quot;Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building.&quot;</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">})</span>
+</span></code></pre></div>
 <h3 id="available-tools">Available tools</h3>
 <p>The <code>react_module</code> contains two tools:
 - <code>evaluate_math</code>: Handles mathematical operations.
@@ -1079,32 +1079,32 @@ By leveraging iterative reasoning and dynamic tool usage, the agent can:</p>
 <li><strong>Python</strong> 3.10+</li>
 <li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
 <li>Valid OpenAI API key in your environment:
-  <code>bash
-  export OPEN_AI_API_KEY="your-api-key"</code></li>
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPEN_AI_API_KEY</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span>
+</span></code></pre></div></li>
 </ul>
 <h2 id="setup-instructions">Setup Instructions</h2>
 <p>Clone the EggAI repository:</p>
-<pre><code class="language-bash">git clone git@github.com:eggai-tech/EggAI.git
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:eggai-tech/EggAI.git
+</span></code></pre></div>
 <p>Move into the <code>examples/dspy_react</code> folder:</p>
-<pre><code class="language-bash">cd examples/dspy_react
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>examples/dspy_react
+</span></code></pre></div>
 <p>Create and activate a virtual environment:</p>
-<pre><code class="language-bash">python -m venv venv
-source venv/bin/activate  # For Windows: venv\Scripts\activate
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w">  </span><span class="c1"># For Windows: venv\Scripts\activate</span>
+</span></code></pre></div>
 <p>Install the required dependencies:</p>
-<pre><code class="language-bash">pip install -r requirements.txt
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</span></code></pre></div>
 <p>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</p>
-<pre><code class="language-bash">docker compose up -d
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</span></code></pre></div>
 <h2 id="run-the-example">Run the Example</h2>
-<pre><code class="language-bash">python main.py
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>main.py
+</span></code></pre></div>
 <h2 id="run-the-tests">Run the Tests</h2>
-<pre><code class="language-bash">pytest
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pytest
+</span></code></pre></div>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
 <li><strong>Additional Guards</strong>: Check out <a href="https://github.com/ShreyaR/guardrails">Guardrails.ai’s documentation</a> to chain

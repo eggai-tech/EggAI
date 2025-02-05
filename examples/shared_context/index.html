@@ -878,40 +878,40 @@
 <li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
 </ul>
 <p>Ensure you have a valid OpenAI API key set in your environment:</p>
-<pre><code class="language-bash">export OPEN_AI_API_KEY=&quot;your-api-key&quot;
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPEN_AI_API_KEY</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span>
+</span></code></pre></div>
 <h2 id="setup-instructions">Setup Instructions</h2>
 <p>Clone the EggAI repository:</p>
-<pre><code class="language-bash">git clone git@github.com:eggai-tech/EggAI.git
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:eggai-tech/EggAI.git
+</span></code></pre></div>
 <p>Move into the <code>examples/shared_context</code> folder:</p>
-<pre><code class="language-bash">cd examples/shared_context
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd</span><span class="w"> </span>examples/shared_context
+</span></code></pre></div>
 <p>Create and activate a virtual environment:</p>
-<pre><code class="language-bash">python -m venv venv
-source venv/bin/activate  # For Windows: venv\Scripts\activate
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w">  </span><span class="c1"># For Windows: venv\Scripts\activate</span>
+</span></code></pre></div>
 <p>Install the required dependencies:</p>
-<pre><code class="language-bash">pip install -r requirements.txt
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+</span></code></pre></div>
 <p>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</p>
-<pre><code class="language-bash">docker compose up -d
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</span></code></pre></div>
 <h2 id="run-the-example">Run the Example</h2>
-<pre><code class="language-bash">python main.py
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python<span class="w"> </span>main.py
+</span></code></pre></div>
 <p>Expected output:</p>
-<pre><code class="language-plaintext">Agent is running. Press Ctrl+C to stop.
-User: Can you recommend a smartphone, i like gaming on it. I prefer Apple if possible
-Search Agent:
-  - iPhone 15
-  - Samsung Galaxy S23
-  - OnePlus 11
-Recommendation Agent:
-  - MacBook Pro 14-inch (Reason: Although not a smartphone, this Apple laptop is great for gaming due to its powerful processor.)
-  - Razer Blade 15 (Reason: Recommended for gaming enthusiasts who require high-performance hardware.)
-^CTask was cancelled. Cleaning up...
-</code></pre>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Agent is running. Press Ctrl+C to stop.
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>User: Can you recommend a smartphone, i like gaming on it. I prefer Apple if possible
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Search Agent:
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  - iPhone 15
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  - Samsung Galaxy S23
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  - OnePlus 11
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>Recommendation Agent:
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  - MacBook Pro 14-inch (Reason: Although not a smartphone, this Apple laptop is great for gaming due to its powerful processor.)
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>  - Razer Blade 15 (Reason: Recommended for gaming enthusiasts who require high-performance hardware.)
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>^CTask was cancelled. Cleaning up...
+</span></code></pre></div>
 <p>What happens:</p>
 <ol>
 <li><strong>User Query</strong>: The Product Agent receives a search request (e.g., "I want a gaming smartphone, preferablvy Apple").</li>
@@ -921,8 +921,8 @@ Recommendation Agent:
 </ol>
 <h2 id="clean-up">Clean Up</h2>
 <p>Stop and clean up the Docker containers:</p>
-<pre><code class="language-bash">docker compose down -v
-</code></pre>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v
+</span></code></pre></div>
 <h2 id="next-steps">Next Steps</h2>
 <p>Ready to explore further? Check out:</p>
 <ul>
