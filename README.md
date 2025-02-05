@@ -26,6 +26,161 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 - 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
 - 🚇 **Kafka Integration**: Native support for message streaming with Kafka.
 
+### Meta Framework
+
+The EggAI Multi-Agent Meta Framework is a framework-agnostic AI orchestration layer designed for flexibility and scalability. It enables seamless integration with popular AI frameworks.
+
+#### Usage Examples
+
+<details>
+<summary>DSPy Agent</summary>
+
+```python
+import asyncio
+import dspy
+from eggai import Agent, Channel, eggai_main
+
+dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
+qa_model = dspy.Predict("question -> answer")
+agent, channel = Agent("QAAgent"), Channel()
+
+@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
+async def handle_question(event):
+    question = event["payload"]["question"]
+    answer = qa_model(question=question).answer
+    print(f"[QAAgent] Question: {question} | Answer: {answer}")
+    
+    await channel.publish({
+        "event_name": "answer_generated",
+        "payload": {"question": question, "answer": answer}
+    })
+
+@eggai_main
+async def main():
+    await agent.start()
+    await channel.publish({
+        "event_name": "question_created",
+        "payload": {"question": "When was the Eiffel Tower built?"}
+    })
+    await asyncio.Future()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+</details>
+
+<details>
+<summary>LangChain Agent</summary>
+
+```python
+import asyncio
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import HumanMessage
+from eggai import Agent, Channel, eggai_main
+
+llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
+agent, channel = Agent("QAAgent"), Channel()
+
+@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
+async def handle_question(event):
+    question = event["payload"]["question"]
+    answer = llm([HumanMessage(content=question)]).content
+
+    print(f"[QAAgent] Question: {question} | Answer: {answer}")
+    
+    await channel.publish({
+        "event_name": "answer_generated",
+        "payload": {"question": question, "answer": answer}
+    })
+
+@eggai_main
+async def main():
+    await agent.start()
+    await channel.publish({
+        "event_name": "question_created",
+        "payload": {"question": "When was the Eiffel Tower built?"}
+    })
+    await asyncio.Future()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+</details>
+
+<details>
+<summary>LiteLLM Agent</summary>
+
+```python
+import asyncio
+import litellm
+from eggai import Agent, Channel, eggai_main
+
+litellm.model = "gpt-4o"
+agent, channel = Agent("QAAgent"), Channel()
+
+@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
+async def handle_question(event):
+    question = event["payload"]["question"]
+    answer = litellm.completion(model=litellm.model, messages=[{"role": "user", "content": question}])["choices"][0]["message"]["content"]
+
+    print(f"[QAAgent] Question: {question} | Answer: {answer}")
+    
+    await channel.publish({
+        "event_name": "answer_generated",
+        "payload": {"question": question, "answer": answer}
+    })
+
+@eggai_main
+async def main():
+    await agent.start()
+    await channel.publish({
+        "event_name": "question_created",
+        "payload": {"question": "When was the Eiffel Tower built?"}
+    })
+    await asyncio.Future()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+</details>
+
+<details>
+<summary>LlamaIndex Agent</summary>
+
+```python
+import asyncio
+from llama_index.llms.openai import OpenAI
+from eggai import Agent, Channel, eggai_main
+
+llm = OpenAI(model="gpt-4o")
+agent, channel = Agent("QAAgent"), Channel()
+
+@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
+async def handle_question(event):
+    question = event["payload"]["question"]
+    answer = llm.complete(question).text
+
+    print(f"[QAAgent] Question: {question} | Answer: {answer}")
+    
+    await channel.publish({
+        "event_name": "answer_generated",
+        "payload": {"question": question, "answer": answer}
+    })
+
+@eggai_main
+async def main():
+    await agent.start()
+    await channel.publish({
+        "event_name": "question_created",
+        "payload": {"question": "When was the Eiffel Tower built?"}
+    })
+    await asyncio.Future()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+</details>
+
 ## Examples
 
 Practical implementation scenarios and integration guides with popular AI frameworks. We encourage you to explore and **copy/paste** from our examples for your projects.
@@ -235,157 +390,6 @@ if __name__ == "__main__":
 ```
 
 Copy this snippet into your project, customize it, and you’re good to go!
-
-`EggAI Multi-Agent Meta Framework` seamlessly integrates with leading AI frameworks:
-
-<details>
-<summary>DSPy Agent Example</summary>
-
-```python
-import asyncio
-import dspy
-from eggai import Agent, Channel, eggai_main
-
-dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
-qa_model = dspy.Predict("question -> answer")
-agent, channel = Agent("QAAgent"), Channel()
-
-@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
-async def handle_question(event):
-    question = event["payload"]["question"]
-    answer = qa_model(question=question).answer
-    print(f"[QAAgent] Question: {question} | Answer: {answer}")
-    
-    await channel.publish({
-        "event_name": "answer_generated",
-        "payload": {"question": question, "answer": answer}
-    })
-
-@eggai_main
-async def main():
-    await agent.start()
-    await channel.publish({
-        "event_name": "question_created",
-        "payload": {"question": "When was the Eiffel Tower built?"}
-    })
-    await asyncio.Future()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-</details>
-
-<details>
-<summary>LangChain Agent Example</summary>
-
-```python
-import asyncio
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import HumanMessage
-from eggai import Agent, Channel, eggai_main
-
-llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
-agent, channel = Agent("QAAgent"), Channel()
-
-@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
-async def handle_question(event):
-    question = event["payload"]["question"]
-    answer = llm([HumanMessage(content=question)]).content
-
-    print(f"[QAAgent] Question: {question} | Answer: {answer}")
-    
-    await channel.publish({
-        "event_name": "answer_generated",
-        "payload": {"question": question, "answer": answer}
-    })
-
-@eggai_main
-async def main():
-    await agent.start()
-    await channel.publish({
-        "event_name": "question_created",
-        "payload": {"question": "When was the Eiffel Tower built?"}
-    })
-    await asyncio.Future()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-</details>
-
-<details>
-<summary>LiteLLM Agent Example</summary>
-
-```python
-import asyncio
-import litellm
-from eggai import Agent, Channel, eggai_main
-
-litellm.model = "gpt-4o"
-agent, channel = Agent("QAAgent"), Channel()
-
-@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
-async def handle_question(event):
-    question = event["payload"]["question"]
-    answer = litellm.completion(model=litellm.model, messages=[{"role": "user", "content": question}])["choices"][0]["message"]["content"]
-
-    print(f"[QAAgent] Question: {question} | Answer: {answer}")
-    
-    await channel.publish({
-        "event_name": "answer_generated",
-        "payload": {"question": question, "answer": answer}
-    })
-
-@eggai_main
-async def main():
-    await agent.start()
-    await channel.publish({
-        "event_name": "question_created",
-        "payload": {"question": "When was the Eiffel Tower built?"}
-    })
-    await asyncio.Future()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-</details>
-
-<details>
-<summary>LlamaIndex Agent Example</summary>
-
-```python
-import asyncio
-from llama_index.llms.openai import OpenAI
-from eggai import Agent, Channel, eggai_main
-
-llm = OpenAI(model="gpt-4o")
-agent, channel = Agent("QAAgent"), Channel()
-
-@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
-async def handle_question(event):
-    question = event["payload"]["question"]
-    answer = llm.complete(question).text
-
-    print(f"[QAAgent] Question: {question} | Answer: {answer}")
-    
-    await channel.publish({
-        "event_name": "answer_generated",
-        "payload": {"question": question, "answer": answer}
-    })
-
-@eggai_main
-async def main():
-    await agent.start()
-    await channel.publish({
-        "event_name": "question_created",
-        "payload": {"question": "When was the Eiffel Tower built?"}
-    })
-    await asyncio.Future()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-</details>
 
 ### Core Concepts
 
