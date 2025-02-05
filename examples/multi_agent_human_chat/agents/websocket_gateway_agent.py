@@ -1,7 +1,6 @@
 import asyncio
 import uuid
 
-import eggai
 import uvicorn
 from eggai import Channel, Agent
 from fastapi import FastAPI, Query
@@ -66,7 +65,12 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 except asyncio.TimeoutError:
                     if server.should_exit:
                         await websocket_manager.disconnect(connection_id)
-                        await eggai.eggai_cleanup()
+                        # TEMPORARY FIX FOR Bug on asyncio.base_events.Server.wait_closed (see
+                        # Close all connections when server is shutting down
+                        conns = server.server_state.connections or []
+                        for conn in conns:
+                            if "shutdown" in dir(conn):
+                                conn.shutdown()
                         break
                     continue
                 message_id = str(uuid.uuid4())

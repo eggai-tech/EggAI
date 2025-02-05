@@ -7,7 +7,12 @@ _STOP_CALLBACKS = []
 _EXIT_EVENT = None  # will be lazily created
 _SIGNAL_HANDLERS_INSTALLED = False
 _CLEANUP_STARTED = False
-
+HANDLED_SIGNALS = (
+    signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
+    signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
+)
+if sys.platform == "win32":  # pragma: py-not-win32
+    HANDLED_SIGNALS += (signal.SIGBREAK,)  # Windows only signal. Sent by Ctrl+Break.
 
 def _get_exit_event():
     """Return (and create if needed) the global exit event."""
@@ -52,41 +57,26 @@ async def eggai_cleanup():
     _STOP_CALLBACKS.clear()
     print("EggAI: Cleanup done.", flush=True)
 
-    if sys.platform == "win32":
-        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-        [task.cancel() for task in tasks]
-        try:
-            await asyncio.gather(*tasks, return_exceptions=False)
-        except asyncio.CancelledError:
-            pass
-
 
 async def _install_signal_handlers():
-    async def shutdown(s):
+    async def shutdown(s, cancel_tasks):
+        print(f"Received {s.name} signal, exiting...", flush=True)
         await eggai_cleanup()
-        if isinstance(s, int):
-            signal_name = signal.Signals(s).name
-        else:
-            signal_name = s.name
-        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-        [task.cancel() for task in tasks]
-        await asyncio.gather(*tasks)
+        if cancel_tasks:
+            tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+            [task.cancel() for task in tasks]
+            await asyncio.gather(*tasks)
 
     global _SIGNAL_HANDLERS_INSTALLED
     if _SIGNAL_HANDLERS_INSTALLED:
         return
 
-    signal_keys = ["SIGINT", "SIGTERM", "SIGHUP"]
-    signals = []
-    for key in signal_keys:
-        if hasattr(signal, key):
-            signals.append(getattr(signal, key))
     loop = asyncio.get_event_loop()
-    for s in signals:
+    for sig in HANDLED_SIGNALS:
         try:
-            loop.add_signal_handler(s, lambda s=s: asyncio.create_task(shutdown(s)))
+            loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(sig, False)))
         except NotImplementedError:
-            signal.signal(s, lambda _, __: asyncio.create_task(shutdown(s)))
+            signal.signal(sig, lambda _, __: asyncio.create_task(shutdown(sig, True)))
 
 
 def eggai_main(func):
