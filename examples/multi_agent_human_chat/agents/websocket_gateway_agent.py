@@ -66,13 +66,12 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 except asyncio.TimeoutError:
                     if server.should_exit:
                         await websocket_manager.disconnect(connection_id)
-                        await eggai.eggai_cleanup()
                         break
                     continue
                 message_id = str(uuid.uuid4())
                 content = data.get("payload")
                 # validate content with guardrails
-                valid_content = toxic_language_guard(content)
+                valid_content = await toxic_language_guard(content)
                 if valid_content is None:
                     await human_channel.publish(
                         {

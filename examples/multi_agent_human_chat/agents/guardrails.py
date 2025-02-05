@@ -7,7 +7,7 @@ _toxic_language_guard = Guard().use(
 )
 
 
-def toxic_language_guard(text: str):
+async def toxic_language_guard(text: str):
     result = _toxic_language_guard.validate(text)
     if result.validation_passed is False:
         print("validation failed")

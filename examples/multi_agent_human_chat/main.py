@@ -1,9 +1,11 @@
 import asyncio
 import os
+from contextlib import asynccontextmanager
+
 import dspy
 import uvicorn
 from dotenv import load_dotenv
-from eggai import eggai_main
+from eggai import eggai_main, eggai_cleanup
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
@@ -11,10 +13,10 @@ from starlette.responses import HTMLResponse
 from agents.billing_agent import billing_agent
 from agents.escalation_agent import escalation_agent
 from agents.policies_agent import policies_agent
-from agents.triage_agent import triage_agent
+from agents.triage.agent import triage_agent
 from agents.websocket_gateway_agent import (
     add_websocket_gateway,
-    websocket_gateway_agent,
+    websocket_gateway_agent, websocket_manager,
 )
 
 api = FastAPI()
