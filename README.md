@@ -491,8 +491,6 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
 - **Seamless Integration**: Act as a communication hub, supporting both Agents and other system components.
 - **Flexibility**: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.
 
-<!--end-->
-
 ### Why Copy/Paste?
 
 **1. Full Ownership and Control**  
@@ -506,6 +504,8 @@ Not everyone wants a one-size-fits-all library. With copy/paste “recipes,” y
 
 **4. No Hidden Coupling**  
 Sometimes, prepackaged frameworks lock in design decisions. By copying from examples, you choose exactly what gets included and how it’s used.
+
+<!--end-->
 
 ## Contribution
 
