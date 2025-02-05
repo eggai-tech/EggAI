@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import uuid
 
 import uvicorn
@@ -65,6 +66,9 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 except asyncio.TimeoutError:
                     if server.should_exit:
                         await websocket_manager.disconnect(connection_id)
+                        if sys.platform != "win32":
+                            import eggai
+                            await eggai.eggai_cleanup()
                         break
                     continue
                 message_id = str(uuid.uuid4())
