@@ -51,11 +51,19 @@ async def eggai_cleanup():
             print(f"Error stopping: {e}", file=sys.stderr, flush=True)
     _STOP_CALLBACKS.clear()
     print("EggAI: Cleanup done.", flush=True)
-    return True
 
-    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-    [task.cancel() for task in tasks]
-    await asyncio.gather(*tasks)
+    if sys.platform == "_win32":
+        try:
+            sys.exit(0)
+        except SystemExit:
+            pass
+
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        [task.cancel() for task in tasks]
+        try:
+            await asyncio.gather(*tasks, return_exceptions=False)
+        except asyncio.CancelledError:
+            pass
 
 
 async def _install_signal_handlers():
