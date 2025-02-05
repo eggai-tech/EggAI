@@ -1,4 +1,4 @@
-eggai==0.1.29
+eggai==0.1.30
 python-dotenv==1.0.1
 fastapi==0.115.6
 dspy-ai==2.5.43
