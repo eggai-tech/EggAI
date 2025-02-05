@@ -14,8 +14,8 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 
 `EggAI Multi-Agent Meta Framework`  makes it easy to build enterprise-grade multi-agent systems with quality-controlled output. It provides:
 
-- <a href="#examples">Examples</a>: Practical implementation scenarios using popular AI frameworks such as DSPy, LiteLLM and LangChain.
-- <a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication with Kafka and InMemory transports.
+- <a href="#examples">Examples</a>: Practical implementation scenarios using popular AI frameworks.
+- <a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication.
 
 ### Features
 
