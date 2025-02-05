@@ -1,6 +1,5 @@
 import asyncio
 import os
-
 import dspy
 import uvicorn
 from dotenv import load_dotenv
@@ -18,11 +17,8 @@ from agents.websocket_gateway_agent import (
     websocket_gateway_agent,
 )
 
-# Create FastAPI
 api = FastAPI()
 
-
-# Serve static public folder for HTTP requests
 @api.get("/", response_class=HTMLResponse)
 async def read_root():
     try:
@@ -41,31 +37,25 @@ async def read_root():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
-
-# Create Uvicorn server
 server = uvicorn.Server(
     uvicorn.Config(api, host="127.0.0.1", port=8000, log_level="info")
 )
 
-# Add WebSocket API handler
 add_websocket_gateway("/ws", api, server)
 
-
-# Start agents and server
 @eggai_main
 async def main():
     load_dotenv()
     language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
     dspy.configure(lm=language_model)
 
-    eggai_set_default_transport(lambda: KafkaTransport())
+    # eggai_set_default_transport(lambda: KafkaTransport())
     await websocket_gateway_agent.start()
     await policies_agent.start()
     await escalation_agent.start()
     await billing_agent.start()
     await triage_agent.start()
     await server.serve()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

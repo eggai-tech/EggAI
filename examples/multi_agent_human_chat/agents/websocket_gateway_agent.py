@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 
+import eggai
 import uvicorn
 from eggai import Channel, Agent
 from fastapi import FastAPI, Query
@@ -46,6 +47,9 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     async def websocket_handler(
         websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
     ):
+        if server.should_exit:
+            websocket.state.closed = True
+            return
         if connection_id is None:
             connection_id = str(uuid.uuid4())
 
@@ -61,6 +65,8 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                     data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
                 except asyncio.TimeoutError:
                     if server.should_exit:
+                        await websocket_manager.disconnect(connection_id)
+                        await eggai.eggai_cleanup()
                         break
                     continue
                 message_id = str(uuid.uuid4())
