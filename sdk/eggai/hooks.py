@@ -1,7 +1,6 @@
 import asyncio
 import signal
 import sys
-import atexit
 
 # Global variables for shutdown handling.
 _STOP_CALLBACKS = []
@@ -53,38 +52,37 @@ async def eggai_cleanup():
     _STOP_CALLBACKS.clear()
     print("EggAI: Cleanup done.", flush=True)
 
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    [task.cancel() for task in tasks]
+    await asyncio.gather(*tasks)
 
-def _install_signal_handlers():
+
+async def _install_signal_handlers():
+    async def shutdown(s):
+        await eggai_cleanup()
+        if isinstance(s, int):
+            signal_name = signal.Signals(s).name
+        else:
+            signal_name = s.name
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        [task.cancel() for task in tasks]
+        await asyncio.gather(*tasks)
+
     global _SIGNAL_HANDLERS_INSTALLED
     if _SIGNAL_HANDLERS_INSTALLED:
         return
 
-    loop = asyncio.get_running_loop()
-    possible_signals = []
-    if hasattr(signal, "SIGINT"):
-        possible_signals.append(signal.SIGINT)
-    if hasattr(signal, "SIGTERM"):
-        possible_signals.append(signal.SIGTERM)
-
-    def signal_handler():
+    signal_keys = ["SIGINT", "SIGTERM", "SIGHUP"]
+    signals = []
+    for key in signal_keys:
+        if hasattr(signal, key):
+            signals.append(getattr(signal, key))
+    loop = asyncio.get_event_loop()
+    for s in signals:
         try:
-            _get_exit_event().set()
-        except RuntimeError:
-            pass
-        import sys
-        try:
-            sys.exit(0)
-        except SystemExit:
-            pass
-
-    atexit.register(signal_handler)
-
-    for s in possible_signals:
-        try:
-            loop.add_signal_handler(s, signal_handler)
-        except (NotImplementedError, ValueError):
-            pass  # Some platforms (or Windows) may not support signals.
-    _SIGNAL_HANDLERS_INSTALLED = True
+            loop.add_signal_handler(s, lambda s=s: asyncio.create_task(shutdown(s)))
+        except NotImplementedError:
+            signal.signal(s, lambda _, __: asyncio.create_task(shutdown(s)))
 
 
 def eggai_main(func):
@@ -109,31 +107,16 @@ def eggai_main(func):
     """
 
     async def wrapper(*args, **kwargs):
-        _install_signal_handlers()
-        exit_event = _get_exit_event()
+        await _install_signal_handlers()
 
-        main_task = asyncio.create_task(func(*args, **kwargs))
-        exit_wait_task = asyncio.create_task(exit_event.wait())
         try:
-            done, pending = await asyncio.wait(
-                [main_task, exit_wait_task],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
+            await func(*args, **kwargs)
         except asyncio.CancelledError:
             print("EggAI: Application interrupted by user.", flush=True)
-            exit_event.set()
-            await asyncio.sleep(0.1)
+            return True
         finally:
-            if exit_event.is_set():
-                main_task.cancel()
-                try:
-                    await main_task
-                except asyncio.CancelledError:
-                    pass
-            if not exit_event.is_set():
-                exit_event.set()
-                await asyncio.sleep(0.1)
             await eggai_cleanup()
+        return True
 
     return wrapper
 
@@ -155,7 +138,7 @@ class EggaiRunner:
     you can add `await asyncio.Future()` at the end of your main function.
     """
     async def __aenter__(self):
-        _install_signal_handlers()
+        await _install_signal_handlers()
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -163,4 +146,3 @@ class EggaiRunner:
         if exc_type == asyncio.CancelledError:
             print("EggAI: Application interrupted by user.", flush=True)
             return True
-
