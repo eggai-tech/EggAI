@@ -180,6 +180,87 @@ if __name__ == "__main__":
 ```
 </details>
 
+#### AI Agent Evaluations
+
+<details>
+<summary>DSPy Agent Evaluation</summary>
+
+```python
+# Install `eggai` and `dspy` and set OPENAI_API_KEY in the environment
+# Make sure to have the agent implementation in the `dspy_agent.py` file defined
+
+import asyncio
+import pytest
+import dspy
+from dspy_agent import agent, channel
+from eggai import Agent
+
+dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
+
+ground_truth = [
+    {"question": "When was the Eiffel Tower built?", "answer": "The Eiffel Tower was built between 1887 and 1889."},
+    {"question": "Who wrote Hamlet?", "answer": "Hamlet was written by William Shakespeare."},
+    {"question": "What is the capital of France?", "answer": "The capital of France is Paris."},
+]
+
+class EvaluationSignature(dspy.Signature):
+    question: str = dspy.InputField(desc="Ground truth question.")
+    agent_answer: str = dspy.InputField(desc="Agent-generated answer.")
+    ground_truth_answer: str = dspy.InputField(desc="Expected correct answer.")
+    
+    judgment: bool = dspy.OutputField(desc="Pass (True) or Fail (False).")
+    reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
+    precision_score: float = dspy.OutputField(desc="Precision score (0.0 to 1.0).")
+
+test_agent = Agent("TestAgent")
+event_received = asyncio.Event()
+received_event = None
+
+@test_agent.subscribe(filter_func=lambda event: event.get("event_name") == "answer_generated")
+async def handle_answer(event):
+    global received_event
+    received_event = event
+    event_received.set()
+
+@pytest.mark.asyncio
+async def test_qa_agent():
+    await agent.start()
+    await test_agent.start()
+
+    for item in ground_truth:
+        event_received.clear()
+
+        await channel.publish({"event_name": "question_created", "payload": {"question": item["question"]}})
+
+        try:
+            await asyncio.wait_for(event_received.wait(), timeout=5.0)
+        except asyncio.TimeoutError:
+            pytest.fail(f"Timeout: No 'answer_generated' event was published for question: {item['question']}")
+
+        assert received_event is not None, "No 'answer_generated' event was received."
+        assert received_event["event_name"] == "answer_generated", "Unexpected event type received."
+        assert "answer" in received_event["payload"], "The 'answer' key is missing in the payload."
+
+        agent_answer = received_event["payload"]["answer"]
+        question = received_event["payload"]["question"]
+        ground_truth_answer = item["answer"]
+
+        assert question == item["question"], f"Incorrect question in the answer payload: {question}"
+
+        eval_model = dspy.asyncify(dspy.Predict(EvaluationSignature))
+        evaluation_result = await eval_model(
+            question=question,
+            agent_answer=agent_answer,
+            ground_truth_answer=ground_truth_answer
+        )
+
+        assert isinstance(evaluation_result.judgment, bool), "Judgment must be a boolean."
+        assert isinstance(evaluation_result.reasoning, str), "Reasoning must be a string."
+        assert isinstance(evaluation_result.precision_score, float), "Precision score must be a float."
+        assert 0.8 <= evaluation_result.precision_score <= 1.0, "Precision score must be between 0.8 and 1.0."
+```
+</details>
+
 ## Examples
 
 Practical implementation scenarios and integration guides with popular AI frameworks. We encourage you to explore and **copy/paste** from our examples for your projects.
