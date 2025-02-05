@@ -20,11 +20,10 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 ### Features
 
 - 🤖 **Multi-Agent Orchestration**: Designed for seamless multi-agent collaboration.
+- 🛠️ **Framework-Agnostic**: You can use AI frameworks such as DSPy, LiteLLM and LangChain
+- 📦 **Composable**: Modular and adaptable agentic capabilities that integrate seamlessly.
 - 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
-- ⚡ **Event-Driven**: Adaptive and responsive system behaviors triggered by real-time events.
 - 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
-- 🛠 **Flexible Architecture**: Adaptable and extensible components without disrupting workflows.
-- 🔄 **Resilient**: Built-in retry mechanisms and fault tolerance ensuring reliability.
 - 🚇 **Kafka Integration**: Native support for message streaming with Kafka.
 
 ## Examples
