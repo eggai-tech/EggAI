@@ -51,6 +51,7 @@ async def eggai_cleanup():
             print(f"Error stopping: {e}", file=sys.stderr, flush=True)
     _STOP_CALLBACKS.clear()
     print("EggAI: Cleanup done.", flush=True)
+    return True
 
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     [task.cancel() for task in tasks]
