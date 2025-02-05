@@ -963,7 +963,7 @@ with user-defined functions.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_registered</span><span class="p">:</span>
-            <span class="n">register_stop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span>
+            <span class="k">await</span> <span class="n">eggai_register_stop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_stop_registered</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="c1"># Group this agent&#39;s subscriptions by channel name</span>
