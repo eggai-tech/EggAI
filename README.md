@@ -12,19 +12,10 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 [![GitHub Issues](https://img.shields.io/github/issues/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/stargazers)
 
-`EggAI Multi-Agent Meta Framework`  makes it easy to build enterprise-grade multi-agent systems with quality-controlled output. It provides:
+`EggAI Multi-Agent Meta Framework` makes it easy to build enterprise-grade multi-agent systems with quality-controlled output, using an async-first, distributed and composable architecture. It provides:
 
 - <a href="#examples">Examples</a>: Practical implementation scenarios using popular AI frameworks.
 - <a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication.
-
-### Features
-
-- 🤖 **Multi-Agent Orchestration**: Designed for seamless multi-agent collaboration.
-- 🛠️ **Framework-Agnostic**: You can use AI frameworks such as DSPy, LiteLLM and LangChain
-- 📦 **Composable**: Modular and adaptable agentic capabilities that integrate seamlessly.
-- 🚀 **Async-First**: Push-based APIs optimized for high-concurrency, long-running, and real-time processes.
-- 📈 **Horizontally Scalable**: Seamless scaling of agent execution to meet growing demands.
-- 🚇 **Kafka Integration**: Native support for message streaming with Kafka.
 
 ### Meta Framework
 
