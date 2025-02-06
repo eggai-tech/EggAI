@@ -171,6 +171,11 @@ make test-policies     # Runs tests for the Policies Agent
 make test-triage       # Runs tests for the Triage Agent
 ```
 
+You can optimize agents using DSPy evaluation and optimization techniques.
+You can find an optimization setup [here](https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/tests/test_dspy_modules.py).
+
+When running the tests for the Triage Agent, a DSPy performance report will be generated in the `agents/triage/dspy_modules/evaluation/reports` folder ([example report](https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/dspy_modules/evaluation/reports/classifier_v1.html)).
+
 ### Cleaning Up
 
 Stop and remove Docker containers and delete venv:
