@@ -121,7 +121,7 @@ async def handle_human_messages(message):
     agent = meta.get("agent")
     content = message.get("payload")
     connection_id = meta.get("connection_id")
-    if not messages_cache[connection_id]:
+    if connection_id not in messages_cache:
         messages_cache[connection_id] = []
     messages_cache[connection_id].append(
         {
