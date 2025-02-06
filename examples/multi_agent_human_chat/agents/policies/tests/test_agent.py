@@ -13,14 +13,14 @@ test_cases = [
         "chat_history": "User: When is my next premium payment due?\n"
                          "PoliciesAgent: Could you please provide your policy number?\n"
                          "User: B67890.\n",
-        "expected_response": "Your next premium payment is due on February 1, 2025."
+        "expected_response_content": "Your next premium payment is due on February 1, 2025."
     }
 ]
 
 class PolicyEvaluationSignature(dspy.Signature):
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     agent_response: str = dspy.InputField(desc="Agent-generated response.")
-    expected_response: str = dspy.InputField(desc="Expected correct response.")
+    expected_response_content: str = dspy.InputField(desc="Expected correct response content.")
 
     judgment: bool = dspy.OutputField(desc="Pass (True) or Fail (False).")
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
@@ -78,7 +78,7 @@ async def test_policies_agent():
         evaluation_result = await eval_model(
             chat_history=case["chat_history"],
             agent_response=agent_response,
-            expected_response=case["expected_response"]
+            expected_response_content=case["expected_response_content"]
         )
 
         assert evaluation_result.judgment, "Judgment must be True. " + evaluation_result.reasoning

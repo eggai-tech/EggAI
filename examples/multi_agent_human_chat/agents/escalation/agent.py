@@ -15,42 +15,42 @@ class EscalationAgentSignature(dspy.Signature):
     You are the Escalation Assistant within an insurance customer service system.
 
     ROLE:
-      - Handle issues that other agents could not solve.
-      - Extract all relevant details dynamically from the conversation.
+      - Handle issues that the ClaimsAgent or PoliciesAgent cannot resolve.
       - Inform the user politely that their issue will be escalated to a human representative.
-      - Always acknowledge the user's **full issue**, including multiple concerns.
-      - Always ask for confirmation before creating a ticket.
-      - If the user confirms, generate a unique ticket ID (e.g., ESC-123456) and provide it.
+      - Generate a unique ticket ID for reference (e.g., ESC-123456).
+      - Specify the appropriate department or team (e.g., "Technical Support", "Billing")
+        that will address the issue.
 
     GUIDELINES:
       - Maintain a polite and professional tone.
       - Avoid speculative or incorrect information.
       - Ensure the ticket ID follows the format 'ESC-XXXXXX' (6 digits).
-      - **Acknowledge ALL user-reported issues before asking for confirmation.**
-      - Never generate a ticket before explicit confirmation from the user.
-      - Identify the appropriate department for handling the issue.
+      - You Always ask confirm before creating a ticket, showing the user what are you filling details
+        and ask for confirmation. Never create a ticket without asking more details.
+      - You don't know the ticket ID before creating it, so you need to generate it.
 
     Input Fields:
-      - chat_history: A string containing the conversation context.
+      - chat_history: A string containing the conversation context so far.
 
     Output Fields:
-      - acknowledgment: Acknowledgment of the user's issue.
-      - confirmation_prompt: Message asking the user to confirm before ticket creation.
-      - final_response: The final escalation message (either waiting for confirmation or providing ticket details).
+      - final_response: The final text response to the user.
     """
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
 
-    acknowledgment: str = dspy.OutputField(
-        desc="Acknowledgment of user-reported issue."
-    )
-    confirmation_prompt: str = dspy.OutputField(desc="Request for user confirmation.")
     final_response: str = dspy.OutputField(
-        desc="Final escalation message, either confirmation or ticket details."
+        desc="Escalation message including ticket ID and department."
     )
 
 
-ticket_database = []
+ticket_database = [
+    {
+        "ticket_id": "ESC-123456",
+        "department": "Technical Support",
+        "issue": "Billing issue",
+        "notes": "User reported an error on the website.",
+    }
+]
 
 
 def create_ticket(department, issue_description, notes):
@@ -94,65 +94,43 @@ escalation_react = dspy.ReAct(
     channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_request"
 )
 async def handle_escalation(msg):
-    """
-    Handles escalation requests:
-    - Extracts issue details.
-    - Acknowledges the issue.
-    - Requests confirmation before proceeding with ticket creation.
-    - If user confirms in the same message, creates the ticket.
-    """
     try:
+        # Convert chat messages into a single conversation string
         chat_messages = msg["payload"]["chat_messages"]
-        conversation_string = "\n".join(
-            [f"{m['role']}: {m['content']}" for m in chat_messages]
-        )
+        conversation_string = ""
+        for chat in chat_messages:
+            role = chat.get("role", "User")
+            conversation_string += f"{role}: {chat['content']}\n"
 
-        escalation_react_async = dspy.asyncify(escalation_react)
-        response = await escalation_react_async(chat_history=conversation_string)
+        # Generate the ReAct result
+        response = escalation_react(chat_history=conversation_string)
+        final_text = response.final_response
 
-        acknowledgment = response.acknowledgment
-        confirmation_prompt = response.confirmation_prompt
-        user_message = chat_messages[-1]["content"].strip().lower()
-
-        if user_message in ["yes", "confirmed", "okay", "proceed", "go ahead"]:
-            inferred_department = "Billing"  # Hardcoded for now
-            extracted_issue = acknowledgment  # Use extracted issue from acknowledgment
-
-            ticket_response = create_ticket(
-                inferred_department, extracted_issue, "User confirmed escalation."
-            )
-            response_message = f"Your escalation has been processed. Here are the ticket details:\n{ticket_response}"
-        else:
-            response_message = f"{acknowledgment}\n\n{confirmation_prompt}"
-
+        # Publish the response back to the user
         meta = msg.get("meta", {})
         meta["agent"] = "EscalationAgent"
-
-        # Send acknowledgment, request confirmation, or final ticket response
         await human_channel.publish(
             {
                 "id": str(uuid4()),
                 "type": "agent_message",
                 "meta": meta,
-                "payload": response_message,
+                "payload": final_text,
             }
         )
-
     except Exception as e:
-        print(f"Error in EscalationAgent (confirmation step): {e}")
+        print(f"Error in EscalationAgent: {e}")
 
 
 if __name__ == "__main__":
     load_dotenv()
     language_model = dspy.LM("openai/gpt-4o-mini")
     dspy.configure(lm=language_model)
-
     # Quick test of the chain directly
     test_conversation = (
-        "User: My issue wasn't resolved. I'm still having trouble.\n"
+        "User: My issue wasn't resolved by PoliciesAgent. I'm still having trouble.\n"
         "EscalationAgent: Certainly. Could you describe the issue in more detail?\n"
         "User: It's about my billing setup. The website keeps throwing an error.\n"
     )
     result = escalation_react(chat_history=test_conversation)
     print("EscalationAgent says:")
-    print(result.acknowledgment + "\n\n" + result.confirmation_prompt)
+    print(result.final_response)

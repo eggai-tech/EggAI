@@ -24,8 +24,7 @@ test_cases = [
             },
         ],
         "expected_meaning": (
-            "The agent should ensure the user confirms before proceeding with ticket creation. "
-            "It should acknowledge the issue and explicitly ask for confirmation in a way that the user understands."
+            "The agent asks the user for confirmation before proceeding with ticket creation."
         ),
     }
 ]
@@ -50,7 +49,8 @@ received_event = None
 
 
 @test_agent.subscribe(
-    channel=human_channel, filter_func=lambda event: event["type"] == "agent_message",
+    channel=human_channel,
+    filter_func=lambda event: event["type"] == "agent_message",
 )
 async def handle_response(event):
     print(f"Received event: {event}")
