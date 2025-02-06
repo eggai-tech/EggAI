@@ -19,30 +19,35 @@ Users interact with the system through a WebSocket-enabled chat interface.
 Agents collaborate with clear defined roles, objectives and skills.
 
 ### **FrontendAgent**
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/>
 
 **Role**: Serve the frontend and bridge WebSocket communication between web frontend and human communication channel.  
 **Objective**: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.    
 **Skill**: Frontend service delivery, Real-time communication, session management, message handling, and agent communication bridge.
 
 ### **TriageAgent**
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-2.jpeg" width="40"/>
 
 **Role**: Analyze incoming messages and route them to the appropriate agent based on content.  
 **Objective**: Ensure that user inquiries are efficiently assigned to the right agent.  
 **Skill**: Content classification and routing.
 
 ### **PoliciesAgent**
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-3.jpeg" width="40"/>
 
 **Role**: Handle policy-related inquiries using a mock `policies_database`.  
 **Objective**: Provide accurate and detailed information about user policies.  
 **Skill**: Policy management expertise.
 
 ### **BillingAgent**
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-4.jpeg" width="40"/>
 
 **Role**: Assist customers with billing-related inquiries such as due amounts, billing cycles, and payment statuses.  
 **Objective**: Resolve billing-related questions efficiently and provide updates to billing records as needed.  
 **Skill**: Billing expertise and data management.
 
 ### **EscalationAgent**
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-5.jpeg" width="40"/>
 
 **Role**: Manage support ticket creation and retrieval for escalated issues that other agents cannot resolve.  
 **Objective**: Ensure unresolved issues are properly documented and assigned to the correct human support teams.  
