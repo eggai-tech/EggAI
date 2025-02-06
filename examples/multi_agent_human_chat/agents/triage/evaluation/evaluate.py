@@ -4,20 +4,27 @@ import dspy
 from dotenv import load_dotenv
 
 from agents.triage.evaluation.report import generate_report
+import csv
 
 
-def load_dataset(file: str) -> list:
-    csv_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), file + ".csv"))
+def load_dataset(filename: str) -> list:
+    csv_file_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), f"{filename}.csv")
+    )
+    dataset = []
 
-    with open(csv_file_path, "r") as file:
-        data = file.readlines()
-        return [
-            {
-                "conversation": line.strip().split(",")[0].replace('"', "").replace("\\n", "\n"),
-                "target": line.strip().split(",")[1].replace('"', "").replace("\\n", "\n")
-            }
-            for line in data[1:]
-        ]
+    with open(csv_file_path, "r", newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        next(reader, None)
+        for row in reader:
+            conversation = row["conversation"].replace("\\n", "\n").replace('"', "")
+            target = row["target"].replace("\\n", "\n").replace('"', "")
+            dataset.append({
+                "conversation": conversation,
+                "target": target
+            })
+
+    return dataset
 
 def load_data(file: str):
     devset = []
@@ -26,8 +33,8 @@ def load_data(file: str):
             dspy.Example(
                 chat_history=ex["conversation"],
                 target_agent=ex["target"],
-                small_talk_message="",
-                fall_back_message=""
+                small_talk_message="s",
+                fall_back_message="s"
             ).with_inputs("chat_history")
         )
     return devset
@@ -36,7 +43,7 @@ def run_evaluation(program, devset):
     evaluator = dspy.evaluate.Evaluate(
         devset=devset,
         num_threads=10,
-        display_progress=False,
+        display_progress=True,
         return_outputs=True,
         return_all_scores=True
     )
@@ -46,12 +53,16 @@ def run_evaluation(program, devset):
 
 def run_evaluation_v1():
     load_dotenv()
+    language_model = dspy.LM("openai/gpt-4o-mini", cache=True)
+    dspy.configure(lm=language_model)
 
-    from agents.triage.dspy_modules.v1 import AgentClassificationSignature as classifier_v1
+    from agents.triage.dspy_modules.v1 import triage_classifier as classifier_v1
     test_dataset = load_data("triage-testing")
     score_v1, results_v1 = run_evaluation(classifier_v1, test_dataset)
     generate_report(results_v1, "classifier_v1")
+    return score_v1
 
 
 if __name__ == "__main__":
-    run_evaluation_v1()
+    score = run_evaluation_v1()
+    print(f"Accuracy: {score}")

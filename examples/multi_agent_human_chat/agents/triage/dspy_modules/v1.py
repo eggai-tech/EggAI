@@ -52,3 +52,5 @@ class AgentClassificationSignature(dspy.Signature):
     fall_back_message: Optional[str] = dspy.OutputField(
         desc="A kind message to the user explaining why the message was not understood."
     )
+
+triage_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)

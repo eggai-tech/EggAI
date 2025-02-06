@@ -12,8 +12,6 @@ def generate_report(results, report_name):
                 "expected_target": example.target_agent,
                 "actual_target": pred.target_agent,
                 "status": "PASS" if score else "FAIL",
-                "confidence": pred.confidence,
-                "reasoning": pred.reasoning,
             }
         )
 
@@ -88,8 +86,6 @@ def write_html_report(test_results, summary, report_name):
                         <th>Conversation</th>
                         <th>Expected Target</th>
                         <th>Actual Target</th>
-                        <th>Confidence</th>
-                        <th>Reasoning</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -99,8 +95,6 @@ def write_html_report(test_results, summary, report_name):
                         <td><pre>{{ result.conversation }}</pre></td>
                         <td>{{ result.expected_target }}</td>
                         <td>{{ result.actual_target }}</td>
-                        <td>{{ result.confidence }}</td>
-                        <td>{{ result.reasoning }}</td>
                         <td>
                             {% if result.status == "PASS" %}
                                 <span class="pass">{{ result.status }}</span>
