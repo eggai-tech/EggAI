@@ -10,9 +10,19 @@ Users interact with the system through a WebSocket-enabled chat interface.
 
 ![Chat UI Screenshot](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/support-chat.png)
 
+## Architecture Overview
+
+![architecture-getting-started.svg](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-multi-agent-insurance-support-system.svg)
+
 ## Agents Overview
 
 Agents collaborate with clear defined roles, objectives and skills.
+
+### **FrontendAgent**
+
+**Role**: Serve the frontend and bridge WebSocket communication between web frontend and human communication channel.  
+**Objective**: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.    
+**Skill**: Frontend service delivery, Real-time communication, session management, message handling, and agent communication bridge.
 
 ### **TriageAgent**
 
@@ -38,15 +48,43 @@ Agents collaborate with clear defined roles, objectives and skills.
 **Objective**: Ensure unresolved issues are properly documented and assigned to the correct human support teams.  
 **Skill**: Escalation management and ticket tracking.
 
-### **WebSocketGatewayAgent**
+### Communication Flow Example
+```mermaid
+sequenceDiagram
+    participant User
+    participant FrontendAgent
+    participant HumanChannel
+    participant TriageAgent
+    participant AgentsChannel
+    participant PoliciesAgent
 
-**Role**: Oversee real-time communication between the FastAPI server and connected clients.  
-**Objective**: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.  
-**Skill**: Real-time communication, session management, and message handling.
+    User->>FrontendAgent: Send greeting (e.g., "hi")
+    FrontendAgent->>HumanChannel: Forward user input
+    HumanChannel->>TriageAgent: Forward to TriageAgent
+    TriageAgent-->>HumanChannel: Respond with initial greeting (e.g., "Hello! How can I assist?")
+    HumanChannel-->>FrontendAgent: Send response
+    FrontendAgent-->>User: Display response
 
-## Architecture Overview
+    User->>FrontendAgent: Ask for help with insurance
+    FrontendAgent->>HumanChannel: Forward user input
+    HumanChannel->>TriageAgent: Forward to TriageAgent
+    TriageAgent->>AgentsChannel: Forward to PoliciesAgent
+    PoliciesAgent-->>AgentsChannel: Ask for clarification (e.g., "Can you provide more details?")
+    AgentsChannel-->>TriageAgent: Forward response
+    TriageAgent-->>HumanChannel: Forward response
+    HumanChannel-->>FrontendAgent: Send response
+    FrontendAgent-->>User: Display response
 
-![architecture-getting-started.svg](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat-2.svg)
+    User->>FrontendAgent: Provide policy number (e.g., A12345)
+    FrontendAgent->>HumanChannel: Forward user input
+    HumanChannel->>TriageAgent: Forward to TriageAgent
+    TriageAgent->>AgentsChannel: Forward to PoliciesAgent
+    PoliciesAgent-->>AgentsChannel: Return policy details (e.g., "Your home insurance includes...")
+    AgentsChannel-->>TriageAgent: Forward response
+    TriageAgent-->>HumanChannel: Forward response
+    HumanChannel-->>FrontendAgent: Send response
+    FrontendAgent-->>User: Display response
+```
 
 ## Getting Started
 
