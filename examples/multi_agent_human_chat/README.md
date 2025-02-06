@@ -54,14 +54,14 @@ Agents collaborate with clear defined roles, objectives and skills.
 
 Ensure you have the following dependencies installed:
 
-- **Python** 3.10>=3.12
+- **Python** 3.12
 - **Docker** and **Docker Compose**
 
 Ensure you have a valid OpenAI API key and Guardrails AI token set in your environment:
 
 ```bash
 export OPEN_AI_API_KEY="your-api-key"
-export GUARDRAILS_TOKEN="your-guardrails-ai-token"
+export GUARDRAILS_TOKEN="your-guardrails-ai-token" # Optional
 ```
 
 ### Setup Instructions
@@ -78,20 +78,13 @@ Move into the `examples/multi_agent_human_chat` folder:
 cd examples/multi_agent_human_chat
 ```
 
-Create and activate a virtual environment:
+Create and activate a virtual environment and install required dependencies:
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # For Windows: venv\Scripts\activate
+make setup
 ```
 
-Install the required dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Configure Guardrails:
+Configure Guardrails (Optional):
 
 ```bash
 guardrails configure --token $GUARDRAILS_TOKEN
@@ -101,23 +94,24 @@ guardrails hub install hub://guardrails/toxic_language
 Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
 
 ```bash
-docker compose up -d
+make docker-up
 ```
 
 ### Run the Example
 
 ```bash
-python main.py
+make start-all
 ```
 
 Upon running the example and accessing the chat interface at [http://localhost:8000](http://localhost:8000), you should see a web-based chat UI.
 
 ### Cleaning Up
 
-Stop and remove Docker containers:
+Stop and remove Docker containers and delete venv:
 
 ```bash
-docker compose down -v
+make docker-down
+make clean
 ```
 
 ## Next Steps

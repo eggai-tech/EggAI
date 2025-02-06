@@ -1,50 +1,35 @@
+import os
+from eggai import Channel, Agent
+from starlette.websockets import WebSocket, WebSocketDisconnect
 import asyncio
 import uuid
-
 import uvicorn
-from eggai import Channel, Agent
 from fastapi import FastAPI, Query
-from starlette.websockets import WebSocket, WebSocketDisconnect
+from .websocket_manager import WebSocketManager
 
-from agents.websocket_manager import WebSocketManager
-from .guardrails import toxic_language_guard
+# Load environment variable
+GUARDRAILS_ENABLED = os.getenv("GUARDRAILS_TOKEN") is not None
+
+# Conditionally import guardrails
+if GUARDRAILS_ENABLED:
+    try:
+        from .guardrails import toxic_language_guard
+    except ImportError as e:
+        raise ImportError("Guardrails is enabled but cannot be imported.") from e
+else:
+    toxic_language_guard = None  # Assign a no-op function
+
 
 websocket_manager = WebSocketManager()
 human_channel = Channel("human")
-websocket_gateway_agent = Agent("WebSocketGateway")
-
-
-@websocket_gateway_agent.subscribe(
-    channel=human_channel,
-    filter_func=lambda message: message.get("type") == "agent_message",
-)
-async def handle_human_messages(message):
-    meta = message.get("meta")
-    agent = meta.get("agent")
-    content = message.get("payload")
-    connection_id = meta.get("connection_id")
-    if not messages_cache[connection_id]:
-        messages_cache[connection_id] = []
-    messages_cache[connection_id].append(
-        {
-            "role": "assistant",
-            "content": content,
-            "agent": agent,
-            "id": message.get("id"),
-        }
-    )
-    await websocket_manager.send_message_to_connection(
-        connection_id, {"sender": agent, "content": content}
-    )
-
-
+frontend_agent = Agent("FrontendAgent")
 messages_cache = {}
 
 
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     @app.websocket(route)
     async def websocket_handler(
-            websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
+        websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
     ):
         if server.should_exit:
             websocket.state.closed = True
@@ -75,21 +60,26 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                     continue
                 message_id = str(uuid.uuid4())
                 content = data.get("payload")
-                # validate content with guardrails
-                valid_content = await toxic_language_guard(content)
-                if valid_content is None:
-                    await human_channel.publish(
-                        {
-                            "id": message_id,
-                            "type": "agent_message",
-                            "payload": "Sorry, I can't help you with that.",
-                            "meta": {
-                                "agent": "TriageAgent",
-                                "connection_id": connection_id,
-                            },
-                        }
-                    )
-                    continue
+
+                # Validate content with guardrails if enabled
+                if GUARDRAILS_ENABLED and toxic_language_guard:
+                    valid_content = await toxic_language_guard(content)
+                    if valid_content is None:
+                        await human_channel.publish(
+                            {
+                                "id": message_id,
+                                "type": "agent_message",
+                                "payload": "Sorry, I can't help you with that.",
+                                "meta": {
+                                    "agent": "TriageAgent",
+                                    "connection_id": connection_id,
+                                },
+                            }
+                        )
+                        continue
+                else:
+                    valid_content = content  # Pass content through if guardrails is disabled
+
                 await websocket_manager.attach_message_id(message_id, connection_id)
                 messages_cache[connection_id].append(
                     {
@@ -116,3 +106,27 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
         finally:
             await websocket_manager.disconnect(connection_id)
             print(f"[WEBSOCKET GATEWAY]: WebSocket connection {connection_id} closed.")
+
+
+@frontend_agent.subscribe(
+    channel=human_channel,
+    filter_func=lambda message: message.get("type") == "agent_message",
+)
+async def handle_human_messages(message):
+    meta = message.get("meta")
+    agent = meta.get("agent")
+    content = message.get("payload")
+    connection_id = meta.get("connection_id")
+    if not messages_cache[connection_id]:
+        messages_cache[connection_id] = []
+    messages_cache[connection_id].append(
+        {
+            "role": "assistant",
+            "content": content,
+            "agent": agent,
+            "id": message.get("id"),
+        }
+    )
+    await websocket_manager.send_message_to_connection(
+        connection_id, {"sender": agent, "content": content}
+    )

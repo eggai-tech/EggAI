@@ -1,7 +1,6 @@
 from typing import Dict
 from starlette.websockets import WebSocketState, WebSocket
 
-
 class WebSocketManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
@@ -31,7 +30,9 @@ class WebSocketManager:
             if not connection.state.closed:
                 connection.state.closed = True
                 if connection.client_state is not WebSocketState.DISCONNECTED:
-                    await connection.close(code=1001, reason="Connection closed by server")
+                    await connection.close(
+                        code=1001, reason="Connection closed by server"
+                    )
         self.active_connections.pop(connection_id, None)
 
     async def send_message_to_connection(self, connection_id: str, message_data: dict):
@@ -59,4 +60,3 @@ class WebSocketManager:
     async def disconnect_all(self):
         for connection_id in list(self.active_connections.keys()):
             await self.disconnect(connection_id)
-

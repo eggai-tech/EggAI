@@ -2,31 +2,24 @@ import asyncio
 import os
 from contextlib import asynccontextmanager
 
-import dspy
 import uvicorn
 from dotenv import load_dotenv
 from eggai import eggai_cleanup
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
+from eggai.transport import eggai_set_default_transport, KafkaTransport
 
-from agents.billing_agent import billing_agent
-from agents.escalation_agent import escalation_agent
-from agents.policies_agent import policies_agent
-from agents.triage.agent import triage_agent
-from agents.websocket_gateway_agent import (
+from .agent import (
     add_websocket_gateway,
-    websocket_gateway_agent
+    frontend_agent,
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        await websocket_gateway_agent.start()
-        await policies_agent.start()
-        await escalation_agent.start()
-        await billing_agent.start()
-        await triage_agent.start()
+        eggai_set_default_transport(lambda: KafkaTransport())
+        await frontend_agent.start()
         yield
     finally:
         await eggai_cleanup()
@@ -54,19 +47,12 @@ async def read_root():
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-server = uvicorn.Server(
-    uvicorn.Config(
-        api,
-        host="127.0.0.1",
-        port=8000,
-        log_level="info"
-    )
+frontend_server = uvicorn.Server(
+    uvicorn.Config(api, host="127.0.0.1", port=8000, log_level="info")
 )
 
-add_websocket_gateway("/ws", api, server)
+add_websocket_gateway("/ws", api, frontend_server)
 
 if __name__ == "__main__":
     load_dotenv()
-    language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
-    dspy.configure(lm=language_model)
-    asyncio.run(server.serve())
+    asyncio.run(frontend_server.serve())

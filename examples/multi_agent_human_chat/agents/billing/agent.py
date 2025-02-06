@@ -1,10 +1,9 @@
-import asyncio
 import json
 from uuid import uuid4
-
 import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
+
 
 class BillingAgentSignature(dspy.Signature):
     """
@@ -36,8 +35,10 @@ class BillingAgentSignature(dspy.Signature):
     Output Fields:
       - final_response: The final text answer to the user regarding their billing inquiry.
     """
+
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
+
 
 billing_database = [
     {
@@ -45,23 +46,24 @@ billing_database = [
         "billing_cycle": "Monthly",
         "amount_due": 120.0,
         "due_date": "2025-02-01",
-        "status": "Paid"
+        "status": "Paid",
     },
     {
         "policy_number": "B67890",
         "billing_cycle": "Quarterly",
         "amount_due": 300.0,
         "due_date": "2025-03-15",
-        "status": "Pending"
+        "status": "Pending",
     },
     {
         "policy_number": "C24680",
         "billing_cycle": "Annual",
         "amount_due": 1000.0,
         "due_date": "2025-12-01",
-        "status": "Pending"
-    }
+        "status": "Pending",
+    },
 ]
+
 
 def get_billing_info(policy_number: str):
     """
@@ -74,12 +76,15 @@ def get_billing_info(policy_number: str):
             return json.dumps(record)
     return json.dumps({"error": "Policy not found."})
 
+
 def update_billing_info(policy_number: str, field: str, new_value: str):
     """
     Update a given field in the billing record for the specified policy_number.
     Return the updated record as JSON if successful, or an error message if policy not found.
     """
-    print(f"[Tool] Updating billing info for policy {policy_number}: {field} -> {new_value}")
+    print(
+        f"[Tool] Updating billing info for policy {policy_number}: {field} -> {new_value}"
+    )
     for record in billing_database:
         if record["policy_number"] == policy_number.strip():
             if field in record:
@@ -87,17 +92,21 @@ def update_billing_info(policy_number: str, field: str, new_value: str):
                     try:
                         record[field] = float(new_value)
                     except ValueError:
-                        return json.dumps({"error": f"Invalid numeric value for {field}: {new_value}"})
+                        return json.dumps(
+                            {"error": f"Invalid numeric value for {field}: {new_value}"}
+                        )
                 else:
                     record[field] = new_value
                 return json.dumps(record)
             else:
-                return json.dumps({"error": f"Field '{field}' not found in billing record."})
+                return json.dumps(
+                    {"error": f"Field '{field}' not found in billing record."}
+                )
     return json.dumps({"error": "Policy not found."})
 
+
 billing_react = dspy.ReAct(
-    BillingAgentSignature,
-    tools=[get_billing_info, update_billing_info]
+    BillingAgentSignature, tools=[get_billing_info, update_billing_info]
 )
 
 billing_agent = Agent(name="BillingAgent")
@@ -105,9 +114,9 @@ billing_agent = Agent(name="BillingAgent")
 agents_channel = Channel("agents")
 human_channel = Channel("human")
 
+
 @billing_agent.subscribe(
-    channel=agents_channel,
-    filter_func=lambda msg: msg["type"] == "billing_request"
+    channel=agents_channel, filter_func=lambda msg: msg["type"] == "billing_request"
 )
 async def handle_billing_message(msg):
     try:
@@ -120,14 +129,17 @@ async def handle_billing_message(msg):
         final_text = response.final_response
         meta = msg.get("meta", {})
         meta["agent"] = "BillingAgent"
-        await human_channel.publish({
-            "id": str(uuid4()),
-            "type": "agent_message",
-            "meta": meta,
-            "payload": final_text,
-        })
+        await human_channel.publish(
+            {
+                "id": str(uuid4()),
+                "type": "agent_message",
+                "meta": meta,
+                "payload": final_text,
+            }
+        )
     except Exception as e:
         print(f"Error in BillingAgent: {e}")
+
 
 if __name__ == "__main__":
     load_dotenv()

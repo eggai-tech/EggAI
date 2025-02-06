@@ -1,8 +1,6 @@
 from uuid import uuid4
-
 import dspy
 from eggai import Channel, Agent
-
 from agents.triage.agents_registry import AGENT_REGISTRY
 from agents.triage.dspy_modules.v1 import AgentClassificationSignature
 
@@ -49,7 +47,9 @@ async def handle_user_message(msg):
                 }
             )
         else:
-            message_to_send = response.small_talk_message or response.fall_back_message or ""
+            message_to_send = (
+                response.small_talk_message or response.fall_back_message or ""
+            )
             meta["agent"] = "TriageAgent"
             await human_channel.publish(
                 {
