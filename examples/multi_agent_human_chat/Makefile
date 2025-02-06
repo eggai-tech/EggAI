@@ -1,6 +1,7 @@
 PYTHON := python3.12
 VENV_DIR := .venv
 REQ_FILE := requirements.txt
+DEV_REQ_FILE := dev-requirements.txt
 DOCKER_COMPOSE := docker compose
 
 .PHONY: default
@@ -17,6 +18,7 @@ setup:
 	fi
 	@$(VENV_DIR)/bin/pip install --upgrade pip
 	@if [ -f $(REQ_FILE) ]; then $(VENV_DIR)/bin/pip install -r $(REQ_FILE); fi
+	@if [ -f $(DEV_REQ_FILE) ]; then $(VENV_DIR)/bin/pip install -r $(DEV_REQ_FILE); fi
 	@echo "Environment setup complete."
 
 .PHONY: start

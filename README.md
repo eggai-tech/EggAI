@@ -255,9 +255,7 @@ async def test_qa_agent():
             ground_truth_answer=ground_truth_answer
         )
 
-        assert isinstance(evaluation_result.judgment, bool), "Judgment must be a boolean."
-        assert isinstance(evaluation_result.reasoning, str), "Reasoning must be a string."
-        assert isinstance(evaluation_result.precision_score, float), "Precision score must be a float."
+        assert evaluation_result.judgment, "Judgment must be True. " + evaluation_result.reasoning
         assert 0.8 <= evaluation_result.precision_score <= 1.0, "Precision score must be between 0.8 and 1.0."
 ```
 </details>
