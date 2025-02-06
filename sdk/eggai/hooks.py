@@ -7,6 +7,7 @@ _STOP_CALLBACKS = []
 _EXIT_EVENT = None  # will be lazily created
 _SIGNAL_HANDLERS_INSTALLED = False
 _CLEANUP_STARTED = False
+_GLOBAL_TASK = None
 HANDLED_SIGNALS = (
     signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
     signal.SIGTERM,  # Unix signal 15. Sent by `kill <pid>`.
@@ -60,12 +61,12 @@ async def eggai_cleanup():
 
 async def _install_signal_handlers():
     async def shutdown(s, cancel_tasks):
-        print(f"Received {s.name} signal, exiting...", flush=True)
-        await eggai_cleanup()
-        if cancel_tasks:
-            tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-            [task.cancel() for task in tasks]
-            await asyncio.gather(*tasks)
+        if _GLOBAL_TASK is not None:
+            _GLOBAL_TASK.cancel()
+        # if cancel_tasks:
+        #     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        #     [task.cancel() for task in tasks]
+        #     await asyncio.gather(*tasks)
 
     global _SIGNAL_HANDLERS_INSTALLED
     if _SIGNAL_HANDLERS_INSTALLED:
@@ -102,9 +103,14 @@ def eggai_main(func):
 
     async def wrapper(*args, **kwargs):
         await _install_signal_handlers()
+        global _GLOBAL_TASK
+
+        if _GLOBAL_TASK is not None:
+            raise RuntimeError("eggai_main can only be used once per program.")
 
         try:
-            await func(*args, **kwargs)
+            _GLOBAL_TASK = asyncio.create_task(func(*args, **kwargs))
+            await _GLOBAL_TASK
         except asyncio.CancelledError:
             print("EggAI: Application interrupted by user.", flush=True)
             return True
