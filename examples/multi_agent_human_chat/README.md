@@ -19,13 +19,15 @@ Users interact with the system through a WebSocket-enabled chat interface.
 Agents collaborate with clear defined roles, objectives and skills.
 
 ### **FrontendAgent**
+
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/>
 
 **Role**: Serve the frontend and bridge WebSocket communication between web frontend and human communication channel.  
-**Objective**: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.    
+**Objective**: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.  
 **Skill**: Frontend service delivery, Real-time communication, session management, message handling, and agent communication bridge.
 
 ### **TriageAgent**
+
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-2.jpeg" width="40"/>
 
 **Role**: Classify incoming messages and route them to the appropriate agent based on content.  
@@ -33,6 +35,7 @@ Agents collaborate with clear defined roles, objectives and skills.
 **Skill**: Content classification and routing.
 
 ### **PoliciesAgent**
+
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-3.jpeg" width="40"/>
 
 **Role**: Handle policy-related inquiries using a mock `policies_database`.  
@@ -40,6 +43,7 @@ Agents collaborate with clear defined roles, objectives and skills.
 **Skill**: Policy management expertise.
 
 ### **BillingAgent**
+
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-4.jpeg" width="40"/>
 
 **Role**: Assist customers with billing-related inquiries such as due amounts, billing cycles, and payment statuses.  
@@ -47,6 +51,7 @@ Agents collaborate with clear defined roles, objectives and skills.
 **Skill**: Billing expertise and data management.
 
 ### **EscalationAgent**
+
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-5.jpeg" width="40"/>
 
 **Role**: Manage support ticket creation and retrieval for escalated issues that other agents cannot resolve.  
@@ -54,6 +59,7 @@ Agents collaborate with clear defined roles, objectives and skills.
 **Skill**: Escalation management and ticket tracking.
 
 ### Communication Flow Example
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -145,6 +151,25 @@ make start-all
 ```
 
 Upon running the example and accessing the chat interface at [http://localhost:8000](http://localhost:8000), you should see a web-based chat UI.
+
+### Testing
+
+You can execute tests to validate the behavior of different agents.
+
+To run all tests:
+
+```bash
+make test
+```
+
+Running Specific Agent Tests:
+```bash
+make test-billing      # Runs tests for the Billing Agent
+make test-escalation   # Runs tests for the Escalation Agent
+make test-frontend     # Runs tests for the Frontend Agent
+make test-policies     # Runs tests for the Policies Agent
+make test-triage       # Runs tests for the Triage Agent
+```
 
 ### Cleaning Up
 
