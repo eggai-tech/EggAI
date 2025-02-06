@@ -1,3 +1,6 @@
+import warnings
+# Ignore the warning raised by dspy until is not fixed
+warnings.filterwarnings('ignore', message='Valid config keys have changed in V2', category=UserWarning)
 import asyncio
 import dspy
 from dotenv import load_dotenv
