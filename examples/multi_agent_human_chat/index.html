@@ -1143,9 +1143,8 @@
     FrontendAgent-&gt;&gt;HumanChannel: Forward user input
     HumanChannel-&gt;&gt;TriageAgent: Forward to TriageAgent
     TriageAgent-&gt;&gt;AgentsChannel: Forward to PoliciesAgent
-    PoliciesAgent--&gt;&gt;AgentsChannel: Ask for clarification (e.g., "Can you provide more details?")
-    AgentsChannel--&gt;&gt;TriageAgent: Forward response
-    TriageAgent--&gt;&gt;HumanChannel: Forward response
+    AgentsChannel-&gt;&gt;PoliciesAgent: Forward to PoliciesAgent
+    PoliciesAgent--&gt;&gt;HumanChannel: Ask for clarification (e.g., "Can you provide more details?")
     HumanChannel--&gt;&gt;FrontendAgent: Send response
     FrontendAgent--&gt;&gt;User: Display response
 
@@ -1153,9 +1152,8 @@
     FrontendAgent-&gt;&gt;HumanChannel: Forward user input
     HumanChannel-&gt;&gt;TriageAgent: Forward to TriageAgent
     TriageAgent-&gt;&gt;AgentsChannel: Forward to PoliciesAgent
-    PoliciesAgent--&gt;&gt;AgentsChannel: Return policy details (e.g., "Your home insurance includes...")
-    AgentsChannel--&gt;&gt;TriageAgent: Forward response
-    TriageAgent--&gt;&gt;HumanChannel: Forward response
+    AgentsChannel-&gt;&gt;PoliciesAgent: Forward to PoliciesAgent
+    PoliciesAgent--&gt;&gt;HumanChannel: Return policy details (e.g., "Your home insurance includes...")
     HumanChannel--&gt;&gt;FrontendAgent: Send response
     FrontendAgent--&gt;&gt;User: Display response</code></pre>
 <h2 id="getting-started">Getting Started</h2>
@@ -1165,7 +1163,7 @@
 <li><strong>Python</strong> 3.12</li>
 <li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
 </ul>
-<p>Ensure you have a valid OpenAI API key and Guardrails AI token set in your environment:</p>
+<p>Ensure you have a valid OpenAI API key set in your environment:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPEN_AI_API_KEY</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GUARDRAILS_TOKEN</span><span class="o">=</span><span class="s2">&quot;your-guardrails-ai-token&quot;</span><span class="w"> </span><span class="c1"># Optional</span>
 </span></code></pre></div>
