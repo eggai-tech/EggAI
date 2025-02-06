@@ -3,32 +3,45 @@ import pytest
 import dspy
 from uuid import uuid4
 from eggai import Agent, Channel
-from ..agent import billing_agent
+from ..agent import escalation_agent
 
 dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
 
-# Sample test data for the BillingAgent
 test_cases = [
     {
-        "chat_history": "User: Hi, I'd like to know my next billing date.\n"
-        "BillingAgent: Sure! Please provide your policy number.\n"
-        "User: It's B67890.\n",
-        "expected_response": "Your next payment of $300.00 is due on 2025-03-15, and your current status is 'Pending'.",
+        "chat_messages": [
+            {
+                "role": "User",
+                "content": "My issue wasn't resolved by PoliciesAgent. I'm still having trouble.",
+            },
+            {
+                "role": "EscalationAgent",
+                "content": "Certainly. Could you describe the issue in more detail?",
+            },
+            {
+                "role": "User",
+                "content": "It's about my billing setup. The website keeps throwing an error.",
+            },
+        ],
+        "expected_meaning": (
+            "The agent should ensure the user confirms before proceeding with ticket creation. "
+            "It should acknowledge the issue and explicitly ask for confirmation in a way that the user understands."
+        ),
     }
 ]
 
 
-class BillingEvaluationSignature(dspy.Signature):
+class EscalationEvaluationSignature(dspy.Signature):
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     agent_response: str = dspy.InputField(desc="Agent-generated response.")
-    expected_response: str = dspy.InputField(desc="Expected correct response.")
+    expected_meaning: str = dspy.InputField(desc="Expected meaning of the response.")
 
     judgment: bool = dspy.OutputField(desc="Pass (True) or Fail (False).")
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
     precision_score: float = dspy.OutputField(desc="Precision score (0.0 to 1.0).")
 
 
-test_agent = Agent("TestBillingAgent")
+test_agent = Agent("TestEscalationAgent")
 test_channel = Channel("agents")
 human_channel = Channel("human")
 
@@ -37,8 +50,7 @@ received_event = None
 
 
 @test_agent.subscribe(
-    channel=human_channel,
-    filter_func=lambda event: event.get("type") == "agent_message",
+    channel=human_channel, filter_func=lambda event: event["type"] == "agent_message",
 )
 async def handle_response(event):
     print(f"Received event: {event}")
@@ -48,41 +60,26 @@ async def handle_response(event):
 
 
 @pytest.mark.asyncio
-async def test_billing_agent():
-    await billing_agent.start()
+async def test_escalation_agent():
+    await escalation_agent.start()
     await test_agent.start()
 
     for case in test_cases:
         event_received.clear()
 
-        # Simulate a billing request event
         await test_channel.publish(
             {
                 "id": str(uuid4()),
-                "type": "billing_request",
+                "type": "escalation_request",
                 "meta": {},
-                "payload": {
-                    "chat_messages": [
-                        {
-                            "role": "User",
-                            "content": "Hi, I'd like to know my next billing date.",
-                        },
-                        {
-                            "role": "BillingAgent",
-                            "content": "Sure! Please provide your policy number.",
-                        },
-                        {"role": "User", "content": "It's B67890."},
-                    ]
-                },
+                "payload": {"chat_messages": case["chat_messages"]},
             }
         )
 
         try:
             await asyncio.wait_for(event_received.wait(), timeout=5.0)
         except asyncio.TimeoutError:
-            pytest.fail(
-                f"Timeout: No response event received for chat history: {case['chat_history']}"
-            )
+            pytest.fail("Timeout: No response event received for chat history.")
 
         assert received_event is not None, "No agent response received."
         assert received_event["type"] == "agent_message", (
@@ -92,17 +89,19 @@ async def test_billing_agent():
 
         agent_response = received_event["payload"]
 
-        # Evaluate the response
-        eval_model = dspy.asyncify(dspy.Predict(BillingEvaluationSignature))
+        eval_model = dspy.asyncify(dspy.Predict(EscalationEvaluationSignature))
         evaluation_result = await eval_model(
-            chat_history=case["chat_history"],
+            chat_history="\n".join(
+                [f"{m['role']}: {m['content']}" for m in case["chat_messages"]]
+            ),
             agent_response=agent_response,
-            expected_response=case["expected_response"],
+            expected_meaning=case["expected_meaning"],
         )
 
         assert evaluation_result.judgment, (
             "Judgment must be True. " + evaluation_result.reasoning
         )
-        assert 0.8 <= evaluation_result.precision_score <= 1.0, (
-            "Precision score must be between 0.8 and 1.0."
+
+        assert 0.7 <= evaluation_result.precision_score <= 1.0, (
+            "Precision score must be between 0.7 and 1.0."
         )
