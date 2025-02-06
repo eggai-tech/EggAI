@@ -25,6 +25,13 @@ setup:
 start: setup docker-up start-all
 	@echo "Environment, Docker Compose, and agents are running."
 
+# test
+.PHONY: test
+test:
+	@echo "Running tests..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest -s
+	@echo "Tests completed."
+
 .PHONY: stop
 stop: docker-down
 	@echo "Environment and Docker Compose have been stopped."

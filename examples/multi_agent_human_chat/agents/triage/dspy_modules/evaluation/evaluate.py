@@ -3,7 +3,7 @@ import os
 import dspy
 from dotenv import load_dotenv
 
-from agents.triage.evaluation.report import generate_report
+from .report import generate_report
 import csv
 
 
