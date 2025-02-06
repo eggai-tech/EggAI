@@ -1,0 +1,232 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>EggAI - Performance Report - Triage Agent</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+        <style>
+            body {
+                padding: 20px;
+            }
+            .summary {
+                margin-bottom: 30px;
+            }
+            .pass {
+                color: green;
+                font-weight: bold;
+            }
+            .fail {
+                color: red;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div style="margin: 0 40px">
+            <h1 class="mb-4">EggAI - Performance Report - Triage Agent</h1>
+            <p><strong>Date:</strong> 2025-02-06 18:17:17 <span style="margin-left: 20px"><b>Meta:</b> classifier_v1</span></p>
+
+
+            <div class="summary">
+                <h3>Summary</h3>
+                <ul>
+                    <li>Total Test Cases: 14</li>
+                    <li>Passed: <span class="pass">14</span></li>
+                    <li>Failed: <span class="fail">0</span></li>
+                    <li>Success Rate: 100.00%</li>
+                </ul>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Detailed Results</h3>
+            </div>
+
+            <table id="resultsTable" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Conversation</th>
+                        <th>Expected Target</th>
+                        <th>Actual Target</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td><pre>User: Can you retrieve the details of my policy?
+PoliciesAgent: Please provide your policy number.
+User: P789012</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I need to verify my policy due date</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I lost my policy number and need assistance.</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I tried to access my policy details but forgot my policy number.</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: How can I update my contact information?</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I need to check the status of my policy number P321654.</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Can you explain the benefits covered under my current policy?</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I would like to update my address on my policy.
+PoliciesAgent: Sure, please provide your new address.
+User: 123 Main Street, Springfield.</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Please send me a copy of my policy statement.</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I want to escalate my previous issue regarding my billing statement.</pre></td>
+                        <td>EscalationAgent</td>
+                        <td>EscalationAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: Tell me a fun fact about space.</pre></td>
+                        <td>TriageAgent</td>
+                        <td>TriageAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: How&#39;s your day going?</pre></td>
+                        <td>TriageAgent</td>
+                        <td>TriageAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: I need some help with my policy but I&#39;m not sure who to contact.</pre></td>
+                        <td>PoliciesAgent</td>
+                        <td>PoliciesAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td><pre>User: What&#39;s the capital of France?</pre></td>
+                        <td>TriageAgent</td>
+                        <td>TriageAgent</td>
+                        <td>
+                            
+                                <span class="pass">PASS</span>
+                            
+                        </td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                var table = $('#resultsTable').DataTable({
+                    "order": [[ 0, "asc" ]],
+                    "pageLength": 10
+                });
+            });
+        </script>
+    </body>
+    </html>
+    
