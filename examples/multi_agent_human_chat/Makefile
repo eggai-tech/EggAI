@@ -1,7 +1,7 @@
 PYTHON := python3.12
 VENV_DIR := .venv
 REQ_FILE := requirements.txt
-DOCKER_COMPOSE := docker-compose
+DOCKER_COMPOSE := docker compose
 
 .PHONY: default
 default: start
