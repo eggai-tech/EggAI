@@ -74,9 +74,8 @@ sequenceDiagram
     FrontendAgent->>HumanChannel: Forward user input
     HumanChannel->>TriageAgent: Forward to TriageAgent
     TriageAgent->>AgentsChannel: Forward to PoliciesAgent
-    PoliciesAgent-->>AgentsChannel: Ask for clarification (e.g., "Can you provide more details?")
-    AgentsChannel-->>TriageAgent: Forward response
-    TriageAgent-->>HumanChannel: Forward response
+    AgentsChannel->>PoliciesAgent: Forward to PoliciesAgent
+    PoliciesAgent-->>HumanChannel: Ask for clarification (e.g., "Can you provide more details?")
     HumanChannel-->>FrontendAgent: Send response
     FrontendAgent-->>User: Display response
 
@@ -84,9 +83,8 @@ sequenceDiagram
     FrontendAgent->>HumanChannel: Forward user input
     HumanChannel->>TriageAgent: Forward to TriageAgent
     TriageAgent->>AgentsChannel: Forward to PoliciesAgent
-    PoliciesAgent-->>AgentsChannel: Return policy details (e.g., "Your home insurance includes...")
-    AgentsChannel-->>TriageAgent: Forward response
-    TriageAgent-->>HumanChannel: Forward response
+    AgentsChannel->>PoliciesAgent: Forward to PoliciesAgent
+    PoliciesAgent-->>HumanChannel: Return policy details (e.g., "Your home insurance includes...")
     HumanChannel-->>FrontendAgent: Send response
     FrontendAgent-->>User: Display response
 ```
