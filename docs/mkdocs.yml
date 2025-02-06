@@ -1,6 +1,7 @@
 site_name: EggAI Multi-Agent Meta Framework
 copyright: Copyright &copy; 2024 EggAI Technologies GmbH
 docs_dir: docs
+repo_url: https://github.com/eggai-tech/EggAI
 
 theme:
   name: material
