@@ -552,6 +552,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#agents-overview" class="md-nav__link">
     <span class="md-ellipsis">
       Agents Overview
@@ -560,6 +569,15 @@
   
     <nav class="md-nav" aria-label="Agents Overview">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#frontendagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      FrontendAgent
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#triageagent" class="md-nav__link">
@@ -598,9 +616,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#websocketgatewayagent" class="md-nav__link">
+  <a href="#communication-flow-example" class="md-nav__link">
     <span class="md-ellipsis">
-      WebSocketGatewayAgent
+      Communication Flow Example
     </span>
   </a>
   
@@ -608,15 +626,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      Architecture Overview
-    </span>
-  </a>
   
 </li>
       
@@ -923,6 +932,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#agents-overview" class="md-nav__link">
     <span class="md-ellipsis">
       Agents Overview
@@ -931,6 +949,15 @@
   
     <nav class="md-nav" aria-label="Agents Overview">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#frontendagent" class="md-nav__link">
+    <span class="md-ellipsis">
+      FrontendAgent
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#triageagent" class="md-nav__link">
@@ -969,9 +996,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#websocketgatewayagent" class="md-nav__link">
+  <a href="#communication-flow-example" class="md-nav__link">
     <span class="md-ellipsis">
-      WebSocketGatewayAgent
+      Communication Flow Example
     </span>
   </a>
   
@@ -979,15 +1006,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#architecture-overview" class="md-nav__link">
-    <span class="md-ellipsis">
-      Architecture Overview
-    </span>
-  </a>
   
 </li>
       
@@ -1076,40 +1094,80 @@
 <h2 id="user-interaction">User Interaction</h2>
 <p>Users interact with the system through a WebSocket-enabled chat interface.</p>
 <p><img alt="Chat UI Screenshot" src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/support-chat.png" /></p>
+<h2 id="architecture-overview">Architecture Overview</h2>
+<p><img alt="architecture-getting-started.svg" src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-multi-agent-insurance-support-system.svg" /></p>
 <h2 id="agents-overview">Agents Overview</h2>
 <p>Agents collaborate with clear defined roles, objectives and skills.</p>
+<h3 id="frontendagent"><strong>FrontendAgent</strong></h3>
+<p><img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/></p>
+<p><strong>Role</strong>: Serve the frontend and bridge WebSocket communication between web frontend and human communication channel.<br />
+<strong>Objective</strong>: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.  <br />
+<strong>Skill</strong>: Frontend service delivery, Real-time communication, session management, message handling, and agent communication bridge.</p>
 <h3 id="triageagent"><strong>TriageAgent</strong></h3>
+<p><img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-2.jpeg" width="40"/></p>
 <p><strong>Role</strong>: Analyze incoming messages and route them to the appropriate agent based on content.<br />
 <strong>Objective</strong>: Ensure that user inquiries are efficiently assigned to the right agent.<br />
 <strong>Skill</strong>: Content classification and routing.</p>
 <h3 id="policiesagent"><strong>PoliciesAgent</strong></h3>
+<p><img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-3.jpeg" width="40"/></p>
 <p><strong>Role</strong>: Handle policy-related inquiries using a mock <code>policies_database</code>.<br />
 <strong>Objective</strong>: Provide accurate and detailed information about user policies.<br />
 <strong>Skill</strong>: Policy management expertise.</p>
 <h3 id="billingagent"><strong>BillingAgent</strong></h3>
+<p><img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-4.jpeg" width="40"/></p>
 <p><strong>Role</strong>: Assist customers with billing-related inquiries such as due amounts, billing cycles, and payment statuses.<br />
 <strong>Objective</strong>: Resolve billing-related questions efficiently and provide updates to billing records as needed.<br />
 <strong>Skill</strong>: Billing expertise and data management.</p>
 <h3 id="escalationagent"><strong>EscalationAgent</strong></h3>
+<p><img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-5.jpeg" width="40"/></p>
 <p><strong>Role</strong>: Manage support ticket creation and retrieval for escalated issues that other agents cannot resolve.<br />
 <strong>Objective</strong>: Ensure unresolved issues are properly documented and assigned to the correct human support teams.<br />
 <strong>Skill</strong>: Escalation management and ticket tracking.</p>
-<h3 id="websocketgatewayagent"><strong>WebSocketGatewayAgent</strong></h3>
-<p><strong>Role</strong>: Oversee real-time communication between the FastAPI server and connected clients.<br />
-<strong>Objective</strong>: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.<br />
-<strong>Skill</strong>: Real-time communication, session management, and message handling.</p>
-<h2 id="architecture-overview">Architecture Overview</h2>
-<p><img alt="architecture-getting-started.svg" src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat-2.svg" /></p>
+<h3 id="communication-flow-example">Communication Flow Example</h3>
+<pre class="mermaid"><code>sequenceDiagram
+    participant User
+    participant FrontendAgent
+    participant HumanChannel
+    participant TriageAgent
+    participant AgentsChannel
+    participant PoliciesAgent
+
+    User-&gt;&gt;FrontendAgent: Send greeting (e.g., "hi")
+    FrontendAgent-&gt;&gt;HumanChannel: Forward user input
+    HumanChannel-&gt;&gt;TriageAgent: Forward to TriageAgent
+    TriageAgent--&gt;&gt;HumanChannel: Respond with initial greeting (e.g., "Hello! How can I assist?")
+    HumanChannel--&gt;&gt;FrontendAgent: Send response
+    FrontendAgent--&gt;&gt;User: Display response
+
+    User-&gt;&gt;FrontendAgent: Ask for help with insurance
+    FrontendAgent-&gt;&gt;HumanChannel: Forward user input
+    HumanChannel-&gt;&gt;TriageAgent: Forward to TriageAgent
+    TriageAgent-&gt;&gt;AgentsChannel: Forward to PoliciesAgent
+    PoliciesAgent--&gt;&gt;AgentsChannel: Ask for clarification (e.g., "Can you provide more details?")
+    AgentsChannel--&gt;&gt;TriageAgent: Forward response
+    TriageAgent--&gt;&gt;HumanChannel: Forward response
+    HumanChannel--&gt;&gt;FrontendAgent: Send response
+    FrontendAgent--&gt;&gt;User: Display response
+
+    User-&gt;&gt;FrontendAgent: Provide policy number (e.g., A12345)
+    FrontendAgent-&gt;&gt;HumanChannel: Forward user input
+    HumanChannel-&gt;&gt;TriageAgent: Forward to TriageAgent
+    TriageAgent-&gt;&gt;AgentsChannel: Forward to PoliciesAgent
+    PoliciesAgent--&gt;&gt;AgentsChannel: Return policy details (e.g., "Your home insurance includes...")
+    AgentsChannel--&gt;&gt;TriageAgent: Forward response
+    TriageAgent--&gt;&gt;HumanChannel: Forward response
+    HumanChannel--&gt;&gt;FrontendAgent: Send response
+    FrontendAgent--&gt;&gt;User: Display response</code></pre>
 <h2 id="getting-started">Getting Started</h2>
 <h3 id="prerequisites">Prerequisites</h3>
 <p>Ensure you have the following dependencies installed:</p>
 <ul>
-<li><strong>Python</strong> 3.10&gt;=3.12</li>
+<li><strong>Python</strong> 3.12</li>
 <li><strong>Docker</strong> and <strong>Docker Compose</strong></li>
 </ul>
 <p>Ensure you have a valid OpenAI API key and Guardrails AI token set in your environment:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">OPEN_AI_API_KEY</span><span class="o">=</span><span class="s2">&quot;your-api-key&quot;</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GUARDRAILS_TOKEN</span><span class="o">=</span><span class="s2">&quot;your-guardrails-ai-token&quot;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">GUARDRAILS_TOKEN</span><span class="o">=</span><span class="s2">&quot;your-guardrails-ai-token&quot;</span><span class="w"> </span><span class="c1"># Optional</span>
 </span></code></pre></div>
 <h3 id="setup-instructions">Setup Instructions</h3>
 <p>Clone the EggAI repository:</p>
@@ -1118,27 +1176,24 @@
 <p>Move into the <code>examples/multi_agent_human_chat</code> folder:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd</span><span class="w"> </span>examples/multi_agent_human_chat
 </span></code></pre></div>
-<p>Create and activate a virtual environment:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w">  </span><span class="c1"># For Windows: venv\Scripts\activate</span>
+<p>Create and activate a virtual environment and install required dependencies:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>setup
 </span></code></pre></div>
-<p>Install the required dependencies:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
-</span></code></pre></div>
-<p>Configure Guardrails:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>guardrails<span class="w"> </span>configure<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GUARDRAILS_TOKEN</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>guardrails<span class="w"> </span>hub<span class="w"> </span>install<span class="w"> </span>hub://guardrails/toxic_language
+<p>Configure Guardrails (Optional):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>guardrails<span class="w"> </span>configure<span class="w"> </span>--token<span class="w"> </span><span class="nv">$GUARDRAILS_TOKEN</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>guardrails<span class="w"> </span>hub<span class="w"> </span>install<span class="w"> </span>hub://guardrails/toxic_language
 </span></code></pre></div>
 <p>Start <a href="https://github.com/redpanda-data/redpanda">Redpanda</a> using Docker Compose:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make<span class="w"> </span>docker-up
 </span></code></pre></div>
 <h3 id="run-the-example">Run the Example</h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>main.py
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>start-all
 </span></code></pre></div>
 <p>Upon running the example and accessing the chat interface at <a href="http://localhost:8000/../../../examples/multi_agent_human_chat">http://localhost:8000</a>, you should see a web-based chat UI.</p>
 <h3 id="cleaning-up">Cleaning Up</h3>
-<p>Stop and remove Docker containers:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v
+<p>Stop and remove Docker containers and delete venv:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>make<span class="w"> </span>docker-down
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>make<span class="w"> </span>clean
 </span></code></pre></div>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
