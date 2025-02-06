@@ -11,13 +11,29 @@ agents_channel = Channel("agents")
 human_channel = Channel("human")
 
 policies_database = [
-    {"policy_number": "A12345", "name": "John Doe", "coverage_details": "Comprehensive", "premium_amount": 500,
-     "due_date": "2025-01-01"},
-    {"policy_number": "B67890", "name": "Jane Smith", "coverage_details": "Liability", "premium_amount": 300,
-     "due_date": "2025-02-01"},
-    {"policy_number": "C24680", "name": "Alice Johnson", "coverage_details": "Collision", "premium_amount": 400,
-     "due_date": "2025-03-01"},
+    {
+        "policy_number": "A12345",
+        "name": "John Doe",
+        "coverage_details": "Comprehensive",
+        "premium_amount": 500,
+        "due_date": "2025-03-01",
+    },
+    {
+        "policy_number": "B67890",
+        "name": "Jane Smith",
+        "coverage_details": "Liability",
+        "premium_amount": 300,
+        "due_date": "2025-03-01",
+    },
+    {
+        "policy_number": "C24680",
+        "name": "Alice Johnson",
+        "coverage_details": "Collision",
+        "premium_amount": 400,
+        "due_date": "2025-03-01",
+    },
 ]
+
 
 def get_policy_details(policy_number: str) -> str:
     """
@@ -53,14 +69,16 @@ class PolicyAgentSignature(dspy.Signature):
               If empty, no tool call is needed.
     - action_input: The input required for the action (e.g., the policy number).
     """
+
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Final response message to the user.")
 
+
 policies_react = dspy.ReAct(PolicyAgentSignature, tools=[get_policy_details])
 
+
 @policies_agent.subscribe(
-    channel=agents_channel,
-    filter_func=lambda msg: msg["type"] == "policy_request"
+    channel=agents_channel, filter_func=lambda msg: msg["type"] == "policy_request"
 )
 async def handle_policy_request(msg):
     try:
@@ -73,12 +91,14 @@ async def handle_policy_request(msg):
         final_response = response.final_response
         meta = msg.get("meta", {})
         meta["agent"] = "PoliciesAgent"
-        await human_channel.publish({
-            "id": str(uuid4()),
-            "type": "agent_message",
-            "meta": meta,
-            "payload": final_response,
-        })
+        await human_channel.publish(
+            {
+                "id": str(uuid4()),
+                "type": "agent_message",
+                "meta": meta,
+                "payload": final_response,
+            }
+        )
     except Exception as e:
         print(f"Error in PoliciesAgent: {e}")
 
@@ -88,8 +108,12 @@ if __name__ == "__main__":
     language_model = dspy.LM("openai/gpt-4o-mini")
     dspy.configure(lm=language_model)
 
-    print(policies_react(chat_history="""
+    print(
+        policies_react(
+            chat_history="""
     User: I need information about my policy.
     PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?
     User: My policy number is A12345
-    """).final_response)
+    """
+        ).final_response
+    )

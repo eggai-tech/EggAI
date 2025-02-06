@@ -13,7 +13,7 @@ test_cases = [
         "chat_history": "User: When is my next premium payment due?\n"
                          "PoliciesAgent: Could you please provide your policy number?\n"
                          "User: B67890.\n",
-        "expected_response_content": "Your next premium payment is due on February 1, 2025."
+        "expected_response_content": "Your next premium payment is due on March 1, 2025."
     }
 ]
 
