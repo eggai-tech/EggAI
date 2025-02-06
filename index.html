@@ -1149,7 +1149,7 @@
 
 <h4 id="ai-agent-evaluations">AI Agent Evaluations</h4>
 <details>
-<summary>Agent Evaluation using LLM as a Judge metrics</summary>
+<summary>Agent Evaluation using LLM-as-a-Judge metrics</summary>
 
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Install `eggai` and `dspy` and set OPENAI_API_KEY in the environment</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># Make sure to have the agent implementation in the `agent.py` file defined</span>
@@ -1220,10 +1220,8 @@
 </span><span id="__span-4-67"><a id="__codelineno-4-67" name="__codelineno-4-67" href="#__codelineno-4-67"></a>            <span class="n">ground_truth_answer</span><span class="o">=</span><span class="n">ground_truth_answer</span>
 </span><span id="__span-4-68"><a id="__codelineno-4-68" name="__codelineno-4-68" href="#__codelineno-4-68"></a>        <span class="p">)</span>
 </span><span id="__span-4-69"><a id="__codelineno-4-69" name="__codelineno-4-69" href="#__codelineno-4-69"></a>
-</span><span id="__span-4-70"><a id="__codelineno-4-70" name="__codelineno-4-70" href="#__codelineno-4-70"></a>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evaluation_result</span><span class="o">.</span><span class="n">judgment</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),</span> <span class="s2">&quot;Judgment must be a boolean.&quot;</span>
-</span><span id="__span-4-71"><a id="__codelineno-4-71" name="__codelineno-4-71" href="#__codelineno-4-71"></a>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evaluation_result</span><span class="o">.</span><span class="n">reasoning</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;Reasoning must be a string.&quot;</span>
-</span><span id="__span-4-72"><a id="__codelineno-4-72" name="__codelineno-4-72" href="#__codelineno-4-72"></a>        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">evaluation_result</span><span class="o">.</span><span class="n">precision_score</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span> <span class="s2">&quot;Precision score must be a float.&quot;</span>
-</span><span id="__span-4-73"><a id="__codelineno-4-73" name="__codelineno-4-73" href="#__codelineno-4-73"></a>        <span class="k">assert</span> <span class="mf">0.8</span> <span class="o">&lt;=</span> <span class="n">evaluation_result</span><span class="o">.</span><span class="n">precision_score</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;Precision score must be between 0.8 and 1.0.&quot;</span>
+</span><span id="__span-4-70"><a id="__codelineno-4-70" name="__codelineno-4-70" href="#__codelineno-4-70"></a>        <span class="k">assert</span> <span class="n">evaluation_result</span><span class="o">.</span><span class="n">judgment</span><span class="p">,</span> <span class="s2">&quot;Judgment must be True. &quot;</span> <span class="o">+</span> <span class="n">evaluation_result</span><span class="o">.</span><span class="n">reasoning</span>
+</span><span id="__span-4-71"><a id="__codelineno-4-71" name="__codelineno-4-71" href="#__codelineno-4-71"></a>        <span class="k">assert</span> <span class="mf">0.8</span> <span class="o">&lt;=</span> <span class="n">evaluation_result</span><span class="o">.</span><span class="n">precision_score</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;Precision score must be between 0.8 and 1.0.&quot;</span>
 </span></code></pre></div>
 </details>
 

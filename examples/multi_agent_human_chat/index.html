@@ -667,6 +667,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#agent-evaluation-and-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent Evaluation and Optimization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
       Cleaning Up
@@ -1047,6 +1056,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#agent-evaluation-and-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent Evaluation and Optimization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#cleaning-up" class="md-nav__link">
     <span class="md-ellipsis">
       Cleaning Up
@@ -1101,11 +1119,11 @@
 <h3 id="frontendagent"><strong>FrontendAgent</strong></h3>
 <p><img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/></p>
 <p><strong>Role</strong>: Serve the frontend and bridge WebSocket communication between web frontend and human communication channel.<br />
-<strong>Objective</strong>: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.  <br />
+<strong>Objective</strong>: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.<br />
 <strong>Skill</strong>: Frontend service delivery, Real-time communication, session management, message handling, and agent communication bridge.</p>
 <h3 id="triageagent"><strong>TriageAgent</strong></h3>
 <p><img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-2.jpeg" width="40"/></p>
-<p><strong>Role</strong>: Analyze incoming messages and route them to the appropriate agent based on content.<br />
+<p><strong>Role</strong>: Classify incoming messages and route them to the appropriate agent based on content.<br />
 <strong>Objective</strong>: Ensure that user inquiries are efficiently assigned to the right agent.<br />
 <strong>Skill</strong>: Content classification and routing.</p>
 <h3 id="policiesagent"><strong>PoliciesAgent</strong></h3>
@@ -1139,12 +1157,12 @@
     HumanChannel--&gt;&gt;FrontendAgent: Send response
     FrontendAgent--&gt;&gt;User: Display response
 
-    User-&gt;&gt;FrontendAgent: Ask for help with insurance
+    User-&gt;&gt;FrontendAgent: Ask for help with insurance (e.g., "I want to know what's included in my policy")
     FrontendAgent-&gt;&gt;HumanChannel: Forward user input
     HumanChannel-&gt;&gt;TriageAgent: Forward to TriageAgent
     TriageAgent-&gt;&gt;AgentsChannel: Forward to PoliciesAgent
     AgentsChannel-&gt;&gt;PoliciesAgent: Forward to PoliciesAgent
-    PoliciesAgent--&gt;&gt;HumanChannel: Ask for clarification (e.g., "Can you provide more details?")
+    PoliciesAgent--&gt;&gt;HumanChannel: Ask for clarification (e.g., "Can you provide your policy number?")
     HumanChannel--&gt;&gt;FrontendAgent: Send response
     FrontendAgent--&gt;&gt;User: Display response
 
@@ -1153,7 +1171,7 @@
     HumanChannel-&gt;&gt;TriageAgent: Forward to TriageAgent
     TriageAgent-&gt;&gt;AgentsChannel: Forward to PoliciesAgent
     AgentsChannel-&gt;&gt;PoliciesAgent: Forward to PoliciesAgent
-    PoliciesAgent--&gt;&gt;HumanChannel: Return policy details (e.g., "Your home insurance includes...")
+    PoliciesAgent--&gt;&gt;HumanChannel: Return policy details (e.g., "Your insurance with the policy number A12345 includes...")
     HumanChannel--&gt;&gt;FrontendAgent: Send response
     FrontendAgent--&gt;&gt;User: Display response</code></pre>
 <h2 id="getting-started">Getting Started</h2>
@@ -1188,10 +1206,22 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make<span class="w"> </span>start-all
 </span></code></pre></div>
 <p>Upon running the example and accessing the chat interface at <a href="http://localhost:8000/../../../examples/multi_agent_human_chat">http://localhost:8000</a>, you should see a web-based chat UI.</p>
+<h3 id="agent-evaluation-and-optimization">Agent Evaluation and Optimization</h3>
+<p>You can execute tests to validate the behavior of different agents using evluation methods like LLM-as-a-Judge.</p>
+<p>To run all tests:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>make<span class="w"> </span><span class="nb">test</span>
+</span></code></pre></div>
+<p>Running Specific Agent Tests:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>make<span class="w"> </span>test-billing<span class="w">      </span><span class="c1"># Runs tests for the Billing Agent</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>make<span class="w"> </span>test-escalation<span class="w">   </span><span class="c1"># Runs tests for the Escalation Agent</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>make<span class="w"> </span>test-frontend<span class="w">     </span><span class="c1"># Runs tests for the Frontend Agent</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>make<span class="w"> </span>test-policies<span class="w">     </span><span class="c1"># Runs tests for the Policies Agent</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>make<span class="w"> </span>test-triage<span class="w">       </span><span class="c1"># Runs tests for the Triage Agent</span>
+</span></code></pre></div></p>
 <h3 id="cleaning-up">Cleaning Up</h3>
 <p>Stop and remove Docker containers and delete venv:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>make<span class="w"> </span>docker-down
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>make<span class="w"> </span>clean
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>make<span class="w"> </span>docker-down
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>make<span class="w"> </span>clean
 </span></code></pre></div>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
