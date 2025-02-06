@@ -19,10 +19,12 @@ if GUARDRAILS_ENABLED:
 else:
     toxic_language_guard = None  # Assign a no-op function
 
+frontend_agent = Agent("FrontendAgent")
+
+human_channel = Channel("human")
 
 websocket_manager = WebSocketManager()
-human_channel = Channel("human")
-frontend_agent = Agent("FrontendAgent")
+
 messages_cache = {}
 
 
@@ -78,7 +80,9 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                         )
                         continue
                 else:
-                    valid_content = content  # Pass content through if guardrails is disabled
+                    valid_content = (
+                        content  # Pass content through if guardrails is disabled
+                    )
 
                 await websocket_manager.attach_message_id(message_id, connection_id)
                 messages_cache[connection_id].append(

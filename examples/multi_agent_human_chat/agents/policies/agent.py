@@ -5,6 +5,8 @@ import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
 
+policies_agent = Agent(name="PoliciesAgent")
+
 agents_channel = Channel("agents")
 human_channel = Channel("human")
 
@@ -55,8 +57,6 @@ class PolicyAgentSignature(dspy.Signature):
     final_response: str = dspy.OutputField(desc="Final response message to the user.")
 
 policies_react = dspy.ReAct(PolicyAgentSignature, tools=[get_policy_details])
-policies_agent = Agent(name="PoliciesAgent")
-
 
 @policies_agent.subscribe(
     channel=agents_channel,

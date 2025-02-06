@@ -1,9 +1,13 @@
 import json
 from uuid import uuid4
-
 import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
+
+escalation_agent = Agent(name="EscalationAgent")
+
+agents_channel = Channel("agents")
+human_channel = Channel("human")
 
 
 class EscalationAgentSignature(dspy.Signature):
@@ -31,17 +35,23 @@ class EscalationAgentSignature(dspy.Signature):
     Output Fields:
       - final_response: The final text response to the user.
     """
+
     chat_history: str = dspy.InputField(desc="Full conversation context.")
 
-    final_response: str = dspy.OutputField(desc="Escalation message including ticket ID and department.")
+    final_response: str = dspy.OutputField(
+        desc="Escalation message including ticket ID and department."
+    )
 
 
-ticket_database = [{
-    "ticket_id": "ESC-123456",
-    "department": "Technical Support",
-    "issue": "Billing issue",
-    "notes": "User reported an error on the website."
-}]
+ticket_database = [
+    {
+        "ticket_id": "ESC-123456",
+        "department": "Technical Support",
+        "issue": "Billing issue",
+        "notes": "User reported an error on the website.",
+    }
+]
+
 
 def create_ticket(department, issue_description, notes):
     """
@@ -52,12 +62,14 @@ def create_ticket(department, issue_description, notes):
     """
     print("[Tool] Creating ticket for:", department, "-", issue_description)
     ticket_id = f"ESC-{len(ticket_database) + 1:06d}"  # e.g. ESC-000002
-    ticket_database.append({
-        "ticket_id": ticket_id,
-        "department": department,
-        "issue": issue_description,
-        "notes": notes
-    })
+    ticket_database.append(
+        {
+            "ticket_id": ticket_id,
+            "department": department,
+            "issue": issue_description,
+            "notes": notes,
+        }
+    )
     return json.dumps(ticket_database[-1])
 
 
@@ -74,19 +86,12 @@ def retrieve_ticket(ticket_id):
 
 
 escalation_react = dspy.ReAct(
-    EscalationAgentSignature,
-    tools=[create_ticket, retrieve_ticket]
+    EscalationAgentSignature, tools=[create_ticket, retrieve_ticket]
 )
-
-escalation_agent = Agent(name="EscalationAgent")
-
-agents_channel = Channel("agents")
-human_channel = Channel("human")
 
 
 @escalation_agent.subscribe(
-    channel=agents_channel,
-    filter_func=lambda msg: msg["type"] == "escalation_request"
+    channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_request"
 )
 async def handle_escalation(msg):
     try:
@@ -104,12 +109,14 @@ async def handle_escalation(msg):
         # Publish the response back to the user
         meta = msg.get("meta", {})
         meta["agent"] = "EscalationAgent"
-        await human_channel.publish({
-            "id": str(uuid4()),
-            "type": "agent_message",
-            "meta": meta,
-            "payload": final_text,
-        })
+        await human_channel.publish(
+            {
+                "id": str(uuid4()),
+                "type": "agent_message",
+                "meta": meta,
+                "payload": final_text,
+            }
+        )
     except Exception as e:
         print(f"Error in EscalationAgent: {e}")
 

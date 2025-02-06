@@ -4,6 +4,11 @@ import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
 
+billing_agent = Agent(name="BillingAgent")
+
+agents_channel = Channel("agents")
+human_channel = Channel("human")
+
 
 class BillingAgentSignature(dspy.Signature):
     """
@@ -108,11 +113,6 @@ def update_billing_info(policy_number: str, field: str, new_value: str):
 billing_react = dspy.ReAct(
     BillingAgentSignature, tools=[get_billing_info, update_billing_info]
 )
-
-billing_agent = Agent(name="BillingAgent")
-
-agents_channel = Channel("agents")
-human_channel = Channel("human")
 
 
 @billing_agent.subscribe(

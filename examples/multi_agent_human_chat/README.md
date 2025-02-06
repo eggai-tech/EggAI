@@ -100,7 +100,7 @@ Ensure you have the following dependencies installed:
 - **Python** 3.12
 - **Docker** and **Docker Compose**
 
-Ensure you have a valid OpenAI API key and Guardrails AI token set in your environment:
+Ensure you have a valid OpenAI API key set in your environment:
 
 ```bash
 export OPEN_AI_API_KEY="your-api-key"

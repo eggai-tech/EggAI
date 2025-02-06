@@ -4,12 +4,11 @@ from eggai import Channel, Agent
 from agents.triage.agents_registry import AGENT_REGISTRY
 from agents.triage.dspy_modules.v1 import AgentClassificationSignature
 
+triage_agent = Agent(name="TriageAgent")
+triage_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
+
 human_channel = Channel("human")
 agents_channel = Channel("agents")
-
-triage_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
-triage_agent = Agent(name="TriageAgent")
-
 
 @triage_agent.subscribe(
     channel=human_channel, filter_func=lambda msg: msg["type"] == "user_message"
