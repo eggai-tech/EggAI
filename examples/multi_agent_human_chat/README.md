@@ -28,7 +28,7 @@ Agents collaborate with clear defined roles, objectives and skills.
 ### **TriageAgent**
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-2.jpeg" width="40"/>
 
-**Role**: Analyze incoming messages and route them to the appropriate agent based on content.  
+**Role**: Classify incoming messages and route them to the appropriate agent based on content.  
 **Objective**: Ensure that user inquiries are efficiently assigned to the right agent.  
 **Skill**: Content classification and routing.
 
@@ -70,12 +70,12 @@ sequenceDiagram
     HumanChannel-->>FrontendAgent: Send response
     FrontendAgent-->>User: Display response
 
-    User->>FrontendAgent: Ask for help with insurance
+    User->>FrontendAgent: Ask for help with insurance (e.g., "I want to know what's included in my policy")
     FrontendAgent->>HumanChannel: Forward user input
     HumanChannel->>TriageAgent: Forward to TriageAgent
     TriageAgent->>AgentsChannel: Forward to PoliciesAgent
     AgentsChannel->>PoliciesAgent: Forward to PoliciesAgent
-    PoliciesAgent-->>HumanChannel: Ask for clarification (e.g., "Can you provide more details?")
+    PoliciesAgent-->>HumanChannel: Ask for clarification (e.g., "Can you provide your policy number?")
     HumanChannel-->>FrontendAgent: Send response
     FrontendAgent-->>User: Display response
 
@@ -84,7 +84,7 @@ sequenceDiagram
     HumanChannel->>TriageAgent: Forward to TriageAgent
     TriageAgent->>AgentsChannel: Forward to PoliciesAgent
     AgentsChannel->>PoliciesAgent: Forward to PoliciesAgent
-    PoliciesAgent-->>HumanChannel: Return policy details (e.g., "Your home insurance includes...")
+    PoliciesAgent-->>HumanChannel: Return policy details (e.g., "Your insurance with the policy number A12345 includes...")
     HumanChannel-->>FrontendAgent: Send response
     FrontendAgent-->>User: Display response
 ```
