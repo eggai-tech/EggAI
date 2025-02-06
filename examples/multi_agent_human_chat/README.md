@@ -152,9 +152,9 @@ make start-all
 
 Upon running the example and accessing the chat interface at [http://localhost:8000](http://localhost:8000), you should see a web-based chat UI.
 
-### Testing
+### Agent Evaluation and Optimization
 
-You can execute tests to validate the behavior of different agents.
+You can execute tests to validate the behavior of different agents using evluation methods like LLM-as-a-Judge.
 
 To run all tests:
 

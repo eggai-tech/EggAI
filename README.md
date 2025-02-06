@@ -183,7 +183,7 @@ if __name__ == "__main__":
 #### AI Agent Evaluations
 
 <details>
-<summary>Agent Evaluation using LLM as a Judge metrics</summary>
+<summary>Agent Evaluation using LLM-as-a-Judge metrics</summary>
 
 ```python
 # Install `eggai` and `dspy` and set OPENAI_API_KEY in the environment

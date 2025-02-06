@@ -32,6 +32,36 @@ test:
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest -s
 	@echo "Tests completed."
 
+.PHONY: test-billing
+test-billing:
+	@echo "Running tests for billing agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/billing -s
+	@echo "Tests for billing agent completed."
+
+.PHONY: test-escalation
+test-escalation:
+	@echo "Running tests for escalation agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/escalation -s
+	@echo "Tests for escalation agent completed."
+
+.PHONY: test-frontend
+test-frontend:
+	@echo "Running tests for frontend agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/frontend -s
+	@echo "Tests for frontend agent completed."
+
+.PHONY: test-policies
+test-policies:
+	@echo "Running tests for policies agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/policies -s
+	@echo "Tests for policies agent completed."
+
+.PHONY: test-triage
+test-triage:
+	@echo "Running tests for triage agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage -s
+	@echo "Tests for triage agent completed."
+
 .PHONY: stop
 stop: docker-down
 	@echo "Environment and Docker Compose have been stopped."
