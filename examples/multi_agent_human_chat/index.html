@@ -1218,6 +1218,9 @@
 </span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>make<span class="w"> </span>test-policies<span class="w">     </span><span class="c1"># Runs tests for the Policies Agent</span>
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>make<span class="w"> </span>test-triage<span class="w">       </span><span class="c1"># Runs tests for the Triage Agent</span>
 </span></code></pre></div></p>
+<p>You can optimize agents using DSPy evaluation and optimization techniques.
+You can find an optimization setup <a href="https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/tests/test_dspy_modules.py">here</a>.</p>
+<p>When running the tests for the Triage Agent, a DSPy performance report will be generated in the <code>agents/triage/dspy_modules/evaluation/reports</code> folder (<a href="https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/dspy_modules/evaluation/reports/classifier_v1.html">example report</a>).</p>
 <h3 id="cleaning-up">Cleaning Up</h3>
 <p>Stop and remove Docker containers and delete venv:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>make<span class="w"> </span>docker-down
