@@ -122,8 +122,8 @@ async def handle_policy_request(msg):
             conversation_string += f"{role}: {chat['content']}\n"
         response = await policies_react(chat_history=conversation_string)
         final_response = response.final_response
-        # if "final_response_with_documentation_reference" in response:
-        #     final_response = response.final_response_with_documentation_reference
+        if "final_response_with_documentation_reference" in response:
+            final_response = response.final_response_with_documentation_reference
         meta = msg.get("meta", {})
         meta["agent"] = "PoliciesAgent"
 
