@@ -17,6 +17,12 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 - <a href="#examples">Examples</a>: Practical implementation scenarios using popular AI frameworks.
 - <a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication.
 
+### Demo
+
+You can find a more extensive usage of the meta framework in the [Multi-Agent Insurance Support System](examples/multi_agent_human_chat) example.
+
+![Multi-Agent Insurance Support System Demo Screenshot](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/support-chat.png)
+
 ### Meta Framework
 
 The EggAI Multi-Agent Meta Framework is a framework-agnostic AI orchestration layer designed for flexibility and scalability. It enables seamless integration with popular AI frameworks.
