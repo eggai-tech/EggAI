@@ -1,8 +1,9 @@
-PYTHON := python3.12
+PYTHON := python3
 VENV_DIR := .venv
 REQ_FILE := requirements.txt
 DEV_REQ_FILE := dev-requirements.txt
 DOCKER_COMPOSE := docker compose
+SHELL := /bin/zsh
 
 .PHONY: default
 default: start
