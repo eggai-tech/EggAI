@@ -48,7 +48,7 @@ async def handle_question(event):
     question = event["payload"]["question"]
     answer = qa_model(question=question).answer
     print(f"[QAAgent] Question: {question} | Answer: {answer}")
-    
+
     await channel.publish({
         "event_name": "answer_generated",
         "payload": {"question": question, "answer": answer}
@@ -66,6 +66,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
 </details>
 
 <details>
@@ -88,7 +89,7 @@ async def handle_question(event):
     answer = llm([HumanMessage(content=question)]).content
 
     print(f"[QAAgent] Question: {question} | Answer: {answer}")
-    
+
     await channel.publish({
         "event_name": "answer_generated",
         "payload": {"question": question, "answer": answer}
@@ -106,6 +107,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
 </details>
 
 <details>
@@ -127,7 +129,7 @@ async def handle_question(event):
     answer = litellm.completion(model=litellm.model, messages=[{"role": "user", "content": question}])["choices"][0]["message"]["content"]
 
     print(f"[QAAgent] Question: {question} | Answer: {answer}")
-    
+
     await channel.publish({
         "event_name": "answer_generated",
         "payload": {"question": question, "answer": answer}
@@ -145,6 +147,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
 </details>
 
 <details>
@@ -166,7 +169,7 @@ async def handle_question(event):
     answer = llm.complete(question).text
 
     print(f"[QAAgent] Question: {question} | Answer: {answer}")
-    
+
     await channel.publish({
         "event_name": "answer_generated",
         "payload": {"question": question, "answer": answer}
@@ -184,6 +187,7 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
 </details>
 
 #### AI Agent Evaluations
@@ -213,7 +217,7 @@ class EvaluationSignature(dspy.Signature):
     question: str = dspy.InputField(desc="Ground truth question.")
     agent_answer: str = dspy.InputField(desc="Agent-generated answer.")
     ground_truth_answer: str = dspy.InputField(desc="Expected correct answer.")
-    
+
     judgment: bool = dspy.OutputField(desc="Pass (True) or Fail (False).")
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
     precision_score: float = dspy.OutputField(desc="Precision score (0.0 to 1.0).")
@@ -264,6 +268,7 @@ async def test_qa_agent():
         assert evaluation_result.judgment, "Judgment must be True. " + evaluation_result.reasoning
         assert 0.8 <= evaluation_result.precision_score <= 1.0, "Precision score must be between 0.8 and 1.0."
 ```
+
 </details>
 
 ## Examples
@@ -425,7 +430,6 @@ If you're new to EggAI, we recommend starting with the [Getting Started](example
 
 **EggAI SDK** includes components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
 
-
 ### Installation
 
 Install `eggai` via pip:
@@ -494,6 +498,64 @@ It abstracts Kafka producers and consumers, enabling efficient and flexible even
 - **Shared Resources**: Optimize resource usage by managing singleton Kafka producers and consumers across multiple agents or channels.
 - **Seamless Integration**: Act as a communication hub, supporting both Agents and other system components.
 - **Flexibility**: Allow Agents to leverage Channels for both publishing and subscribing, reducing complexity and duplication.
+
+### **Interoperability**
+
+![Interoperability](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/interoperability.png)
+
+In enterprise environments, diverse programming languages and frameworks create fragmentation. EggAI Agents serve as thin, flexible connectors, enabling seamless integration within the multi-agent system. This ensures enterprises can continuously enhance their AI capabilities without the need for costly re-platforming.
+
+If you use the Kafka transport, you can directly integrate using Kafka libraries available for various programming languages:
+
+- [Python: `confluent-kafka`](https://github.com/confluentinc/confluent-kafka-python)
+- [JavaScript / TypeScript: `kafkajs`](https://github.com/tulios/kafkajs)
+- [Java / Kotlin: `kafka-clients`](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients)
+- [Go: `sarama`](https://github.com/Shopify/sarama)
+- [C#: `Confluent.Kafka`](https://github.com/confluentinc/confluent-kafka-dotnet)
+- [Rust: `rdkafka`](https://github.com/fede1024/rust-rdkafka)
+
+For structured communication within the multi-agent system, we recommend using the EggAI Message Base Schema, which defines a standardized message format for consistency and interoperability.
+
+<details>
+  <summary>View EggAI Message Base Schema</summary>
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MessageBase",
+  "description": "Base class for all messages in the communication protocol.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for correlating requests and responses."
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of the message (e.g., request, response, event)."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Additional metadata for the message."
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Contextual information for the message."
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Message-specific data."
+    }
+  },
+  "required": ["id", "type"]
+}
+```
+
+</details>
 
 ### Why Copy/Paste?
 
