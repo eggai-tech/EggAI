@@ -14,10 +14,14 @@ def ensure_index_built():
     global _INDEX_BUILT
     if _INDEX_BUILT:
         return
-    current_dir = os.path.dirname(__file__)
-    index_path = os.path.abspath(os.path.join(current_dir, ".ragatouille", "colbert", "indexes", "policies_index"))
+    index_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".ragatouille"))
+    index_path = os.path.abspath(os.path.join(index_root, "colbert", "indexes", "policies_index"))
+
     if not os.path.exists(index_path):
-        r = RAGPretrainedModel.from_pretrained("colbert-ir/colbertv2.0")
+        r = RAGPretrainedModel.from_pretrained(
+            "colbert-ir/colbertv2.0", 
+            index_root=index_root
+        )
         policies_ids = ["health", "auto", "home", "life"]
         document_metadata = [{
             "category": policy_id,
@@ -33,6 +37,8 @@ def ensure_index_built():
             document_ids=policies_ids,
             document_metadatas=document_metadata,
         )
+    else:
+        print("Index already BUILT")
     _INDEX_BUILT = True
 
 

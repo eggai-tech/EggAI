@@ -14,8 +14,8 @@ def retrieve_policies(query, category=None):
     ensure_index_built()
 
     if not _INDEX_LOADED:
-        current_dir = os.path.dirname(__file__)
-        index_path = os.path.abspath(os.path.join(current_dir, ".ragatouille", "colbert", "indexes", "policies_index"))
+        index_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".ragatouille"))
+        index_path = os.path.abspath(os.path.join(index_root, "colbert", "indexes", "policies_index"))
         _RAG = RAGPretrainedModel.from_index(index_path)
 
     results = _RAG.search(query, index_name="policies_index")
