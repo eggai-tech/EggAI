@@ -3,6 +3,8 @@ VENV_DIR := .venv
 REQ_FILE := requirements.txt
 DEV_REQ_FILE := dev-requirements.txt
 DOCKER_COMPOSE := docker compose
+SHELL = /bin/bash
+
 
 .PHONY: default
 default: start
