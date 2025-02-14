@@ -46,7 +46,7 @@ This specialized module searches an offline Wikipedia corpus to provide relevant
 - **Docker** and **Docker Compose**
 - Valid OpenAI API key in your environment:
   ```bash
-  export OPEN_AI_API_KEY="your-api-key"
+  export OPENAI_API_KEY="your-api-key"
   ```
 
 ## Setup Instructions

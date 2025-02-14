@@ -64,7 +64,7 @@ The result is a robust and flexible system capable of handling diverse and chall
 - **Docker** and **Docker Compose**
 - Valid OpenAI API key in your environment:
   ```bash
-  export OPEN_AI_API_KEY="your-api-key"
+  export OPENAI_API_KEY="your-api-key"
   ```
 
 ## Setup Instructions
