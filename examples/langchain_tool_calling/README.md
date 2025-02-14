@@ -20,7 +20,7 @@ Ensure you have the following dependencies installed:
 Ensure you have a valid OpenAI API key set in your environment:
 
 ```bash
-export OPEN_AI_API_KEY="your-api-key"
+export OPENAI_API_KEY="your-api-key"
 ```
 
 ## Setup Instructions
