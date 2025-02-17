@@ -60,3 +60,5 @@ async def test_simple_scenario(capfd):
 
     assert hits.get("order_requested") == 2
     assert hits.get("order_created") == 2
+
+    await eggai_cleanup()
