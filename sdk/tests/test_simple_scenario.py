@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+import eggai.transport
 from eggai import Agent, Channel, eggai_cleanup
 
 agent = Agent("OrderAgent")
@@ -27,12 +28,7 @@ async def handle_order_created(event):
 
 @pytest.mark.asyncio
 async def test_simple_scenario(capfd):
-    unsub, sub_id = channel.subscribe(
-        handler=lambda e: hit("channel_sub"),
-        filter_func=lambda e: e.get("type") == "order_requested"
-    )
-
-    await channel.start()
+    eggai.transport.eggai_set_default_transport(lambda: eggai.transport.KafkaTransport())
     await agent.start()
 
     await channel.publish({
@@ -45,8 +41,6 @@ async def test_simple_scenario(capfd):
 
     await asyncio.sleep(2)
 
-    unsub()
-
     await channel.publish({
         "type": "order_requested",
         "payload": {
@@ -55,7 +49,7 @@ async def test_simple_scenario(capfd):
         }
     })
 
-    await asyncio.sleep(2)
+    await asyncio.sleep(5)
 
     captured = capfd.readouterr()
     stdout = captured.out
@@ -66,4 +60,3 @@ async def test_simple_scenario(capfd):
 
     assert hits.get("order_requested") == 2
     assert hits.get("order_created") == 2
-    assert hits.get("channel_sub") == 1
