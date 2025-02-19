@@ -3,134 +3,193 @@ from uuid import uuid4
 import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
+import asyncio
+from typing import Any, Literal, Optional
 
+# Agent & Channels
 escalation_agent = Agent(name="EscalationAgent")
-
 agents_channel = Channel("agents")
 human_channel = Channel("human")
+pending_tickets = {}
 
+ticket_database = [{
+    "id": "TICKET-001",
+    "department": "Technical Support",
+    "title": "Billing issue",
+    "contact_info": "john@example.com"
+}]
 
-class EscalationAgentSignature(dspy.Signature):
+def create_ticket(dept, title, contact):
     """
-    You are the Escalation Assistant within an insurance customer service system.
-
-    ROLE:
-      - Handle issues that the ClaimsAgent or PoliciesAgent cannot resolve.
-      - Inform the user politely that their issue will be escalated to a human representative.
-      - Generate a unique ticket ID for reference (e.g., ESC-123456).
-      - Specify the appropriate department or team (e.g., "Technical Support", "Billing")
-        that will address the issue.
-
-    GUIDELINES:
-      - Maintain a polite and professional tone.
-      - Avoid speculative or incorrect information.
-      - Ensure the ticket ID follows the format 'ESC-XXXXXX' (6 digits).
-      - You Always ask confirm before creating a ticket, showing the user what are you filling details
-        and ask for confirmation. Never create a ticket without asking more details.
-      - You don't know the ticket ID before creating it, so you need to generate it.
-
-    Input Fields:
-      - chat_history: A string containing the conversation context so far.
-
-    Output Fields:
-      - final_response: The final text response to the user.
+    Create a ticket with only the department, title, and contact_info fields.
     """
-
-    chat_history: str = dspy.InputField(desc="Full conversation context.")
-
-    final_response: str = dspy.OutputField(
-        desc="Escalation message including ticket ID and department."
-    )
-
-
-ticket_database = [
-    {
-        "ticket_id": "ESC-123456",
-        "department": "Technical Support",
-        "issue": "Billing issue",
-        "notes": "User reported an error on the website.",
+    print("[TOOL] Creating ticket...")
+    ticket = {
+        "id": f"TICKET-{len(ticket_database) + 1:03}",
+        "department": dept,
+        "title": title,
+        "contact_info": contact
     }
-]
+    ticket_database.append(ticket)
+    return json.dumps(ticket)
 
+class RetrieveTicketInfoSignature(dspy.Signature):
+    chat_history: str = dspy.InputField(desc="Full conversation context.")
+    department: Literal["Technical Support", "Billing", "Sales"] = dspy.OutputField(desc="Department of destination of ticket.")
+    title: str = dspy.OutputField(desc="Title of the ticket.")
+    contact_info: str = dspy.OutputField(desc="Contact information of the user.")
+    info_complete: bool = dspy.OutputField(desc="Whether all required information is present in the chat history or not.")
+    message: Optional[str] = dspy.OutputField(desc="Message to the user, asking for missing information or confirmation.")
+    
 
-def create_ticket(department, issue_description, notes):
-    """
-    Create a ticket and return it as a JSON object with:
-      - ticket_id (e.g., ESC-123456)
-      - department (e.g., Technical Support)
-      - issue (brief description of the user's problem)
-    """
-    print("[Tool] Creating ticket for:", department, "-", issue_description)
-    ticket_id = f"ESC-{len(ticket_database) + 1:06d}"  # e.g. ESC-000002
-    ticket_database.append(
-        {
-            "ticket_id": ticket_id,
-            "department": department,
-            "issue": issue_description,
-            "notes": notes,
-        }
-    )
-    return json.dumps(ticket_database[-1])
+retrieve_ticket_info_module = dspy.asyncify(dspy.ChainOfThought(RetrieveTicketInfoSignature))
 
+class ClassifyConfirmationSignature(dspy.Signature):
+    chat_history: str = dspy.InputField(desc="Full conversation context.")
+    confirmation: Literal["yes", "no"] = dspy.OutputField(desc="User confirmation retrieved from chat history.")
+    message: Optional[str] = dspy.OutputField(desc="Message to the user, asking for confirmation.")
 
-def retrieve_ticket(ticket_id):
-    """
-    Return ticket details (as JSON) for ticket_id,
-    or an error message if the ticket isn't found.
-    """
-    print("[Tool] Retrieving ticket details for:", ticket_id)
-    for ticket in ticket_database:
-        if ticket["ticket_id"] == ticket_id:
-            return json.dumps(ticket)
-    return json.dumps({"error": "Ticket not found."})
+classify_confirmation = dspy.asyncify(dspy.ChainOfThought(ClassifyConfirmationSignature))
 
+class CreateTicketSignature(dspy.Signature):
+    ticket_details: dict = dspy.InputField(desc="Session details.")
+    ticket_message: str = dspy.OutputField(desc="Ticket creation message confirmation, with summary of ticket details.")
 
-escalation_react = dspy.ReAct(
-    EscalationAgentSignature, tools=[create_ticket, retrieve_ticket]
-)
+# Now only using the create_ticket tool (retrieve_ticket removed)
+create_ticket_module = dspy.asyncify(dspy.ReAct(CreateTicketSignature, tools=[create_ticket]))
 
+def update_session_data(session: str, data: dict):
+    if session not in pending_tickets:
+        pending_tickets[session] = {}
+    pending_tickets[session].update(data)
 
-@escalation_agent.subscribe(
-    channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_request"
-)
-async def handle_escalation(msg):
-    try:
-        # Convert chat messages into a single conversation string
-        chat_messages = msg["payload"]["chat_messages"]
-        conversation_string = ""
-        for chat in chat_messages:
-            role = chat.get("role", "User")
-            conversation_string += f"{role}: {chat['content']}\n"
+async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
+    step = pending_tickets[session].get("step", "ask_additional_data")
 
-        # Generate the ReAct result
-        response = escalation_react(chat_history=conversation_string)
-        final_text = response.final_response
-
-        # Publish the response back to the user
-        meta = msg.get("meta", {})
-        meta["agent"] = "EscalationAgent"
-        await human_channel.publish(
-            {
+    if step == "ask_additional_data":
+        response = await retrieve_ticket_info_module(chat_history=chat_history)
+        if response.title:
+            update_session_data(session, {"title": response.title})
+        if response.contact_info:
+            update_session_data(session, {"contact_info": response.contact_info})
+        if response.department:
+            update_session_data(session, {"department": response.department})
+        if response.info_complete:
+            update_session_data(session, {"step": "ask_confirmation"})
+            conf_message = (await classify_confirmation(chat_history=chat_history)).message
+            await human_channel.publish({
                 "id": str(uuid4()),
                 "type": "agent_message",
                 "meta": meta,
-                "payload": final_text,
-            }
-        )
-    except Exception as e:
-        print(f"Error in EscalationAgent: {e}")
+                "payload": conf_message
+            })
+        else:
+            await human_channel.publish({
+                "id": str(uuid4()),
+                "type": "agent_message",
+                "meta": meta,
+                "payload": response.message
+            })
+    elif step == "ask_confirmation":
+        response = (await classify_confirmation(chat_history=chat_history))
+        if response.confirmation == "yes":
+            update_session_data(session, {"step": "create_ticket"})
+            await human_channel.publish({
+                "id": str(uuid4()),
+                "type": "agent_message",
+                "meta": meta,
+                "payload": "Creating ticket..."
+            })
+            await agentic_workflow(session, chat_history, meta)
+        else:
+            await human_channel.publish({
+                "id": str(uuid4()),
+                "type": "agent_message",
+                "meta": meta,
+                "payload": response.message
+            })
+    elif step == "create_ticket":
+        response = (await create_ticket_module(ticket_details=pending_tickets[session])).ticket_message
+        await human_channel.publish({
+            "id": str(uuid4()),
+            "type": "agent_message",
+            "meta": meta,
+            "payload": response
+        })
+        pending_tickets.pop(session, None)
+    else:
+        raise ValueError("Invalid step value.")
 
+# --- Entrypoint Subscription ---
+@escalation_agent.subscribe(
+    channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_request"
+)
+async def handle_escalation_request(msg):
+    meta = msg.get("meta", {})
+    session = meta.get("session", "default_session")
+    meta["session"] = session
+    meta["agent"] = "EscalationAgent"
+    chat_messages = msg["payload"]["chat_messages"]
+    conversation_string = ""
+    for chat in chat_messages:
+        role = chat.get("role", "User")
+        conversation_string += f"{role}: {chat['content']}\n"
+    
+    if session not in pending_tickets:
+        
+        pending_tickets[session] = { "step": "ask_additional_data" }
+    
+    print("Current session: ", pending_tickets[session])
+    print("msg coming: ", msg)
+    await agentic_workflow(session, conversation_string, meta)
 
+# --- Test Conversation ---
 if __name__ == "__main__":
-    load_dotenv()
-    language_model = dspy.LM("openai/gpt-4o-mini")
-    dspy.configure(lm=language_model)
-    # Quick test of the chain directly
-    test_conversation = (
-        "User: My issue wasn't resolved by PoliciesAgent. I'm still having trouble.\n"
-        "EscalationAgent: Certainly. Could you describe the issue in more detail?\n"
-        "User: It's about my billing setup. The website keeps throwing an error.\n"
-    )
-    result = escalation_react(chat_history=test_conversation)
-    print("EscalationAgent says:")
-    print(result.final_response)
+    async def test_conversation():
+        logger_agent = Agent(name="LoggerAgent")
+        @logger_agent.subscribe(channel=human_channel)
+        async def log_human_messages(msg):
+            print("Agent Says:", msg["payload"]["message"])
+        load_dotenv()
+        language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
+        dspy.configure(lm=language_model)
+        await logger_agent.start()
+        await escalation_agent.start()
+        session = "session_test_001"
+        history = []
+
+        history.append({"role": "User", "content": "I have a billing issue."})
+        print("User Says: I have a billing issue.")
+        await agents_channel.publish({
+            "id": str(uuid4()),
+            "type": "escalation_request",
+            "meta": {"session": session},
+            "payload": {"chat_history": history}
+        })
+        await asyncio.sleep(5)
+
+        # Step 2: User provides account details (contact_info)
+        history.append({"role": "User", "content": "My contact info is alice@example.com"})
+        print("User Says: My contact info is alice@example.com")
+        await agents_channel.publish({
+            "id": str(uuid4()),
+            "type": "escalation_request",
+            "meta": {"session": session},
+            "payload": {
+                "chat_history": history,
+            }
+        })
+        await asyncio.sleep(1)
+
+        # Step 3: User confirms ticket creation
+        history.append({"role": "User", "content": "Yes, please create the ticket."})
+        print("User Says: Yes, please create the ticket.")
+        await agents_channel.publish({
+            "id": str(uuid4()),
+            "type": "escalation_request",
+            "meta": {"session": session},
+            "payload": {"chat_history": history}
+        })
+        await asyncio.Future()
+
+    asyncio.run(test_conversation())
