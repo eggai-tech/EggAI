@@ -58,20 +58,16 @@ class CreateTicketSignature(dspy.Signature):
 # Now only using the create_ticket tool (retrieve_ticket removed)
 create_ticket_module = dspy.asyncify(dspy.ReAct(CreateTicketSignature, tools=[create_ticket]))
 
-def chat_history_to_text(chat_history: list) -> str:
-    return " ".join(msg.get("content", "") for msg in chat_history)
-
 def update_session_data(session: str, data: dict):
     if session not in pending_tickets:
         pending_tickets[session] = {}
     pending_tickets[session].update(data)
 
-async def agentic_workflow(session: str, chat_history: list, meta: Any) -> str:
-    text = chat_history_to_text(chat_history)
+async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
     step = pending_tickets[session].get("step", "ask_additional_data")
 
     if step == "ask_additional_data":
-        response = await retrieve_ticket_info_module(chat_history=text)
+        response = await retrieve_ticket_info_module(chat_history=chat_history)
         if response.title:
             update_session_data(session, {"title": response.title})
         if response.contact_info:
@@ -80,50 +76,45 @@ async def agentic_workflow(session: str, chat_history: list, meta: Any) -> str:
             update_session_data(session, {"department": response.department})
         if response.info_complete:
             update_session_data(session, {"step": "ask_confirmation"})
-            conf_message = (await classify_confirmation(chat_history=text)).message
-            chat_history.append({"role": "EscalationAgent", "content": conf_message})
+            conf_message = (await classify_confirmation(chat_history=chat_history)).message
             await human_channel.publish({
                 "id": str(uuid4()),
                 "type": "agent_message",
                 "meta": meta,
-                "payload": {"chat_history": chat_history, "message": conf_message}
+                "payload": conf_message
             })
         else:
-            chat_history.append({"role": "EscalationAgent", "content": response.message})
             await human_channel.publish({
                 "id": str(uuid4()),
                 "type": "agent_message",
                 "meta": meta,
-                "payload": {"chat_history": chat_history, "message": response.message}
+                "payload": response.message
             })
     elif step == "ask_confirmation":
-        response = (await classify_confirmation(chat_history=text))
+        response = (await classify_confirmation(chat_history=chat_history))
         if response.confirmation == "yes":
             update_session_data(session, {"step": "create_ticket"})
-            chat_history.append({"role": "EscalationAgent", "content": "Creating ticket..."})
             await human_channel.publish({
                 "id": str(uuid4()),
                 "type": "agent_message",
                 "meta": meta,
-                "payload": {"chat_history": chat_history, "message": "Creating ticket..."}
+                "payload": "Creating ticket..."
             })
             await agentic_workflow(session, chat_history, meta)
         else:
-            chat_history.append({"role": "EscalationAgent", "content": response.message})
             await human_channel.publish({
                 "id": str(uuid4()),
                 "type": "agent_message",
                 "meta": meta,
-                "payload": {"chat_history": chat_history, "message": response.message}
+                "payload": response.message
             })
     elif step == "create_ticket":
         response = (await create_ticket_module(ticket_details=pending_tickets[session])).ticket_message
-        chat_history.append({"role": "EscalationAgent", "content": response})
         await human_channel.publish({
             "id": str(uuid4()),
             "type": "agent_message",
             "meta": meta,
-            "payload": {"chat_history": chat_history, "message": response}
+            "payload": response
         })
         pending_tickets.pop(session, None)
     else:
@@ -135,13 +126,22 @@ async def agentic_workflow(session: str, chat_history: list, meta: Any) -> str:
 )
 async def handle_escalation_request(msg):
     meta = msg.get("meta", {})
-    session = meta.get("session", str(uuid4()))
+    session = meta.get("session", "default_session")
     meta["session"] = session
-    payload = msg.get("payload", {})
-    chat_history = payload.get("chat_history", [])
+    meta["agent"] = "EscalationAgent"
+    chat_messages = msg["payload"]["chat_messages"]
+    conversation_string = ""
+    for chat in chat_messages:
+        role = chat.get("role", "User")
+        conversation_string += f"{role}: {chat['content']}\n"
+    
     if session not in pending_tickets:
+        
         pending_tickets[session] = { "step": "ask_additional_data" }
-    await agentic_workflow(session, chat_history, meta)
+    
+    print("Current session: ", pending_tickets[session])
+    print("msg coming: ", msg)
+    await agentic_workflow(session, conversation_string, meta)
 
 # --- Test Conversation ---
 if __name__ == "__main__":
