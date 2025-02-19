@@ -9,6 +9,6 @@ AGENT_REGISTRY = {
     },
     "EscalationAgent": {
         "message_type": "escalation_request",
-        "description": "Handles escalated queries",
+        "description": "Handles escalations, everything related to tickets and support must be handled by this agent",
     },
 }
