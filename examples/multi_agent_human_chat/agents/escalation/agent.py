@@ -42,15 +42,15 @@ def retrieve_ticket(ticket_id):
             return json.dumps(t)
     return json.dumps({"error": "Ticket not found."})
 
-# Classifier Module
+# --- Classifier Module ---
 class EscalationAgentClassifierSignature(dspy.Signature):
     chat_history: str = dspy.InputField(desc="Full conversation context.")
-    missing_required_fields: list = dspy.OutputField(desc="List of missing required fields.")
+    missing_required_fields: list[Literal["customer_name", "policy_number", "contact_info", "error_message"]] = dspy.OutputField(desc="List of missing required fields.")
     next_step: Literal["ask_additional_data", "ask_confirmation", "create_ticket"] = dspy.OutputField(desc="Current escalation step.")
 
 escalation_classifier = dspy.ChainOfThought(EscalationAgentClassifierSignature)
 
-# Ask Additional Data Module
+# --- Additional Data Module ---
 class AskAdditionalDataSignature(dspy.Signature):
     session_details: dict = dspy.InputField(desc="Session details.")
     missing_fields: list = dspy.InputField(desc="Missing fields to ask.")
@@ -58,20 +58,21 @@ class AskAdditionalDataSignature(dspy.Signature):
 
 ask_additional_data_module = dspy.ChainOfThought(AskAdditionalDataSignature)
 
-# Ask Confirmation Module
+# --- Confirmation Module ---
 class AskConfirmationSignature(dspy.Signature):
     session_details: dict = dspy.InputField(desc="Session details.")
     final_message: str = dspy.OutputField(desc="Message asking for confirmation.")
 
 ask_confirmation_module = dspy.ChainOfThought(AskConfirmationSignature)
 
-# Create Ticket Module
+# --- Create Ticket Module ---
 class CreateTicketSignature(dspy.Signature):
     session_details: dict = dspy.InputField(desc="Session details.")
     ticket_message: str = dspy.OutputField(desc="Ticket creation result.")
 
 create_ticket_module = dspy.ReAct(CreateTicketSignature, tools=[create_ticket, retrieve_ticket])
 
+# --- Helper Functions ---
 def chat_history_to_text(chat_history: list) -> str:
     return " ".join(msg.get("content", "") for msg in chat_history)
 
@@ -82,20 +83,27 @@ def update_session_data(session: str, data: dict):
 
 def internal_router(session: str, chat_history: list) -> str:
     text = chat_history_to_text(chat_history)
+    # Call the classifier module via dspy:
     classifier_result = escalation_classifier(chat_history=text)
     missing_fields = classifier_result.missing_required_fields
     step = classifier_result.next_step
     if step == "ask_additional_data":
-        response = ask_additional_data_module(session_details=pending_tickets[session], missing_fields=missing_fields).final_message
+        response = ask_additional_data_module(session_details=pending_tickets[session],
+                                              missing_fields=missing_fields).final_message
     elif step == "ask_confirmation":
         response = ask_confirmation_module(session_details=pending_tickets[session]).final_message
     elif step == "create_ticket":
-        response = create_ticket_module(session_details=pending_tickets[session]).ticket_message
+        details = pending_tickets[session]
+        details.setdefault("department", "Technical Support")
+        details.setdefault("issue", "Billing issue")
+        details["notes"] = details.get("error_message", "No error message provided")
+        response = create_ticket_module(session_details=details).ticket_message
         pending_tickets.pop(session, None)
     else:
         response = "Unexpected state."
     return response
 
+# --- Entrypoint Subscription ---
 @escalation_agent.subscribe(
     channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_update"
 )
@@ -110,7 +118,7 @@ async def handle_escalation_update(msg):
     if session not in pending_tickets:
         pending_tickets[session] = {}
     response = internal_router(session, chat_history)
-    # Append agent response to chat history
+    # Append the agent's response to the chat history
     chat_history.append({"role": "EscalationAgent", "content": response})
     await human_channel.publish({
         "id": str(uuid4()),
@@ -119,19 +127,24 @@ async def handle_escalation_update(msg):
         "payload": {"chat_history": chat_history, "message": response}
     })
 
+# --- Test Conversation ---
 if __name__ == "__main__":
     async def test_conversation():
+        logger_agent = Agent(name="LoggerAgent")
+        @logger_agent.subscribe(channel=human_channel)
+        async def log_human_messages(msg):
+            print("Agent Says:", msg["payload"]["message"])
         load_dotenv()
         language_model = dspy.LM("openai/gpt-4o-mini")
         dspy.configure(lm=language_model)
+        await logger_agent.start()
         await escalation_agent.start()
-        await human_channel.start()
-        human_channel.subscribe(lambda msg: print("[Human]", msg))
-        agents_channel.subscribe(lambda msg: print("[Agents]", msg))
         session = "session_test_001"
         history = []
 
+        # Step 1: User sends initial message (all required fields missing)
         history.append({"role": "User", "content": "I need help with my billing. I'm getting an error."})
+        print("User Says: I need help with my billing. I'm getting an error.")
         await agents_channel.publish({
             "id": str(uuid4()),
             "type": "escalation_update",
@@ -140,7 +153,9 @@ if __name__ == "__main__":
         })
         await asyncio.sleep(1)
 
+        # Step 2: User provides account details (still missing error_message)
         history.append({"role": "User", "content": "My name is Alice, policy number is P789012, contact info is alice@example.com."})
+        print("User Says: My name is Alice, policy number is P789012, contact info is alice@example.com")
         await agents_channel.publish({
             "id": str(uuid4()),
             "type": "escalation_update",
@@ -156,7 +171,23 @@ if __name__ == "__main__":
         })
         await asyncio.sleep(1)
 
+        # Step 3: User provides the error message (now all required fields are present)
+        history.append({"role": "User", "content": "The error is connection timeout."})
+        print("User Says: The error is connection timeout.")
+        await agents_channel.publish({
+            "id": str(uuid4()),
+            "type": "escalation_update",
+            "meta": {"session": session},
+            "payload": {
+                "chat_history": history,
+                "data": {"error_message": "connection timeout"}
+            }
+        })
+        await asyncio.sleep(1)
+
+        # Step 4: User confirms ticket creation
         history.append({"role": "User", "content": "Yes, please create the ticket."})
+        print("User Says: Yes, please create the ticket.")
         await agents_channel.publish({
             "id": str(uuid4()),
             "type": "escalation_update",
