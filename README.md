@@ -29,6 +29,8 @@ The EggAI Multi-Agent Meta Framework is a framework-agnostic AI orchestration la
 
 #### AI Framework Integrations
 
+Currently available examples of integrations with popular AI frameworks.
+
 <details>
 <summary>DSPy Agent</summary>
 
