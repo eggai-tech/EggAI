@@ -14,9 +14,9 @@ theme:
 
 nav:
   - "Introduction": index.md
-  - Concepts:
-    - "Agent": concepts/agent.md
-    - "Multi-Agent System": concepts/multi-agent-system.md
+  - Handbook:
+    - "Agent": handbook/agent.md
+    - "Multi-Agent System": handbook/multi-agent-system.md
   - Examples:
     - "Getting Started": examples/getting_started.md
     - "Coordinator": examples/coordinator.md
