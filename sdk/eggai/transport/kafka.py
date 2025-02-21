@@ -92,7 +92,10 @@ class KafkaTransport(Transport):
                 event = json.loads(msg.value.decode("utf-8"))
                 cb = self._subscriptions.get(channel)
                 if cb:
-                    await cb(event)
+                    if asyncio.iscoroutinefunction(cb):
+                        await cb(event)
+                    else:
+                        cb(event)
         except asyncio.CancelledError:
             pass
         except Exception as e:

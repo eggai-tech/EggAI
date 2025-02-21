@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 
-import eggai.transport
 from eggai import Agent, Channel, eggai_cleanup
 
 agent = Agent("OrderAgent")
@@ -28,7 +27,6 @@ async def handle_order_created(event):
 
 @pytest.mark.asyncio
 async def test_simple_scenario(capfd):
-    eggai.transport.eggai_set_default_transport(lambda: eggai.transport.KafkaTransport())
     await agent.start()
 
     await channel.publish({
