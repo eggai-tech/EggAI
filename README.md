@@ -29,7 +29,7 @@ The EggAI Multi-Agent Meta Framework is a framework-agnostic AI orchestration la
 
 #### AI Framework Integrations
 
-Currently available agent examples integrating popular AI frameworks.
+Currently available agent examples integrating popular AI frameworks:
 
 <details>
 <summary>DSPy Agent</summary>
@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
 #### AI Agent Evaluations
 
-Example of how to evaluate an agent.
+Example of how to evaluate an agent:
 
 <details>
 <summary>Agent Evaluation using LLM-as-a-Judge metrics</summary>
