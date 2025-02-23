@@ -24,7 +24,7 @@ test_cases = [
             },
         ],
         "expected_meaning": (
-            "The agent asks the user for confirmation before proceeding with ticket creation."
+            "The agent asks the user to provide more details on the error."
         ),
     }
 ]
