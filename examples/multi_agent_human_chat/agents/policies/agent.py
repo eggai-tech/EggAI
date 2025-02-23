@@ -1,4 +1,3 @@
-import asyncio
 import json
 import threading
 from typing import Optional, Literal
@@ -14,6 +13,8 @@ policies_agent = Agent(name="PoliciesAgent")
 
 agents_channel = Channel("agents")
 human_channel = Channel("human")
+
+PolicyCategory = Literal["auto", "life", "home", "health"]
 
 policies_database = [
     {
@@ -52,7 +53,7 @@ class ThreadWithResult(threading.Thread):
         super().join(*args)
         return self._result
 
-def query_policy_documentation(query: str, policy_category: str) -> str:
+def query_policy_documentation(query: str, policy_category: PolicyCategory) -> str:
     try:
         print(f"[Tool] Retrieving policy information for query: {query}, category: {policy_category}")
         thread = ThreadWithResult(target=retrieve_policies, args=(query, policy_category))
@@ -97,7 +98,7 @@ class PolicyAgentSignature(dspy.Signature):
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
 
-    policy_category: Optional[Literal["auto", "life", "home", "health"]] = dspy.OutputField(desc="Policy category.")
+    policy_category: Optional[PolicyCategory] = dspy.OutputField(desc="Policy category.")
     policy_number: Optional[str] = dspy.OutputField(desc="Policy number.")
     documentation_summarized_output: Optional[str] = dspy.OutputField(desc="Policy documentation summarized output.")
     documentation_reference: Optional[str] = dspy.OutputField(desc="Reference on the documentation if found (e.g. Section 3.1 or Section 4.5.6).")
@@ -122,7 +123,7 @@ async def handle_policy_request(msg):
             conversation_string += f"{role}: {chat['content']}\n"
         response = await policies_react(chat_history=conversation_string)
         final_response = response.final_response
-        if "final_response_with_documentation_reference" in response:
+        if "final_response_with_documentation_reference" in response and response.final_response_with_documentation_reference:
             final_response = response.final_response_with_documentation_reference
         meta = msg.get("meta", {})
         meta["agent"] = "PoliciesAgent"
