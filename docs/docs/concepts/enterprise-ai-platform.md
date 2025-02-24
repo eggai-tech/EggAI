@@ -17,7 +17,11 @@ EggAI Multi-Agent Meta Framework enables enterprises to build their own AI platf
 
 While popular AI frameworks like LangChain, LlamaIndex, LiteLLM and DSPy provide valuable tools, they do not fulfill the necessary enterprise requirements on their own.
 
-EggAI provides the missing layer for enterprises to operationalize AI efficiently, reliably, and flexibly, ensuring AI solutions remain scalable, adaptable, and future-proof.
+EggAI provides the missing layer for enterprises to operationalize AI efficiently, reliably, and flexibly, ensuring AI solutions remain scalable, adaptable, and future-proof through: 
+
+1. **EggAI SDK**: A lightweight SDK for asynchronous, distributed multi-agent communication, bridging AI frameworks and enterprise systems.
+2. **Examples**: Codified best practices and design patterns for implementing AI solutions effectively.
+
 
 ## Approach
 - **Quality**: Multi-agent orchestration, evaluation mechanisms, and continuous monitoring ensure reliable AI performance.
