@@ -7,39 +7,35 @@ from eggai.transport import KafkaTransport, eggai_set_default_transport
 
 eggai_set_default_transport(lambda: KafkaTransport())
 
+hits = {}
+
+def hit(key):
+    hits[key] = hits.get(key, 0) + 1
+
 @pytest.mark.asyncio
 async def test_kafka(capfd):
     agent = Agent("OrderAgent")
     default_channel = Channel()
 
-    @agent.subscribe(filter_func=lambda event: event["event_name"] == "order_requested")
-    async def handle_order_requested(event):
-        print(f"[ORDER AGENT]: Received order request. Event: {event['payload']}")
+    @agent.subscribe(filter_func=lambda msg: msg.get("type") == "order_requested")
+    async def handle_order_requested(msg):
+        hit("order_requested")
         await default_channel.publish({
-            "event_name": "order_created",
-            "payload": event["payload"]
+            "type": "order_created"
         })
 
-    @agent.subscribe(filter_func=lambda event: event["event_name"] == "order_created")
-    async def handle_order_created(event):
-        print(f"[ORDER AGENT]: Order created. Event: {event['payload']}")
+    @agent.subscribe(filter_func=lambda msg: msg.get("type") == "order_created")
+    async def handle_order_created(msg):
+        hit("order_created")
 
     await agent.start()
+
     await default_channel.publish({
-        "event_name": "order_requested",
-        "payload": {
-            "product": "Laptop",
-            "quantity": 1
-        }
+        "type": "order_requested"
     })
     await asyncio.sleep(2)
-
-    captured = capfd.readouterr()
-    stdout = captured.out
-    assert "[ORDER AGENT]: Received order request. Event:" in stdout
-    assert "[ORDER AGENT]: Order created. Event:" in stdout
-    assert "Laptop" in stdout
-    assert "quantity" in stdout
+    assert hits.get("order_requested") == 1
+    assert hits.get("order_created") == 1
 
 
 @pytest.mark.asyncio

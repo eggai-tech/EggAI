@@ -1,8 +1,7 @@
 import asyncio
 import json
-from typing import (
-    Dict, Any, Optional, Callable
-)
+import uuid
+from typing import Dict, Any, Optional, Callable, Tuple, List
 
 import aiokafka
 
@@ -21,82 +20,88 @@ class KafkaTransport(Transport):
         self.rebalance_timeout_ms = rebalance_timeout_ms
 
         self.producer: Optional[aiokafka.AIOKafkaProducer] = None
-        self.consumer: Optional[aiokafka.AIOKafkaConsumer] = None
-        self._consume_task: Optional[asyncio.Task] = None
+        # Mapping from (group_id, channel) to consumer instance
+        self._consumers: Dict[Tuple[str, str], aiokafka.AIOKafkaConsumer] = {}
+        # Mapping from (group_id, channel) to the consumer's asyncio task
+        self._consume_tasks: Dict[Tuple[str, str], asyncio.Task] = {}
+        # Mapping from (group_id, channel) to a list of subscription callbacks
+        self._subscriptions: Dict[Tuple[str, str], List[Callable[[Dict[str, Any]], "asyncio.Future"]]] = {}
 
-        # For each channel, we hold a single aggregator callback
-        # Because the aggregator might handle multiple filters
-        self._subscriptions: Dict[str, Callable[[Dict[str, Any]], "asyncio.Future"]] = {}
-
-    async def connect(self, group_id: Optional[str] = None):
+    async def connect(self):
+        """Starts the Kafka producer."""
         if not self.producer:
             self.producer = aiokafka.AIOKafkaProducer(
                 bootstrap_servers=self.bootstrap_servers
             )
             await self.producer.start()
 
-        if group_id is not None and not self.consumer:
-            self.consumer = aiokafka.AIOKafkaConsumer(
-                bootstrap_servers=self.bootstrap_servers,
-                group_id=group_id,
-                auto_offset_reset=self.auto_offset_reset,
-                rebalance_timeout_ms=self.rebalance_timeout_ms
-            )
-            await self.consumer.start()
-
-            # If we already have subscriptions, subscribe
-            if self._subscriptions:
-                self.consumer.subscribe(list(self._subscriptions.keys()))
-                if not self._consume_task:
-                    self._consume_task = asyncio.create_task(self._consume_loop())
-
     async def disconnect(self):
-        if self._consume_task:
-            self._consume_task.cancel()
+        """Stops all consumers, cancels tasks, and stops the producer."""
+        for task in self._consume_tasks.values():
+            task.cancel()
             try:
-                await self._consume_task
+                await task
             except asyncio.CancelledError:
                 pass
-            self._consume_task = None
+        self._consume_tasks.clear()
 
-        if self.consumer:
-            await self.consumer.stop()
-            self.consumer = None
+        for consumer in self._consumers.values():
+            await consumer.stop()
+        self._consumers.clear()
 
         if self.producer:
             await self.producer.stop()
             self.producer = None
 
     async def publish(self, channel: str, message: Dict[str, Any]):
+        """Publishes a message to a given channel (topic)."""
         if not self.producer:
             raise RuntimeError("Transport not connected. Call `connect()` first.")
         data = json.dumps(message).encode("utf-8")
         await self.producer.send_and_wait(channel, data)
 
     async def subscribe(
-            self, channel: str, callback: Callable[[Dict[str, Any]], "asyncio.Future"]
+            self,
+            channel: str,
+            callback: Callable[[Dict[str, Any]], "asyncio.Future"],
+            group_id: str
     ):
-        # We store exactly one aggregator callback per channel
-        self._subscriptions[channel] = callback
+        """
+        Subscribes to a channel (topic) with the provided group_id. A new consumer is
+        created for each (group_id, channel) pair if one doesn't already exist, and
+        multiple callbacks for the same subscription are supported.
+        """
+        key = (group_id, channel)
+        if key not in self._subscriptions:
+            self._subscriptions[key] = []
+        self._subscriptions[key].append(callback)
 
-        if self.consumer:
-            self.consumer.subscribe(list(self._subscriptions.keys()))
+        # If no consumer exists for this key, create one.
+        if key not in self._consumers:
+            consumer = aiokafka.AIOKafkaConsumer(
+                channel,
+                bootstrap_servers=self.bootstrap_servers,
+                group_id=group_id,
+                auto_offset_reset=self.auto_offset_reset,
+                rebalance_timeout_ms=self.rebalance_timeout_ms
+            )
+            await consumer.start()
+            self._consumers[key] = consumer
+            self._consume_tasks[key] = asyncio.create_task(self._consume_loop(key, consumer))
 
-        if self.consumer and not self._consume_task:
-            self._consume_task = asyncio.create_task(self._consume_loop())
-
-    async def _consume_loop(self):
+    async def _consume_loop(self, key: Tuple[str, str], consumer: aiokafka.AIOKafkaConsumer):
         try:
-            async for msg in self.consumer:
-                channel = msg.topic
+            async for msg in consumer:
                 event = json.loads(msg.value.decode("utf-8"))
-                cb = self._subscriptions.get(channel)
-                if cb:
+                callbacks = self._subscriptions.get(key, [])
+
+                for cb in callbacks:
                     if asyncio.iscoroutinefunction(cb):
                         await cb(event)
                     else:
                         cb(event)
+
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            print(f"KafkaTransport consume loop error: {e}")
+            print(f"KafkaTransport consume loop error for {key}: {e}")

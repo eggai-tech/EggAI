@@ -1,2 +1,4 @@
-from .base import Transport, InMemoryTransport, get_default_transport, eggai_set_default_transport
+from .base import Transport
+from .defaults import eggai_set_default_transport, get_default_transport
+from .inmemory import InMemoryTransport
 from .kafka import KafkaTransport
