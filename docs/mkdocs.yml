@@ -17,6 +17,7 @@ nav:
   - Concepts:
     - "Agent": concepts/agent.md
     - "Multi-Agent System": concepts/multi-agent-system.md
+    - "Enterprise AI Platform": concepts/enterprise-ai-platform.md
   - Examples:
     - "Getting Started": examples/getting_started.md
     - "Coordinator": examples/coordinator.md
