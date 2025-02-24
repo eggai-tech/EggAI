@@ -1,7 +1,7 @@
 # Enterprise AI Platform
 
 ## Objective
-Enterprises need an AI platform that delivers measurable business impact by enabling AI use cases to scale while ensuring quality, cost efficiency, and performance.
+Enterprises need an AI platform that delivers measurable business impact by enabling AI use cases to scale while ensuring quality, cost control, and performance.
 
 The AI platform must seamlessly integrate with existing IT systems, adapt to rapid AI advancements, maintain security and compliance, and provide flexibility without vendor lock-in.
 
