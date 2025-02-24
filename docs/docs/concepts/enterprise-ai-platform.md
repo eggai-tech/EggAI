@@ -23,7 +23,7 @@ EggAI provides the missing layer for enterprises to operationalize AI efficientl
 2. **Examples**: Codified best practices and design patterns for implementing AI solutions effectively.
 
 
-## Approach
+### Approach
 - **Quality**: Multi-agent orchestration, evaluation mechanisms, and continuous monitoring ensure reliable AI performance.
 - **Scalability**: Async-first and distributed design supports long-running workflows, high-throughput data, and multi-agent collaboration.
 - **Adaptability**: Composable architecture enables seamless integration and replacement of AI models and frameworks.
