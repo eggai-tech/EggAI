@@ -36,5 +36,3 @@ async def test_simple_scenario(capfd):
     await asyncio.sleep(5)
     assert hits.get("msg1") == 2
     assert hits.get("msg2") == 2
-
-    await eggai_cleanup()
