@@ -20,8 +20,7 @@ class Agent:
     def __init__(self, name: str, transport: Optional[Transport] = None):
         """
         :param name: The name of the agent (used as an identifier).
-        :param transport: A concrete transport instance (KafkaTransport, InMemoryTransport, etc.).
-                          If None, defaults to InMemoryTransport.
+        :param transport: A concrete transport instance (KafkaTransport, InMemoryTransport, etc.). If None, defaults to InMemoryTransport.
         """
         self._name = name
         self._transport = transport
@@ -64,6 +63,7 @@ class Agent:
 
         if self._transport is None:
             self._transport = get_default_transport()
+            self._transport._name = self._name
 
         await self._transport.connect()
         self._started = True
