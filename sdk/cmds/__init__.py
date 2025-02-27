@@ -50,8 +50,15 @@ async def test_group_ids():
         
 async def test_group_ids_2():
     hits.clear()
-    agent1 = Agent("Agent1")
-    agent2 = Agent("Agent2")
+    transport_process_1 = KafkaTransport(
+        max_records_per_batch=5
+    )
+    agent1 = Agent("Agent1", transport=transport_process_1)
+    
+    transport_process_2 = KafkaTransport(
+        max_records_per_batch=5
+    )
+    agent2 = Agent("Agent2", transport=transport_process_2)
 
     @agent1.subscribe(
         filter_func=lambda event: event["type"] == 2,
@@ -70,17 +77,38 @@ async def test_group_ids_2():
     print("Starting agent 1")
     await agent1.start()
     
+    print("Publishing event block #1")
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    
     print("Starting agent 2")
     await agent2.start()
     
-    print("Publishing event")
+    print("Publishing event block #2")
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
+    await default_channel.publish({"type": 2})
     await default_channel.publish({"type": 2})
     
     print("Sleeping for 1 second")
-    await asyncio.sleep(1)
+    await asyncio.sleep(3)
 
     # With both agents in the same consumer group for type 2 events, only one should process the event.
-    if hits.get("group_C") != 1: 
+    if hits.get("group_C") != 20:
         print(f"Expected group_C handler to be triggered once, but got {hits.get('group_C')}")
         
     await eggai_cleanup()

@@ -63,7 +63,6 @@ class Agent:
 
         if self._transport is None:
             self._transport = get_default_transport()
-            self._transport._name = self._name
 
         await self._transport.connect()
         self._started = True
