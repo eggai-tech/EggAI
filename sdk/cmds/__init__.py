@@ -65,13 +65,19 @@ async def test_group_ids_2():
         group_id="group_C"
     )
     async def handler_agent1(event):
+        if event.get("extra"):
+            print("Extra event received in agent 1")
+            await asyncio.sleep(5)
         hit("group_C")
 
     @agent2.subscribe(
         filter_func=lambda event: event["type"] == 2,
         group_id="group_C"
     )
-    async def handler_agent2(event):
+    async def handler_agent2(event, commmit):
+        if event.get("extra"):
+            print("Extra event received in agent 2")
+            await asyncio.sleep(5)
         hit("group_C")
 
     print("Starting agent 1")
@@ -87,10 +93,10 @@ async def test_group_ids_2():
     await default_channel.publish({"type": 2})
     await default_channel.publish({"type": 2})
     await default_channel.publish({"type": 2})
-    await default_channel.publish({"type": 2})
-    
+    asyncio.ensure_future(default_channel.publish({"type": 2, "extra": "extra"}))
     print("Starting agent 2")
     await agent2.start()
+    asyncio.ensure_future(agent1.stop())
     
     print("Publishing event block #2")
     await default_channel.publish({"type": 2})

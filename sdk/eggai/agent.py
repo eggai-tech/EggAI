@@ -1,6 +1,5 @@
 import asyncio
 import uuid
-from collections import defaultdict
 from typing import (
     List, Dict, Any, Optional, Callable, Tuple, Union
 )
