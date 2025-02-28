@@ -18,32 +18,44 @@ class Agent:
 
     def __init__(self, name: str, transport: Optional[Transport] = None):
         """
-        :param name: The name of the agent (used as an identifier).
-        :param transport: A concrete transport instance (KafkaTransport, InMemoryTransport, etc.). If None, defaults to InMemoryTransport.
+        Initializes the Agent instance.
+
+        Args:
+            name (str): The name of the agent (used as an identifier).
+            transport (Optional[Transport]): A concrete transport instance (e.g., KafkaTransport, InMemoryTransport).
+                If None, defaults to InMemoryTransport.
         """
         self._name = name
         self._transport = transport
         self._default_group_id = name + "_group_" + uuid.uuid4().hex
         # Each entry is (channel_name, filter_func, handler, group_id)
-
         self._subscriptions: Dict[
             (str, str), List[Tuple[
                 Callable[[Dict[str, Any]], bool], Union[
-            Callable, "asyncio.Future"]]]] = {}
+                    Callable, "asyncio.Future"
+                ]
+            ]]
+        ] = {}
 
         self._started = False
         self._stop_registered = False
 
     def subscribe(
-            self,
-            channel: Optional[Channel] = None,
-            filter_func: Callable[[Dict[str, Any]], bool] = lambda e: True,
-            group_id: Optional[str] = None
+        self,
+        channel: Optional[Channel] = None,
+        filter_func: Callable[[Dict[str, Any]], bool] = lambda e: True,
+        group_id: Optional[str] = None
     ):
         """
         Decorator for adding a subscription.
-        If channel is None, we assume "eggai.channel".
-        filter_func is optional, defaults to lambda e: True
+
+        Args:
+            channel (Optional[Channel]): The channel to subscribe to. If None, defaults to "eggai.channel".
+            filter_func (Callable[[Dict[str, Any]], bool]): A function to filter events. Defaults to a function that always returns True.
+            group_id (Optional[str]): The consumer group ID. If None, a default group ID is generated.
+
+        Returns:
+            Callable: A decorator that registers the given handler for the subscription.
         """
         channel_name = channel._name if channel else "eggai.channel"
         group_id = group_id or self._default_group_id
@@ -57,6 +69,11 @@ class Agent:
         return decorator
 
     async def start(self):
+        """
+        Starts the agent by connecting the transport and subscribing to all registered channels.
+
+        If no transport is provided, a default transport is used. Also registers a stop hook if not already registered.
+        """
         if self._started:
             return
 
@@ -79,6 +96,9 @@ class Agent:
                 await self._transport.subscribe(ch_name, wrapped_handler, group_id)
 
     async def stop(self):
+        """
+        Stops the agent by disconnecting the transport.
+        """
         if self._started:
             await self._transport.disconnect()
             self._started = False

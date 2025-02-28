@@ -9,14 +9,17 @@ from .transport import get_default_transport
 class Channel:
     """
     A channel that publishes messages to a given 'name' on its own Transport.
-    Default name is "eggai.channel".
-    Lazy connection on first publish or subscription.
+    The default name is "eggai.channel".
+    Connection is established lazily on the first publish or subscription.
     """
 
     def __init__(self, name: str = "eggai.channel", transport: Optional[Transport] = None):
         """
-        :param name: Channel (topic) name.
-        :param transport: A concrete transport instance.
+        Initialize a Channel instance.
+
+        Args:
+            name (str): The channel (topic) name. Defaults to "eggai.channel".
+            transport (Optional[Transport]): A concrete transport instance. If None, a default transport is used.
         """
         self._name = name
         self._default_group_id = name + "_group_" + uuid.uuid4().hex
@@ -25,37 +28,48 @@ class Channel:
         self._stop_registered = False
 
     async def _ensure_connected(self):
+        """
+        Ensure that the channel is connected by establishing a connection to the transport.
+        If not already connected, it retrieves a default transport (if none provided) and connects.
+        Also registers a stop hook on first connection.
+        """
         if not self._connected:
             if self._transport is None:
                 self._transport = get_default_transport()
 
-            # Connect with group_id=None for publish-only by default,
-            # but the transport may support both publishing and subscribing on the same connection.
+            # Connect with group_id=None for publish-only by default.
             await self._transport.connect()
             self._connected = True
-            # Auto-register stop
+            # Auto-register stop hook if not already registered.
             if not self._stop_registered:
                 await eggai_register_stop(self.stop)
                 self._stop_registered = True
 
     async def publish(self, message: Dict[str, Any]):
         """
-        Lazy-connect on first publish.
+        Publish a message to the channel. Establishes a connection if not already connected.
+
+        Args:
+            message (Dict[str, Any]): The message payload to publish.
         """
         await self._ensure_connected()
         await self._transport.publish(self._name, message)
 
     async def subscribe(self, callback: Callable[[Dict[str, Any]], Awaitable[None]], group_id: Optional[str] = None):
         """
-        Subscribe to this channel by registering a callback to be invoked on message receipt.
+        Subscribe to the channel by registering a callback to be invoked when messages are received.
 
-        :param callback: An asynchronous function that takes a message dict as its parameter.
-        :param group_id: The consumer group ID to use. If None, a default group ID is generated.
+        Args:
+            callback (Callable[[Dict[str, Any]], Awaitable[None]]): An asynchronous function that processes a message dictionary.
+            group_id (Optional[str]): The consumer group ID to use. If None, a default group ID is generated.
         """
         await self._ensure_connected()
         await self._transport.subscribe(self._name, callback, group_id or self._default_group_id)
 
     async def stop(self):
+        """
+        Disconnects the channel's transport if connected.
+        """
         if self._connected:
             await self._transport.disconnect()
             self._connected = False
