@@ -1,4 +1,5 @@
 import asyncio
+import enum
 import json
 import uuid
 import time
@@ -26,6 +27,9 @@ class CustomRebalanceListener(aiokafka.ConsumerRebalanceListener):
     async def on_partitions_assigned(self, assigned):
         pass
 
+class KafkaTransportProcessingGuarantee(enum.Enum):
+    AT_LEAST_ONCE = "at_least_once"
+    EXACTLY_ONCE = "exactly_once"    
 
 class KafkaTransport(Transport):
     def __init__(
@@ -35,10 +39,22 @@ class KafkaTransport(Transport):
         rebalance_timeout_ms: int = 1000,
         max_records_per_batch: int = 1,
         batch_timeout_ms: int = 300,
-        processing_guarantee: str = "at_least_once",
+        processing_guarantee: KafkaTransportProcessingGuarantee = KafkaTransportProcessingGuarantee.AT_LEAST_ONCE,
     ):
-        if processing_guarantee not in ("at_least_once", "exactly_once"):
-            raise ValueError("processing_guarantee must be either 'at_least_once' or 'exactly_once'")
+        """_summary_
+
+        Args:
+            bootstrap_servers (_type_, optional): _description_. Defaults to "localhost:19092".
+            auto_offset_reset (str, optional): _description_. Defaults to "latest".
+            rebalance_timeout_ms (int, optional): _description_. Defaults to 1000.
+            max_records_per_batch (int, optional): _description_. Defaults to 1.
+            batch_timeout_ms (int, optional): _description_. Defaults to 300.
+            processing_guarantee (KafkaTransportProcessingGuarantee, optional): _description_. Defaults to AT_LEAST_ONCE.
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+        """
         self.processing_guarantee = processing_guarantee
 
         self.bootstrap_servers = bootstrap_servers
@@ -60,7 +76,7 @@ class KafkaTransport(Transport):
 
     async def connect(self):
         if not self.producer:
-            if self.processing_guarantee == "exactly_once":
+            if self.processing_guarantee == KafkaTransportProcessingGuarantee.EXACTLY_ONCE:
                 transactional_id = f"kafka_transport_{uuid.uuid4()}"
                 self.producer = aiokafka.AIOKafkaProducer(
                     bootstrap_servers=self.bootstrap_servers,
@@ -69,7 +85,7 @@ class KafkaTransport(Transport):
             else:
                 self.producer = aiokafka.AIOKafkaProducer(bootstrap_servers=self.bootstrap_servers)
             await self.producer.start()
-            if self.processing_guarantee == "exactly_once":
+            if self.processing_guarantee == KafkaTransportProcessingGuarantee.EXACTLY_ONCE:
                 self._producer_lock = asyncio.Lock()
 
     async def disconnect(self):
@@ -95,7 +111,7 @@ class KafkaTransport(Transport):
         if not self.producer:
             raise RuntimeError("Transport not connected. Call `connect()` first.")
         data = json.dumps(message).encode("utf-8")
-        if self.processing_guarantee == "exactly_once":
+        if self.processing_guarantee == KafkaTransportProcessingGuarantee.EXACTLY_ONCE:
             async with self._producer_lock:
                 await self.producer.begin_transaction()
                 try:
@@ -130,7 +146,7 @@ class KafkaTransport(Transport):
                 session_timeout_ms=10 * 1000,
             )
             # For exactly-once, only read committed messages.
-            consumer_config["isolation_level"] = "read_committed" if self.processing_guarantee == "exactly_once" else "read_uncommitted"
+            consumer_config["isolation_level"] = "read_committed" if self.processing_guarantee == KafkaTransportProcessingGuarantee.EXACTLY_ONCE else "read_uncommitted"
 
             consumer = aiokafka.AIOKafkaConsumer(channel, **consumer_config)
             listener = CustomRebalanceListener(consumer, offset_tracker)
@@ -198,7 +214,7 @@ class KafkaTransport(Transport):
         or False if an error occurred in exactly-once processing (so the batch should be retried).
         """
         events = [event for _, event, _ in batch]
-        if self.processing_guarantee == "exactly_once":
+        if self.processing_guarantee == KafkaTransportProcessingGuarantee.EXACTLY_ONCE:
             try:
                 async with self._producer_lock:
                     await self.producer.begin_transaction()
