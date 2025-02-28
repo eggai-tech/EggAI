@@ -10,8 +10,9 @@ transport_process_1 = KafkaTransport(max_records_per_batch=5, processing_guarant
 default_channel = Channel(transport=transport_process_1)
 
 async def main():
-    for i in range(0, 10_000):
+    for i in range(0, 100):
         await default_channel.publish({"type": 2, "id": i + 1})
+        await asyncio.sleep(0.2)
     await eggai_cleanup()
 
 if __name__ == "__main__":

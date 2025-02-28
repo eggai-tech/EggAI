@@ -204,7 +204,8 @@ class KafkaTransport(Transport):
                     await self.producer.begin_transaction()
                     await self._process_batch(key, events)
                     commit_dict = self._get_commit_dict(consumer, batch)
-                    await self.producer.send_offsets_to_transaction(commit_dict, group_id)
+                    if commit_dict:
+                        await self.producer.send_offsets_to_transaction(commit_dict, group_id)
                     await self.producer.commit_transaction()
                 return True
             except Exception as e:

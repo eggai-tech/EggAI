@@ -18,8 +18,10 @@ hits = 0
 async def handler_agent1(msg):
     global hits
     print(f"{current_worker} - Agent1 - group_C - id: {msg['id']}")
+    asyncio.sleep(1)
     hits += 1
     print(f" ================= Hit: group_C -> {hits} from Agent1 with id {current_worker}")
+    
 
 
 @agent1.subscribe(channel=default_channel, filter_func=lambda msg: msg["type"] == 2, group_id="group_D")
