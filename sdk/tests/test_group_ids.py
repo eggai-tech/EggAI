@@ -45,10 +45,11 @@ async def test_group_ids(capfd):
     assert hits.get("group_A") == 1, "Expected group_A handler to be triggered once."
     assert hits.get("group_B") == 1, "Expected group_B handler to be triggered once."
 
-    # ---------------------------
-    # Part B: Two agents with the same group ID.
-    # Only one of the two should process the event because they share the same consumer group.
+
+@pytest.mark.asyncio
+async def test_2_agents_same_group(capfd):
     hits.clear()
+    default_channel = Channel()
     agent1 = Agent("Agent1")
     agent2 = Agent("Agent2")
 
