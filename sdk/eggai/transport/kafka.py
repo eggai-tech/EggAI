@@ -9,6 +9,7 @@ from aiokafka.structs import TopicPartition, OffsetAndMetadata
 
 from eggai.transport.base import Transport
 
+
 class CustomRebalanceListener(aiokafka.ConsumerRebalanceListener):
     def __init__(self, consumer: aiokafka.AIOKafkaConsumer, offset_tracker: Dict[TopicPartition, int]):
         self.consumer = consumer
@@ -25,15 +26,16 @@ class CustomRebalanceListener(aiokafka.ConsumerRebalanceListener):
     async def on_partitions_assigned(self, assigned):
         pass
 
+
 class KafkaTransport(Transport):
     def __init__(
-            self,
-            bootstrap_servers: str = "localhost:19092",
-            auto_offset_reset: str = "latest",
-            rebalance_timeout_ms: int = 1000,
-            max_records_per_batch: int = 1,
-            batch_timeout_ms: int = 300,
-            processing_guarantee: str = "at_least_once",
+        self,
+        bootstrap_servers: str = "localhost:19092",
+        auto_offset_reset: str = "latest",
+        rebalance_timeout_ms: int = 1000,
+        max_records_per_batch: int = 1,
+        batch_timeout_ms: int = 300,
+        processing_guarantee: str = "at_least_once",
     ):
         if processing_guarantee not in ("at_least_once", "exactly_once"):
             raise ValueError("processing_guarantee must be either 'at_least_once' or 'exactly_once'")
@@ -46,19 +48,19 @@ class KafkaTransport(Transport):
         if self.max_records_per_batch < 1:
             raise ValueError("max_records_per_batch must be at least 1.")
         self.batch_timeout_ms = batch_timeout_ms
+        self.batch_timeout_sec = self.batch_timeout_ms / 1000.0  # Convert ms to seconds
 
         self.producer: Optional[aiokafka.AIOKafkaProducer] = None
         self._consumers: Dict[Tuple[str, str], aiokafka.AIOKafkaConsumer] = {}
         self._consume_tasks: Dict[Tuple[str, str], asyncio.Task] = {}
         self._subscriptions: Dict[Tuple[str, str], List[Callable[[Dict[str, Any]], "asyncio.Future"]]] = {}
 
-        # We'll use this lock for transactional operations if exactly_once is enabled (in case of multiple subscriptions).
+        # Lock for transactional operations if exactly-once is enabled.
         self._producer_lock: Optional[asyncio.Lock] = None
 
     async def connect(self):
         if not self.producer:
             if self.processing_guarantee == "exactly_once":
-                # For exactly-once, create a transactional producer with a unique transactional ID.
                 transactional_id = f"kafka_transport_{uuid.uuid4()}"
                 self.producer = aiokafka.AIOKafkaProducer(
                     bootstrap_servers=self.bootstrap_servers,
@@ -68,10 +70,10 @@ class KafkaTransport(Transport):
                 self.producer = aiokafka.AIOKafkaProducer(bootstrap_servers=self.bootstrap_servers)
             await self.producer.start()
             if self.processing_guarantee == "exactly_once":
-                # Initialize a lock so only one transaction is active at a time.
                 self._producer_lock = asyncio.Lock()
 
     async def disconnect(self):
+        # Cancel consumer tasks.
         for task in self._consume_tasks.values():
             task.cancel()
             try:
@@ -80,6 +82,7 @@ class KafkaTransport(Transport):
                 pass
         self._consume_tasks.clear()
 
+        # Stop all consumers.
         for consumer in self._consumers.values():
             await consumer.stop()
         self._consumers.clear()
@@ -105,19 +108,16 @@ class KafkaTransport(Transport):
             await self.producer.send_and_wait(channel, data)
 
     async def subscribe(
-            self,
-            channel: str,
-            callback: Callable[[Dict[str, Any]], "asyncio.Future"],
-            group_id: str
+        self,
+        channel: str,
+        callback: Callable[[Dict[str, Any]], "asyncio.Future"],
+        group_id: str,
     ):
         key = (group_id, channel)
-        if key not in self._subscriptions:
-            self._subscriptions[key] = []
-        self._subscriptions[key].append(callback)
+        self._subscriptions.setdefault(key, []).append(callback)
 
         if key not in self._consumers:
             offset_tracker: Dict[TopicPartition, int] = {}
-
             consumer_config = dict(
                 bootstrap_servers=self.bootstrap_servers,
                 group_id=group_id,
@@ -130,10 +130,7 @@ class KafkaTransport(Transport):
                 session_timeout_ms=10 * 1000,
             )
             # For exactly-once, only read committed messages.
-            if self.processing_guarantee == "exactly_once":
-                consumer_config["isolation_level"] = "read_committed"
-            else:
-                consumer_config["isolation_level"] = "read_uncommitted"
+            consumer_config["isolation_level"] = "read_committed" if self.processing_guarantee == "exactly_once" else "read_uncommitted"
 
             consumer = aiokafka.AIOKafkaConsumer(channel, **consumer_config)
             listener = CustomRebalanceListener(consumer, offset_tracker)
@@ -142,12 +139,11 @@ class KafkaTransport(Transport):
             self._consumers[key] = consumer
             self._consume_tasks[key] = asyncio.create_task(self._consume_loop(key, consumer, offset_tracker))
 
-    async def _consume_loop(self, key: Tuple[str, str], consumer: aiokafka.AIOKafkaConsumer,
-                            offset_tracker: Dict[TopicPartition, int]):
+    async def _consume_loop(self, key: Tuple[str, str], consumer: aiokafka.AIOKafkaConsumer, offset_tracker: Dict[TopicPartition, int]):
         batch = []
         last_flush_time = time.monotonic()
-        # Extract the consumer group from the key.
         group_id, _ = key
+
         try:
             while True:
                 result = await consumer.getmany(timeout_ms=50, max_records=self.max_records_per_batch)
@@ -158,70 +154,20 @@ class KafkaTransport(Transport):
                         offset_tracker[tp] = msg.offset
 
                 current_time = time.monotonic()
-                if batch and (len(batch) >= self.max_records_per_batch or current_time - last_flush_time >= 0.3):
-                    events = [event for _, event, _ in batch.copy()]
-                    if self.processing_guarantee == "exactly_once":
-                        try:
-                            async with self._producer_lock:
-                                await self.producer.begin_transaction()
-                                # Await processing of callbacks so that errors propagate.
-                                await self._process_batch(key, events)
-                                assigned = consumer.assignment()
-                                commit_dict = {
-                                    tp: OffsetAndMetadata(offset + 1, "")
-                                    for tp, _, offset in batch
-                                    if tp in assigned
-                                }
-                                await self.producer.send_offsets_to_transaction(commit_dict, group_id)
-                                await self.producer.commit_transaction()
-                        except Exception as e:
-                            print(f"Error in processing batch for exactly_once guarantee for {key}: {e}")
-                            try:
-                                async with self._producer_lock:
-                                    await self.producer.abort_transaction()
-                            except Exception as abort_e:
-                                print(f"Error aborting transaction: {abort_e}")
-                            # Do not clear the batch so it will be retried.
-                            continue
+                if batch and (len(batch) >= self.max_records_per_batch or current_time - last_flush_time >= self.batch_timeout_sec):
+                    # Try to flush the batch; on failure (exactly-once), do not clear the batch for retry.
+                    if await self._flush_batch(key, consumer, batch, group_id):
+                        batch.clear()
+                        last_flush_time = current_time
                     else:
-                        await self._process_batch(key, events)
-                        assigned = consumer.assignment()
-                        commit_dict = {
-                            tp: OffsetAndMetadata(offset + 1, "")
-                            for tp, _, offset in batch
-                            if tp in assigned
-                        }
-                        if commit_dict:
-                            await consumer.commit(commit_dict)
-                    batch.clear()
-                    last_flush_time = current_time
+                        continue
+
         except asyncio.CancelledError:
             if batch:
                 events = [event for _, event, _ in batch]
                 print(f"Flushing {len(events)} events for {key} on cancellation")
                 try:
-                    if self.processing_guarantee == "exactly_once":
-                        async with self._producer_lock:
-                            await self.producer.begin_transaction()
-                            await self._process_batch(key, events)
-                            assigned = consumer.assignment()
-                            commit_dict = {
-                                tp: OffsetAndMetadata(offset + 1, "")
-                                for tp, _, offset in batch
-                                if tp in assigned
-                            }
-                            await self.producer.send_offsets_to_transaction(commit_dict, group_id)
-                            await self.producer.commit_transaction()
-                    else:
-                        await self._process_batch(key, events)
-                        assigned = consumer.assignment()
-                        commit_dict = {
-                            tp: OffsetAndMetadata(offset + 1, "")
-                            for tp, _, offset in batch
-                            if tp in assigned
-                        }
-                        if commit_dict:
-                            await consumer.commit(commit_dict)
+                    await self._flush_batch(key, consumer, batch, group_id)
                 except Exception as e:
                     print(f"Error flushing batch for {key} on cancellation: {e}")
                 batch.clear()
@@ -231,7 +177,56 @@ class KafkaTransport(Transport):
             traceback.print_exc()
             print(f"KafkaTransport consume loop error for {key}: {e}")
 
+    def _get_commit_dict(self, consumer: aiokafka.AIOKafkaConsumer, batch: List[Tuple[TopicPartition, Any, int]]) -> Dict[TopicPartition, OffsetAndMetadata]:
+        assigned = consumer.assignment()
+        return {
+            tp: OffsetAndMetadata(offset + 1, "")
+            for tp, _, offset in batch
+            if tp in assigned
+        }
+
+    async def _flush_batch(
+        self,
+        key: Tuple[str, str],
+        consumer: aiokafka.AIOKafkaConsumer,
+        batch: List[Tuple[TopicPartition, Any, int]],
+        group_id: str,
+    ) -> bool:
+        """
+        Process a batch of messages and commit offsets.
+        Returns True if flush succeeded (so the batch can be cleared),
+        or False if an error occurred in exactly-once processing (so the batch should be retried).
+        """
+        events = [event for _, event, _ in batch]
+        if self.processing_guarantee == "exactly_once":
+            try:
+                async with self._producer_lock:
+                    await self.producer.begin_transaction()
+                    await self._process_batch(key, events)
+                    commit_dict = self._get_commit_dict(consumer, batch)
+                    await self.producer.send_offsets_to_transaction(commit_dict, group_id)
+                    await self.producer.commit_transaction()
+                return True
+            except Exception as e:
+                print(f"Error in processing batch for exactly_once guarantee for {key}: {e}")
+                try:
+                    async with self._producer_lock:
+                        await self.producer.abort_transaction()
+                except Exception as abort_e:
+                    print(f"Error aborting transaction: {abort_e}")
+                return False
+        else:
+            await self._process_batch(key, events)
+            commit_dict = self._get_commit_dict(consumer, batch)
+            if commit_dict:
+                await consumer.commit(commit_dict)
+            return True
+
     async def _process_batch(self, key: Tuple[str, str], events: List[Dict[str, Any]]):
+        """
+        Process events using the callbacks registered under the given key.
+        Errors are printed but do not stop processing of other events.
+        """
         tasks = []
         for event in events:
             callbacks = self._subscriptions.get(key, [])
@@ -243,8 +238,8 @@ class KafkaTransport(Transport):
                     tasks.append(loop.run_in_executor(None, cb, event))
         if tasks:
             async def _gather():
-                res = await asyncio.gather(*tasks, return_exceptions=True)
-                for r in res:
-                    if isinstance(r, Exception):
-                        print(f"Error in callback for {key}: {r}")
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for result in results:
+                    if isinstance(result, Exception):
+                        print(f"Error in callback for {key}: {result}")
             asyncio.ensure_future(_gather())
