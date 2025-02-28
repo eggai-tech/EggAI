@@ -1,6 +1,5 @@
 import asyncio
 import uuid
-from collections import defaultdict
 from typing import (
     List, Dict, Any, Optional, Callable, Tuple, Union
 )
@@ -20,8 +19,7 @@ class Agent:
     def __init__(self, name: str, transport: Optional[Transport] = None):
         """
         :param name: The name of the agent (used as an identifier).
-        :param transport: A concrete transport instance (KafkaTransport, InMemoryTransport, etc.).
-                          If None, defaults to InMemoryTransport.
+        :param transport: A concrete transport instance (KafkaTransport, InMemoryTransport, etc.). If None, defaults to InMemoryTransport.
         """
         self._name = name
         self._transport = transport
