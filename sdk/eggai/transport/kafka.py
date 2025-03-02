@@ -49,7 +49,7 @@ class KafkaTransport(Transport):
             rebalance_timeout_ms (int, optional): _description_. Defaults to 1000.
             max_records_per_batch (int, optional): _description_. Defaults to 1.
             batch_timeout_ms (int, optional): _description_. Defaults to 300.
-            processing_guarantee (KafkaTransportProcessingGuarantee, optional): _description_. Defaults to AT_LEAST_ONCE.
+            processing_guarantee (KafkaTransportProcessingGuarantee, optional): _description_. Options: "AT_LEAST_ONCE" (default) or "EXACTLY_ONCE".
 
         Raises:
             ValueError: _description_
