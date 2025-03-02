@@ -41,19 +41,19 @@ class KafkaTransport(Transport):
         batch_timeout_ms: int = 300,
         processing_guarantee: KafkaTransportProcessingGuarantee = KafkaTransportProcessingGuarantee.AT_LEAST_ONCE,
     ):
-        """_summary_
+        """
+        Kafka-based transport layer for message publishing and consumption.
 
         Args:
-            bootstrap_servers (_type_, optional): _description_. Defaults to "localhost:19092".
-            auto_offset_reset (str, optional): _description_. Defaults to "latest".
-            rebalance_timeout_ms (int, optional): _description_. Defaults to 1000.
-            max_records_per_batch (int, optional): _description_. Defaults to 1.
-            batch_timeout_ms (int, optional): _description_. Defaults to 300.
-            processing_guarantee (KafkaTransportProcessingGuarantee, optional): _description_. Options: "AT_LEAST_ONCE" (default) or "EXACTLY_ONCE".
+            bootstrap_servers (_type_, optional): Kafka bootstrap server addresses.
+            auto_offset_reset (str, optional): Offset reset policy ("earliest", "latest").
+            rebalance_timeout_ms (int, optional): Time in milliseconds for rebalancing partitions.
+            max_records_per_batch (int, optional): Maximum records to process per batch.
+            batch_timeout_ms (int, optional): Time in milliseconds before flushing a batch.
+            processing_guarantee (KafkaTransportProcessingGuarantee, optional): Message processing guarantee: 'at_least_once' (default), or 'exactly_once'.
 
         Raises:
-            ValueError: _description_
-            ValueError: _description_
+            ValueError:        
         """
         self.processing_guarantee = processing_guarantee
 

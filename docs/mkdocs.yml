@@ -36,6 +36,8 @@ nav:
     - "Channel": sdk/channel.md
     - "Message": sdk/message.md
     - "Transport": sdk/transport.md
+    - "KafkaTransport": sdk/kafka-transport.md
+    - "InMemoryTransport": sdk/inmemory-transport.md
 
 plugins:
 - include-markdown:
