@@ -1,4 +1,5 @@
 import asyncio
+import json
 import uuid
 from collections import defaultdict
 from typing import Dict, Optional, List, Callable, Tuple, Any
@@ -50,8 +51,14 @@ class InMemoryTransport(Transport):
             raise RuntimeError("Transport not connected. Call `connect()` first.")
         if channel not in InMemoryTransport._CHANNELS:
             InMemoryTransport._CHANNELS[channel] = {}
+
+        if hasattr(message, "model_dump_json"):
+            data = message.model_dump_json()
+        else:
+            data = json.dumps(message)
+
         for grp_id, queue in InMemoryTransport._CHANNELS[channel].items():
-            await queue.put(message)
+            await queue.put(data)
 
     async def subscribe(
             self,
@@ -89,9 +96,10 @@ class InMemoryTransport(Transport):
         try:
             while True:
                 msg = await queue.get()
+                data = json.loads(msg)
                 callbacks = InMemoryTransport._SUBSCRIPTIONS[channel].get(group_id, [])
                 for cb in callbacks:
-                    await cb(msg)
+                    await cb(data)
         except asyncio.CancelledError:
             pass
         except Exception as e:

@@ -110,7 +110,10 @@ class KafkaTransport(Transport):
     async def publish(self, channel: str, message: Dict[str, Any]):
         if not self.producer:
             raise RuntimeError("Transport not connected. Call `connect()` first.")
-        data = json.dumps(message).encode("utf-8")
+        if hasattr(message, "model_dump_json"):
+            data = message.model_dump_json().encode("utf-8")
+        else:
+            data = json.dumps(message).encode("utf-8")
         if self.processing_guarantee == KafkaTransportProcessingGuarantee.EXACTLY_ONCE:
             async with self._producer_lock:
                 await self.producer.begin_transaction()
