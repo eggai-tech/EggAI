@@ -1,0 +1,28 @@
+[tool.pytest.ini_options]
+testpaths = ["sdk", "examples"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "EggAI"
+version = "0.1.0"
+authors = [
+    { name = "EggAI Technologies GmbH", email = "info@egg-ai.com"},
+]
+description = "Multi-Agent Meta Framework"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE.md"}
+dependencies = []
+
+
+[project.urls]
+Homepage = "https://egg-ai.com"
+Documentation = "https://docs.egg-ai.com"
+Repository = "https://github.com/eggai-tech/EggAI"
+
+[tool.setuptools]
+py-modules = ["sdk", "examples"]
