@@ -1,8 +1,10 @@
 import asyncio
 from abc import ABC, abstractmethod
 from typing import (
-    Dict, Any, Optional, Callable
+    Dict, Any, Optional, Callable, Union
 )
+
+from eggai.schemas import BaseMessage
 
 
 class Transport(ABC):
@@ -26,7 +28,7 @@ class Transport(ABC):
         pass
 
     @abstractmethod
-    async def publish(self, channel: str, message: Dict[str, Any]):
+    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
         """
         Publish the given message to the channel.
         """

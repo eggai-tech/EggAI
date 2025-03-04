@@ -2,8 +2,9 @@ import asyncio
 import json
 import uuid
 from collections import defaultdict
-from typing import Dict, Optional, List, Callable, Tuple, Any
+from typing import Dict, Optional, List, Callable, Tuple, Any, Union
 
+from eggai.schemas import BaseMessage
 from eggai.transport import Transport
 
 
@@ -42,7 +43,7 @@ class InMemoryTransport(Transport):
         self._consume_tasks.clear()
         self._connected = False
 
-    async def publish(self, channel: str, message: Dict[str, Any]):
+    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
         """
         Publishes a message to the given channel.
         The message is put into all queues for that channel so each consumer group receives it.

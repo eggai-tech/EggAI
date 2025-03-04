@@ -3,11 +3,12 @@ import enum
 import json
 import uuid
 import time
-from typing import Dict, Any, Optional, Callable, Tuple, List
+from typing import Dict, Any, Optional, Callable, Tuple, List, Union
 
 import aiokafka
 from aiokafka.structs import TopicPartition, OffsetAndMetadata
 
+from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
 
 
@@ -107,7 +108,7 @@ class KafkaTransport(Transport):
             await self.producer.stop()
             self.producer = None
 
-    async def publish(self, channel: str, message: Dict[str, Any]):
+    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
         if not self.producer:
             raise RuntimeError("Transport not connected. Call `connect()` first.")
         if hasattr(message, "model_dump_json"):
