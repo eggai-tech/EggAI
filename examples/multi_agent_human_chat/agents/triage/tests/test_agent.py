@@ -55,7 +55,6 @@ async def test_triage_agent():
         await test_channel.publish({
             "id": str(uuid4()),
             "type": "user_message",
-            "meta": {},
             "payload": {
                 "chat_messages": [
                     {"role": "User", "content": case["chat_history"]},

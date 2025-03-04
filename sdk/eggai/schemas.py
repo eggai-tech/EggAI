@@ -45,3 +45,15 @@ class Message(BaseMessage[Dict[str, Any]]):
     Concrete Message model with `data` defaulting to dict.
     """
     pass
+
+if __name__ == "__main__":
+    m = Message(
+        type="agent_message",
+        source="eggai",
+        data={
+            "message": "Sorry, I can't help you with that.",
+            "connection_id": "connection_id",
+            "agent": "TriageAgent",
+        }
+    )
+    print(m)

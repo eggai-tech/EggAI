@@ -1,5 +1,6 @@
 import os
 from eggai import Channel, Agent
+from eggai.schemas import Message
 from starlette.websockets import WebSocket, WebSocketDisconnect
 import asyncio
 import uuid
@@ -68,15 +69,16 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                     valid_content = await toxic_language_guard(content)
                     if valid_content is None:
                         await human_channel.publish(
-                            {
-                                "id": message_id,
-                                "type": "agent_message",
-                                "payload": "Sorry, I can't help you with that.",
-                                "meta": {
-                                    "agent": "TriageAgent",
+                            Message(
+                                id=message_id,
+                                source="FrontendAgent",
+                                type="agent_message",
+                                data={
+                                    "message": "Sorry, I can't help you with that.",
                                     "connection_id": connection_id,
-                                },
-                            }
+                                    "agent": "TriageAgent",
+                                }
+                            )
                         )
                         continue
                 else:
@@ -94,14 +96,15 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                     }
                 )
                 await human_channel.publish(
-                    {
-                        "id": message_id,
-                        "type": "user_message",
-                        "payload": {"chat_messages": messages_cache[connection_id]},
-                        "meta": {
+                    Message(
+                        id=message_id,
+                        source="FrontendAgent",
+                        type="user_message",
+                        data={
+                            "chat_messages": messages_cache[connection_id],
                             "connection_id": connection_id,
                         },
-                    }
+                    )
                 )
         except WebSocketDisconnect:
             pass
@@ -116,19 +119,21 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     channel=human_channel,
     filter_func=lambda message: message.get("type") == "agent_message",
 )
-async def handle_human_messages(message):
-    meta = message.get("meta")
-    agent = meta.get("agent")
-    content = message.get("payload")
-    connection_id = meta.get("connection_id")
+async def handle_human_messages(msg_dict):
+    message = Message(**msg_dict)
+    agent = message.data.get("agent")
+    content = message.data.get("message")
+    connection_id = message.data.get("connection_id")
+    
     if connection_id not in messages_cache:
         messages_cache[connection_id] = []
+        
     messages_cache[connection_id].append(
         {
             "role": "assistant",
             "content": content,
             "agent": agent,
-            "id": message.get("id"),
+            "id": message.id,
         }
     )
     await websocket_manager.send_message_to_connection(

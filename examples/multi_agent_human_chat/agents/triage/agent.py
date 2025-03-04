@@ -1,7 +1,10 @@
-from uuid import uuid4
+import time
+
 from eggai import Channel, Agent
+from eggai.schemas import Message
 from agents.triage.agents_registry import AGENT_REGISTRY
 from agents.triage.dspy_modules.v1 import triage_classifier
+
 
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel("human")
@@ -10,23 +13,23 @@ agents_channel = Channel("agents")
 
 
 @triage_agent.subscribe(
-    channel=human_channel, filter_func=lambda msg: msg["type"] == "user_message"
+    channel=human_channel, filter_func=lambda msg: msg.get("type") == "user_message"
 )
-async def handle_user_message(msg):
+async def handle_user_message(msg_dict):
     try:
-        payload = msg["payload"]
-        chat_messages = payload.get("chat_messages", [])
-        meta = msg.get("meta", {})
-        meta["message_id"] = msg.get("id")
+        msg = Message(**msg_dict)
+        chat_messages = msg.data.get("chat_messages", [])
 
         # Combine chat history
         conversation_string = ""
         for chat in chat_messages:
             user = chat.get("agent", "User")
             conversation_string += f"{user}: {chat['content']}\n"
-
-        # identify the agent to target based on the user chat messages
+            
+        print("TRIAGE => Classifying message...")
+        initial_time = time.time()
         response = triage_classifier(chat_history=conversation_string)
+        print(f"TRIAGE => Classification time: {time.time() - initial_time}")
         target_agent = response.target_agent
         triage_to_agent_messages = [
             {
@@ -36,26 +39,34 @@ async def handle_user_message(msg):
         ]
 
         if target_agent in AGENT_REGISTRY and target_agent != "TriageAgent":
+            print(f"TRIAGE => Routing to {target_agent}")
             await agents_channel.publish(
-                {
-                    "id": str(uuid4()),
-                    "type": AGENT_REGISTRY[target_agent]["message_type"],
-                    "payload": {"chat_messages": triage_to_agent_messages},
-                    "meta": meta,
-                }
+                Message(
+                    type=AGENT_REGISTRY[target_agent]["message_type"],
+                    source="TriageAgent",
+                    data={
+                        "chat_messages": triage_to_agent_messages,
+                        "message_id": msg.id,
+                        "connection_id": msg.data.get("connection_id"),
+                    },
+                )
             )
         else:
+            print("TRIAGE => Routing to TriageAgent")
             message_to_send = (
                     response.small_talk_message or response.fall_back_message or ""
             )
-            meta["agent"] = "TriageAgent"
             await human_channel.publish(
-                {
-                    "id": str(uuid4()),
-                    "type": "agent_message",
-                    "meta": meta,
-                    "payload": message_to_send,
-                }
+                Message(
+                    type="agent_message",
+                    source="TriageAgent",
+                    data={
+                        "message": message_to_send,
+                        "message_id": msg.id,
+                        "agent": "TriageAgent",
+                        "connection_id": msg.data.get("connection_id"),
+                    },
+                )
             )
     except Exception as e:
         print("Error in TriageAgent: ", e)

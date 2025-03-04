@@ -9,7 +9,7 @@ conversation,target
 "User: Can you explain the benefits covered under my current policy?","PoliciesAgent"
 "User: I would like to update my address on my policy.\nPoliciesAgent: Sure, please provide your new address.\nUser: 123 Main Street, Springfield.","PoliciesAgent"
 "User: Please send me a copy of my policy statement.","PoliciesAgent"
-"User: I want to escalate my previous issue regarding my billing statement.","EscalationAgent"
+"User: I want to escalate my previous issue regarding my billing statement.","TicketingAgent"
 "User: Tell me a fun fact about space.","TriageAgent"
 "User: How's your day going?","TriageAgent"
 "User: I need some help with my policy but I'm not sure who to contact.","PoliciesAgent"

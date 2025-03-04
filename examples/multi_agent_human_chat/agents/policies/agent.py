@@ -6,6 +6,7 @@ from uuid import uuid4
 import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
+from eggai.schemas import Message
 
 from agents.policies.rag.retrieving import retrieve_policies
 
@@ -112,11 +113,12 @@ policies_react = dspy.asyncify(dspy.ReAct(PolicyAgentSignature, tools=[take_poli
 
 
 @policies_agent.subscribe(
-    channel=agents_channel, filter_func=lambda msg: msg["type"] == "policy_request"
+    channel=agents_channel, filter_func=lambda msg: msg.get("type") == "policy_request"
 )
-async def handle_policy_request(msg):
+async def handle_policy_request(msg_dict):
     try:
-        chat_messages = msg["payload"]["chat_messages"]
+        msg = Message(**msg_dict)
+        chat_messages = msg.data["chat_messages"]
         conversation_string = ""
         for chat in chat_messages:
             role = chat.get("role", "User")
@@ -125,18 +127,19 @@ async def handle_policy_request(msg):
         final_response = response.final_response
         if "final_response_with_documentation_reference" in response and response.final_response_with_documentation_reference:
             final_response = response.final_response_with_documentation_reference
-        meta = msg.get("meta", {})
-        meta["agent"] = "PoliciesAgent"
 
         print("Additional data: ", response)
 
         await human_channel.publish(
-            {
-                "id": str(uuid4()),
-                "type": "agent_message",
-                "meta": meta,
-                "payload": final_response,
-            }
+            Message(
+                type="agent_message",
+                source="PoliciesAgent",
+                data={
+                    "message": final_response,
+                    "connection_id": msg.data.get("connection_id"),
+                    "agent": "PoliciesAgent",
+                }
+            )
         )
     except Exception as e:
         print(f"Error in PoliciesAgent: {e}")

@@ -4,7 +4,7 @@ import dspy
 
 from agents.triage.agents_registry import AGENT_REGISTRY
 
-TargetAgent = Literal["PoliciesAgent", "BillingAgent", "EscalationAgent", "TriageAgent"]
+TargetAgent = Literal["PoliciesAgent", "BillingAgent", "TicketingAgent", "TriageAgent"]
 
 
 

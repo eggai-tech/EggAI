@@ -7,7 +7,7 @@ import dspy
 from dotenv import load_dotenv
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport, KafkaTransport
-from .agent import escalation_agent
+from .agent import ticketing_agent
 
 
 @eggai_main
@@ -16,7 +16,7 @@ async def main():
     language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
     dspy.configure(lm=language_model)
     eggai_set_default_transport(lambda: KafkaTransport())
-    await escalation_agent.start()
+    await ticketing_agent.start()
 
     await asyncio.Future()
 

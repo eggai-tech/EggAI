@@ -3,11 +3,12 @@ from uuid import uuid4
 import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
+from eggai.schemas import Message
 import asyncio
 from typing import Any, Literal, Optional
 
 # Agent & Channels
-escalation_agent = Agent(name="EscalationAgent")
+ticketing_agent = Agent(name="TicketingAgent")
 agents_channel = Channel("agents")
 human_channel = Channel("human")
 pending_tickets = {}
@@ -67,129 +68,127 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
     step = pending_tickets[session].get("step", "ask_additional_data")
 
     if step == "ask_additional_data":
+        print("[Ticketing Agent] STEP 1: Asking for additional data...")
         response = await retrieve_ticket_info_module(chat_history=chat_history)
+        print("[Ticketing Agent] Response: ", response)
         if response.title:
             update_session_data(session, {"title": response.title})
+            print("[Ticketing Agent] Updating title session: ", response.title)
         if response.contact_info:
             update_session_data(session, {"contact_info": response.contact_info})
+            print("[Ticketing Agent] Updating contact_info session: ", response.contact_info)
         if response.department:
             update_session_data(session, {"department": response.department})
+            print("[Ticketing Agent] Updating department session: ", response.department)
         if response.info_complete:
+            print("[Ticketing Agent] All information is complete. New step: ask_confirmation")
             update_session_data(session, {"step": "ask_confirmation"})
+            
             conf_message = (await classify_confirmation(chat_history=chat_history)).message
-            await human_channel.publish({
-                "id": str(uuid4()),
-                "type": "agent_message",
-                "meta": meta,
-                "payload": conf_message
-            })
+            
+            print(f"[Ticketing Agent] Sending confirmation message request: {conf_message}")
+            await human_channel.publish(
+                Message(
+                    type="agent_message",
+                    source="TicketingAgent",
+                    data={
+                        "message": conf_message,
+                        "connection_id": meta.get("connection_id"),
+                        "message_id": meta.get("message_id"),
+                        "agent": "TicketingAgent",
+                        "session": session
+                    }
+                )
+            )
         else:
-            await human_channel.publish({
-                "id": str(uuid4()),
-                "type": "agent_message",
-                "meta": meta,
-                "payload": response.message
-            })
+            print("[Ticketing Agent] Information is incomplete. Asking additional details...", response.message)
+            await human_channel.publish(
+                Message(
+                    type="agent_message",
+                    source="TicketingAgent",
+                    data={
+                        "message": response.message,
+                        "connection_id": meta.get("connection_id"),
+                        "agent": "TicketingAgent",
+                        "session": session
+                    }
+                )
+            )
     elif step == "ask_confirmation":
+        print("[Ticketing Agent] Processing STEP: Classifying confirmation...")
         response = (await classify_confirmation(chat_history=chat_history))
         if response.confirmation == "yes":
+            print("[Ticketing Agent] Confirmation is YES. New step: create_ticket")
             update_session_data(session, {"step": "create_ticket"})
-            await human_channel.publish({
-                "id": str(uuid4()),
-                "type": "agent_message",
-                "meta": meta,
-                "payload": "Creating ticket..."
-            })
+            await human_channel.publish(
+                Message(
+                    type="agent_message",
+                    source="TicketingAgent",
+                    data={
+                        "message": "Creating ticket...",
+                        "message_id": meta.get("message_id"),
+                        "connection_id": meta.get("connection_id"),
+                        "agent": "TicketingAgent",
+                        "session": session
+                    }
+                )
+            )
             await agentic_workflow(session, chat_history, meta)
         else:
-            await human_channel.publish({
-                "id": str(uuid4()),
-                "type": "agent_message",
-                "meta": meta,
-                "payload": response.message
-            })
+            print("[Ticketing Agent] Confirmation is NO. New step: ask_additional_data")
+            await human_channel.publish(
+                Message(
+                    type="agent_message",
+                    source="TicketingAgent",
+                    data={
+                        "message": response.message,
+                        "message_id": meta.get("message_id"),
+                        "connection_id": meta.get("connection_id"),
+                        "agent": "TicketingAgent",
+                        "session": session
+                    }
+                )
+            )
     elif step == "create_ticket":
+        print("[Ticketing Agent] Processing STEP: Creating ticket...")
         response = (await create_ticket_module(ticket_details=pending_tickets[session])).ticket_message
-        await human_channel.publish({
-            "id": str(uuid4()),
-            "type": "agent_message",
-            "meta": meta,
-            "payload": response
-        })
+        await human_channel.publish(
+            Message(
+                type="agent_message",
+                source="TicketingAgent",
+                data={
+                    "message": response,
+                    "message_id": meta.get("message_id"),
+                    "connection_id": meta.get("connection_id"),
+                    "agent": "TicketingAgent",
+                    "session": session
+                }
+            )
+        )
+        print("[Ticketing Agent] Ticket created. Removing session data...")
         pending_tickets.pop(session, None)
     else:
         raise ValueError("Invalid step value.")
 
-# --- Entrypoint Subscription ---
-@escalation_agent.subscribe(
-    channel=agents_channel, filter_func=lambda msg: msg["type"] == "escalation_request"
+@ticketing_agent.subscribe(
+    channel=agents_channel, filter_func=lambda msg: msg["type"] == "ticketing_request"
 )
-async def handle_escalation_request(msg):
-    meta = msg.get("meta", {})
-    session = meta.get("session", "default_session")
-    meta["session"] = session
-    meta["agent"] = "EscalationAgent"
-    chat_messages = msg["payload"]["chat_messages"]
+async def handle_ticketing_request(msg_dict):
+    print("[Ticketing Agent] Handling ticketing request...")
+    msg = Message(**msg_dict)
+    session = msg.data.get("session", f"session_{uuid4()}")
+    chat_messages = msg.data.get("chat_messages")
     conversation_string = ""
     for chat in chat_messages:
         role = chat.get("role", "User")
         conversation_string += f"{role}: {chat['content']}\n"
     
     if session not in pending_tickets:
-        
         pending_tickets[session] = { "step": "ask_additional_data" }
     
-    print("Current session: ", pending_tickets[session])
-    print("msg coming: ", msg)
-    await agentic_workflow(session, conversation_string, meta)
-
-# --- Test Conversation ---
-if __name__ == "__main__":
-    async def test_conversation():
-        logger_agent = Agent(name="LoggerAgent")
-        @logger_agent.subscribe(channel=human_channel)
-        async def log_human_messages(msg):
-            print("Agent Says:", msg["payload"]["message"])
-        load_dotenv()
-        language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
-        dspy.configure(lm=language_model)
-        await logger_agent.start()
-        await escalation_agent.start()
-        session = "session_test_001"
-        history = []
-
-        history.append({"role": "User", "content": "I have a billing issue."})
-        print("User Says: I have a billing issue.")
-        await agents_channel.publish({
-            "id": str(uuid4()),
-            "type": "escalation_request",
-            "meta": {"session": session},
-            "payload": {"chat_history": history}
-        })
-        await asyncio.sleep(5)
-
-        # Step 2: User provides account details (contact_info)
-        history.append({"role": "User", "content": "My contact info is alice@example.com"})
-        print("User Says: My contact info is alice@example.com")
-        await agents_channel.publish({
-            "id": str(uuid4()),
-            "type": "escalation_request",
-            "meta": {"session": session},
-            "payload": {
-                "chat_history": history,
-            }
-        })
-        await asyncio.sleep(1)
-
-        # Step 3: User confirms ticket creation
-        history.append({"role": "User", "content": "Yes, please create the ticket."})
-        print("User Says: Yes, please create the ticket.")
-        await agents_channel.publish({
-            "id": str(uuid4()),
-            "type": "escalation_request",
-            "meta": {"session": session},
-            "payload": {"chat_history": history}
-        })
-        await asyncio.Future()
-
-    asyncio.run(test_conversation())
+    await agentic_workflow(session, conversation_string, {
+        "session": session,
+        "message_id": msg.id,
+        "connection_id": msg.data.get("connection_id"),
+        "agent": "TicketingAgent"
+    })
