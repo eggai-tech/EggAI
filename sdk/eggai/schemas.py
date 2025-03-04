@@ -6,10 +6,8 @@ from pydantic import BaseModel, Field, UUID4
 
 # Define type variables with defaults (requires Python 3.11+ for default values on TypeVar)
 TData = TypeVar("TData")
-TMetadata = TypeVar("TMetadata")
-TContext = TypeVar("TContext")
 
-class BaseMessage(BaseModel, Generic[TData, TMetadata, TContext]):
+class BaseMessage(BaseModel, Generic[TData]):
     """
     Generic Message Model for Agent Messaging Protocol.
 
@@ -44,6 +42,6 @@ class BaseMessage(BaseModel, Generic[TData, TMetadata, TContext]):
 # Create a concrete version with dict defaults.
 class Message(BaseMessage[Dict[str, Any]]):
     """
-    Concrete Message model with `data`, `metadata`, and `context` defaulting to dict.
+    Concrete Message model with `data` defaulting to dict.
     """
     pass
