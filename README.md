@@ -439,6 +439,12 @@ Install `eggai` via pip:
 pip install eggai
 ```
 
+For local development, clone the repository and install the package in editable mode:
+
+```bash
+pip install -e .
+```
+
 ### Getting Started
 
 Here's how you can quickly set up an agent to handle events in an event-driven system:
