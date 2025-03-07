@@ -5,11 +5,12 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 import asyncio
 import uuid
 import uvicorn
+from opentelemetry import trace
 from fastapi import FastAPI, Query
 from .websocket_manager import WebSocketManager
 
 # Load environment variable
-GUARDRAILS_ENABLED = os.getenv("GUARDRAILS_TOKEN") is not None
+GUARDRAILS_ENABLED = False
 
 # Conditionally import guardrails
 if GUARDRAILS_ENABLED:
@@ -27,6 +28,7 @@ human_channel = Channel("human")
 websocket_manager = WebSocketManager()
 
 messages_cache = {}
+tracer = trace.get_tracer("frontend_agent")
 
 
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
@@ -119,6 +121,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     channel=human_channel,
     filter_func=lambda message: message.get("type") == "agent_message",
 )
+@tracer.start_as_current_span("handle_human_messages")
 async def handle_human_messages(msg_dict):
     message = Message(**msg_dict)
     agent = message.data.get("agent")

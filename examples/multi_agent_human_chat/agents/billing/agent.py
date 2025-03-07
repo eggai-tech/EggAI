@@ -1,6 +1,7 @@
 import json
 from uuid import uuid4
 import dspy
+from opentelemetry import trace
 from dotenv import load_dotenv
 from eggai import Channel, Agent
 
@@ -8,6 +9,8 @@ billing_agent = Agent(name="BillingAgent")
 
 agents_channel = Channel("agents")
 human_channel = Channel("human")
+
+tracer = trace.get_tracer("billing_agent")
 
 
 class BillingAgentSignature(dspy.Signature):
@@ -118,6 +121,7 @@ billing_react = dspy.ReAct(
 @billing_agent.subscribe(
     channel=agents_channel, filter_func=lambda msg: msg["type"] == "billing_request"
 )
+@tracer.start_as_current_span("handle_billing_message")
 async def handle_billing_message(msg):
     try:
         chat_messages = msg["payload"]["chat_messages"]

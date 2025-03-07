@@ -2,7 +2,7 @@ import json
 import threading
 from typing import Optional, Literal
 from uuid import uuid4
-
+from opentelemetry import trace
 import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
@@ -14,6 +14,8 @@ policies_agent = Agent(name="PoliciesAgent")
 
 agents_channel = Channel("agents")
 human_channel = Channel("human")
+
+tracer = trace.get_tracer("policies_agent")
 
 PolicyCategory = Literal["auto", "life", "home", "health"]
 
@@ -115,6 +117,7 @@ policies_react = dspy.asyncify(dspy.ReAct(PolicyAgentSignature, tools=[take_poli
 @policies_agent.subscribe(
     channel=agents_channel, filter_func=lambda msg: msg.get("type") == "policy_request"
 )
+@tracer.start_as_current_span("handle_policy_request")
 async def handle_policy_request(msg_dict):
     try:
         msg = Message(**msg_dict)

@@ -6,3 +6,5 @@ psutil==7.0.0
 websockets==14.1
 guardrails-ai==0.6.2
 ragatouille
+uvicorn==0.34.0
+openlit==1.33.10

@@ -1,6 +1,6 @@
 name: eggai-examples
 networks:
-  redpanda_network:
+  eggai_example_network:
     driver: bridge
 volumes:
   redpanda: null
@@ -24,7 +24,7 @@ services:
     volumes:
       - redpanda:/var/lib/redpanda/data
     networks:
-      - redpanda_network
+      - eggai_example_network
     ports:
       - 18081:18081
       - 18082:18082
@@ -40,7 +40,7 @@ services:
     container_name: redpanda-console
     image: docker.redpanda.com/redpandadata/console:v2.8.0
     networks:
-      - redpanda_network
+      - eggai_example_network
     entrypoint: /bin/sh
     command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console -config.filepath=${CONFIG_FILEPATH:-/tmp/config.yml}'
     environment:
@@ -64,7 +64,7 @@ services:
     image: docker.redpanda.com/redpandadata/redpanda:v24.3.1
     container_name: topic-init
     networks:
-      - redpanda_network
+      - eggai_example_network
     depends_on:
       redpanda:
         condition: service_healthy
@@ -76,3 +76,54 @@ services:
       echo 'Topic humans created successfully!'" &&
       rpk topic create agents --brokers=redpanda:9092 &&
       echo 'Topic agents created successfully!'"
+  otel-collector:
+    image: otel/opentelemetry-collector:0.86.0
+    command: [ "--config=/etc/otel-collector.yaml" ]
+    volumes:
+      - ./dockerConfig/otel-collector.yaml:/etc/otel-collector.yaml
+    ports:
+      - "4318:4318"
+    networks:
+      - eggai_example_network
+  tempo:
+    image: grafana/tempo:latest
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./dockerConfig/tempo.yaml:/etc/tempo.yaml
+      - ./temp/tempo-data:/tmp/tempo
+    ports:
+      - "14268:14268"
+      - "3200"
+      - "4317:4317"
+      - "9411:9411"
+      - "16686"
+    networks:
+      - eggai_example_network
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus.yaml
+      - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
+      - --enable-feature=native-histograms
+    volumes:
+      - ./dockerConfig/prometheus.yaml:/etc/prometheus.yaml
+    ports:
+      - "9090:9090"
+    networks:
+      - eggai_example_network
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./dockerConfig/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./dockerConfig/grafana-dashboard.json:/var/lib/grafana/dashboards/grafana-dashboard.json
+      - ./dockerConfig/grafana-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    ports:
+      - "3000:3000"
+    networks:
+      - eggai_example_network

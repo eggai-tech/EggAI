@@ -4,17 +4,18 @@ from eggai import Channel, Agent
 from eggai.schemas import Message
 from agents.triage.agents_registry import AGENT_REGISTRY
 from agents.triage.dspy_modules.v1 import triage_classifier
-
+from opentelemetry import trace
 
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel("human")
 agents_channel = Channel("agents")
 
-
+tracer = trace.get_tracer("triage_agent")
 
 @triage_agent.subscribe(
     channel=human_channel, filter_func=lambda msg: msg.get("type") == "user_message"
 )
+@tracer.start_as_current_span("handle_user_message")
 async def handle_user_message(msg_dict):
     try:
         msg = Message(**msg_dict)
@@ -25,7 +26,7 @@ async def handle_user_message(msg_dict):
         for chat in chat_messages:
             user = chat.get("agent", "User")
             conversation_string += f"{user}: {chat['content']}\n"
-            
+        
         print("TRIAGE => Classifying message...")
         initial_time = time.time()
         response = triage_classifier(chat_history=conversation_string)

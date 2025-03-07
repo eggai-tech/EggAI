@@ -6,12 +6,14 @@ from eggai import Channel, Agent
 from eggai.schemas import Message
 import asyncio
 from typing import Any, Literal, Optional
+from opentelemetry import trace
 
 # Agent & Channels
 ticketing_agent = Agent(name="TicketingAgent")
 agents_channel = Channel("agents")
 human_channel = Channel("human")
 pending_tickets = {}
+tracer = trace.get_tracer("ticketing_agent")
 
 ticket_database = [{
     "id": "TICKET-001",
@@ -173,6 +175,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
 @ticketing_agent.subscribe(
     channel=agents_channel, filter_func=lambda msg: msg["type"] == "ticketing_request"
 )
+@tracer.start_as_current_span("handle_ticketing_request")
 async def handle_ticketing_request(msg_dict):
     print("[Ticketing Agent] Handling ticketing request...")
     msg = Message(**msg_dict)
