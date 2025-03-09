@@ -1,12 +1,5 @@
-import warnings
-
-# Ignore the warning raised by dspy until it is fixed
-warnings.filterwarnings(
-    "ignore", message="Valid config keys have changed in V2", category=UserWarning
-)
 import asyncio
 import dspy
-import os
 from dotenv import load_dotenv
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport, KafkaTransport
