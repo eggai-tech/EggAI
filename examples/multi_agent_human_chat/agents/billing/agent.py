@@ -127,7 +127,8 @@ billing_react = TracedReAct(
     BillingAgentSignature, 
     tools=[get_billing_info, update_billing_info],
     name="billing_react",
-    tracer=tracer
+    tracer=tracer,
+    max_iters=5
 )
 
 

@@ -1,10 +1,11 @@
 import asyncio
 import pytest
 import dspy
-from uuid import uuid4
 from eggai import Agent, Channel
-from ..agent import escalation_agent
+from ..agent import ticketing_agent as escalation_agent
 from libraries.logger import get_console_logger
+from eggai.schemas import Message
+from uuid import uuid4
 
 logger = get_console_logger("escalation_agent.tests")
 
@@ -27,7 +28,7 @@ test_cases = [
             },
         ],
         "expected_meaning": (
-            "The agent asks the user to provide more details on the error."
+            "The agent asks the user to provide contact information."
         ),
     }
 ]
@@ -71,12 +72,16 @@ async def test_escalation_agent():
         event_received.clear()
 
         await test_channel.publish(
-            {
-                "id": str(uuid4()),
-                "type": "escalation_request",
-                "meta": {},
-                "payload": {"chat_messages": case["chat_messages"]},
-            }
+            Message(
+                type="ticketing_request",
+                source="TestAgent",
+                data={
+                    "chat_messages": case["chat_messages"],
+                    "session": f"session_{uuid4()}",
+                    "connection_id": None,
+                    "message_id": str(uuid4()),
+                }
+            )
         )
 
         try:
@@ -88,9 +93,9 @@ async def test_escalation_agent():
         assert received_event["type"] == "agent_message", (
             "Unexpected event type received."
         )
-        assert isinstance(received_event["payload"], str), "Payload should be a string."
+        assert isinstance(received_event["data"]["message"], str), "Payload should be a string."
 
-        agent_response = received_event["payload"]
+        agent_response = received_event["data"]["message"]
 
         eval_model = dspy.asyncify(dspy.Predict(EscalationEvaluationSignature))
         evaluation_result = await eval_model(

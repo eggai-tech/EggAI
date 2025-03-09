@@ -3,7 +3,7 @@ from uuid import uuid4
 import dspy
 from eggai import Channel, Agent
 from eggai.schemas import Message
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from opentelemetry import trace
 from libraries.tracing import TracedChainOfThought, TracedReAct, traced_asyncify
 from libraries.logger import get_console_logger
@@ -79,7 +79,8 @@ create_ticket_module = traced_asyncify(
         CreateTicketSignature, 
         tools=[create_ticket], 
         name="create_ticket",
-        tracer=tracer
+        tracer=tracer,
+        max_iters=5
     )
 )
 

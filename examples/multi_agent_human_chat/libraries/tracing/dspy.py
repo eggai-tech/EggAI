@@ -94,7 +94,7 @@ class TracedReAct(dspy.ReAct):
         self, 
         signature, 
         tools: Optional[List[Callable]] = None, 
-        max_iters: Optional[int] = None,
+        max_iters: Optional[int] = 5,
         name: Optional[str] = None,
         tracer: Optional[trace.Tracer] = None
     ):
