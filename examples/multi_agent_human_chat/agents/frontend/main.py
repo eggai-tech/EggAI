@@ -3,7 +3,6 @@ import os
 from contextlib import asynccontextmanager
 
 import uvicorn
-from dotenv import load_dotenv
 from eggai import eggai_cleanup
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
@@ -25,12 +24,14 @@ async def lifespan(app: FastAPI):
     try:
         # Configure Kafka transport
         logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-        transport_factory = lambda: KafkaTransport(
-            bootstrap_servers=settings.kafka_bootstrap_servers,
-            rebalance_timeout_ms=settings.kafka_rebalance_timeout_ms
-        )
         
-        eggai_set_default_transport(transport_factory)
+        def create_kafka_transport():
+            return KafkaTransport(
+                bootstrap_servers=settings.kafka_bootstrap_servers,
+                rebalance_timeout_ms=settings.kafka_rebalance_timeout_ms
+            )
+        
+        eggai_set_default_transport(create_kafka_transport)
         
         await frontend_agent.start()
         logger.info(f"{settings.app_name} started successfully")
@@ -82,7 +83,6 @@ add_websocket_gateway(settings.websocket_path, api, frontend_server)
 
 if __name__ == "__main__":
     try:
-        load_dotenv()
         logger.info(f"Starting {settings.app_name}")
         
         init_telemetry(app_name=settings.app_name)

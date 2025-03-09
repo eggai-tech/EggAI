@@ -218,7 +218,6 @@ async def handle_policy_request(msg_dict):
 
 
 if __name__ == "__main__":
-    load_dotenv()
     logger.info("Running policies agent as script")
     
     language_model = dspy.LM(settings.language_model, cache=settings.cache_enabled)

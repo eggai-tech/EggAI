@@ -1,5 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from dotenv import load_dotenv
+
+# Load environment variables at module level
+load_dotenv()
 
 
 class Settings(BaseSettings):

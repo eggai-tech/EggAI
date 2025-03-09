@@ -1,11 +1,13 @@
 import json
 from uuid import uuid4
 import dspy
-from dotenv import load_dotenv
 from eggai import Channel, Agent
 from libraries.tracing import TracedReAct, create_tracer
+from libraries.logger import get_console_logger
+from .config import settings
 
 billing_agent = Agent(name="BillingAgent")
+logger = get_console_logger("billing_agent.handler")
 
 agents_channel = Channel("agents")
 human_channel = Channel("human")
@@ -79,10 +81,12 @@ def get_billing_info(policy_number: str):
     Retrieve billing information for a given policy_number.
     Return a JSON object with billing fields if found, or {"error": "Policy not found."} if missing.
     """
-    print(f"[Tool] Retrieving billing info for policy number: {policy_number}")
+    logger.info(f"Retrieving billing info for policy number: {policy_number}")
     for record in billing_database:
         if record["policy_number"] == policy_number.strip():
+            logger.info(f"Found billing record for policy {policy_number}")
             return json.dumps(record)
+    logger.warning(f"Policy not found: {policy_number}")
     return json.dumps({"error": "Policy not found."})
 
 
@@ -92,9 +96,10 @@ def update_billing_info(policy_number: str, field: str, new_value: str):
     Update a given field in the billing record for the specified policy_number.
     Return the updated record as JSON if successful, or an error message if policy not found.
     """
-    print(
-        f"[Tool] Updating billing info for policy {policy_number}: {field} -> {new_value}"
+    logger.info(
+        f"Updating billing info for policy {policy_number}: {field} -> {new_value}"
     )
+    
     for record in billing_database:
         if record["policy_number"] == policy_number.strip():
             if field in record:
@@ -102,16 +107,19 @@ def update_billing_info(policy_number: str, field: str, new_value: str):
                     try:
                         record[field] = float(new_value)
                     except ValueError:
-                        return json.dumps(
-                            {"error": f"Invalid numeric value for {field}: {new_value}"}
-                        )
+                        error_msg = f"Invalid numeric value for {field}: {new_value}"
+                        logger.error(error_msg)
+                        return json.dumps({"error": error_msg})
                 else:
                     record[field] = new_value
+                logger.info(f"Successfully updated {field} for policy {policy_number}")
                 return json.dumps(record)
             else:
-                return json.dumps(
-                    {"error": f"Field '{field}' not found in billing record."}
-                )
+                error_msg = f"Field '{field}' not found in billing record."
+                logger.warning(error_msg)
+                return json.dumps({"error": error_msg})
+                
+    logger.warning(f"Cannot update policy {policy_number}: not found")
     return json.dumps({"error": "Policy not found."})
 
 
@@ -134,10 +142,19 @@ async def handle_billing_message(msg):
         for chat in chat_messages:
             role = chat.get("role", "User")
             conversation_string += f"{role}: {chat['content']}\n"
+            
+        logger.info("Processing billing request")
+        logger.debug(f"Conversation context: {conversation_string[:100]}...")
+        
         response = billing_react(chat_history=conversation_string)
         final_text = response.final_response
+        
         meta = msg.get("meta", {})
         meta["agent"] = "BillingAgent"
+        
+        logger.info("Sending response to user")
+        logger.debug(f"Response: {final_text[:100]}...")
+        
         await human_channel.publish(
             {
                 "id": str(uuid4()),
@@ -147,18 +164,18 @@ async def handle_billing_message(msg):
             }
         )
     except Exception as e:
-        print(f"Error in BillingAgent: {e}")
+        logger.error(f"Error in BillingAgent: {e}", exc_info=True)
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    language_model = dspy.LM("openai/gpt-4o-mini")
+    language_model = dspy.LM(settings.language_model, cache=settings.cache_enabled)
     dspy.configure(lm=language_model)
     test_conversation = (
         "User: Hi, I'd like to know my next billing date.\n"
         "BillingAgent: Sure! Please provide your policy number.\n"
         "User: It's B67890.\n"
     )
+    
+    logger.info("Running test query")
     result = billing_react(chat_history=test_conversation)
-    print("BillingAgent says:")
-    print(result.final_response)
+    logger.info(f"Test response: {result.final_response}")

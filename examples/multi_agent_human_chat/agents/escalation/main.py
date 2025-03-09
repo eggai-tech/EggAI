@@ -1,6 +1,5 @@
 import asyncio
 import dspy
-from dotenv import load_dotenv
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 from libraries.tracing import init_telemetry
@@ -13,7 +12,6 @@ logger = get_console_logger("escalation_agent")
 
 @eggai_main
 async def main():
-    load_dotenv()
     logger.info(f"Starting {settings.app_name}")
     
     init_telemetry(app_name=settings.app_name)
@@ -26,12 +24,14 @@ async def main():
     
     # Configure Kafka transport
     logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-    transport_factory = lambda: KafkaTransport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        rebalance_timeout_ms=settings.kafka_rebalance_timeout_ms
-    )
     
-    eggai_set_default_transport(transport_factory)
+    def create_kafka_transport():
+        return KafkaTransport(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            rebalance_timeout_ms=settings.kafka_rebalance_timeout_ms
+        )
+    
+    eggai_set_default_transport(create_kafka_transport)
     
     await ticketing_agent.start()
     logger.info(f"{settings.app_name} started successfully")
