@@ -4,6 +4,7 @@ import uuid
 from unittest.mock import AsyncMock
 from eggai import Channel
 from ..agent import frontend_agent, websocket_manager
+from eggai.schemas import Message
 
 pytestmark = pytest.mark.asyncio
 
@@ -19,15 +20,16 @@ async def test_frontend_ageny():
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
 
-    test_message = {
-        "id": message_id,
-        "type": "agent_message",
-        "payload": "Hello, how can I help you?",
-        "meta": {
-            "agent": "TriageAgent",
+    test_message = Message(
+        id=message_id,
+        type="agent_message",
+        source="triage_agent",
+        data={
+            "message": "Hello, how can I help you?",
             "connection_id": connection_id,
-        },
-    }
+            "agent": "TriageAgent",
+        }
+    )
 
     await human_channel.publish(test_message)
 
