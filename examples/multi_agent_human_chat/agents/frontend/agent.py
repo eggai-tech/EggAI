@@ -8,6 +8,9 @@ import uvicorn
 from opentelemetry import trace
 from fastapi import FastAPI, Query
 from .websocket_manager import WebSocketManager
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("frontend_agent")
 
 # Load environment variable
 GUARDRAILS_ENABLED = os.getenv("GUARDRAILS_TOKEN") is not None
@@ -113,10 +116,10 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
         except WebSocketDisconnect:
             pass
         except Exception as e:
-            print(f"[WEBSOCKET GATEWAY]: Error with WebSocket {connection_id}: {e}")
+            logger.error(f"[WEBSOCKET GATEWAY]: Error with WebSocket {connection_id}: {e}")
         finally:
             await websocket_manager.disconnect(connection_id)
-            print(f"[WEBSOCKET GATEWAY]: WebSocket connection {connection_id} closed.")
+            logger.info(f"[WEBSOCKET GATEWAY]: WebSocket connection {connection_id} closed.")
 
 
 @frontend_agent.subscribe(

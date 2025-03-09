@@ -6,6 +6,9 @@ from eggai.schemas import Message
 from typing import Any, Literal, Optional
 from opentelemetry import trace
 from libraries.tracing import TracedChainOfThought, TracedReAct, traced_asyncify
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("escalation_agent")
 
 # Agent & Channels
 ticketing_agent = Agent(name="TicketingAgent")
@@ -26,7 +29,7 @@ def create_ticket(dept, title, contact):
     """
     Create a ticket with only the department, title, and contact_info fields.
     """
-    print("[TOOL] Creating ticket...")
+    logger.info("[TOOL] Creating ticket...")
     ticket = {
         "id": f"TICKET-{len(ticket_database) + 1:03}",
         "department": dept,
@@ -42,7 +45,7 @@ class RetrieveTicketInfoSignature(dspy.Signature):
     title: str = dspy.OutputField(desc="Title of the ticket.")
     contact_info: str = dspy.OutputField(desc="Contact information of the user.")
     info_complete: bool = dspy.OutputField(desc="Whether all required information is present in the chat history or not.")
-    message: Optional[str] = dspy.OutputField(desc="Message to the user, asking for missing information or confirmation.")
+    message: str = dspy.OutputField(desc="Message to the user, asking for missing information or confirmation.")
     
 
 retrieve_ticket_info_module = traced_asyncify(
@@ -56,7 +59,7 @@ retrieve_ticket_info_module = traced_asyncify(
 class ClassifyConfirmationSignature(dspy.Signature):
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     confirmation: Literal["yes", "no"] = dspy.OutputField(desc="User confirmation retrieved from chat history.")
-    message: Optional[str] = dspy.OutputField(desc="Message to the user, asking for confirmation.")
+    message: str = dspy.OutputField(desc="Message to the user, asking for confirmation.")
 
 classify_confirmation = traced_asyncify(
     TracedChainOfThought(
@@ -91,25 +94,24 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
     step = pending_tickets[session].get("step", "ask_additional_data")
 
     if step == "ask_additional_data":
-        print("[Ticketing Agent] STEP 1: Asking for additional data...")
+        logger.info("[Ticketing Agent] STEP 1: Asking for additional data...")
         response = await retrieve_ticket_info_module(chat_history=chat_history)
-        print("[Ticketing Agent] Response: ", response)
         if response.title:
             update_session_data(session, {"title": response.title})
-            print("[Ticketing Agent] Updating title session: ", response.title)
+            logger.info(f"[Ticketing Agent] Updating title session: {response.title}")
         if response.contact_info:
             update_session_data(session, {"contact_info": response.contact_info})
-            print("[Ticketing Agent] Updating contact_info session: ", response.contact_info)
+            logger.info(f"[Ticketing Agent] Updating contact_info session: {response.contact_info}")
         if response.department:
             update_session_data(session, {"department": response.department})
-            print("[Ticketing Agent] Updating department session: ", response.department)
+            logger.info(f"[Ticketing Agent] Updating department session: {response.department}")
         if response.info_complete:
-            print("[Ticketing Agent] All information is complete. New step: ask_confirmation")
+            logger.info("[Ticketing Agent] All information is complete. New step: ask_confirmation")
             update_session_data(session, {"step": "ask_confirmation"})
             
             conf_message = (await classify_confirmation(chat_history=chat_history)).message
             
-            print(f"[Ticketing Agent] Sending confirmation message request: {conf_message}")
+            logger.info(f"[Ticketing Agent] Sending confirmation message request: {conf_message}")
             await human_channel.publish(
                 Message(
                     type="agent_message",
@@ -124,7 +126,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
                 )
             )
         else:
-            print("[Ticketing Agent] Information is incomplete. Asking additional details...", response.message)
+            logger.info(f"[Ticketing Agent] Information is incomplete. Asking additional details... {response.message}")
             await human_channel.publish(
                 Message(
                     type="agent_message",
@@ -138,10 +140,10 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
                 )
             )
     elif step == "ask_confirmation":
-        print("[Ticketing Agent] Processing STEP: Classifying confirmation...")
+        logger.info("[Ticketing Agent] Processing STEP: Classifying confirmation...")
         response = (await classify_confirmation(chat_history=chat_history))
         if response.confirmation == "yes":
-            print("[Ticketing Agent] Confirmation is YES. New step: create_ticket")
+            logger.info("[Ticketing Agent] Confirmation is YES. New step: create_ticket")
             update_session_data(session, {"step": "create_ticket"})
             await human_channel.publish(
                 Message(
@@ -158,7 +160,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
             )
             await agentic_workflow(session, chat_history, meta)
         else:
-            print("[Ticketing Agent] Confirmation is NO. New step: ask_additional_data")
+            logger.info("[Ticketing Agent] Confirmation is NO. New step: ask_additional_data")
             await human_channel.publish(
                 Message(
                     type="agent_message",
@@ -173,7 +175,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
                 )
             )
     elif step == "create_ticket":
-        print("[Ticketing Agent] Processing STEP: Creating ticket...")
+        logger.info("[Ticketing Agent] Processing STEP: Creating ticket...")
         response = (await create_ticket_module(ticket_details=pending_tickets[session])).ticket_message
         await human_channel.publish(
             Message(
@@ -188,7 +190,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
                 }
             )
         )
-        print("[Ticketing Agent] Ticket created. Removing session data...")
+        logger.info("[Ticketing Agent] Ticket created. Removing session data...")
         pending_tickets.pop(session, None)
     else:
         raise ValueError("Invalid step value.")
@@ -198,7 +200,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
 )
 @tracer.start_as_current_span("handle_ticketing_request")
 async def handle_ticketing_request(msg_dict):
-    print("[Ticketing Agent] Handling ticketing request...")
+    logger.info("[Ticketing Agent] Handling ticketing request...")
     msg = Message(**msg_dict)
     session = msg.data.get("session", f"session_{uuid4()}")
     chat_messages = msg.data.get("chat_messages")

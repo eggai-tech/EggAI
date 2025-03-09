@@ -4,6 +4,9 @@ import dspy
 from uuid import uuid4
 from eggai import Agent, Channel
 from ..agent import escalation_agent
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("escalation_agent.tests")
 
 dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
 
@@ -53,7 +56,7 @@ received_event = None
     filter_func=lambda event: event["type"] == "agent_message",
 )
 async def handle_response(event):
-    print(f"Received event: {event}")
+    logger.info(f"Received event: {event}")
     global received_event
     received_event = event
     event_received.set()

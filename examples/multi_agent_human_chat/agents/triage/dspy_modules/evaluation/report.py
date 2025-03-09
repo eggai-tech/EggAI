@@ -2,6 +2,9 @@ import os
 from datetime import datetime
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("triage.dspy_modules")
 
 def generate_report(results, report_name):
     test_results = []
@@ -146,7 +149,7 @@ def write_html_report(test_results, summary, report_name):
 
 if __name__ == "__main__":
     import dspy
-    print(generate_report([(
+    logger.info(generate_report([(
         dspy.Example(chat_history="Hello, I have a problem with my billing", target_agent="billing"),
         dspy.Prediction(target_agent="billing", confidence=0.98, reasoning="High confidence"),
         True

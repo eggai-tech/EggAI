@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 
 from .report import generate_report
 import csv
+from libraries.logger import get_console_logger
 
+logger = get_console_logger("triage_agent.dspy_modules")
 
 def load_dataset(filename: str) -> list:
     csv_file_path = os.path.abspath(
@@ -65,4 +67,4 @@ def run_evaluation_v1():
 
 if __name__ == "__main__":
     score = run_evaluation_v1()
-    print(f"Accuracy: {score}")
+    logger.info(f"Accuracy: {score}")

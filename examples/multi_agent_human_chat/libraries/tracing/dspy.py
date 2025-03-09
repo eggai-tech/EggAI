@@ -11,7 +11,9 @@ import dspy
 from opentelemetry import trace
 
 from libraries.tracing.otel import async_trace_function
+from libraries.logger import get_console_logger
 
+logger = get_console_logger("tracing.dspy")
 
 # Patch DSPy's LM class with tracing when this module is imported
 def _patch_dspy_lm():
@@ -37,7 +39,7 @@ def _patch_dspy_lm():
 try:
     _patch_dspy_lm()
 except Exception as e:
-    print(f"Warning: Could not patch DSPy LM class: {e}")
+    logger.error(f"Warning: Could not patch DSPy LM class: {e}")
     # Log warning but don't crash - tracing is not critical functionality
 
 

@@ -1,6 +1,9 @@
 import os
 
 from ragatouille import RAGPretrainedModel
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("policies_agent.rag")
 
 _INDEX_BUILT = False
 
@@ -38,7 +41,7 @@ def ensure_index_built():
             document_metadatas=document_metadata,
         )
     else:
-        print("Index already BUILT")
+        logger.info("Index already BUILT")
     _INDEX_BUILT = True
 
 
