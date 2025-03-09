@@ -55,7 +55,6 @@ class AgentClassificationSignature(dspy.Signature):
         desc="A kind message to the user explaining why the message was not understood."
     )
 
-# Use the shared traced module implementation
 triage_classifier = TracedChainOfThought(
     signature=AgentClassificationSignature,
     name="triage_classifier",
