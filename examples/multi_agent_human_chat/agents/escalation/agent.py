@@ -1,12 +1,11 @@
 import json
 from uuid import uuid4
 import dspy
-from dotenv import load_dotenv
 from eggai import Channel, Agent
 from eggai.schemas import Message
-import asyncio
 from typing import Any, Literal, Optional
 from opentelemetry import trace
+from agents.tracing import TracedChainOfThought, TracedReAct, traced_asyncify
 
 # Agent & Channels
 ticketing_agent = Agent(name="TicketingAgent")
@@ -22,6 +21,7 @@ ticket_database = [{
     "contact_info": "john@example.com"
 }]
 
+@tracer.start_as_current_span("create_ticket")
 def create_ticket(dept, title, contact):
     """
     Create a ticket with only the department, title, and contact_info fields.
@@ -45,27 +45,48 @@ class RetrieveTicketInfoSignature(dspy.Signature):
     message: Optional[str] = dspy.OutputField(desc="Message to the user, asking for missing information or confirmation.")
     
 
-retrieve_ticket_info_module = dspy.asyncify(dspy.ChainOfThought(RetrieveTicketInfoSignature))
+retrieve_ticket_info_module = traced_asyncify(
+    TracedChainOfThought(
+        RetrieveTicketInfoSignature, 
+        name="retrieve_ticket_info",
+        tracer=tracer
+    )
+)
 
 class ClassifyConfirmationSignature(dspy.Signature):
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     confirmation: Literal["yes", "no"] = dspy.OutputField(desc="User confirmation retrieved from chat history.")
     message: Optional[str] = dspy.OutputField(desc="Message to the user, asking for confirmation.")
 
-classify_confirmation = dspy.asyncify(dspy.ChainOfThought(ClassifyConfirmationSignature))
+classify_confirmation = traced_asyncify(
+    TracedChainOfThought(
+        ClassifyConfirmationSignature, 
+        name="classify_confirmation",
+        tracer=tracer
+    )
+)
 
 class CreateTicketSignature(dspy.Signature):
     ticket_details: dict = dspy.InputField(desc="Session details.")
     ticket_message: str = dspy.OutputField(desc="Ticket creation message confirmation, with summary of ticket details.")
 
 # Now only using the create_ticket tool (retrieve_ticket removed)
-create_ticket_module = dspy.asyncify(dspy.ReAct(CreateTicketSignature, tools=[create_ticket]))
+create_ticket_module = traced_asyncify(
+    TracedReAct(
+        CreateTicketSignature, 
+        tools=[create_ticket], 
+        name="create_ticket",
+        tracer=tracer
+    )
+)
 
+@tracer.start_as_current_span("update_session_data")
 def update_session_data(session: str, data: dict):
     if session not in pending_tickets:
         pending_tickets[session] = {}
     pending_tickets[session].update(data)
 
+@tracer.start_as_current_span("agentic_workflow")
 async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
     step = pending_tickets[session].get("step", "ask_additional_data")
 

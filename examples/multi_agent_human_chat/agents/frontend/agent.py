@@ -31,8 +31,10 @@ messages_cache = {}
 tracer = trace.get_tracer("frontend_agent")
 
 
+@tracer.start_as_current_span("add_websocket_gateway")
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     @app.websocket(route)
+    @tracer.start_as_current_span("websocket_handler")
     async def websocket_handler(
         websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
     ):

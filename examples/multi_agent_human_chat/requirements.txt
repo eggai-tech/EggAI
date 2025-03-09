@@ -5,6 +5,7 @@ dspy-ai==2.5.43
 psutil==7.0.0
 websockets==14.1
 guardrails-ai==0.6.2
-ragatouille
+RAGatouille==0.0.9
 uvicorn==0.34.0
 openlit==1.33.10
+opentelemetry-sdk==1.30.0

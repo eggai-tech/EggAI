@@ -1,8 +1,10 @@
 from typing import Literal, Optional
-
 import dspy
 
 from agents.triage.agents_registry import AGENT_REGISTRY
+from agents.tracing import TracedChainOfThought, create_tracer
+
+tracer = create_tracer("triage_agent", "dspy_modules")
 
 TargetAgent = Literal["PoliciesAgent", "BillingAgent", "TicketingAgent", "TriageAgent"]
 
@@ -53,4 +55,9 @@ class AgentClassificationSignature(dspy.Signature):
         desc="A kind message to the user explaining why the message was not understood."
     )
 
-triage_classifier = dspy.ChainOfThought(signature=AgentClassificationSignature)
+# Use the shared traced module implementation
+triage_classifier = TracedChainOfThought(
+    signature=AgentClassificationSignature,
+    name="triage_classifier",
+    tracer=tracer
+)

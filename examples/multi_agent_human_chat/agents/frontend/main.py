@@ -8,6 +8,7 @@ from eggai import eggai_cleanup
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
 from eggai.transport import eggai_set_default_transport, KafkaTransport
+from agents.tracing import init_telemetry
 
 from .agent import (
     add_websocket_gateway,
@@ -55,4 +56,5 @@ add_websocket_gateway("/ws", api, frontend_server)
 
 if __name__ == "__main__":
     load_dotenv()
+    init_telemetry(app_name="frontend_agent")
     asyncio.run(frontend_server.serve())

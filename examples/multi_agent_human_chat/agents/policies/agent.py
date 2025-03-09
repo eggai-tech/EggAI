@@ -7,6 +7,7 @@ import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
 from eggai.schemas import Message
+from agents.tracing import TracedReAct, TracedDSPyModule
 
 from agents.policies.rag.retrieving import retrieve_policies
 
@@ -56,6 +57,7 @@ class ThreadWithResult(threading.Thread):
         super().join(*args)
         return self._result
 
+@tracer.start_as_current_span("query_policy_documentation")
 def query_policy_documentation(query: str, policy_category: PolicyCategory) -> str:
     try:
         print(f"[Tool] Retrieving policy information for query: {query}, category: {policy_category}")
@@ -71,6 +73,7 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
         return "Error retrieving documentation."
 
 
+@tracer.start_as_current_span("take_policy_by_number_from_database")
 def take_policy_by_number_from_database(policy_number: str) -> str:
     """
     Retrieves detailed information for a given policy number.
@@ -111,7 +114,20 @@ class PolicyAgentSignature(dspy.Signature):
 
 
 
-policies_react = dspy.asyncify(dspy.ReAct(PolicyAgentSignature, tools=[take_policy_by_number_from_database, query_policy_documentation], max_iters=7))
+# Use the shared traced module implementation with asyncify
+from agents.tracing import traced_asyncify
+
+policies_react = traced_asyncify(
+    TracedReAct(
+        PolicyAgentSignature, 
+        tools=[take_policy_by_number_from_database, query_policy_documentation], 
+        max_iters=7,
+        name="policies_react",
+        tracer=tracer
+    ),
+    name="policies_react_async",
+    tracer=tracer
+)
 
 
 @policies_agent.subscribe(

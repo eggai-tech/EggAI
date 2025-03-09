@@ -7,21 +7,17 @@ warnings.filterwarnings(
 import asyncio
 import dspy
 import os
-import openlit
 from dotenv import load_dotenv
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport, KafkaTransport
+from agents.tracing import init_telemetry
 from .agent import triage_agent
 
 
 @eggai_main
 async def main():
     load_dotenv()
-    openlit.init(
-        application_name="triage_agent",
-        otlp_endpoint=os.getenv("OTEL_ENDPOINT"),
-        disabled_instrumentors=["langchain"],
-    )
+    init_telemetry(app_name="triage_agent")
     language_model = dspy.LM("openai/gpt-4o-mini", cache=False)
     dspy.configure(lm=language_model)
     eggai_set_default_transport(lambda: KafkaTransport())

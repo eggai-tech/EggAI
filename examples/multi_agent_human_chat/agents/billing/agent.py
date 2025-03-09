@@ -1,16 +1,16 @@
 import json
 from uuid import uuid4
 import dspy
-from opentelemetry import trace
 from dotenv import load_dotenv
 from eggai import Channel, Agent
+from agents.tracing import TracedReAct, create_tracer
 
 billing_agent = Agent(name="BillingAgent")
 
 agents_channel = Channel("agents")
 human_channel = Channel("human")
 
-tracer = trace.get_tracer("billing_agent")
+tracer = create_tracer("billing_agent")
 
 
 class BillingAgentSignature(dspy.Signature):
@@ -73,6 +73,7 @@ billing_database = [
 ]
 
 
+@tracer.start_as_current_span("get_billing_info")
 def get_billing_info(policy_number: str):
     """
     Retrieve billing information for a given policy_number.
@@ -85,6 +86,7 @@ def get_billing_info(policy_number: str):
     return json.dumps({"error": "Policy not found."})
 
 
+@tracer.start_as_current_span("update_billing_info")
 def update_billing_info(policy_number: str, field: str, new_value: str):
     """
     Update a given field in the billing record for the specified policy_number.
@@ -113,8 +115,11 @@ def update_billing_info(policy_number: str, field: str, new_value: str):
     return json.dumps({"error": "Policy not found."})
 
 
-billing_react = dspy.ReAct(
-    BillingAgentSignature, tools=[get_billing_info, update_billing_info]
+billing_react = TracedReAct(
+    BillingAgentSignature, 
+    tools=[get_billing_info, update_billing_info],
+    name="billing_react",
+    tracer=tracer
 )
 
 
