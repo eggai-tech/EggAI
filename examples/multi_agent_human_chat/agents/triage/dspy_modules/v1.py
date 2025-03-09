@@ -9,7 +9,6 @@ tracer = create_tracer("triage_agent", "dspy_modules")
 TargetAgent = Literal["PoliciesAgent", "BillingAgent", "TicketingAgent", "TriageAgent"]
 
 
-
 class AgentClassificationSignature(dspy.Signature):
     (
         """
@@ -55,8 +54,7 @@ class AgentClassificationSignature(dspy.Signature):
         desc="A kind message to the user explaining why the message was not understood."
     )
 
+
 triage_classifier = TracedChainOfThought(
-    signature=AgentClassificationSignature,
-    name="triage_classifier",
-    tracer=tracer
+    signature=AgentClassificationSignature, name="triage_classifier", tracer=tracer
 )
