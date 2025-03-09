@@ -1,9 +1,9 @@
 from typing import Literal, Optional
 import dspy
 
-from agents.triage.agents_registry import AGENT_REGISTRY
 from libraries.tracing import TracedChainOfThought, create_tracer
 from libraries.logger import get_console_logger
+from agents.triage.config import settings
 
 tracer = create_tracer("triage_agent", "dspy_modules")
 logger = get_console_logger("triage_agent.dspy_modules")
@@ -25,7 +25,7 @@ class AgentClassificationSignature(dspy.Signature):
 
     Target Agents:
     """
-        + "".join([f"\n- {agent}: {desc}" for agent, desc in AGENT_REGISTRY.items()])
+        + "".join([f"\n- {agent}: {desc.get('description', '')}" for agent, desc in settings.agent_registry.items()])
         + """
 
     Smalltalk Rules:
@@ -62,5 +62,5 @@ triage_classifier = TracedChainOfThought(
     signature=AgentClassificationSignature, name="triage_classifier", tracer=tracer
 )
 logger.debug("Triage classifier initialized with the following agent registry:")
-for agent, details in AGENT_REGISTRY.items():
+for agent, details in settings.agent_registry.items():
     logger.debug(f"  - {agent}: {details.get('description', 'No description')}")

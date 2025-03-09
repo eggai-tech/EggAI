@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, model_validator
+from typing import Dict, Any
 from dotenv import load_dotenv
 
 # Load environment variables at module level
@@ -22,9 +23,41 @@ class Settings(BaseSettings):
     otel_endpoint: str = Field(default="http://localhost:4318", env="OTEL_ENDPOINT") 
     tracing_enabled: bool = Field(default=True, env="TRACING_ENABLED")
     
+    # Agent registry settings
+    agent_registry: Dict[str, Dict[str, Any]] = Field(
+        default={
+            "PoliciesAgent": {
+                "message_type": "policy_request",
+                "description": "Handles policy-related queries",
+            },
+            "BillingAgent": {
+                "message_type": "billing_request",
+                "description": "Handles billing-related queries",
+            },
+            "TicketingAgent": {
+                "message_type": "ticketing_request",
+                "description": "Everything related to tickets and support must be handled by this agent",
+            },
+            "TriageAgent": {
+                "message_type": "triage_request",
+                "description": "Default agent for handling unclassified requests and smalltalk",
+            }
+        }
+    )
+    
     model_config = SettingsConfigDict(
         env_prefix="TRIAGE_", env_file=".env", env_ignore_empty=True, extra="ignore"
     )
+    
+    @model_validator(mode='after')
+    def ensure_triage_agent_in_registry(self) -> 'Settings':
+        """Ensures TriageAgent is in the registry for fallback handling."""
+        if "TriageAgent" not in self.agent_registry:
+            self.agent_registry["TriageAgent"] = {
+                "message_type": "triage_request",
+                "description": "Default agent for handling unclassified requests and smalltalk",
+            }
+        return self
 
 
 settings = Settings()

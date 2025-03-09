@@ -2,10 +2,10 @@ import time
 
 from eggai import Channel, Agent
 from eggai.schemas import Message
-from agents.triage.agents_registry import AGENT_REGISTRY
 from agents.triage.dspy_modules.v1 import triage_classifier
 from libraries.logger import get_console_logger
 from opentelemetry import trace
+from .config import settings
 
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel("human")
@@ -47,11 +47,11 @@ async def handle_user_message(msg_dict):
             }
         ]
 
-        if target_agent in AGENT_REGISTRY and target_agent != "TriageAgent":
+        if target_agent in settings.agent_registry and target_agent != "TriageAgent":
             logger.info(f"Routing message to {target_agent}")
             await agents_channel.publish(
                 Message(
-                    type=AGENT_REGISTRY[target_agent]["message_type"],
+                    type=settings.agent_registry[target_agent]["message_type"],
                     source="TriageAgent",
                     data={
                         "chat_messages": triage_to_agent_messages,
@@ -60,7 +60,7 @@ async def handle_user_message(msg_dict):
                     },
                 )
             )
-            logger.debug(f"Message sent to {target_agent} via {AGENT_REGISTRY[target_agent]['message_type']} channel")
+            logger.debug(f"Message sent to {target_agent} via {settings.agent_registry[target_agent]['message_type']} channel")
         else:
             logger.info("Handling message with TriageAgent")
             message_to_send = (
