@@ -1,6 +1,6 @@
 import os
 from ragatouille import RAGPretrainedModel
-from agents.tracing import trace_function, create_tracer
+from libraries.tracing import trace_function, create_tracer
 
 from agents.policies.rag.indexing import ensure_index_built
 

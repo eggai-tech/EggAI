@@ -8,7 +8,7 @@ from eggai import eggai_cleanup
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
 from eggai.transport import eggai_set_default_transport, KafkaTransport
-from agents.tracing import init_telemetry
+from libraries.tracing import init_telemetry
 
 from .agent import (
     add_websocket_gateway,

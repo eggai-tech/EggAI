@@ -5,7 +5,7 @@ from eggai import Channel, Agent
 from eggai.schemas import Message
 from typing import Any, Literal, Optional
 from opentelemetry import trace
-from agents.tracing import TracedChainOfThought, TracedReAct, traced_asyncify
+from libraries.tracing import TracedChainOfThought, TracedReAct, traced_asyncify
 
 # Agent & Channels
 ticketing_agent = Agent(name="TicketingAgent")

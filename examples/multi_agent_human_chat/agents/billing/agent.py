@@ -3,7 +3,7 @@ from uuid import uuid4
 import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
-from agents.tracing import TracedReAct, create_tracer
+from libraries.tracing import TracedReAct, create_tracer
 
 billing_agent = Agent(name="BillingAgent")
 

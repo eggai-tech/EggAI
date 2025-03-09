@@ -2,7 +2,7 @@ from typing import Literal, Optional
 import dspy
 
 from agents.triage.agents_registry import AGENT_REGISTRY
-from agents.tracing import TracedChainOfThought, create_tracer
+from libraries.tracing import TracedChainOfThought, create_tracer
 
 tracer = create_tracer("triage_agent", "dspy_modules")
 

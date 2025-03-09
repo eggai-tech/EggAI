@@ -5,7 +5,7 @@ This package provides utilities for tracing functions, methods, and DSPy modules
 as well as OpenTelemetry initialization and configuration.
 """
 
-from agents.tracing.otel import (
+from libraries.tracing.otel import (
     init_telemetry, 
     get_tracer, 
     create_tracer,
@@ -13,7 +13,7 @@ from agents.tracing.otel import (
     async_trace_function,
 )
 
-from agents.tracing.dspy import (
+from libraries.tracing.dspy import (
     TracedDSPyModule,
     TracedChainOfThought,
     TracedReAct,

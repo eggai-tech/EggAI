@@ -6,7 +6,7 @@ import dspy
 from dotenv import load_dotenv
 from eggai import Channel, Agent
 from eggai.schemas import Message
-from agents.tracing import TracedReAct, traced_asyncify
+from libraries.tracing import TracedReAct, traced_asyncify
 
 from agents.policies.rag.retrieving import retrieve_policies
 

@@ -10,7 +10,7 @@ from typing import Optional, List, Callable, Union, Any
 import dspy
 from opentelemetry import trace
 
-from agents.tracing.otel import async_trace_function
+from libraries.tracing.otel import async_trace_function
 
 
 # Patch DSPy's LM class with tracing when this module is imported

@@ -3,7 +3,7 @@ import dspy
 from dotenv import load_dotenv
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport, KafkaTransport
-from agents.tracing import init_telemetry
+from libraries.tracing import init_telemetry
 from .agent import ticketing_agent
 
 
