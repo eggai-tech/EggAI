@@ -7,8 +7,10 @@ from dotenv import load_dotenv
 from eggai import Channel, Agent
 from eggai.schemas import Message
 from libraries.tracing import TracedReAct, traced_asyncify
+from libraries.logger import get_console_logger
 
 from agents.policies.rag.retrieving import retrieve_policies
+from agents.policies.config import settings
 
 policies_agent = Agent(name="PoliciesAgent")
 
@@ -16,6 +18,7 @@ agents_channel = Channel("agents")
 human_channel = Channel("human")
 
 tracer = trace.get_tracer("policies_agent")
+logger = get_console_logger("policies_agent.handler")
 
 PolicyCategory = Literal["auto", "life", "home", "health"]
 
@@ -59,16 +62,21 @@ class ThreadWithResult(threading.Thread):
 @tracer.start_as_current_span("query_policy_documentation")
 def query_policy_documentation(query: str, policy_category: PolicyCategory) -> str:
     try:
-        print(f"[Tool] Retrieving policy information for query: {query}, category: {policy_category}")
+        logger.info(f"Retrieving policy information for query: '{query}', category: '{policy_category}'")
         thread = ThreadWithResult(target=retrieve_policies, args=(query, policy_category))
         thread.start()
         results = thread.join()
+        
         if results:
-            print(f"[Tool] Found documentation: {len(results)} results.")
-            return json.dumps([results[0], results[1]])
+            logger.info(f"Found documentation: {len(results)} results")
+            if len(results) >= 2:
+                return json.dumps([results[0], results[1]])
+            return json.dumps(results)
+            
+        logger.warning(f"No documentation found for query: '{query}', category: '{policy_category}'")
         return "Documentation not found."
     except Exception as e:
-        print(f"[Tool] Error retrieving policy documentation: {e}")
+        logger.error(f"Error retrieving policy documentation: {e}", exc_info=True)
         return "Error retrieving documentation."
 
 
@@ -78,11 +86,24 @@ def take_policy_by_number_from_database(policy_number: str) -> str:
     Retrieves detailed information for a given policy number.
     Returns a JSON-formatted string if the policy is found, or "Policy not found." otherwise.
     """
-    print(f"[Tool] Retrieving policy details for policy number: {policy_number}")
-    for policy in policies_database:
-        if policy["policy_number"] == policy_number.strip():
-            return json.dumps(policy)
-    return "Policy not found."
+    logger.info(f"Retrieving policy details for policy number: '{policy_number}'")
+    
+    if not policy_number:
+        logger.warning("Empty policy number provided")
+        return "Invalid policy number format."
+        
+    try:
+        cleaned_policy_number = policy_number.strip()
+        for policy in policies_database:
+            if policy["policy_number"] == cleaned_policy_number:
+                logger.info(f"Found policy: {policy['policy_number']} for {policy['name']}")
+                return json.dumps(policy)
+                
+        logger.warning(f"Policy not found: '{policy_number}'")
+        return "Policy not found."
+    except Exception as e:
+        logger.error(f"Error retrieving policy by number: {e}", exc_info=True)
+        return f"Error retrieving policy: {str(e)}"
 
 
 class PolicyAgentSignature(dspy.Signature):
@@ -133,47 +154,89 @@ async def handle_policy_request(msg_dict):
     try:
         msg = Message(**msg_dict)
         chat_messages = msg.data["chat_messages"]
+        connection_id = msg.data.get("connection_id", "unknown")
+        
+        logger.info(f"Received policy request from connection {connection_id}")
+        
+        # Combine chat history
         conversation_string = ""
         for chat in chat_messages:
             role = chat.get("role", "User")
             conversation_string += f"{role}: {chat['content']}\n"
+        
+        logger.debug(f"Conversation context: {conversation_string[:100]}...")
+        
+        # Process with DSPy module
+        logger.info("Processing with policies_react module")
         response = await policies_react(chat_history=conversation_string)
+        
+        # Extract final response
         final_response = response.final_response
         if "final_response_with_documentation_reference" in response and response.final_response_with_documentation_reference:
             final_response = response.final_response_with_documentation_reference
+            logger.info("Using response with documentation references")
+        
+        # Log additional information
+        if hasattr(response, "policy_number") and response.policy_number:
+            logger.info(f"Policy number identified: {response.policy_number}")
+        if hasattr(response, "policy_category") and response.policy_category:
+            logger.info(f"Policy category identified: {response.policy_category}")
+        if hasattr(response, "documentation_reference") and response.documentation_reference:
+            logger.info(f"Documentation reference: {response.documentation_reference}")
 
-        print("Additional data: ", response)
-
+        # Send response
+        logger.info(f"Sending response to user: {final_response[:50]}...")
         await human_channel.publish(
             Message(
                 type="agent_message",
                 source="PoliciesAgent",
                 data={
                     "message": final_response,
-                    "connection_id": msg.data.get("connection_id"),
+                    "connection_id": connection_id,
                     "agent": "PoliciesAgent",
                 }
             )
         )
+        logger.debug("Response sent successfully")
     except Exception as e:
-        print(f"Error in PoliciesAgent: {e}")
+        logger.error(f"Error in PoliciesAgent: {e}", exc_info=True)
+        # Try to notify the user of the error
+        try:
+            await human_channel.publish(
+                Message(
+                    type="agent_message",
+                    source="PoliciesAgent",
+                    data={
+                        "message": "I'm sorry, I encountered an error while processing your request. Please try again.",
+                        "connection_id": msg.data.get("connection_id"),
+                        "agent": "PoliciesAgent",
+                    }
+                )
+            )
+        except Exception as notify_error:
+            logger.error(f"Failed to send error notification: {notify_error}")
 
 
 if __name__ == "__main__":
     load_dotenv()
-    language_model = dspy.LM("openai/gpt-4o-mini")
+    logger.info("Running policies agent as script")
+    
+    language_model = dspy.LM(settings.language_model, cache=settings.cache_enabled)
+    logger.info(f"Configured language model: {settings.language_model}")
+    
     dspy.configure(lm=language_model)
-
-    # EXAMPLE FOR RAG:
-    # Hey, I need an info on my Policy C24680, a fire ruined my kitchen table, can i get a refund?
-    # Hey, I need an info on my Policy C24680, it is Fire Damage Coverage included?
-
-    print(
-        policies_react(
-            chat_history="""
+    
+    # Test policy request
+    test_conversation = """
     User: I need information about my policy.
     PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?
     User: My policy number is A12345
     """
-        ).final_response
-    )
+    
+    logger.info("Running test query")
+    response = policies_react(chat_history=test_conversation)
+    logger.info(f"Test response: {response.final_response}")
+    
+    # Examples for reference:
+    # Hey, I need an info on my Policy C24680, a fire ruined my kitchen table, can i get a refund?
+    # Hey, I need an info on my Policy C24680, it is Fire Damage Coverage included?

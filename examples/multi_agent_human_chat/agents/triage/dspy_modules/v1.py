@@ -3,8 +3,10 @@ import dspy
 
 from agents.triage.agents_registry import AGENT_REGISTRY
 from libraries.tracing import TracedChainOfThought, create_tracer
+from libraries.logger import get_console_logger
 
 tracer = create_tracer("triage_agent", "dspy_modules")
+logger = get_console_logger("triage_agent.dspy_modules")
 
 TargetAgent = Literal["PoliciesAgent", "BillingAgent", "TicketingAgent", "TriageAgent"]
 
@@ -55,6 +57,10 @@ class AgentClassificationSignature(dspy.Signature):
     )
 
 
+logger.info("Initializing triage classifier module")
 triage_classifier = TracedChainOfThought(
     signature=AgentClassificationSignature, name="triage_classifier", tracer=tracer
 )
+logger.debug("Triage classifier initialized with the following agent registry:")
+for agent, details in AGENT_REGISTRY.items():
+    logger.debug(f"  - {agent}: {details.get('description', 'No description')}")

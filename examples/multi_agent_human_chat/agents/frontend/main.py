@@ -9,20 +9,35 @@ from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 from libraries.tracing import init_telemetry
+from libraries.logger import get_console_logger
 
 from .agent import (
     add_websocket_gateway,
     frontend_agent,
 )
+from .config import settings
+
+logger = get_console_logger("frontend_agent")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        eggai_set_default_transport(lambda: KafkaTransport())
+        # Configure Kafka transport
+        logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
+        transport_factory = lambda: KafkaTransport(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            rebalance_timeout_ms=settings.kafka_rebalance_timeout_ms
+        )
+        
+        eggai_set_default_transport(transport_factory)
+        
         await frontend_agent.start()
+        logger.info(f"{settings.app_name} started successfully")
+        
         yield
     finally:
+        logger.info("Cleaning up resources")
         await eggai_cleanup()
 
 
@@ -32,29 +47,50 @@ api = FastAPI(lifespan=lifespan)
 @api.get("/", response_class=HTMLResponse)
 async def read_root():
     try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        html_file_path = os.path.join(current_dir, "public/index.html")
+        html_file_path = os.path.join(settings.default_public_dir, "index.html")
+        logger.debug(f"Reading HTML file from: {html_file_path}")
+        
         if not os.path.isfile(html_file_path):
-            raise FileNotFoundError("File not found")
+            logger.error(f"File not found: {html_file_path}")
+            raise FileNotFoundError(f"File not found: {html_file_path}")
+            
         with open(html_file_path, "r", encoding="utf-8") as file:
             file_content = file.read()
-
+            
+        logger.debug("HTML file read successfully")
         return HTMLResponse(content=file_content, status_code=200)
 
     except FileNotFoundError as fnf_error:
+        logger.error(f"File not found: {str(fnf_error)}")
         raise HTTPException(status_code=404, detail=str(fnf_error))
 
     except Exception as e:
+        logger.error(f"Error reading HTML: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
 frontend_server = uvicorn.Server(
-    uvicorn.Config(api, host="127.0.0.1", port=8000, log_level="info")
+    uvicorn.Config(
+        api, 
+        host=settings.host, 
+        port=settings.port, 
+        log_level=settings.log_level
+    )
 )
 
-add_websocket_gateway("/ws", api, frontend_server)
+add_websocket_gateway(settings.websocket_path, api, frontend_server)
 
 if __name__ == "__main__":
-    load_dotenv()
-    init_telemetry(app_name="frontend_agent")
-    asyncio.run(frontend_server.serve())
+    try:
+        load_dotenv()
+        logger.info(f"Starting {settings.app_name}")
+        
+        init_telemetry(app_name=settings.app_name)
+        logger.info(f"Telemetry initialized for {settings.app_name}")
+        
+        logger.info(f"Server starting at http://{settings.host}:{settings.port}")
+        asyncio.run(frontend_server.serve())
+    except KeyboardInterrupt:
+        logger.info("Shutting down frontend agent")
+    except Exception as e:
+        logger.error(f"Error in main: {e}", exc_info=True)

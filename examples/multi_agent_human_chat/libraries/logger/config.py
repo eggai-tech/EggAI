@@ -1,0 +1,29 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
+
+
+class Settings(BaseSettings):
+    log_level: str = Field(default="INFO", env="LOG_LEVEL")
+    log_format: str = Field(
+        default="%(asctime)s %(levelname)s %(name)s %(filename)s %(lineno)d %(funcName)s %(message)s",
+        env="LOG_FORMAT"
+    )
+    
+    # Logging formatter to use (json, standard, colored)
+    log_formatter: str = Field(default="colored", env="LOG_FORMATTER")
+    
+    # In which directories to automatically suppress certain loggers
+    suppress_loggers: list[str] = Field(
+        default=["httpx", "urllib3", "asyncio", "aiokafka"], 
+        env="SUPPRESS_LOGGERS"
+    )
+    
+    # Default suppression level (only apply warnings and above for suppressed loggers)
+    suppress_level: str = Field(default="WARNING", env="SUPPRESS_LEVEL")
+    
+    model_config = SettingsConfigDict(
+        env_prefix="LOGGER_", env_file=".env", env_ignore_empty=True, extra="ignore"
+    )
+
+
+settings = Settings()

@@ -9,3 +9,6 @@ RAGatouille==0.0.9
 uvicorn==0.34.0
 openlit==1.33.10
 opentelemetry-sdk==1.30.0
+python-json-logger==2.0.7
+colorlog==6.8.2
+pydantic-settings==2.4.0
