@@ -10,7 +10,7 @@ from fastapi import FastAPI, Query
 from .websocket_manager import WebSocketManager
 
 # Load environment variable
-GUARDRAILS_ENABLED = False
+GUARDRAILS_ENABLED = os.getenv("GUARDRAILS_TOKEN") is not None
 
 # Conditionally import guardrails
 if GUARDRAILS_ENABLED:
