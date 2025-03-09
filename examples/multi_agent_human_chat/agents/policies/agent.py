@@ -3,7 +3,6 @@ import threading
 from typing import Optional, Literal
 from opentelemetry import trace
 import dspy
-from dotenv import load_dotenv
 from eggai import Channel, Agent
 from eggai.schemas import Message
 from libraries.tracing import TracedReAct, traced_asyncify
