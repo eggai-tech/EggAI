@@ -4,6 +4,7 @@ import dspy
 from uuid import uuid4
 from eggai import Agent, Channel
 from ..agent import billing_agent
+from eggai.schemas import Message
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("billing_agent.tests")
@@ -60,11 +61,11 @@ async def test_billing_agent():
 
         # Simulate a billing request event
         await test_channel.publish(
-            {
-                "id": str(uuid4()),
-                "type": "billing_request",
-                "meta": {},
-                "payload": {
+            Message(
+                id=str(uuid4()),
+                type="billing_request",
+                source="TestBillingAgent",
+                data={
                     "chat_messages": [
                         {
                             "role": "User",
@@ -77,7 +78,7 @@ async def test_billing_agent():
                         {"role": "User", "content": "It's B67890."},
                     ]
                 },
-            }
+            )
         )
 
         try:
@@ -91,9 +92,9 @@ async def test_billing_agent():
         assert received_event["type"] == "agent_message", (
             "Unexpected event type received."
         )
-        assert isinstance(received_event["payload"], str), "Payload should be a string."
+        assert isinstance(received_event["data"]["payload"], str), "Payload should be a string."
 
-        agent_response = received_event["payload"]
+        agent_response = received_event["data"]["payload"]
 
         # Evaluate the response
         eval_model = dspy.asyncify(dspy.Predict(BillingEvaluationSignature))

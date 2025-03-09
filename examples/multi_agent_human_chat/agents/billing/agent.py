@@ -5,6 +5,7 @@ from eggai import Channel, Agent
 from libraries.tracing import TracedReAct, create_tracer
 from libraries.logger import get_console_logger
 from .config import settings
+from eggai.schemas import Message
 
 billing_agent = Agent(name="BillingAgent")
 logger = get_console_logger("billing_agent.handler")
@@ -99,7 +100,7 @@ def update_billing_info(policy_number: str, field: str, new_value: str):
     logger.info(
         f"Updating billing info for policy {policy_number}: {field} -> {new_value}"
     )
-    
+
     for record in billing_database:
         if record["policy_number"] == policy_number.strip():
             if field in record:
@@ -118,17 +119,17 @@ def update_billing_info(policy_number: str, field: str, new_value: str):
                 error_msg = f"Field '{field}' not found in billing record."
                 logger.warning(error_msg)
                 return json.dumps({"error": error_msg})
-                
+
     logger.warning(f"Cannot update policy {policy_number}: not found")
     return json.dumps({"error": "Policy not found."})
 
 
 billing_react = TracedReAct(
-    BillingAgentSignature, 
+    BillingAgentSignature,
     tools=[get_billing_info, update_billing_info],
     name="billing_react",
     tracer=tracer,
-    max_iters=5
+    max_iters=5,
 )
 
 
@@ -136,33 +137,32 @@ billing_react = TracedReAct(
     channel=agents_channel, filter_func=lambda msg: msg["type"] == "billing_request"
 )
 @tracer.start_as_current_span("handle_billing_message")
-async def handle_billing_message(msg):
+async def handle_billing_message(msg_dict):
     try:
-        chat_messages = msg["payload"]["chat_messages"]
+        msg = Message(**msg_dict)
+        chat_messages = msg.data.get("chat_messages")
         conversation_string = ""
         for chat in chat_messages:
             role = chat.get("role", "User")
             conversation_string += f"{role}: {chat['content']}\n"
-            
+
         logger.info("Processing billing request")
         logger.debug(f"Conversation context: {conversation_string[:100]}...")
-        
+
         response = billing_react(chat_history=conversation_string)
         final_text = response.final_response
-        
-        meta = msg.get("meta", {})
-        meta["agent"] = "BillingAgent"
-        
+
         logger.info("Sending response to user")
         logger.debug(f"Response: {final_text[:100]}...")
-        
+
         await human_channel.publish(
-            {
-                "id": str(uuid4()),
-                "type": "agent_message",
-                "meta": meta,
-                "payload": final_text,
-            }
+            Message(
+                type="agent_message",
+                source="BillingAgent",
+                data={
+                    "payload": final_text,
+                },
+            )
         )
     except Exception as e:
         logger.error(f"Error in BillingAgent: {e}", exc_info=True)
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         "BillingAgent: Sure! Please provide your policy number.\n"
         "User: It's B67890.\n"
     )
-    
+
     logger.info("Running test query")
     result = billing_react(chat_history=test_conversation)
     logger.info(f"Test response: {result.final_response}")
