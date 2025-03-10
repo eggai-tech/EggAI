@@ -16,7 +16,6 @@ from libraries.tracing.otel import (
 from libraries.tracing.dspy import (
     TracedChainOfThought,
     TracedReAct,
-    traced_asyncify,
 )
 
 __all__ = [
@@ -26,8 +25,7 @@ __all__ = [
     "init_telemetry",
     "get_tracer",
     "create_tracer",
-    # DSPy-specific tracing
+    # DSPy-module-specific tracing
     "TracedChainOfThought",
     "TracedReAct",
-    "traced_asyncify",
 ]

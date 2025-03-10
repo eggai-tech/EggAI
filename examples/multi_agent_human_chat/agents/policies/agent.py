@@ -5,7 +5,7 @@ from opentelemetry import trace
 import dspy
 from eggai import Channel, Agent
 from eggai.schemas import Message
-from libraries.tracing import TracedReAct, traced_asyncify
+from libraries.tracing import TracedReAct
 from libraries.logger import get_console_logger
 
 from agents.policies.rag.retrieving import retrieve_policies
@@ -45,6 +45,7 @@ policies_database = [
     },
 ]
 
+
 class ThreadWithResult(threading.Thread):
     def __init__(self, target, args=(), kwargs=None):
         super().__init__(target=target, args=args, kwargs=kwargs or {})
@@ -58,21 +59,28 @@ class ThreadWithResult(threading.Thread):
         super().join(*args)
         return self._result
 
+
 @tracer.start_as_current_span("query_policy_documentation")
 def query_policy_documentation(query: str, policy_category: PolicyCategory) -> str:
     try:
-        logger.info(f"Retrieving policy information for query: '{query}', category: '{policy_category}'")
-        thread = ThreadWithResult(target=retrieve_policies, args=(query, policy_category))
+        logger.info(
+            f"Retrieving policy information for query: '{query}', category: '{policy_category}'"
+        )
+        thread = ThreadWithResult(
+            target=retrieve_policies, args=(query, policy_category)
+        )
         thread.start()
         results = thread.join()
-        
+
         if results:
             logger.info(f"Found documentation: {len(results)} results")
             if len(results) >= 2:
                 return json.dumps([results[0], results[1]])
             return json.dumps(results)
-            
-        logger.warning(f"No documentation found for query: '{query}', category: '{policy_category}'")
+
+        logger.warning(
+            f"No documentation found for query: '{query}', category: '{policy_category}'"
+        )
         return "Documentation not found."
     except Exception as e:
         logger.error(f"Error retrieving policy documentation: {e}", exc_info=True)
@@ -86,18 +94,20 @@ def take_policy_by_number_from_database(policy_number: str) -> str:
     Returns a JSON-formatted string if the policy is found, or "Policy not found." otherwise.
     """
     logger.info(f"Retrieving policy details for policy number: '{policy_number}'")
-    
+
     if not policy_number:
         logger.warning("Empty policy number provided")
         return "Invalid policy number format."
-        
+
     try:
         cleaned_policy_number = policy_number.strip()
         for policy in policies_database:
             if policy["policy_number"] == cleaned_policy_number:
-                logger.info(f"Found policy: {policy['policy_number']} for {policy['name']}")
+                logger.info(
+                    f"Found policy: {policy['policy_number']} for {policy['name']}"
+                )
                 return json.dumps(policy)
-                
+
         logger.warning(f"Policy not found: '{policy_number}'")
         return "Policy not found."
     except Exception as e:
@@ -123,25 +133,31 @@ class PolicyAgentSignature(dspy.Signature):
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
 
-    policy_category: Optional[PolicyCategory] = dspy.OutputField(desc="Policy category.")
+    policy_category: Optional[PolicyCategory] = dspy.OutputField(
+        desc="Policy category."
+    )
     policy_number: Optional[str] = dspy.OutputField(desc="Policy number.")
-    documentation_summarized_output: Optional[str] = dspy.OutputField(desc="Policy documentation summarized output.")
-    documentation_reference: Optional[str] = dspy.OutputField(desc="Reference on the documentation if found (e.g. Section 3.1 or Section 4.5.6).")
+    documentation_summarized_output: Optional[str] = dspy.OutputField(
+        desc="Policy documentation summarized output."
+    )
+    documentation_reference: Optional[str] = dspy.OutputField(
+        desc="Reference on the documentation if found (e.g. Section 3.1 or Section 4.5.6)."
+    )
 
     final_response: str = dspy.OutputField(desc="Final response message to the user.")
-    final_response_with_documentation_reference: Optional[str] = dspy.OutputField(desc="Final response message to the user with documentation reference.")
+    final_response_with_documentation_reference: Optional[str] = dspy.OutputField(
+        desc="Final response message to the user with documentation reference."
+    )
 
 
-policies_react = traced_asyncify(
+policies_react = dspy.asyncify(
     TracedReAct(
-        PolicyAgentSignature, 
-        tools=[take_policy_by_number_from_database, query_policy_documentation], 
+        PolicyAgentSignature,
+        tools=[take_policy_by_number_from_database, query_policy_documentation],
         max_iters=7,
         name="policies_react",
-        tracer=tracer
-    ),
-    name="policies_react_async",
-    tracer=tracer
+        tracer=tracer,
+    )
 )
 
 
@@ -154,33 +170,39 @@ async def handle_policy_request(msg_dict):
         msg = Message(**msg_dict)
         chat_messages = msg.data["chat_messages"]
         connection_id = msg.data.get("connection_id", "unknown")
-        
+
         logger.info(f"Received policy request from connection {connection_id}")
-        
+
         # Combine chat history
         conversation_string = ""
         for chat in chat_messages:
             role = chat.get("role", "User")
             conversation_string += f"{role}: {chat['content']}\n"
-        
+
         logger.debug(f"Conversation context: {conversation_string[:100]}...")
-        
+
         # Process with DSPy module
         logger.info("Processing with policies_react module")
         response = await policies_react(chat_history=conversation_string)
-        
+
         # Extract final response
         final_response = response.final_response
-        if "final_response_with_documentation_reference" in response and response.final_response_with_documentation_reference:
+        if (
+            "final_response_with_documentation_reference" in response
+            and response.final_response_with_documentation_reference
+        ):
             final_response = response.final_response_with_documentation_reference
             logger.info("Using response with documentation references")
-        
+
         # Log additional information
         if hasattr(response, "policy_number") and response.policy_number:
             logger.info(f"Policy number identified: {response.policy_number}")
         if hasattr(response, "policy_category") and response.policy_category:
             logger.info(f"Policy category identified: {response.policy_category}")
-        if hasattr(response, "documentation_reference") and response.documentation_reference:
+        if (
+            hasattr(response, "documentation_reference")
+            and response.documentation_reference
+        ):
             logger.info(f"Documentation reference: {response.documentation_reference}")
 
         # Send response
@@ -193,7 +215,7 @@ async def handle_policy_request(msg_dict):
                     "message": final_response,
                     "connection_id": connection_id,
                     "agent": "PoliciesAgent",
-                }
+                },
             )
         )
         logger.debug("Response sent successfully")
@@ -209,7 +231,7 @@ async def handle_policy_request(msg_dict):
                         "message": "I'm sorry, I encountered an error while processing your request. Please try again.",
                         "connection_id": msg.data.get("connection_id"),
                         "agent": "PoliciesAgent",
-                    }
+                    },
                 )
             )
         except Exception as notify_error:
@@ -218,23 +240,23 @@ async def handle_policy_request(msg_dict):
 
 if __name__ == "__main__":
     logger.info("Running policies agent as script")
-    
+
     language_model = dspy.LM(settings.language_model, cache=settings.cache_enabled)
     logger.info(f"Configured language model: {settings.language_model}")
-    
+
     dspy.configure(lm=language_model)
-    
+
     # Test policy request
     test_conversation = """
     User: I need information about my policy.
     PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?
     User: My policy number is A12345
     """
-    
+
     logger.info("Running test query")
     response = policies_react(chat_history=test_conversation)
     logger.info(f"Test response: {response.final_response}")
-    
+
     # Examples for reference:
     # Hey, I need an info on my Policy C24680, a fire ruined my kitchen table, can i get a refund?
     # Hey, I need an info on my Policy C24680, it is Fire Damage Coverage included?

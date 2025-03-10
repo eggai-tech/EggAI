@@ -5,12 +5,11 @@ This module provides tracing utilities for DSPy modules, including ChainOfThough
 ReAct, and other DSPy components.
 """
 
-from typing import Optional, List, Callable, Union, Any
+from typing import Optional, List, Callable
 
 import dspy
 from opentelemetry import trace
 
-from libraries.tracing.otel import async_trace_function
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("tracing.dspy")
@@ -79,29 +78,3 @@ class TracedReAct(dspy.ReAct):
         with self.tracer.start_as_current_span(f"{self.trace_name}_predict"):
             return super().predict(**kwargs)
 
-
-def traced_asyncify(
-    module: Union[dspy.Module, Callable], 
-    name: Optional[str] = None,
-    tracer: Optional[trace.Tracer] = None
-) -> Callable:
-    """
-    Create a traced asyncified version of a DSPy module.
-    
-    Args:
-        module: DSPy module to asyncify and trace
-        name: Optional name for the trace span (defaults to module name)
-        tracer: Optional specific tracer to use
-        
-    Returns:
-        Asyncified and traced module function
-    """
-    asyncified = dspy.asyncify(module)
-    span_name = name or getattr(module, "trace_name", module.__class__.__name__.lower())
-    module_tracer = tracer or trace.get_tracer(f"dspy.{span_name}")
-    
-    @async_trace_function(name=f"{span_name}_async", tracer=module_tracer)
-    async def traced_async(*args: Any, **kwargs: Any) -> Any:
-        return await asyncified(*args, **kwargs)
-            
-    return traced_async

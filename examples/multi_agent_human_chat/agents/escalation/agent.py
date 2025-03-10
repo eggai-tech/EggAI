@@ -5,7 +5,7 @@ from eggai import Channel, Agent
 from eggai.schemas import Message
 from typing import Any, Literal
 from opentelemetry import trace
-from libraries.tracing import TracedChainOfThought, TracedReAct, traced_asyncify
+from libraries.tracing import TracedChainOfThought, TracedReAct
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("escalation_agent")
@@ -48,7 +48,7 @@ class RetrieveTicketInfoSignature(dspy.Signature):
     message: str = dspy.OutputField(desc="Message to the user, asking for missing information or confirmation.")
     
 
-retrieve_ticket_info_module = traced_asyncify(
+retrieve_ticket_info_module = dspy.asyncify(
     TracedChainOfThought(
         RetrieveTicketInfoSignature, 
         name="retrieve_ticket_info",
@@ -61,7 +61,7 @@ class ClassifyConfirmationSignature(dspy.Signature):
     confirmation: Literal["yes", "no"] = dspy.OutputField(desc="User confirmation retrieved from chat history.")
     message: str = dspy.OutputField(desc="Message to the user, asking for confirmation.")
 
-classify_confirmation = traced_asyncify(
+classify_confirmation = dspy.asyncify(
     TracedChainOfThought(
         ClassifyConfirmationSignature, 
         name="classify_confirmation",
@@ -74,7 +74,7 @@ class CreateTicketSignature(dspy.Signature):
     ticket_message: str = dspy.OutputField(desc="Ticket creation message confirmation, with summary of ticket details.")
 
 # Now only using the create_ticket tool (retrieve_ticket removed)
-create_ticket_module = traced_asyncify(
+create_ticket_module = dspy.asyncify(
     TracedReAct(
         CreateTicketSignature, 
         tools=[create_ticket], 
