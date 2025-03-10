@@ -15,41 +15,6 @@ from libraries.logger import get_console_logger
 
 logger = get_console_logger("tracing.dspy")
 
-# Patch DSPy's LM class with tracing when this module is imported
-def _patch_dspy_lm():
-    """
-    Monkey patch DSPy's LM class to add tracing.
-    Called automatically when this module is imported.
-    """
-    # In newer DSPy versions, LM is directly in the dspy module
-    if not hasattr(dspy.LM, "__original_call__"):
-        # Store original call method
-        dspy.LM.__original_call__ = dspy.LM.__call__
-        
-        # Create traced version
-        def traced_lm_call(self, *args, **kwargs):
-            tracer = trace.get_tracer("dspy.lm")
-            with tracer.start_as_current_span(f"lm_call_{getattr(self, 'model_name', 'unknown')}"):
-                return self.__original_call__(*args, **kwargs)
-        
-        # Replace with traced version
-        dspy.LM.__call__ = traced_lm_call
-
-# Apply the patch when module is imported
-try:
-    _patch_dspy_lm()
-except Exception as e:
-    logger.error(f"Warning: Could not patch DSPy LM class: {e}")
-    # Log warning but don't crash - tracing is not critical functionality
-
-
-class TracedDSPyModule:
-    """Base class for traced DSPy modules"""
-    
-    # For backwards compatibility
-    patch_lm = staticmethod(_patch_dspy_lm)
-
-
 class TracedChainOfThought(dspy.ChainOfThought):
     """
     Traced version of DSPy's ChainOfThought module.
