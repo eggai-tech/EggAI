@@ -141,6 +141,8 @@ async def handle_billing_message(msg_dict):
     try:
         msg = Message(**msg_dict)
         chat_messages = msg.data.get("chat_messages")
+        connection_id = msg.data.get("connection_id", "unknown")
+
         conversation_string = ""
         for chat in chat_messages:
             role = chat.get("role", "User")
@@ -153,14 +155,16 @@ async def handle_billing_message(msg_dict):
         final_text = response.final_response
 
         logger.info("Sending response to user")
-        logger.debug(f"Response: {final_text[:100]}...")
+        logger.info(f"Response: {final_text[:100]}...")
 
         await human_channel.publish(
             Message(
                 type="agent_message",
                 source="BillingAgent",
                 data={
-                    "payload": final_text,
+                    "message": final_text,
+                    "connection_id": connection_id,
+                    "agent": "BillingAgent",
                 },
             )
         )

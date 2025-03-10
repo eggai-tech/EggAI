@@ -92,9 +92,9 @@ async def test_billing_agent():
         assert received_event["type"] == "agent_message", (
             "Unexpected event type received."
         )
-        assert isinstance(received_event["data"]["payload"], str), "Payload should be a string."
+        assert isinstance(received_event["data"]["message"], str), "Message should be a string."
 
-        agent_response = received_event["data"]["payload"]
+        agent_response = received_event["data"]["message"]
 
         # Evaluate the response
         eval_model = dspy.asyncify(dspy.Predict(BillingEvaluationSignature))
