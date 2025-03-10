@@ -1,9 +1,7 @@
 import os
 from ragatouille import RAGPretrainedModel
-from libraries.tracing import trace_function, create_tracer
+from libraries.tracing import create_tracer
 from libraries.logger import get_console_logger
-from agents.policies.config import settings
-
 from agents.policies.rag.indexing import ensure_index_built
 
 tracer = create_tracer("policies_agent", "rag")
@@ -13,11 +11,7 @@ _INDEX_LOADED = False
 _RAG = None
 
 
-@trace_function(
-    func=lambda query, category=None: None,  # Placeholder for type signature
-    name="retrieve_policies",
-    tracer=tracer
-)
+@tracer.start_as_current_span("retrieve_policies")
 def retrieve_policies(query, category=None):
     global _INDEX_LOADED, _RAG
 

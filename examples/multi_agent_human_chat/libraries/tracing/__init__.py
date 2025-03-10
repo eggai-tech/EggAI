@@ -9,8 +9,6 @@ from libraries.tracing.otel import (
     init_telemetry, 
     get_tracer, 
     create_tracer,
-    trace_function,
-    async_trace_function,
 )
 
 from libraries.tracing.dspy import (
@@ -20,8 +18,6 @@ from libraries.tracing.dspy import (
 
 __all__ = [
     # OpenTelemetry utilities
-    "trace_function",
-    "async_trace_function",
     "init_telemetry",
     "get_tracer",
     "create_tracer",
