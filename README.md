@@ -44,7 +44,7 @@ dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
 qa_model = dspy.Predict("question -> answer")
 agent, channel = Agent("QAAgent"), Channel()
 
-@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
+@agent.subscribe(filter_by_message=lambda event: event.get("event_name") == "question_created")
 async def handle_question(event):
     question = event["payload"]["question"]
     answer = qa_model(question=question).answer
@@ -84,7 +84,7 @@ from eggai import Agent, Channel, eggai_main
 llm = ChatOpenAI(model_name="gpt-4o", temperature=0)
 agent, channel = Agent("QAAgent"), Channel()
 
-@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
+@agent.subscribe(filter_by_message=lambda event: event.get("event_name") == "question_created")
 async def handle_question(event):
     question = event["payload"]["question"]
     answer = llm([HumanMessage(content=question)]).content
@@ -124,7 +124,7 @@ from eggai import Agent, Channel, eggai_main
 litellm.model = "gpt-4o"
 agent, channel = Agent("QAAgent"), Channel()
 
-@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
+@agent.subscribe(filter_by_message=lambda event: event.get("event_name") == "question_created")
 async def handle_question(event):
     question = event["payload"]["question"]
     answer = litellm.completion(model=litellm.model, messages=[{"role": "user", "content": question}])["choices"][0]["message"]["content"]
@@ -164,7 +164,7 @@ from eggai import Agent, Channel, eggai_main
 llm = OpenAI(model="gpt-4o")
 agent, channel = Agent("QAAgent"), Channel()
 
-@agent.subscribe(filter_func=lambda event: event.get("event_name") == "question_created")
+@agent.subscribe(filter_by_message=lambda event: event.get("event_name") == "question_created")
 async def handle_question(event):
     question = event["payload"]["question"]
     answer = llm.complete(question).text
@@ -228,7 +228,7 @@ test_channel = Channel()
 event_received = asyncio.Event()
 received_event = None
 
-@test_agent.subscribe(filter_func=lambda event: event.get("event_name") == "answer_generated")
+@test_agent.subscribe(filter_by_message=lambda event: event.get("event_name") == "answer_generated")
 async def handle_answer(event):
     global received_event
     received_event = event
@@ -457,13 +457,13 @@ from eggai import Agent, Channel, eggai_main
 agent = Agent("OrderAgent")
 channel = Channel()
 
-@agent.subscribe(filter_func=lambda e: e.get("type") == "order_requested")
+@agent.subscribe(filter_by_message=lambda e: e.get("type") == "order_requested")
 async def handle_order_requested(event):
     print(f"[ORDER AGENT]: Received order request. Event: {event}")
     await channel.publish({"type": "order_created", "payload": event})
 
 
-@agent.subscribe(filter_func=lambda e: e.get("type") == "order_created")
+@agent.subscribe(filter_by_message=lambda e: e.get("type") == "order_created")
 async def handle_order_created(event):
     print(f"[ORDER AGENT]: Order created. Event: {event}")
 
