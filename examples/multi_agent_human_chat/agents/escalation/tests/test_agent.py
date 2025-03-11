@@ -4,7 +4,7 @@ import dspy
 from eggai import Agent, Channel
 from ..agent import ticketing_agent as escalation_agent
 from libraries.logger import get_console_logger
-from eggai.schemas import Message
+from libraries.tracing import TracedMessage
 from uuid import uuid4
 
 logger = get_console_logger("escalation_agent.tests")
@@ -72,7 +72,7 @@ async def test_escalation_agent():
         event_received.clear()
 
         await test_channel.publish(
-            Message(
+            TracedMessage(
                 type="ticketing_request",
                 source="TestAgent",
                 data={

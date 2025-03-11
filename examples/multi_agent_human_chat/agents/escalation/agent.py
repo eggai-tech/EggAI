@@ -2,10 +2,9 @@ import json
 from uuid import uuid4
 import dspy
 from eggai import Channel, Agent
-from eggai.schemas import Message
 from typing import Any, Literal
 from opentelemetry import trace
-from libraries.tracing import TracedChainOfThought, TracedReAct
+from libraries.tracing import TracedChainOfThought, TracedReAct, TracedMessage
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("escalation_agent")
@@ -114,7 +113,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
             
             logger.info(f"[Ticketing Agent] Sending confirmation message request: {conf_message}")
             await human_channel.publish(
-                Message(
+                TracedMessage(
                     type="agent_message",
                     source="TicketingAgent",
                     data={
@@ -129,7 +128,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
         else:
             logger.info(f"[Ticketing Agent] Information is incomplete. Asking additional details... {response.message}")
             await human_channel.publish(
-                Message(
+                TracedMessage(
                     type="agent_message",
                     source="TicketingAgent",
                     data={
@@ -147,7 +146,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
             logger.info("[Ticketing Agent] Confirmation is YES. New step: create_ticket")
             update_session_data(session, {"step": "create_ticket"})
             await human_channel.publish(
-                Message(
+                TracedMessage(
                     type="agent_message",
                     source="TicketingAgent",
                     data={
@@ -163,7 +162,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
         else:
             logger.info("[Ticketing Agent] Confirmation is NO. New step: ask_additional_data")
             await human_channel.publish(
-                Message(
+                TracedMessage(
                     type="agent_message",
                     source="TicketingAgent",
                     data={
@@ -179,7 +178,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
         logger.info("[Ticketing Agent] Processing STEP: Creating ticket...")
         response = (await create_ticket_module(ticket_details=pending_tickets[session])).ticket_message
         await human_channel.publish(
-            Message(
+            TracedMessage(
                 type="agent_message",
                 source="TicketingAgent",
                 data={
@@ -202,7 +201,7 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
 @tracer.start_as_current_span("handle_ticketing_request")
 async def handle_ticketing_request(msg_dict):
     logger.info("[Ticketing Agent] Handling ticketing request...")
-    msg = Message(**msg_dict)
+    msg = TracedMessage(**msg_dict)
     session = msg.data.get("session", f"session_{uuid4()}")
     chat_messages = msg.data.get("chat_messages")
     conversation_string = ""

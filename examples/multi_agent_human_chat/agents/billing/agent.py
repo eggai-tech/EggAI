@@ -1,11 +1,10 @@
 import json
-from uuid import uuid4
 import dspy
 from eggai import Channel, Agent
-from libraries.tracing import TracedReAct, create_tracer
+from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_handler, format_span_as_traceparent
 from libraries.logger import get_console_logger
+from opentelemetry import trace
 from .config import settings
-from eggai.schemas import Message
 
 billing_agent = Agent(name="BillingAgent")
 logger = get_console_logger("billing_agent.handler")
@@ -136,10 +135,10 @@ billing_react = TracedReAct(
 @billing_agent.subscribe(
     channel=agents_channel, filter_func=lambda msg: msg["type"] == "billing_request"
 )
-@tracer.start_as_current_span("handle_billing_message")
+@traced_handler("handle_billing_message")
 async def handle_billing_message(msg_dict):
     try:
-        msg = Message(**msg_dict)
+        msg = TracedMessage(**msg_dict)
         chat_messages = msg.data.get("chat_messages")
         connection_id = msg.data.get("connection_id", "unknown")
 
@@ -157,17 +156,23 @@ async def handle_billing_message(msg_dict):
         logger.info("Sending response to user")
         logger.info(f"Response: {final_text[:100]}...")
 
-        await human_channel.publish(
-            Message(
-                type="agent_message",
-                source="BillingAgent",
-                data={
-                    "message": final_text,
-                    "connection_id": connection_id,
-                    "agent": "BillingAgent",
-                },
+        # Create a child span for the publish operation
+        with tracer.start_as_current_span("publish_to_human") as publish_span:
+            # Get updated trace context from current span
+            child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
+            await human_channel.publish(
+                TracedMessage(
+                    type="agent_message",
+                    source="BillingAgent",
+                    data={
+                        "message": final_text,
+                        "connection_id": connection_id,
+                        "agent": "BillingAgent",
+                    },
+                    traceparent=child_traceparent,
+                    tracestate=child_tracestate,
+                )
             )
-        )
     except Exception as e:
         logger.error(f"Error in BillingAgent: {e}", exc_info=True)
 

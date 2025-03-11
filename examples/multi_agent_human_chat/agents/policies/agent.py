@@ -4,8 +4,7 @@ from typing import Optional, Literal
 from opentelemetry import trace
 import dspy
 from eggai import Channel, Agent
-from eggai.schemas import Message
-from libraries.tracing import TracedReAct
+from libraries.tracing import TracedReAct, TracedMessage
 from libraries.logger import get_console_logger
 
 from agents.policies.rag.retrieving import retrieve_policies
@@ -167,7 +166,7 @@ policies_react = dspy.asyncify(
 @tracer.start_as_current_span("handle_policy_request")
 async def handle_policy_request(msg_dict):
     try:
-        msg = Message(**msg_dict)
+        msg = TracedMessage(**msg_dict)
         chat_messages = msg.data["chat_messages"]
         connection_id = msg.data.get("connection_id", "unknown")
 
@@ -208,7 +207,7 @@ async def handle_policy_request(msg_dict):
         # Send response
         logger.info(f"Sending response to user: {final_response[:50]}...")
         await human_channel.publish(
-            Message(
+            TracedMessage(
                 type="agent_message",
                 source="PoliciesAgent",
                 data={
@@ -224,7 +223,7 @@ async def handle_policy_request(msg_dict):
         # Try to notify the user of the error
         try:
             await human_channel.publish(
-                Message(
+                TracedMessage(
                     type="agent_message",
                     source="PoliciesAgent",
                     data={

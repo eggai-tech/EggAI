@@ -1,6 +1,6 @@
 import os
 from eggai import Channel, Agent
-from eggai.schemas import Message
+from libraries.tracing import TracedMessage
 from starlette.websockets import WebSocket, WebSocketDisconnect
 import asyncio
 import uuid
@@ -32,7 +32,6 @@ websocket_manager = WebSocketManager()
 
 messages_cache = {}
 tracer = trace.get_tracer("frontend_agent")
-
 
 @tracer.start_as_current_span("add_websocket_gateway")
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
@@ -76,7 +75,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                     valid_content = await toxic_language_guard(content)
                     if valid_content is None:
                         await human_channel.publish(
-                            Message(
+                            TracedMessage(
                                 id=message_id,
                                 source="FrontendAgent",
                                 type="agent_message",
@@ -84,7 +83,9 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                                     "message": "Sorry, I can't help you with that.",
                                     "connection_id": connection_id,
                                     "agent": "TriageAgent",
-                                }
+                                },
+                                traceparent=f"00-{trace.get_current_span().get_span_context().trace_id:032x}-{trace.get_current_span().get_span_context().span_id:016x}-{int(trace.get_current_span().get_span_context().trace_flags):02x}",
+                                tracestate=str(trace.get_current_span().get_span_context().trace_state),
                             )
                         )
                         continue
@@ -103,7 +104,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                     }
                 )
                 await human_channel.publish(
-                    Message(
+                    TracedMessage(
                         id=message_id,
                         source="FrontendAgent",
                         type="user_message",
@@ -111,6 +112,8 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             "chat_messages": messages_cache[connection_id],
                             "connection_id": connection_id,
                         },
+                        traceparent=f"00-{trace.get_current_span().get_span_context().trace_id:032x}-{trace.get_current_span().get_span_context().span_id:016x}-{int(trace.get_current_span().get_span_context().trace_flags):02x}",
+                        tracestate=str(trace.get_current_span().get_span_context().trace_state),
                     )
                 )
         except WebSocketDisconnect:
@@ -128,7 +131,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
 )
 @tracer.start_as_current_span("handle_human_messages")
 async def handle_human_messages(msg_dict):
-    message = Message(**msg_dict)
+    message = TracedMessage(**msg_dict)
     agent = message.data.get("agent")
     content = message.data.get("message")
     connection_id = message.data.get("connection_id")

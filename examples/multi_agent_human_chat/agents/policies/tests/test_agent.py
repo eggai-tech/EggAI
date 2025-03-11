@@ -4,7 +4,7 @@ import dspy
 from uuid import uuid4
 from eggai import Agent, Channel
 from ..agent import policies_agent
-from eggai.schemas import Message
+from libraries.tracing import TracedMessage
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.tests")
@@ -72,7 +72,7 @@ async def test_policies_agent():
 
         # Simulate a policy request event
         await test_channel.publish(
-            Message(
+            TracedMessage(
                 id=str(uuid4()),
                 type="policy_request",
                 source="TestPoliciesAgent",
