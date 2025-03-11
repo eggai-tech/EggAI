@@ -50,9 +50,9 @@ python main.py
 Expected output:
 
 ```
-[ORDER AGENT]: Received request to create order. {'event_name': 'order_requested', 'payload': {'product': 'Laptop', 'quantity': 1}}
-[ORDER AGENT]: Received order created event. {'event_name': 'order_created', 'payload': {'product': 'Laptop', 'quantity': 1}}
-[EMAIL AGENT]: Received order created event. {'event_name': 'order_created', 'payload': {'product': 'Laptop', 'quantity': 1}}
+[ORDER AGENT]: Received request to create order. order_requested {'product': 'Laptop', 'quantity': 1}
+[ORDER AGENT]: Received order created event. order_created {'product': 'Laptop', 'quantity': 1}
+[EMAIL AGENT]: Received order created event. order_created {'product': 'Laptop', 'quantity': 1}
 ```
 
 What happens:

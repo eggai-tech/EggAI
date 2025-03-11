@@ -1,13 +1,16 @@
 from eggai import Agent, Channel
+from eggai.schemas import Message
 
 agent = Agent("OrderAgent")
 channel = Channel()
 
-@agent.subscribe(filter_func=lambda event: event["event_name"] == "order_requested")
-async def create_order(event):
-    print(f"[ORDER AGENT]: Received request to create order. {event}")
-    await channel.publish({"event_name": "order_created", "payload": event.get("payload")})
 
-@agent.subscribe(filter_func=lambda event: event["event_name"] == "order_created")
-async def order_processing(message):
-    print(f"[ORDER AGENT]: Received order created event. {message}")
+@agent.subscribe(filter_by_message=lambda event: event.get("type") == "order_requested")
+async def create_order(msg):
+    print(f"[ORDER AGENT]: Received request to create order. {msg.get('type')} {msg.get('data')}")
+    await channel.publish(Message(type="order_created", source="main", data=msg.get("data")))
+
+
+@agent.subscribe(filter_by_message=lambda event: event.get("type") == "order_created")
+async def order_processing(msg):
+    print(f"[ORDER AGENT]: Received order created event. {msg.get('type')} {msg.get('data')}")
