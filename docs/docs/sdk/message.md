@@ -1,2 +1,2 @@
 # Message
-::: eggai.schemas.MessageBase
+::: eggai.schemas.BaseMessage
