@@ -24,7 +24,6 @@ class InMemoryTransport(Transport):
     async def connect(self):
         """Marks the transport as connected and starts consume loops for existing subscriptions."""
         self._connected = True
-        # Start consume loops for all existing subscriptions.
         for channel, group_map in InMemoryTransport._SUBSCRIPTIONS.items():
             for group_id in group_map.keys():
                 key = (channel, group_id)
@@ -61,26 +60,23 @@ class InMemoryTransport(Transport):
         for grp_id, queue in InMemoryTransport._CHANNELS[channel].items():
             await queue.put(data)
 
-    async def subscribe(
-            self,
-            channel: str,
-            callback: Callable[[Dict[str, Any]], "asyncio.Future"],
-            group_id: Optional[str] = None
-    ):
+    async def subscribe(self, channel: str, callback: Callable[[Dict[str, Any]], "asyncio.Future"], **kwargs):
         """
         Subscribes to a channel with the provided group_id.
         If no group_id is given, a unique one is generated, ensuring that each subscription
         gets its own consumer (broadcast mode).
         """
-        if not group_id:
-            group_id = uuid.uuid4().hex
+        group_id = kwargs.get("group_id", uuid.uuid4().hex)
         key = (group_id, channel)
-        # Store the callback for this (channel, group_id) pair.
-        InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(callback)
-        # Ensure a queue exists for this (channel, group_id).
+        if "filter_func" in kwargs:
+            async def filtered_callback(data):
+                if kwargs["filter_func"](data):
+                    await callback(data)
+            InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(filtered_callback)
+        else:
+            InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(callback)
         if group_id not in InMemoryTransport._CHANNELS[channel]:
             InMemoryTransport._CHANNELS[channel][group_id] = asyncio.Queue()
-        # Start a consume loop for this subscription if not already started.
         if self._connected and key not in self._consume_tasks:
             self._consume_tasks[key] = asyncio.create_task(self._consume_loop(channel, group_id))
 

@@ -1,9 +1,11 @@
-import uuid
-from typing import Dict, Any, Optional, Callable, Awaitable
+import asyncio
+from typing import Dict, Any, Optional, Callable, Awaitable, Union
+
+from pydantic import BaseModel
 
 from .hooks import eggai_register_stop
-from .transport.base import Transport
 from .transport import get_default_transport
+from .transport.base import Transport
 
 
 class Channel:
@@ -22,30 +24,31 @@ class Channel:
             transport (Optional[Transport]): A concrete transport instance. If None, a default transport is used.
         """
         self._name = name
-        self._default_group_id = name + "_group_" + uuid.uuid4().hex
-        self._transport = transport
+        if transport is None:
+            self._transport = get_default_transport()
+        else:
+            self._transport = transport
         self._connected = False
         self._stop_registered = False
 
-    async def _ensure_connected(self):
+    def get_name(self) -> str:
         """
-        Ensure that the channel is connected by establishing a connection to the transport.
-        If not already connected, it retrieves a default transport (if none provided) and connects.
-        Also registers a stop hook on first connection.
-        """
-        if not self._connected:
-            if self._transport is None:
-                self._transport = get_default_transport()
+        Get the channel name.
 
-            # Connect with group_id=None for publish-only by default.
+        Returns:
+            str: The channel name.
+        """
+        return self._name
+
+    async def _ensure_connected(self):
+        if not self._connected:
             await self._transport.connect()
             self._connected = True
-            # Auto-register stop hook if not already registered.
             if not self._stop_registered:
                 await eggai_register_stop(self.stop)
                 self._stop_registered = True
 
-    async def publish(self, message: Dict[str, Any]):
+    async def publish(self, message: Union[Dict[str, Any], BaseModel]):
         """
         Publish a message to the channel. Establishes a connection if not already connected.
 
@@ -55,16 +58,17 @@ class Channel:
         await self._ensure_connected()
         await self._transport.publish(self._name, message)
 
-    async def subscribe(self, callback: Callable[[Dict[str, Any]], Awaitable[None]], group_id: Optional[str] = None):
+    async def subscribe(self, callback: Callable[[Dict[str, Any]], "asyncio.Future"]):
         """
         Subscribe to the channel by registering a callback to be invoked when messages are received.
 
         Args:
-            callback (Callable[[Dict[str, Any]], Awaitable[None]]): An asynchronous function that processes a message dictionary.
-            group_id (Optional[str]): The consumer group ID to use. If None, a default group ID is generated.
+            callback (Callable[[Dict[str, Any]], "asyncio.Future"]): The callback to invoke on new messages.
         """
+        await self._transport.subscribe(self._name, callback)
         await self._ensure_connected()
-        await self._transport.subscribe(self._name, callback, group_id or self._default_group_id)
+
+
 
     async def stop(self):
         """

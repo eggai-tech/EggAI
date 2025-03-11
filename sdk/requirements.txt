@@ -1,2 +1,2 @@
-aiokafka==0.12.0
+faststream[kafka]==0.5.35
 pydantic==2.10.5

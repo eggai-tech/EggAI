@@ -33,7 +33,7 @@ async def test_kafka(capfd):
     await default_channel.publish({
         "type": "order_requested"
     })
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.5)
     assert hits.get("order_requested") == 1
     assert hits.get("order_created") == 1
 
@@ -52,13 +52,13 @@ async def test_channel_subscribe_multiple():
     await other_channel.subscribe(lambda event: received_other_channel.append(event))
 
     await channel1.publish({"event": "test_event", "value": 1})
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.5)
     assert len(received_test_channel) == 2, (
         f"Expected 2 events for 'test_channel', got {len(received_test_channel)}"
     )
 
     await other_channel.publish({"event": "other_event", "value": 2})
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.5)
     assert len(received_other_channel) == 1, (
         f"Expected 1 event for 'other_channel', got {len(received_other_channel)}"
     )

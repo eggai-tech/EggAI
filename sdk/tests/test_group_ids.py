@@ -4,10 +4,8 @@ import pytest
 from eggai import Agent, Channel
 from eggai.transport import KafkaTransport, eggai_set_default_transport
 
-# Set KafkaTransport as the default transport.
 eggai_set_default_transport(lambda: KafkaTransport())
 
-# Global dictionary to track hits.
 hits = {}
 
 def hit(key):
@@ -17,9 +15,6 @@ def hit(key):
 async def test_group_ids(capfd):
     default_channel = Channel()
 
-    # ---------------------------
-    # Part A: Single agent with two subscriptions using different group IDs.
-    # Both handlers should be triggered for a matching event.
     hits.clear()
     agent = Agent("SingleAgent")
 
@@ -39,7 +34,7 @@ async def test_group_ids(capfd):
 
     await agent.start()
     await default_channel.publish({"type": 1})
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.5)
 
     # Since the subscriptions are in different groups, both should get the message.
     assert hits.get("group_A") == 1, "Expected group_A handler to be triggered once."
@@ -70,7 +65,7 @@ async def test_2_agents_same_group(capfd):
     await agent1.start()
     await agent2.start()
     await default_channel.publish({"type": 2})
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.5)
 
     # With both agents in the same consumer group for type 2 events, only one should process the event.
     assert hits.get("group_C") == 1, "Expected only one handler in group_C to be triggered due to consumer group load balancing."
@@ -101,7 +96,7 @@ async def test_broadcasting(capfd):
     await agentA.start()
     await agentB.start()
     await default_channel.publish({"type": 3})
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.5)
 
     # Expect both agents to process the same broadcasted message.
     assert hits.get("agentA") == 1, "Expected AgentA to handle the broadcasted event."
