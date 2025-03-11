@@ -457,13 +457,13 @@ from eggai import Agent, Channel, eggai_main
 agent = Agent("OrderAgent")
 channel = Channel()
 
-@agent.subscribe(filter_func=lambda e: e.get("event_name") == "order_requested")
+@agent.subscribe(filter_func=lambda e: e.get("type") == "order_requested")
 async def handle_order_requested(event):
     print(f"[ORDER AGENT]: Received order request. Event: {event}")
-    await channel.publish({"event_name": "order_created", "payload": event})
+    await channel.publish({"type": "order_created", "payload": event})
 
 
-@agent.subscribe(filter_func=lambda e: e.get("event_name") == "order_created")
+@agent.subscribe(filter_func=lambda e: e.get("type") == "order_created")
 async def handle_order_created(event):
     print(f"[ORDER AGENT]: Order created. Event: {event}")
 
@@ -472,14 +472,14 @@ async def handle_order_created(event):
 async def main():
     await agent.start()
     await channel.publish({
-        "event_name": "order_requested",
+        "type": "order_requested",
         "payload": {
             "product": "Laptop",
             "quantity": 1
         }
     })
 
-    await asyncio.Future() # Keep the event loop running
+    await asyncio.Future()
 
 if __name__ == "__main__":
     asyncio.run(main())
