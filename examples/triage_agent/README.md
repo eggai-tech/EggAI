@@ -49,8 +49,8 @@ cd examples/intent_classification
 Create and activate a virtual environment:
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # For Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # For Windows: venv\Scripts\activate
 ```
 
 Install the required dependencies:

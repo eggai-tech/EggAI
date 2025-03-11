@@ -49,16 +49,88 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure that you underst
 
 ## Development Workflow
 
+We have a Makefile at the root of the project that simplifies common development tasks. It's the recommended way to work with the project.
+
+### Option 1: Using the Makefile (Recommended)
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/eggai-tech/eggai.git
-   cd eggai-tech/eggai
+   cd eggai
+   ```
+
+2. Install all dependencies (SDK, docs, examples):
+   ```bash
+   make install
+   ```
+   
+   Or install specific components:
+   ```bash
+   # Install only SDK dependencies
+   make install-sdk
+   
+   # Install only documentation dependencies
+   make install-docs
+   
+   # Install dependencies for a specific example
+   make install-example EXAMPLE=multi_agent_human_chat
+   ```
+
+3. Run tests:
+   ```bash
+   # Run all tests with summary
+   make test-all
+   
+   # Run SDK tests only
+   make test-sdk
+   
+   # Run tests for a specific example
+   make test-example EXAMPLE=multi_agent_human_chat
+   ```
+
+4. Clean up:
+   ```bash
+   # Clean Python cache files
+   make clean
+   
+   # Deep clean (removes virtual environments as well)
+   make deep-clean
+   ```
+
+### Option 2: SDK Development (Alternative)
+
+If you prefer to work directly in the SDK directory:
+
+1. Navigate to the SDK directory:
+   ```bash
+   cd sdk
+   ```
+2. Install dependencies:
+   ```bash
+   poetry install
+   ```
+3. Run SDK tests:
+   ```bash
+   poetry run pytest
+   ```
+
+### Option 3: Example Project Development
+
+If you're working on a specific example:
+
+1. Navigate to the example directory:
+   ```bash
+   cd examples/multi_agent_human_chat
    ```
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Run tests to ensure everything works:
+3. Run example-specific setup (if available):
+   ```bash
+   make setup
+   ```
+4. Run tests:
    ```bash
    pytest
    ```
