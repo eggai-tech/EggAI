@@ -17,14 +17,14 @@ async def test_kafka(capfd):
     agent = Agent("OrderAgent")
     default_channel = Channel()
 
-    @agent.subscribe(filter_func=lambda msg: msg.get("type") == "order_requested")
+    @agent.subscribe(filter_by_message=lambda msg: msg.get("type") == "order_requested")
     async def handle_order_requested(msg):
         hit("order_requested")
         await default_channel.publish({
             "type": "order_created"
         })
 
-    @agent.subscribe(filter_func=lambda msg: msg.get("type") == "order_created")
+    @agent.subscribe(filter_by_message=lambda msg: msg.get("type") == "order_created")
     async def handle_order_created(msg):
         hit("order_created")
 

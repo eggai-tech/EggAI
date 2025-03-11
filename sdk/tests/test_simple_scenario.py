@@ -15,13 +15,13 @@ def hit(key):
     hits[key] = hits.get(key, 0) + 1
 
 
-@agent.subscribe(filter_func=lambda e: e.get("type") == "msg1")
+@agent.subscribe(filter_by_message=lambda e: e.get("type") == "msg1")
 async def handle_order_requested(event):
     hit("msg1")
     await channel.publish({"type": "msg2"})
 
 
-@agent.subscribe(filter_func=lambda e: e.get("type") == "msg2")
+@agent.subscribe(filter_by_message=lambda e: e.get("type") == "msg2")
 async def handle_order_created(event):
     hit("msg2")
 

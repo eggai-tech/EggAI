@@ -62,6 +62,7 @@ class Agent:
             self._transport = get_default_transport()
 
         for (channel, handler, kwargs) in self._subscriptions:
+            print(kwargs)
             await self._transport.subscribe(channel, handler, **kwargs)
 
         await self._transport.connect()

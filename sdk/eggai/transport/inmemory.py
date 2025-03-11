@@ -68,9 +68,9 @@ class InMemoryTransport(Transport):
         """
         group_id = kwargs.get("group_id", uuid.uuid4().hex)
         key = (group_id, channel)
-        if "filter_func" in kwargs:
+        if "filter_by_message" in kwargs:
             async def filtered_callback(data):
-                if kwargs["filter_func"](data):
+                if kwargs["filter_by_message"](data):
                     await callback(data)
             InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(filtered_callback)
         else:

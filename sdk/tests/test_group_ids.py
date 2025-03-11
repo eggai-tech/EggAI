@@ -1,5 +1,8 @@
 import asyncio
+import uuid
+
 import pytest
+from faststream.kafka import KafkaMessage
 
 from eggai import Agent, Channel
 from eggai.transport import KafkaTransport, eggai_set_default_transport
@@ -19,14 +22,14 @@ async def test_group_ids(capfd):
     agent = Agent("SingleAgent")
 
     @agent.subscribe(
-        filter_func=lambda event: event["type"] == 1,
+        filter_by_message=lambda event: event["type"] == 1,
         group_id="group_A"
     )
     async def handler_group_A(event):
         hit("group_A")
 
     @agent.subscribe(
-        filter_func=lambda event: event["type"] == 1,
+        filter_by_message=lambda event: event["type"] == 1,
         group_id="group_B"
     )
     async def handler_group_B(event):
@@ -49,14 +52,14 @@ async def test_2_agents_same_group(capfd):
     agent2 = Agent("Agent2")
 
     @agent1.subscribe(
-        filter_func=lambda event: event["type"] == 2,
+        filter_by_message=lambda event: event["type"] == 2,
         group_id="group_C"
     )
     async def handler_agent1(event):
         hit("group_C")
 
     @agent2.subscribe(
-        filter_func=lambda event: event["type"] == 2,
+        filter_by_message=lambda event: event["type"] == 2,
         group_id="group_C"
     )
     async def handler_agent2(event):
@@ -65,10 +68,11 @@ async def test_2_agents_same_group(capfd):
     await agent1.start()
     await agent2.start()
     await default_channel.publish({"type": 2})
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(2)
 
     # With both agents in the same consumer group for type 2 events, only one should process the event.
     assert hits.get("group_C") == 1, "Expected only one handler in group_C to be triggered due to consumer group load balancing."
+
 
 
 @pytest.mark.asyncio
@@ -80,14 +84,14 @@ async def test_broadcasting(capfd):
     agentB = Agent("AgentB")
 
     @agentA.subscribe(
-        filter_func=lambda event: event["type"] == 3
+        filter_by_message=lambda event: event["type"] == 3
         # No group_id provided: broadcasting mode.
     )
     async def handler_agentA(event):
         hit("agentA")
 
     @agentB.subscribe(
-        filter_func=lambda event: event["type"] == 3
+        filter_by_message=lambda event: event["type"] == 3
         # No group_id provided: broadcasting mode.
     )
     async def handler_agentB(event):
