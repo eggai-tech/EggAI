@@ -42,7 +42,7 @@ received_event = None
 
 @test_agent.subscribe(
     channel=agents_channel,
-    filter_func=lambda event: event.get("type")
+    filter_by_message=lambda event: event.get("type")
     in ["billing_request", "policy_request"],
 )
 async def handle_response(event):

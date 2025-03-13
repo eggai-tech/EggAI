@@ -1,15 +1,24 @@
 import json
 import threading
 from typing import Optional, Literal
+
+from eggai.transport import KafkaTransport, eggai_set_default_transport
 from opentelemetry import trace
 import dspy
 from eggai import Channel, Agent
-from eggai.schemas import Message
-from libraries.tracing import TracedReAct
+from libraries.tracing import TracedReAct, TracedMessage, traced_handler
 from libraries.logger import get_console_logger
 
 from agents.policies.rag.retrieving import retrieve_policies
 from agents.policies.config import settings
+
+
+def create_kafka_transport():
+    return KafkaTransport(
+        bootstrap_servers=settings.kafka_bootstrap_servers
+    )
+
+eggai_set_default_transport(create_kafka_transport)
 
 policies_agent = Agent(name="PoliciesAgent")
 
@@ -162,12 +171,12 @@ policies_react = dspy.asyncify(
 
 
 @policies_agent.subscribe(
-    channel=agents_channel, filter_func=lambda msg: msg.get("type") == "policy_request"
+    channel=agents_channel, filter_by_message=lambda msg: msg.get("type") == "policy_request"
 )
-@tracer.start_as_current_span("handle_policy_request")
+@traced_handler("handle_policy_request")
 async def handle_policy_request(msg_dict):
     try:
-        msg = Message(**msg_dict)
+        msg = TracedMessage(**msg_dict)
         chat_messages = msg.data["chat_messages"]
         connection_id = msg.data.get("connection_id", "unknown")
 
@@ -208,7 +217,7 @@ async def handle_policy_request(msg_dict):
         # Send response
         logger.info(f"Sending response to user: {final_response[:50]}...")
         await human_channel.publish(
-            Message(
+            TracedMessage(
                 type="agent_message",
                 source="PoliciesAgent",
                 data={
@@ -224,7 +233,7 @@ async def handle_policy_request(msg_dict):
         # Try to notify the user of the error
         try:
             await human_channel.publish(
-                Message(
+                TracedMessage(
                     type="agent_message",
                     source="PoliciesAgent",
                     data={
@@ -237,6 +246,10 @@ async def handle_policy_request(msg_dict):
         except Exception as notify_error:
             logger.error(f"Failed to send error notification: {notify_error}")
 
+
+@policies_agent.subscribe(channel=agents_channel)
+async def handle_others(msg: TracedMessage):
+    logger.debug("Received message: %s", msg)
 
 if __name__ == "__main__":
     logger.info("Running policies agent as script")
@@ -260,3 +273,5 @@ if __name__ == "__main__":
     # Examples for reference:
     # Hey, I need an info on my Policy C24680, a fire ruined my kitchen table, can i get a refund?
     # Hey, I need an info on my Policy C24680, it is Fire Damage Coverage included?
+
+

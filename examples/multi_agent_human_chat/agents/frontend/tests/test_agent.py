@@ -4,7 +4,7 @@ import uuid
 from unittest.mock import AsyncMock
 from eggai import Channel
 from ..agent import frontend_agent, websocket_manager
-from eggai.schemas import Message
+from libraries.tracing import TracedMessage
 
 pytestmark = pytest.mark.asyncio
 
@@ -20,7 +20,7 @@ async def test_frontend_ageny():
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
 
-    test_message = Message(
+    test_message = TracedMessage(
         id=message_id,
         type="agent_message",
         source="triage_agent",

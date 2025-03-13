@@ -4,7 +4,7 @@ import dspy
 from uuid import uuid4
 from eggai import Agent, Channel
 from ..agent import policies_agent
-from eggai.schemas import Message
+from libraries.tracing import TracedMessage
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.tests")
@@ -52,7 +52,7 @@ received_event = None
 
 @test_agent.subscribe(
     channel=human_channel,
-    filter_func=lambda event: event.get("type") == "agent_message",
+    filter_by_message=lambda event: event.get("type") == "agent_message",
 )
 async def handle_response(event):
     global received_event
@@ -72,7 +72,7 @@ async def test_policies_agent():
 
         # Simulate a policy request event
         await test_channel.publish(
-            Message(
+            TracedMessage(
                 id=str(uuid4()),
                 type="policy_request",
                 source="TestPoliciesAgent",

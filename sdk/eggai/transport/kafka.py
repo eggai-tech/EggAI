@@ -117,7 +117,7 @@ class KafkaTransport(Transport):
             **kwargs: Additional keyword arguments that can be used to configure the subscription.
 
         Keyword Args:
-            filter_func (Callable, optional): A function to filter incoming messages based on their payload. If provided,
+            filter_by_message (Callable, optional): A function to filter incoming messages based on their payload. If provided,
                                                 this function will be applied to the message payload before passing it to
                                                 the handler.
             batch (bool, optional): Whether to consume messages in batches or not (default is False).
