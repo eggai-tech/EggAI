@@ -54,7 +54,7 @@ received_event = None
 
 @test_agent.subscribe(
     channel=human_channel,
-    filter_func=lambda event: event["type"] == "agent_message",
+    filter_by_message=lambda event: event["type"] == "agent_message",
 )
 async def handle_response(event):
     logger.info(f"Received event: {event}")

@@ -1,10 +1,14 @@
 import json
 import dspy
 from eggai import Channel, Agent
+from eggai.transport import eggai_set_default_transport, KafkaTransport
+
 from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_handler, format_span_as_traceparent
 from libraries.logger import get_console_logger
 from opentelemetry import trace
 from .config import settings
+
+eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
 
 billing_agent = Agent(name="BillingAgent")
 logger = get_console_logger("billing_agent.handler")
@@ -13,7 +17,6 @@ agents_channel = Channel("agents")
 human_channel = Channel("human")
 
 tracer = create_tracer("billing_agent")
-
 
 class BillingAgentSignature(dspy.Signature):
     """
@@ -133,7 +136,7 @@ billing_react = TracedReAct(
 
 
 @billing_agent.subscribe(
-    channel=agents_channel, filter_func=lambda msg: msg["type"] == "billing_request"
+    channel=agents_channel, filter_by_message=lambda msg: msg["type"] == "billing_request"
 )
 @traced_handler("handle_billing_message")
 async def handle_billing_message(msg_dict):
@@ -175,6 +178,10 @@ async def handle_billing_message(msg_dict):
             )
     except Exception as e:
         logger.error(f"Error in BillingAgent: {e}", exc_info=True)
+
+@billing_agent.subscribe(channel=agents_channel)
+async def handle_others(msg: TracedMessage):
+    logger.debug("Received message: %s", msg)
 
 
 if __name__ == "__main__":

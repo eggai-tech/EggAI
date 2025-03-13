@@ -25,14 +25,6 @@ async def main():
     # Configure Kafka transport
     logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
     
-    def create_kafka_transport():
-        return KafkaTransport(
-            bootstrap_servers=settings.kafka_bootstrap_servers,
-            rebalance_timeout_ms=settings.kafka_rebalance_timeout_ms
-        )
-    
-    eggai_set_default_transport(create_kafka_transport)
-    
     await triage_agent.start()
     logger.info(f"{settings.app_name} started successfully")
 

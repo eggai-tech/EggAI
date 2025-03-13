@@ -6,6 +6,8 @@ This module provides centralized configuration and tracer creation for OpenTelem
 
 import functools
 import os
+import random
+import uuid
 from typing import Optional, Dict, Any, Callable, Awaitable, Any
 
 from opentelemetry import trace
@@ -169,7 +171,7 @@ def traced_handler(span_name: str = None):
     """
     def decorator(handler_func: Callable[[Dict], Awaitable[None]]):
         @functools.wraps(handler_func)
-        async def wrapper(msg_dict: Dict):
+        async def wrapper(*args, **kwargs):
             # Import here to avoid circular dependencies
             from libraries.tracing.schemas import TracedMessage
             from libraries.logger import get_console_logger
@@ -183,8 +185,19 @@ def traced_handler(span_name: str = None):
             logger = get_console_logger(f"{tracer_name}.handler")
             
             try:
-                # Convert the raw message dict to a TracedMessage
-                msg = TracedMessage(**msg_dict)
+                msg = next((arg for arg in args if isinstance(arg, TracedMessage)), None)
+                if not msg:
+                    msg = next((arg for arg in kwargs.values() if isinstance(arg, TracedMessage)), None)
+
+                # If no message is found, try to find a dict
+                if not msg:
+                    msg = next((arg for arg in args if isinstance(arg, dict)), None)
+                    if not msg:
+                        msg = next((arg for arg in kwargs.values() if isinstance(arg, dict)), None)
+
+                    if msg:
+                        msg = TracedMessage(**msg)
+
                 
                 # Extract parent context from the incoming message if available
                 parent_context = None
@@ -214,10 +227,10 @@ def traced_handler(span_name: str = None):
                     # Set standard attributes
                     span.set_attribute("agent.name", module_name)
                     span.set_attribute("agent.handler", handler_func.__name__)
-                    span.set_attribute("message.id", getattr(msg, 'id', 'unknown'))
+                    span.set_attribute("message.id", str(getattr(msg, 'id', 'unknown')))
                     
                     # Call the original handler function
-                    result = await handler_func(msg_dict)
+                    result = await handler_func(*args, **kwargs)
                     return result
             except Exception as e:
                 logger.error(f"Error in traced handler: {e}", exc_info=True)
@@ -226,3 +239,14 @@ def traced_handler(span_name: str = None):
                 
         return wrapper
     return decorator
+
+def get_traceparent_from_connection_id(connection_id: str) -> str:
+    # Ensure connection_id is a valid UUID. If not, generate a UUID5 based on the string.
+    try:
+        connection_uuid = uuid.UUID(connection_id)
+    except ValueError:
+        connection_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, connection_id)
+    trace_id = connection_uuid.hex
+    span_id = f"{random.getrandbits(64):016x}"
+    trace_flags = "01"
+    return f"00-{trace_id}-{span_id}-{trace_flags}"

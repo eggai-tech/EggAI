@@ -1,11 +1,15 @@
 import time
 
 from eggai import Channel, Agent
+from eggai.transport import eggai_set_default_transport, KafkaTransport
+
 from libraries.tracing import TracedMessage, traced_handler, format_span_as_traceparent
 from agents.triage.dspy_modules.v1 import triage_classifier
 from libraries.logger import get_console_logger
 from opentelemetry import trace
 from .config import settings
+
+eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
 
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel("human")
@@ -15,12 +19,11 @@ tracer = trace.get_tracer("triage_agent")
 logger = get_console_logger("triage_agent.handler")
 
 @triage_agent.subscribe(
-    channel=human_channel, filter_func=lambda msg: msg.get("type") == "user_message"
+    channel=human_channel, filter_by_message=lambda msg: msg.get("type") == "user_message"
 )
 @traced_handler("handle_user_message")
-async def handle_user_message(msg_dict):
+async def handle_user_message(msg: TracedMessage):
     try:
-        msg = TracedMessage(**msg_dict)
         chat_messages = msg.data.get("chat_messages", [])
         connection_id = msg.data.get("connection_id", "unknown")
         
@@ -99,3 +102,7 @@ async def handle_user_message(msg_dict):
             logger.debug(f"Response sent to user: {message_to_send[:50]}...")
     except Exception as e:
         logger.error(f"Error processing message: {e}", exc_info=True)
+
+@triage_agent.subscribe(channel=human_channel)
+async def handle_others(msg: TracedMessage):
+    logger.debug("Received message: %s", msg)

@@ -3,13 +3,19 @@ from uuid import uuid4
 import dspy
 from eggai import Channel, Agent
 from typing import Any, Literal
+
+from eggai.transport import eggai_set_default_transport, KafkaTransport
 from opentelemetry import trace
-from libraries.tracing import TracedChainOfThought, TracedReAct, TracedMessage
+from libraries.tracing import TracedChainOfThought, TracedReAct, TracedMessage, traced_handler
 from libraries.logger import get_console_logger
+from .config import settings
 
 logger = get_console_logger("escalation_agent")
 
 # Agent & Channels
+
+eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
+
 ticketing_agent = Agent(name="TicketingAgent")
 agents_channel = Channel("agents")
 human_channel = Channel("human")
@@ -196,9 +202,9 @@ async def agentic_workflow(session: str, chat_history: str, meta: Any) -> str:
         raise ValueError("Invalid step value.")
 
 @ticketing_agent.subscribe(
-    channel=agents_channel, filter_func=lambda msg: msg["type"] == "ticketing_request"
+    channel=agents_channel, filter_by_message=lambda msg: msg["type"] == "ticketing_request"
 )
-@tracer.start_as_current_span("handle_ticketing_request")
+@traced_handler("handle_ticketing_request")
 async def handle_ticketing_request(msg_dict):
     logger.info("[Ticketing Agent] Handling ticketing request...")
     msg = TracedMessage(**msg_dict)
@@ -218,3 +224,8 @@ async def handle_ticketing_request(msg_dict):
         "connection_id": msg.data.get("connection_id"),
         "agent": "TicketingAgent"
     })
+
+
+@ticketing_agent.subscribe(channel=agents_channel)
+async def handle_others(msg: TracedMessage):
+    logger.debug("Received message: %s", msg)

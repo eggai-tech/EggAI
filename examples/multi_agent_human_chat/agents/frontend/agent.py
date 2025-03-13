@@ -1,5 +1,7 @@
 import os
 from eggai import Channel, Agent
+from eggai.transport import KafkaTransport, eggai_set_default_transport
+
 from libraries.tracing import TracedMessage
 from starlette.websockets import WebSocket, WebSocketDisconnect
 import asyncio
@@ -7,7 +9,10 @@ import uuid
 import uvicorn
 from opentelemetry import trace
 from fastapi import FastAPI, Query
+
+from libraries.tracing.otel import get_traceparent_from_connection_id, traced_handler
 from .websocket_manager import WebSocketManager
+from .config import settings
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("frontend_agent")
@@ -24,6 +29,15 @@ if GUARDRAILS_ENABLED:
 else:
     toxic_language_guard = None  # Assign a no-op function
 
+
+def create_kafka_transport():
+    return KafkaTransport(
+        bootstrap_servers=settings.kafka_bootstrap_servers
+    )
+
+
+eggai_set_default_transport(create_kafka_transport)
+
 frontend_agent = Agent("FrontendAgent")
 
 human_channel = Channel("human")
@@ -33,12 +47,13 @@ websocket_manager = WebSocketManager()
 messages_cache = {}
 tracer = trace.get_tracer("frontend_agent")
 
+
 @tracer.start_as_current_span("add_websocket_gateway")
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     @app.websocket(route)
     @tracer.start_as_current_span("websocket_handler")
     async def websocket_handler(
-        websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
+            websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
     ):
         if server.should_exit:
             websocket.state.closed = True
@@ -52,6 +67,8 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
         await websocket_manager.send_message_to_connection(
             connection_id, {"connection_id": connection_id}
         )
+
+        trace_parent = get_traceparent_from_connection_id(connection_id)
         try:
             while True:
                 try:
@@ -84,7 +101,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                                     "connection_id": connection_id,
                                     "agent": "TriageAgent",
                                 },
-                                traceparent=f"00-{trace.get_current_span().get_span_context().trace_id:032x}-{trace.get_current_span().get_span_context().span_id:016x}-{int(trace.get_current_span().get_span_context().trace_flags):02x}",
+                                traceparent=trace_parent,
                                 tracestate=str(trace.get_current_span().get_span_context().trace_state),
                             )
                         )
@@ -112,7 +129,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             "chat_messages": messages_cache[connection_id],
                             "connection_id": connection_id,
                         },
-                        traceparent=f"00-{trace.get_current_span().get_span_context().trace_id:032x}-{trace.get_current_span().get_span_context().span_id:016x}-{int(trace.get_current_span().get_span_context().trace_flags):02x}",
+                        traceparent=trace_parent,
                         tracestate=str(trace.get_current_span().get_span_context().trace_state),
                     )
                 )
@@ -127,18 +144,17 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
 
 @frontend_agent.subscribe(
     channel=human_channel,
-    filter_func=lambda message: message.get("type") == "agent_message",
+    filter_by_message=lambda message: message.get("type") == "agent_message",
 )
-@tracer.start_as_current_span("handle_human_messages")
-async def handle_human_messages(msg_dict):
-    message = TracedMessage(**msg_dict)
+@traced_handler("handle_human_messages")
+async def handle_human_messages(message: TracedMessage):
     agent = message.data.get("agent")
     content = message.data.get("message")
     connection_id = message.data.get("connection_id")
-    
+
     if connection_id not in messages_cache:
         messages_cache[connection_id] = []
-        
+
     messages_cache[connection_id].append(
         {
             "role": "assistant",
@@ -150,3 +166,8 @@ async def handle_human_messages(msg_dict):
     await websocket_manager.send_message_to_connection(
         connection_id, {"sender": agent, "content": content}
     )
+
+
+@frontend_agent.subscribe(channel=human_channel)
+async def handle_others(msg: TracedMessage):
+    logger.debug("Received message: %s", msg)
