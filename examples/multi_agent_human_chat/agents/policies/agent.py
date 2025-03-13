@@ -6,7 +6,7 @@ from eggai.transport import KafkaTransport, eggai_set_default_transport
 from opentelemetry import trace
 import dspy
 from eggai import Channel, Agent
-from libraries.tracing import TracedReAct, TracedMessage, traced_handler
+from libraries.tracing import TracedReAct, TracedMessage, traced_handler, format_span_as_traceparent
 from libraries.logger import get_console_logger
 
 from agents.policies.rag.retrieving import retrieve_policies
@@ -216,33 +216,41 @@ async def handle_policy_request(msg_dict):
 
         # Send response
         logger.info(f"Sending response to user: {final_response[:50]}...")
-        await human_channel.publish(
-            TracedMessage(
-                type="agent_message",
-                source="PoliciesAgent",
-                data={
-                    "message": final_response,
-                    "connection_id": connection_id,
-                    "agent": "PoliciesAgent",
-                },
-            )
-        )
-        logger.debug("Response sent successfully")
-    except Exception as e:
-        logger.error(f"Error in PoliciesAgent: {e}", exc_info=True)
-        # Try to notify the user of the error
-        try:
+        with tracer.start_as_current_span("publish_to_human") as publish_span:
+            child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
             await human_channel.publish(
                 TracedMessage(
                     type="agent_message",
                     source="PoliciesAgent",
                     data={
-                        "message": "I'm sorry, I encountered an error while processing your request. Please try again.",
-                        "connection_id": msg.data.get("connection_id"),
+                        "message": final_response,
+                        "connection_id": connection_id,
                         "agent": "PoliciesAgent",
                     },
+                    traceparent=child_traceparent,
+                    tracestate=child_tracestate,
                 )
             )
+            logger.debug("Response sent successfully")
+    except Exception as e:
+        logger.error(f"Error in PoliciesAgent: {e}", exc_info=True)
+        # Try to notify the user of the error
+        try:
+            with tracer.start_as_current_span("publish_to_human") as publish_span:
+                child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
+                await human_channel.publish(
+                    TracedMessage(
+                        type="agent_message",
+                        source="PoliciesAgent",
+                        data={
+                            "message": "I'm sorry, I encountered an error while processing your request. Please try again.",
+                            "connection_id": msg.data.get("connection_id"),
+                            "agent": "PoliciesAgent",
+                        },
+                        traceparent=child_traceparent,
+                        tracestate=child_tracestate,
+                    )
+                )
         except Exception as notify_error:
             logger.error(f"Failed to send error notification: {notify_error}")
 
