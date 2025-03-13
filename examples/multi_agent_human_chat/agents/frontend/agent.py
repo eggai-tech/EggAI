@@ -68,7 +68,16 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
             connection_id, {"connection_id": connection_id}
         )
 
-        trace_parent = get_traceparent_from_connection_id(connection_id)
+        current_span = trace.get_current_span()
+        span_context = current_span.get_span_context()
+        trace_parent = (
+            f"00-{span_context.trace_id:032x}-"
+            f"{span_context.span_id:016x}-"
+            f"{span_context.trace_flags:02x}"
+        )
+        current_span.set_attribute('connection_id', str(connection_id))
+        trace_state = str(span_context.trace_state)
+
         try:
             while True:
                 try:
@@ -102,7 +111,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                                     "agent": "TriageAgent",
                                 },
                                 traceparent=trace_parent,
-                                tracestate=str(trace.get_current_span().get_span_context().trace_state),
+                                tracestate=trace_state,
                             )
                         )
                         continue
@@ -130,7 +139,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             "connection_id": connection_id,
                         },
                         traceparent=trace_parent,
-                        tracestate=str(trace.get_current_span().get_span_context().trace_state),
+                        tracestate=trace_state,
                     )
                 )
         except WebSocketDisconnect:

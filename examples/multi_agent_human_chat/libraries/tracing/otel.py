@@ -241,11 +241,7 @@ def traced_handler(span_name: str = None):
     return decorator
 
 def get_traceparent_from_connection_id(connection_id: str) -> str:
-    # Ensure connection_id is a valid UUID. If not, generate a UUID5 based on the string.
-    try:
-        connection_uuid = uuid.UUID(connection_id)
-    except ValueError:
-        connection_uuid = uuid.uuid5(uuid.NAMESPACE_DNS, connection_id)
+    connection_uuid = uuid.UUID(connection_id)
     trace_id = connection_uuid.hex
     span_id = f"{random.getrandbits(64):016x}"
     trace_flags = "01"
