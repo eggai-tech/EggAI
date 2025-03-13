@@ -10,7 +10,7 @@ import uvicorn
 from opentelemetry import trace
 from fastapi import FastAPI, Query
 
-from libraries.tracing.otel import get_traceparent_from_connection_id, traced_handler
+from libraries.tracing.otel import get_traceparent_from_connection_id, traced_handler, extract_span_context
 from .websocket_manager import WebSocketManager
 from .config import settings
 from libraries.logger import get_console_logger
@@ -51,7 +51,6 @@ tracer = trace.get_tracer("frontend_agent")
 @tracer.start_as_current_span("add_websocket_gateway")
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     @app.websocket(route)
-    @tracer.start_as_current_span("websocket_handler")
     async def websocket_handler(
             websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
     ):
@@ -63,92 +62,101 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
 
         if connection_id not in messages_cache:
             messages_cache[connection_id] = []
-        await websocket_manager.connect(websocket, connection_id)
-        await websocket_manager.send_message_to_connection(
-            connection_id, {"connection_id": connection_id}
-        )
 
-        current_span = trace.get_current_span()
-        span_context = current_span.get_span_context()
-        trace_parent = (
-            f"00-{span_context.trace_id:032x}-"
-            f"{span_context.span_id:016x}-"
-            f"{span_context.trace_flags:02x}"
-        )
-        current_span.set_attribute('connection_id', str(connection_id))
-        trace_state = str(span_context.trace_state)
+        with tracer.start_as_current_span("frontend_chat", context=None) as root_span:
+            root_span_ctx = root_span.get_span_context()
+            trace_parent = (
+                f"00-{root_span_ctx.trace_id:032x}-"
+                f"{root_span_ctx.span_id:016x}-"
+                f"{root_span_ctx.trace_flags:02x}"
+            )
+            root_span.set_attribute('connection.id', str(connection_id))
+            trace_state = str(root_span_ctx.trace_state)
 
-        try:
-            while True:
-                try:
-                    data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
-                except asyncio.TimeoutError:
-                    if server.should_exit:
-                        await websocket_manager.disconnect(connection_id)
-                        # TEMPORARY FIX FOR Bug on asyncio.base_events.Server.wait_closed (see
-                        # Close all connections when server is shutting down
-                        conns = server.server_state.connections or []
-                        for conn in conns:
-                            if "shutdown" in dir(conn):
-                                conn.shutdown()
-                        break
-                    continue
-                message_id = str(uuid.uuid4())
-                content = data.get("payload")
+        root_span_ctx = extract_span_context(trace_parent, trace_state)
 
-                # Validate content with guardrails if enabled
-                if GUARDRAILS_ENABLED and toxic_language_guard:
-                    valid_content = await toxic_language_guard(content)
-                    if valid_content is None:
-                        await human_channel.publish(
-                            TracedMessage(
-                                id=message_id,
-                                source="FrontendAgent",
-                                type="agent_message",
-                                data={
-                                    "message": "Sorry, I can't help you with that.",
-                                    "connection_id": connection_id,
-                                    "agent": "TriageAgent",
-                                },
-                                traceparent=trace_parent,
-                                tracestate=trace_state,
-                            )
-                        )
+        parent_context = trace.set_span_in_context(trace.NonRecordingSpan(root_span_ctx))
+        with tracer.start_as_current_span(
+                "websocket_connection",
+                context=parent_context,
+                kind=trace.SpanKind.SERVER
+        ) as span:
+            span.set_attribute('connection.id', str(connection_id))
+            await websocket_manager.connect(websocket, connection_id)
+            await websocket_manager.send_message_to_connection(
+                connection_id, {"connection_id": connection_id}
+            )
+            try:
+                while True:
+                    try:
+                        data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
+                    except asyncio.TimeoutError:
+                        if server.should_exit:
+                            await websocket_manager.disconnect(connection_id)
+                            # TEMPORARY FIX FOR Bug on asyncio.base_events.Server.wait_closed (see
+                            # Close all connections when server is shutting down
+                            conns = server.server_state.connections or []
+                            for conn in conns:
+                                if "shutdown" in dir(conn):
+                                    conn.shutdown()
+                            break
                         continue
-                else:
-                    valid_content = (
-                        content  # Pass content through if guardrails is disabled
-                    )
+                    message_id = str(uuid.uuid4())
+                    content = data.get("payload")
 
-                await websocket_manager.attach_message_id(message_id, connection_id)
-                messages_cache[connection_id].append(
-                    {
-                        "role": "user",
-                        "content": valid_content,
-                        "id": message_id,
-                        "agent": "User",
-                    }
-                )
-                await human_channel.publish(
-                    TracedMessage(
-                        id=message_id,
-                        source="FrontendAgent",
-                        type="user_message",
-                        data={
-                            "chat_messages": messages_cache[connection_id],
-                            "connection_id": connection_id,
-                        },
-                        traceparent=trace_parent,
-                        tracestate=trace_state,
+                    # Validate content with guardrails if enabled
+                    if GUARDRAILS_ENABLED and toxic_language_guard:
+                        valid_content = await toxic_language_guard(content)
+                        if valid_content is None:
+                            await human_channel.publish(
+                                TracedMessage(
+                                    id=message_id,
+                                    source="FrontendAgent",
+                                    type="agent_message",
+                                    data={
+                                        "message": "Sorry, I can't help you with that.",
+                                        "connection_id": connection_id,
+                                        "agent": "TriageAgent",
+                                    },
+                                    traceparent=trace_parent,
+                                    tracestate=trace_state,
+                                )
+                            )
+                            continue
+                    else:
+                        valid_content = (
+                            content  # Pass content through if guardrails is disabled
+                        )
+
+                    await websocket_manager.attach_message_id(message_id, connection_id)
+                    messages_cache[connection_id].append(
+                        {
+                            "role": "user",
+                            "content": valid_content,
+                            "id": message_id,
+                            "agent": "User",
+                        }
                     )
-                )
-        except WebSocketDisconnect:
-            pass
-        except Exception as e:
-            logger.error(f"[WEBSOCKET GATEWAY]: Error with WebSocket {connection_id}: {e}")
-        finally:
-            await websocket_manager.disconnect(connection_id)
-            logger.info(f"[WEBSOCKET GATEWAY]: WebSocket connection {connection_id} closed.")
+                    await human_channel.publish(
+                        TracedMessage(
+                            id=message_id,
+                            source="FrontendAgent",
+                            type="user_message",
+                            data={
+                                "chat_messages": messages_cache[connection_id],
+                                "connection_id": connection_id,
+                            },
+                            traceparent=trace_parent,
+                            tracestate=trace_state,
+                        )
+                    )
+            except WebSocketDisconnect:
+                pass
+            except Exception as e:
+                logger.error(f"[WEBSOCKET GATEWAY]: Error with WebSocket {connection_id}: {e}")
+            finally:
+                await websocket_manager.disconnect(connection_id)
+                logger.info(f"[WEBSOCKET GATEWAY]: WebSocket connection {connection_id} closed.")
 
 
 @frontend_agent.subscribe(
