@@ -40,11 +40,11 @@ async def main():
     await asyncio.sleep(2)
     tool_registry = {}
 
-    puppeteer_mcp_agent = EggaiMcpAgent("FetchAgent")
-    puppeteer_tools = await puppeteer_mcp_agent.list_tools()
-    tools = [mcp_tool_to_litellm_function(tool) for tool in puppeteer_tools]
-    for tool in puppeteer_tools:
-        tool_registry[tool["name"]] = puppeteer_mcp_agent
+    fetch_mcp_agent = EggaiMcpAgent("FetchAgent")
+    fetch_tools = await fetch_mcp_agent.list_tools()
+    tools = [mcp_tool_to_litellm_function(tool) for tool in fetch_tools]
+    for tool in fetch_tools:
+        tool_registry[tool["name"]] = fetch_mcp_agent
 
     fs_mcp_agent = EggaiMcpAgent("FileSystemAgent")
     fs_tools = await fs_mcp_agent.list_tools()
