@@ -36,6 +36,12 @@ The example follows a layered architecture:
 - Node.js and npm (for filesystem MCP server)
 - uvx (for fetch MCP server)
 
+Ensure you have a valid OpenAI API key set in your environment:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
 ## Setup
 
 1. Clone the repository and navigate to the MCP example directory:

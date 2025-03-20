@@ -31,6 +31,7 @@ nav:
     - "Evaluation & DSPy": examples/agent_evaluation_dspy.md
     - "Safe agents & Guardrails": examples/safe_agents_guardrails.md
     - "Advanced Agents with DSPy ReAct": examples/dspy_react.md
+    - "MCP Integration": examples/mcp.md
   - SDK:
     - "Agent": sdk/agent.md
     - "Channel": sdk/channel.md
