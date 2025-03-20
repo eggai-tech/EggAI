@@ -4,6 +4,8 @@ This example demonstrates how to integrate [Model Context Protocol (MCP)](https:
 
 ## Overview
 
+![Overview](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-mcp.png)
+
 This example provides a way to integrate MCP tools with EggAI's agent framework, allowing agents to communicate with MCP-compatible tools through a standardized interface. The integration supports:
 
 1. Running MCP tools as EggAI agents
