@@ -30,10 +30,20 @@ def mcp_tool_to_litellm_function(mcp_tool) -> dict:
 async def main():
     agent = Agent("ChatAgent")
     channel = Channel("eggai.chat")
-    messages = [{
-        "role": "system",
-        "content": "Never use Markdown, only plain text."
-    }]
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant running in a CLI environment. "
+                "You must always respond in plain text. "
+                "Do not use any Markdown formatting, including asterisks, underscores, "
+                "backticks, or other special characters. "
+                "Do not use bold, italics, headings, lists, or code blocks. "
+                "Provide only plain text responses with standard punctuation and spacing. "
+                "When choosing to do file operation, you should use list_allowed_directories first."
+            )
+        }
+    ]
 
     assistant_messages = asyncio.Queue()
     
@@ -58,24 +68,41 @@ async def main():
         messages.append({"role": "user", "content": content})
 
         async def process_message():
-            response = await litellm.acompletion(model=MODEL, messages=messages, tools=tools, tool_choice="auto")
+            stream = await litellm.acompletion(model=MODEL, messages=messages, tools=tools, tool_choice="auto", stream=True)
 
-            if response.choices[0].message.tool_calls:
-                messages.append(response.choices[0].message)
-                for tool_call in response.choices[0].message.tool_calls:
+            first_assistant_token = True
+            chunks = []
+            tools_mode = False
+            async for chunk in stream:
+                if chunk.choices[0].delta.tool_calls:
+                    tools_mode = True
+                if not tools_mode:
+                    if first_assistant_token:
+                        first_assistant_token = False
+                        await aprint("Assistant: ", end="")
+                    await aprint(chunk.choices[0].delta.content or "", end="")
+                if chunk.choices[0].finish_reason:
+                    await aprint("\n", end="")
+                    break
+                chunks.append(chunk)
+
+            built_message = litellm.stream_chunk_builder(chunks, messages=messages)
+            messages.append(built_message.choices[0].message)
+            if tools_mode:
+                for tool_call in built_message.choices[0].message.tool_calls:
                     function_name = tool_call.function.name
                     function_args = json.loads(tool_call.function.arguments)
-                    print("Tool:", tool_registry[function_name].name + "." + function_name)
+                    await aprint("Tool:", tool_registry[function_name].name + "." + function_name, end="")
                     function_response = await tool_registry[function_name].call_tool(function_name, function_args)
                     messages.append({"tool_call_id": tool_call.id, "role": "tool", "name": function_name,
                                      "content": function_response["content"]})
 
                 return await process_message()
 
-            return response.choices[0].message
+            return messages[-1]
 
         r = await process_message()
-        await assistant_messages.put(r.content)
+        await assistant_messages.put(r)
 
     await agent.start()
 
@@ -84,8 +111,7 @@ async def main():
         if message == "exit":
             break
         await channel.publish({"type": "user", "content": message})
-        assistant_message = await assistant_messages.get()
-        await aprint("Assistant:", assistant_message)
+        await assistant_messages.get()
 
     print("Exiting Chat")
 
