@@ -595,6 +595,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/mcp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MCP Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1013,7 +1034,7 @@ connect, disconnect, publish messages to Kafka topics, and subscribe to Kafka to
 
 
               <details class="quote">
-                <summary>Source code in <code>eggai\transport\kafka.py</code></summary>
+                <summary>Source code in <code>eggai/transport/kafka.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11"> 11</a></span>
 <span class="normal"><a href="#__codelineno-0-12"> 12</a></span>
 <span class="normal"><a href="#__codelineno-0-13"> 13</a></span>
@@ -1273,7 +1294,7 @@ connect, disconnect, publish messages to Kafka topics, and subscribe to Kafka to
 </span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a><span class="sd">            **kwargs: Additional keyword arguments that can be used to configure the subscription.</span>
 </span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a>
 </span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">        Keyword Args:</span>
-</span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="sd">            filter_func (Callable, optional): A function to filter incoming messages based on their payload. If provided,</span>
+</span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="sd">            filter_by_message (Callable, optional): A function to filter incoming messages based on their payload. If provided,</span>
 </span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="sd">                                                this function will be applied to the message payload before passing it to</span>
 </span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="sd">                                                the handler.</span>
 </span><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="sd">            batch (bool, optional): Whether to consume messages in batches or not (default is False).</span>
@@ -1809,7 +1830,7 @@ connect, disconnect, publish messages to Kafka topics, and subscribe to Kafka to
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\transport\kafka.py</code></summary>
+              <summary>Source code in <code>eggai/transport/kafka.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-23">23</a></span>
 <span class="normal"><a href="#__codelineno-0-24">24</a></span>
 <span class="normal"><a href="#__codelineno-0-25">25</a></span>
@@ -1943,7 +1964,7 @@ connect, disconnect, publish messages to Kafka topics, and subscribe to Kafka to
 to handle Kafka communication.</p>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\transport\kafka.py</code></summary>
+              <summary>Source code in <code>eggai/transport/kafka.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-78">78</a></span>
 <span class="normal"><a href="#__codelineno-0-79">79</a></span>
 <span class="normal"><a href="#__codelineno-0-80">80</a></span>
@@ -1987,7 +2008,7 @@ to handle Kafka communication.</p>
 and to release any resources held by the KafkaBroker.</p>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\transport\kafka.py</code></summary>
+              <summary>Source code in <code>eggai/transport/kafka.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-88">88</a></span>
 <span class="normal"><a href="#__codelineno-0-89">89</a></span>
 <span class="normal"><a href="#__codelineno-0-90">90</a></span>
@@ -2076,7 +2097,7 @@ and to release any resources held by the KafkaBroker.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\transport\kafka.py</code></summary>
+              <summary>Source code in <code>eggai/transport/kafka.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
 <span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
 <span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
@@ -2197,7 +2218,7 @@ and to release any resources held by the KafkaBroker.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>filter_func</code></td>
+            <td><code>filter_by_message</code></td>
             <td>
                   <code><span title="typing.Callable">Callable</span></code>
             </td>
@@ -2523,7 +2544,7 @@ and to release any resources held by the KafkaBroker.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>eggai\transport\kafka.py</code></summary>
+              <summary>Source code in <code>eggai/transport/kafka.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-110">110</a></span>
 <span class="normal"><a href="#__codelineno-0-111">111</a></span>
 <span class="normal"><a href="#__codelineno-0-112">112</a></span>
@@ -2585,7 +2606,7 @@ and to release any resources held by the KafkaBroker.</p>
 </span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a><span class="sd">        **kwargs: Additional keyword arguments that can be used to configure the subscription.</span>
 </span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a>
 </span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a><span class="sd">    Keyword Args:</span>
-</span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="sd">        filter_func (Callable, optional): A function to filter incoming messages based on their payload. If provided,</span>
+</span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a><span class="sd">        filter_by_message (Callable, optional): A function to filter incoming messages based on their payload. If provided,</span>
 </span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a><span class="sd">                                            this function will be applied to the message payload before passing it to</span>
 </span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a><span class="sd">                                            the handler.</span>
 </span><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="sd">        batch (bool, optional): Whether to consume messages in batches or not (default is False).</span>

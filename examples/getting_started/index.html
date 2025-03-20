@@ -662,6 +662,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mcp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    MCP Integration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -930,8 +951,8 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>examples/getting_started
 </span></code></pre></div>
 <p>Create and activate a virtual environment:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">source</span><span class="w"> </span>venv/bin/activate<span class="w">  </span><span class="c1"># For Windows: venv\Scripts\activate</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate<span class="w">  </span><span class="c1"># For Windows: venv\Scripts\activate</span>
 </span></code></pre></div>
 <p>Install the required dependencies:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
@@ -940,9 +961,9 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>main.py
 </span></code></pre></div>
 <p>Expected output:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>[ORDER AGENT]: Received request to create order. {&#39;event_name&#39;: &#39;order_requested&#39;, &#39;payload&#39;: {&#39;product&#39;: &#39;Laptop&#39;, &#39;quantity&#39;: 1}}
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>[ORDER AGENT]: Received order created event. {&#39;event_name&#39;: &#39;order_created&#39;, &#39;payload&#39;: {&#39;product&#39;: &#39;Laptop&#39;, &#39;quantity&#39;: 1}}
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>[EMAIL AGENT]: Received order created event. {&#39;event_name&#39;: &#39;order_created&#39;, &#39;payload&#39;: {&#39;product&#39;: &#39;Laptop&#39;, &#39;quantity&#39;: 1}}
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>[ORDER AGENT]: Received request to create order. order_requested {&#39;product&#39;: &#39;Laptop&#39;, &#39;quantity&#39;: 1}
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>[ORDER AGENT]: Received order created event. order_created {&#39;product&#39;: &#39;Laptop&#39;, &#39;quantity&#39;: 1}
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>[EMAIL AGENT]: Received order created event. order_created {&#39;product&#39;: &#39;Laptop&#39;, &#39;quantity&#39;: 1}
 </span></code></pre></div>
 <p>What happens:</p>
 <ul>
