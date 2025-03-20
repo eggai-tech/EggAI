@@ -24,15 +24,15 @@ setup:
 
 .PHONY: start-mcp-fetch
 start-mcp-fetch:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m mcp_servers.fetch
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.fetch_mcp.mcp_adapter
 
 .PHONY: start-mcp-filesystem
 start-mcp-filesystem:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m mcp_servers.filesystem
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.filesystem_mcp.mcp_adapter
 
 .PHONY: start-mcp-chat
 start-mcp-chat:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m main
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.chat_agent.agent
 
 .PHONY: start-all
 start-all:

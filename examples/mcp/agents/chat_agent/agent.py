@@ -6,8 +6,8 @@ import dotenv
 import litellm
 from eggai import Agent, Channel
 from eggai.transport import KafkaTransport, eggai_set_default_transport
-
-from mcp_utils import EggaiMcpAgent
+from utils.eggai_mcp_adapter_client import EggaiMcpAdapterClient
+from aioconsole import aprint
 
 dotenv.load_dotenv()
 
@@ -27,30 +27,30 @@ def mcp_tool_to_litellm_function(mcp_tool) -> dict:
     }
 
 
-agent = Agent("ChatAgent")
-channel = Channel("eggai.chat")
-messages = [{
-    "role": "system",
-    "content": "Never use Markdown, only plain text."
-}]
-
-assistant_messages = asyncio.Queue()
-
 async def main():
+    agent = Agent("ChatAgent")
+    channel = Channel("eggai.chat")
+    messages = [{
+        "role": "system",
+        "content": "Never use Markdown, only plain text."
+    }]
+
+    assistant_messages = asyncio.Queue()
+    
     await asyncio.sleep(2)
     tool_registry = {}
 
-    fetch_mcp_agent = EggaiMcpAgent("FetchAgent")
-    fetch_tools = await fetch_mcp_agent.list_tools()
+    fetch = EggaiMcpAdapterClient("Fetch")
+    fetch_tools = await fetch.list_tools()
     tools = [mcp_tool_to_litellm_function(tool) for tool in fetch_tools]
     for tool in fetch_tools:
-        tool_registry[tool["name"]] = fetch_mcp_agent
+        tool_registry[tool["name"]] = fetch
 
-    fs_mcp_agent = EggaiMcpAgent("FileSystemAgent")
-    fs_tools = await fs_mcp_agent.list_tools()
+    file_system = EggaiMcpAdapterClient("FileSystem")
+    fs_tools = await file_system.list_tools()
     tools.extend([mcp_tool_to_litellm_function(tool) for tool in fs_tools])
     for tool in fs_tools:
-        tool_registry[tool["name"]] = fs_mcp_agent
+        tool_registry[tool["name"]] = file_system
 
     @agent.subscribe(channel, filter_by_message=lambda msg: msg.get("type") == "user")
     async def handle_message(msg):
@@ -85,7 +85,7 @@ async def main():
             break
         await channel.publish({"type": "user", "content": message})
         assistant_message = await assistant_messages.get()
-        print("Assistant:", assistant_message)
+        await aprint("Assistant:", assistant_message)
 
     print("Exiting Chat")
 
