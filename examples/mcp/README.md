@@ -14,20 +14,30 @@ This example provides a way to integrate MCP tools with EggAI's agent framework,
 
 ## Components
 
-- `main.py`: Main chat application that demonstrates using MCP tools with LiteLLM
-- `mcp_utils.py`: Utility functions for MCP integration with EggAI
-- `mcp_servers/`: Directory containing example MCP server implementations
-  - `fetch.py`: Example server for HTTP fetch operations
-  - `filesystem.py`: Example server for filesystem operations
+- `agents/`: Directory containing agent implementations
+  - `chat_agent/`: Chat agent that can use MCP tools
+    - `agent.py`: Main chat application implementation
+  - `fetch_mcp/`: Fetch MCP adapter implementation
+    - `mcp_adapter.py`: Adapter for fetch operations
+  - `filesystem_mcp/`: Filesystem MCP adapter implementation
+    - `mcp_adapter.py`: Adapter for filesystem operations
+- `utils/`: Utility functions for MCP integration
+  - `eggai_mcp_adapter.py`: Base MCP adapter functionality
+  - `eggai_mcp_adapter_client.py`: Client for MCP adapters
 - `sandbox/`: Directory used by the filesystem MCP server
 
 ## Architecture
 
 The example follows a layered architecture:
 
-1. **MCP Servers**: Third-party tools that implement the MCP protocol (fetch and filesystem in this example)
-2. **EggAI MCP Adapters**: Adapters that convert MCP server communication to EggAI channels
-3. **EggAI Agent**: A client agent that can discover and use MCP tools through EggAI channels
+1. **MCP Adapters**: Adapters that integrate MCP-compatible tools with EggAI's channel system
+   - `fetch_mcp/mcp_adapter.py`: Adapter for HTTP fetch operations
+   - `filesystem_mcp/mcp_adapter.py`: Adapter for filesystem operations
+2. **EggAI Utilities**: Helper classes and functions for MCP integration
+   - `utils/eggai_mcp_adapter.py`: Base adapter functionality
+   - `utils/eggai_mcp_adapter_client.py`: Client for interacting with MCP adapters
+3. **Chat Agent**: A client agent that can discover and use MCP tools through EggAI channels
+   - `chat_agent/agent.py`: Main chat application implementation
 
 ## Prerequisites
 
@@ -65,17 +75,17 @@ You can run the services individually or all at once:
 
 ### Start individual services
 
-1. Start the Fetch MCP service:
+1. Start the Fetch MCP adapter:
    ```
    make start-mcp-fetch
    ```
 
-2. Start the Filesystem MCP service:
+2. Start the Filesystem MCP adapter:
    ```
    make start-mcp-filesystem
    ```
 
-3. Start the chat application:
+3. Start the chat agent:
    ```
    make start-mcp-chat
    ```
@@ -85,6 +95,8 @@ You can run the services individually or all at once:
 ```
 make start-all
 ```
+
+The chat agent leverages message streaming capabilities and provides enhanced tool mode processing for better interaction with the MCP adapters.
 
 ## Interacting with the Example
 
