@@ -1,4 +1,4 @@
-PYTHON := python
+PYTHON := python3
 VENV_DIR := .venv
 REQ_FILE := requirements.txt
 DEV_REQ_FILE := dev-requirements.txt
