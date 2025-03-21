@@ -31,7 +31,5 @@ if __name__ == "__main__":
         )))
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received, shutting down FileSystem adapter")
-        print("Shutting down FileSystem")
     except Exception as e:
         logger.error(f"Error in FileSystem adapter: {str(e)}", exc_info=True)
-        print(f"FileSystem adapter error: {str(e)}")

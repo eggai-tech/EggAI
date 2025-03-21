@@ -31,7 +31,5 @@ if __name__ == "__main__":
         )))
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received, shutting down Fetch adapter")
-        print("Shutting down Fetch")
     except Exception as e:
         logger.error(f"Error in Fetch adapter: {str(e)}", exc_info=True)
-        print(f"Fetch adapter error: {str(e)}")

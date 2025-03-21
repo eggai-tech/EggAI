@@ -177,7 +177,6 @@ async def main():
         await assistant_messages.get()
 
     logger.info("Exiting Chat")
-    print("Exiting Chat")
 
 
 if __name__ == "__main__":
@@ -186,7 +185,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt received, shutting down")
-        print("Exiting Chat")
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-        print(f"Error: {str(e)}")

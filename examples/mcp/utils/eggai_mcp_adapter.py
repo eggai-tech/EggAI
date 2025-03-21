@@ -61,7 +61,6 @@ async def eggai_mcp_adapter(
                 logger.info(f"Received {len(tools)} tools from MCP server")
                 
                 logger.info(f"{agent_name} bound with MCP server {init_result.serverInfo.name}")
-                print(f"{agent_name} bound with mcp server {init_result.serverInfo.name}")
                 
                 # Define handler for tool calls
                 @agent.subscribe(channel_in, filter_by_message=lambda msg: msg.get("type") == "call_tool")
@@ -79,8 +78,17 @@ async def eggai_mcp_adapter(
                         tool_args = msg.data.get("arguments", None)
                         logger.info(f"Calling MCP tool: {tool_name} with args: {tool_args}")
                         
-                        res = await session.call_tool(tool_name, arguments=tool_args)
-                        logger.info(f"Tool call successful, result length: {len(str(res)) if res else 0}")
+                        # Add timeout to prevent hanging on tool calls
+                        try:
+                            # Set a 30-second timeout for tool calls
+                            res = await asyncio.wait_for(
+                                session.call_tool(tool_name, arguments=tool_args),
+                                timeout=30.0  # 30 seconds timeout
+                            )
+                            logger.info(f"Tool call successful, result length: {len(str(res)) if res else 0}")
+                        except asyncio.TimeoutError:
+                            logger.error(f"Tool call timed out after 30 seconds: {tool_name}")
+                            raise TimeoutError(f"Tool call to {tool_name} timed out after 30 seconds")
                         
                         # Create tool result message with CloudEvents format
                         response_msg = Message(
@@ -96,16 +104,21 @@ async def eggai_mcp_adapter(
                         await channel_out.publish(response_msg)
                     except Exception as e:
                         logger.error(f"Error calling tool: {e}", exc_info=True)
-                        print(f"Error calling tool: {e}")
                         
-                        # Create error message with CloudEvents format
+                        # Create error message with CloudEvents format with detailed error info
                         error_msg = Message(
                             type="tool_result",
                             source=f"eggai.mcp.{agent_name}",
                             data={
                                 "correlation_id": correlation_id,
                                 "agent": agent_name,
-                                "result": {"content": f"Error calling tool: {str(e)}"}
+                                "result": {"content": f"Error calling tool: {str(e)}"},
+                                "error": {
+                                    "message": str(e),
+                                    "type": type(e).__name__,
+                                    "tool": tool_name,
+                                    "arguments": tool_args
+                                }
                             }
                         )
                         logger.debug(f"Publishing error message for correlation_id: {correlation_id}")
@@ -138,7 +151,6 @@ async def eggai_mcp_adapter(
                         await channel_out.publish(response_msg)
                     except Exception as e:
                         logger.error(f"Error listing tools: {e}", exc_info=True)
-                        print(f"Error listing tools: {e}")
                         
                         # Create error message with CloudEvents format
                         error_msg = Message(
@@ -147,7 +159,11 @@ async def eggai_mcp_adapter(
                             data={
                                 "correlation_id": correlation_id,
                                 "agent": agent_name,
-                                "tools": []
+                                "tools": [],
+                                "error": {
+                                    "message": str(e),
+                                    "type": type(e).__name__
+                                }
                             }
                         )
                         logger.debug(f"Publishing error message for correlation_id: {correlation_id}")

@@ -40,6 +40,16 @@ class EggaiMcpAdapterClient:
 
         if message_type == "tools_list":
             if correlation_id in self.pending_requests:
+                # Check for error in response
+                error = msg.data.get("error")
+                if error:
+                    logger.error(f"Error in tools list response: {error.get('message')}")
+                    future = self.pending_requests.pop(correlation_id)
+                    if future:
+                        logger.debug(f"Rejecting future with error for correlation_id: {correlation_id}")
+                        future.set_exception(Exception(f"MCP Error: {error.get('message')}"))
+                    return
+                
                 # Extract tools from the data field
                 tools = msg.data.get("tools", [])
                 logger.info(f"Received tools list from {self.name}: {len(tools)} tools")
@@ -51,6 +61,22 @@ class EggaiMcpAdapterClient:
                 logger.warning(f"Received tools_list message with unknown correlation_id: {correlation_id}")
         elif message_type == "tool_result":
             if correlation_id in self.pending_requests:
+                # Check for error in response
+                error = msg.data.get("error")
+                if error:
+                    error_message = error.get('message', 'Unknown error')
+                    error_type = error.get('type', 'Error')
+                    logger.error(f"Error in tool result: {error_type}: {error_message}")
+                    
+                    future = self.pending_requests.pop(correlation_id)
+                    if future:
+                        # Return result with error indication rather than raising exception
+                        # This allows the client to still get the error content
+                        logger.debug(f"Resolving future with error for correlation_id: {correlation_id}")
+                        result = msg.data.get("result", {"content": f"Error: {error_message}"})
+                        future.set_result(result)
+                    return
+                
                 # Extract result from the data field
                 result = msg.data.get("result")
                 logger.info(f"Received tool result from {self.name}")
@@ -64,7 +90,20 @@ class EggaiMcpAdapterClient:
         else:
             logger.warning(f"Received unknown message type: {message_type}")
 
-    async def list_tools(self):
+    async def list_tools(self, timeout=10.0):
+        """
+        Request list of available tools from the MCP adapter
+        
+        Args:
+            timeout: Maximum time to wait for a response in seconds
+            
+        Returns:
+            List of tools
+            
+        Raises:
+            TimeoutError: If the request times out
+            Exception: If an error occurs during the request
+        """
         await self._initialize()
         correlation_id = uuid.uuid4().hex
         logger.info(f"Requesting tools list from {self.name}")
@@ -82,12 +121,34 @@ class EggaiMcpAdapterClient:
         logger.debug(f"Publishing tools list request with correlation_id: {correlation_id}")
         await self.channel_in.publish(message)
 
-        logger.debug(f"Waiting for tools list response from {self.name}")
-        tools = await future
-        logger.info(f"Received {len(tools)} tools from {self.name}")
-        return tools
+        try:
+            logger.debug(f"Waiting for tools list response from {self.name} (timeout: {timeout}s)")
+            tools = await asyncio.wait_for(future, timeout=timeout)
+            logger.info(f"Received {len(tools)} tools from {self.name}")
+            return tools
+        except asyncio.TimeoutError:
+            # Clean up the pending request
+            if correlation_id in self.pending_requests:
+                self.pending_requests.pop(correlation_id)
+            logger.error(f"Timeout waiting for tools list response from {self.name}")
+            raise TimeoutError(f"Timeout waiting for tools list response from {self.name} after {timeout} seconds")
 
-    async def call_tool(self, tool_name: str, arguments: dict):
+    async def call_tool(self, tool_name: str, arguments: dict, timeout=30.0):
+        """
+        Call a tool on the MCP adapter
+        
+        Args:
+            tool_name: Name of the tool to call
+            arguments: Arguments to pass to the tool
+            timeout: Maximum time to wait for a response in seconds
+            
+        Returns:
+            Tool result
+            
+        Raises:
+            TimeoutError: If the request times out
+            Exception: If an error occurs during the tool call
+        """
         await self._initialize()
         correlation_id = uuid.uuid4().hex
         logger.info(f"Calling tool: {self.name}.{tool_name}")
@@ -109,7 +170,22 @@ class EggaiMcpAdapterClient:
         logger.debug(f"Publishing tool call request with correlation_id: {correlation_id}")
         await self.channel_in.publish(message)
 
-        logger.debug(f"Waiting for tool response from {self.name}.{tool_name}")
-        result = await future
-        logger.info(f"Received result from {self.name}.{tool_name}")
-        return result
+        try:
+            logger.debug(f"Waiting for tool response from {self.name}.{tool_name} (timeout: {timeout}s)")
+            result = await asyncio.wait_for(future, timeout=timeout)
+            logger.info(f"Received result from {self.name}.{tool_name}")
+            return result
+        except asyncio.TimeoutError:
+            # Clean up the pending request
+            if correlation_id in self.pending_requests:
+                self.pending_requests.pop(correlation_id)
+            logger.error(f"Timeout waiting for tool response from {self.name}.{tool_name}")
+            return {
+                "content": f"Error: Tool call to {self.name}.{tool_name} timed out after {timeout} seconds",
+                "error": {
+                    "type": "TimeoutError",
+                    "message": f"Tool call timed out after {timeout} seconds",
+                    "tool": tool_name,
+                    "arguments": arguments
+                }
+            }
