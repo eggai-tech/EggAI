@@ -114,10 +114,15 @@ start-triage:
 	@echo "Starting Triage Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.main
 
+.PHONY: start-audit
+start-audit:
+	@echo "Starting Audit Agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.audit.main
+
 .PHONY: start-all
 start-all:
 	@echo "Starting all agents..."
-	@make -j start-frontend start-billing start-escalation start-policies start-triage
+	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit
 
 .PHONY: restart
 restart: stop start

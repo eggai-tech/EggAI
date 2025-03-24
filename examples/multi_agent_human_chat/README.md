@@ -16,15 +16,15 @@ Users interact with the system through a WebSocket-enabled chat interface.
 
 ## Agents Overview
 
-Agents collaborate with clear defined roles, objectives and skills.
+Agents collaborate with clear defined roles, objectives, and skills.
 
 ### **FrontendAgent**
 
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/>
 
-**Role**: Serve the frontend and bridge WebSocket communication between web frontend and human communication channel.  
+**Role**: Serve the frontend and bridge WebSocket communication between the web frontend and human communication channel.  
 **Objective**: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.  
-**Skill**: Frontend service delivery, Real-time communication, session management, message handling, and agent communication bridge.
+**Skill**: Frontend service delivery, real-time communication, session management, message handling, and agent communication bridge.
 
 ### **TriageAgent**
 
@@ -58,7 +58,20 @@ Agents collaborate with clear defined roles, objectives and skills.
 **Objective**: Ensure unresolved issues are properly documented and assigned to the correct human support teams.  
 **Skill**: Escalation management and ticket tracking.
 
-### Communication Flow Example
+### **AuditAgent (Audit Logging)**
+
+The demo also includes an `AuditAgent` to showcase how to audit messages across all channels. This agent subscribes to every channel (using a wildcard pattern) and logs each message received. This simple auditing mechanism can be extended to store data in a database or into logs for monitoring and debugging.
+
+```python
+audit_agent = Agent("AuditAgent")
+
+@audit_agent.subscribe(pattern="{channel}")
+def audit_message(message, msg: KafkaMessage):
+    logger.info(f"AuditAgent received message: channel={msg.path}, {message}")
+    return message
+```
+
+## Communication Flow Example
 
 ```mermaid
 sequenceDiagram
@@ -154,7 +167,7 @@ Upon running the example and accessing the chat interface at [http://localhost:8
 
 ### Agent Evaluation and Optimization
 
-You can execute tests to validate the behavior of different agents using evluation methods like LLM-as-a-Judge.
+You can execute tests to validate the behavior of different agents using evaluation methods like LLM-as-a-Judge.
 
 To run all tests:
 
