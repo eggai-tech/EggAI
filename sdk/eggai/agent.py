@@ -1,14 +1,15 @@
 import asyncio
-import uuid
+from collections import defaultdict
 from typing import (
-    List, Dict, Any, Optional, Callable, Tuple, Union
+    List, Dict, Any, Optional, Callable, Tuple
 )
 
 from .channel import Channel
-from .transport.base import Transport
-from .transport import get_default_transport
 from .hooks import eggai_register_stop
+from .transport import get_default_transport
+from .transport.base import Transport
 
+HANDLERS_IDS = defaultdict(int)
 
 class Agent:
     """
@@ -62,6 +63,9 @@ class Agent:
             self._transport = get_default_transport()
 
         for (channel, handler, kwargs) in self._subscriptions:
+            handler_name = self._name + "-" + handler.__name__
+            HANDLERS_IDS[handler_name] += 1
+            kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
             await self._transport.subscribe(channel, handler, **kwargs)
 
         await self._transport.connect()

@@ -1,8 +1,10 @@
 import json
+import json
 import logging
-from typing import Dict, Any, Optional, Callable, Union
+from typing import Dict, Any, Optional, Callable, Union, Awaitable
 
-from faststream.kafka import KafkaBroker, KafkaMessage
+from faststream.broker.message import StreamMessage
+from faststream.kafka import KafkaBroker
 
 from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
@@ -109,53 +111,69 @@ class KafkaTransport(Transport):
 
     async def subscribe(self, channel: str, handler, **kwargs) -> Callable:
         """
-        Subscribes to a Kafka topic (channel) and sets up a handler to process incoming messages.
+            Subscribes to a Kafka topic (channel) and sets up a handler to process incoming messages.
 
-        Args:
-            channel (str): The Kafka topic to subscribe to.
-            handler (Callable): The function or coroutine that will handle messages received from the topic.
-            **kwargs: Additional keyword arguments that can be used to configure the subscription.
+            Args:
+                channel (str): The Kafka topic to subscribe to.
+                handler (Callable): The function or coroutine that will handle messages received from the topic.
+                **kwargs: Additional keyword arguments that can be used to configure the subscription.
 
-        Keyword Args:
-            filter_by_message (Callable, optional): A function to filter incoming messages based on their payload. If provided,
-                                                this function will be applied to the message payload before passing it to
-                                                the handler.
-            batch (bool, optional): Whether to consume messages in batches or not (default is False).
-            group_id (Optional[str], optional): The consumer group name for dynamic partition assignment and offset management.
-            key_deserializer (Optional[Callable], optional): A function to deserialize the message key from raw bytes.
-            value_deserializer (Optional[Callable], optional): A function to deserialize the message value from raw bytes.
-            fetch_max_bytes (int, optional): The maximum amount of data the server should return for a fetch request (default is 50 MB).
-            fetch_min_bytes (int, optional): The minimum amount of data the server should return for a fetch request (default is 1 byte).
-            fetch_max_wait_ms (int, optional): The maximum amount of time the server will block before responding to a fetch request (default is 500 ms).
-            max_partition_fetch_bytes (int, optional): The maximum amount of data per-partition the server will return (default is 1 MB).
-            auto_offset_reset (str, optional): A policy for resetting offsets on `OffsetOutOfRangeError` errors (default is 'latest').
-            auto_commit (bool, optional): Whether to automatically commit offsets (default is True).
-            auto_commit_interval_ms (int, optional): Interval in milliseconds between automatic offset commits (default is 5000 ms).
-            check_crcs (bool, optional): Whether to check CRC32 of records to ensure message integrity (default is True).
-            partition_assignment_strategy (Sequence, optional): List of strategies for partition assignment during group management (default is `RoundRobinPartitionAssignor`).
-            max_poll_interval_ms (int, optional): Maximum allowed time between calls to consume messages in batches (default is 300000 ms).
-            rebalance_timeout_ms (Optional[int], optional): Timeout for consumer rejoin during rebalance (default is None).
-            session_timeout_ms (int, optional): Client group session timeout (default is 10000 ms).
-            heartbeat_interval_ms (int, optional): The interval between heartbeats to the consumer coordinator (default is 3000 ms).
-            consumer_timeout_ms (int, optional): Maximum wait timeout for background fetching routine (default is 200 ms).
-            max_poll_records (Optional[int], optional): The maximum number of records to fetch in one batch (default is None).
-            exclude_internal_topics (bool, optional): Whether to exclude internal topics such as offsets from being exposed to the consumer (default is True).
-            isolation_level (str, optional): Controls how to read messages written transactionally ('read_uncommitted' or 'read_committed', default is 'read_uncommitted').
-            batch_timeout_ms (int, optional): Milliseconds to wait for data in the buffer if no data is available (default is 200 ms).
-            max_records (Optional[int], optional): Number of messages to consume in one batch (default is None).
-            listener (Optional[ConsumerRebalanceListener], optional): Optionally provide a listener for consumer group rebalances (default is None).
-            pattern (Optional[str], optional): Pattern to match available topics (either this or `topics` must be provided, not both).
-            partitions (Collection[TopicPartition], optional): Explicit list of partitions to assign (can't use with `topics`).
+            Keyword Args:
+                filter_by_message (Callable, optional): A function to filter incoming messages based on their payload. If provided,
+                                                    this function will be applied to the message payload before passing it to
+                                                    the handler.
+                batch (bool, optional): Whether to consume messages in batches or not (default is False).
+                group_id (Optional[str], optional): The consumer group name for dynamic partition assignment and offset management.
+                key_deserializer (Optional[Callable], optional): A function to deserialize the message key from raw bytes.
+                value_deserializer (Optional[Callable], optional): A function to deserialize the message value from raw bytes.
+                fetch_max_bytes (int, optional): The maximum amount of data the server should return for a fetch request (default is 50 MB).
+                fetch_min_bytes (int, optional): The minimum amount of data the server should return for a fetch request (default is 1 byte).
+                fetch_max_wait_ms (int, optional): The maximum amount of time the server will block before responding to a fetch request (default is 500 ms).
+                max_partition_fetch_bytes (int, optional): The maximum amount of data per-partition the server will return (default is 1 MB).
+                auto_offset_reset (str, optional): A policy for resetting offsets on `OffsetOutOfRangeError` errors (default is 'latest').
+                auto_commit (bool, optional): Whether to automatically commit offsets (default is True).
+                auto_commit_interval_ms (int, optional): Interval in milliseconds between automatic offset commits (default is 5000 ms).
+                check_crcs (bool, optional): Whether to check CRC32 of records to ensure message integrity (default is True).
+                partition_assignment_strategy (Sequence, optional): List of strategies for partition assignment during group management (default is `RoundRobinPartitionAssignor`).
+                max_poll_interval_ms (int, optional): Maximum allowed time between calls to consume messages in batches (default is 300000 ms).
+                rebalance_timeout_ms (Optional[int], optional): Timeout for consumer rejoin during rebalance (default is None).
+                session_timeout_ms (int, optional): Client group session timeout (default is 10000 ms).
+                heartbeat_interval_ms (int, optional): The interval between heartbeats to the consumer coordinator (default is 3000 ms).
+                consumer_timeout_ms (int, optional): Maximum wait timeout for background fetching routine (default is 200 ms).
+                max_poll_records (Optional[int], optional): The maximum number of records to fetch in one batch (default is None).
+                exclude_internal_topics (bool, optional): Whether to exclude internal topics such as offsets from being exposed to the consumer (default is True).
+                isolation_level (str, optional): Controls how to read messages written transactionally ('read_uncommitted' or 'read_committed', default is 'read_uncommitted').
+                batch_timeout_ms (int, optional): Milliseconds to wait for data in the buffer if no data is available (default is 200 ms).
+                max_records (Optional[int], optional): Number of messages to consume in one batch (default is None).
+                listener (Optional[ConsumerRebalanceListener], optional): Optionally provide a listener for consumer group rebalances (default is None).
+                pattern (Optional[str], optional): Pattern to match available topics (either this or `topics` must be provided, not both).
+                partitions (Collection[TopicPartition], optional): Explicit list of partitions to assign (can't use with `topics`).
 
-        Returns:
-            Callable: A callback function that represents the subscription. When invoked, it will call the handler with
-                      incoming messages.
+            Returns:
+                Callable: A callback function that represents the subscription. When invoked, it will call the handler with
+                          incoming messages.
         """
         if "filter_by_message" in kwargs:
-            filter_handler = kwargs.pop("filter_by_message")
+            def filter_middleware(filter_func):
+                async def middleware(
+                        call_next: Callable[[Any], Awaitable[Any]],
+                        msg: StreamMessage[Any],
+                ) -> Any:
+                    if filter_func(json.loads(msg.body.decode("utf-8"))):
+                        return await call_next(msg)
+                    return None
 
-            def filter_by_message(message: KafkaMessage):
-                return filter_handler(json.loads(message.body.decode("utf-8")))
+                return middleware
 
-            kwargs["filter"] = filter_by_message
-        return self.broker.subscriber(channel, **kwargs)(handler)
+            if "middlewares" not in kwargs:
+                kwargs["middlewares"] = []
+            kwargs["middlewares"].append(filter_middleware(kwargs.pop("filter_by_message")))
+
+        handler_id = kwargs.pop("handler_id")
+        if "group_id" not in kwargs:
+            kwargs["group_id"] = handler_id
+
+        if channel == "eggai.channel" and "pattern" in kwargs:
+            return self.broker.subscriber(**kwargs)(handler)
+        else:
+            return self.broker.subscriber(channel, **kwargs)(handler)

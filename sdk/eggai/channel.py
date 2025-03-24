@@ -1,11 +1,14 @@
 import asyncio
-from typing import Dict, Any, Optional, Callable, Awaitable, Union
+from collections import defaultdict
+from typing import Dict, Any, Optional, Callable, Union
 
 from pydantic import BaseModel
 
 from .hooks import eggai_register_stop
 from .transport import get_default_transport
 from .transport.base import Transport
+
+HANDLERS_IDS = defaultdict(int)
 
 
 class Channel:
@@ -58,17 +61,18 @@ class Channel:
         await self._ensure_connected()
         await self._transport.publish(self._name, message)
 
-    async def subscribe(self, callback: Callable[[Dict[str, Any]], "asyncio.Future"]):
+    async def subscribe(self, callback: Callable[[Dict[str, Any]], "asyncio.Future"], **kwargs):
         """
         Subscribe to the channel by registering a callback to be invoked when messages are received.
 
         Args:
             callback (Callable[[Dict[str, Any]], "asyncio.Future"]): The callback to invoke on new messages.
         """
-        await self._transport.subscribe(self._name, callback)
+        handler_name = self._name + "-" + (callback.__name__ or "handler").replace("<", "").replace(">", "")
+        HANDLERS_IDS[handler_name] += 1
+        kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
+        await self._transport.subscribe(self._name, callback, **kwargs)
         await self._ensure_connected()
-
-
 
     async def stop(self):
         """

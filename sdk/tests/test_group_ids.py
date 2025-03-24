@@ -68,7 +68,7 @@ async def test_2_agents_same_group(capfd):
     await agent1.start()
     await agent2.start()
     await default_channel.publish({"type": 2})
-    await asyncio.sleep(2)
+    await asyncio.sleep(4)
 
     # With both agents in the same consumer group for type 2 events, only one should process the event.
     assert hits.get("group_C") == 1, "Expected only one handler in group_C to be triggered due to consumer group load balancing."
