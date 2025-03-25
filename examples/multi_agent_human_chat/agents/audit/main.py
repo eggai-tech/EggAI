@@ -6,7 +6,7 @@ from libraries.logger import get_console_logger
 from .config import settings
 from .agent import audit_agent
 
-logger = get_console_logger("escalation_agent")
+logger = get_console_logger("audit_agent")
 
 @eggai_main
 async def main():
@@ -25,6 +25,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Shutting down escalation agent")
+        logger.info("Shutting down audit agent")
     except Exception as e:
         logger.error(f"Error in main: {e}", exc_info=True)

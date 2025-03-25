@@ -76,29 +76,38 @@ sequenceDiagram
     participant TriageAgent
     participant AgentsChannel
     participant PoliciesAgent
+    participant AuditAgent
 
     User->>FrontendAgent: Send greeting (e.g., "hi")
     FrontendAgent->>HumanChannel: Forward user input
+    HumanChannel->>+AuditAgent: Log message
     HumanChannel->>TriageAgent: Forward to TriageAgent
     TriageAgent-->>HumanChannel: Respond with initial greeting (e.g., "Hello! How can I assist?")
+    HumanChannel->>+AuditAgent: Log message
     HumanChannel-->>FrontendAgent: Send response
     FrontendAgent-->>User: Display response
 
     User->>FrontendAgent: Ask for help with insurance (e.g., "I want to know what's included in my policy")
     FrontendAgent->>HumanChannel: Forward user input
+    HumanChannel->>+AuditAgent: Log message
     HumanChannel->>TriageAgent: Forward to TriageAgent
     TriageAgent->>AgentsChannel: Forward to PoliciesAgent
+    AgentsChannel->>+AuditAgent: Log message
     AgentsChannel->>PoliciesAgent: Forward to PoliciesAgent
     PoliciesAgent-->>HumanChannel: Ask for clarification (e.g., "Can you provide your policy number?")
+    HumanChannel->>+AuditAgent: Log message
     HumanChannel-->>FrontendAgent: Send response
     FrontendAgent-->>User: Display response
 
     User->>FrontendAgent: Provide policy number (e.g., A12345)
     FrontendAgent->>HumanChannel: Forward user input
+    HumanChannel->>+AuditAgent: Log message
     HumanChannel->>TriageAgent: Forward to TriageAgent
     TriageAgent->>AgentsChannel: Forward to PoliciesAgent
+    AgentsChannel->>+AuditAgent: Log message
     AgentsChannel->>PoliciesAgent: Forward to PoliciesAgent
     PoliciesAgent-->>HumanChannel: Return policy details (e.g., "Your insurance with the policy number A12345 includes...")
+    HumanChannel->>+AuditAgent: Log message
     HumanChannel-->>FrontendAgent: Send response
     FrontendAgent-->>User: Display response
 ```
@@ -173,6 +182,7 @@ make test
 Running Specific Agent Tests:
 
 ```bash
+make test-audit        # Runs tests for the Audit Agent
 make test-billing      # Runs tests for the Billing Agent
 make test-escalation   # Runs tests for the Escalation Agent
 make test-frontend     # Runs tests for the Frontend Agent

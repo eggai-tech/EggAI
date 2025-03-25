@@ -63,6 +63,12 @@ test-triage:
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage -s
 	@echo "Tests for triage agent completed."
 
+.PHONY: test-audit
+test-audit:
+	@echo "Running tests for audit agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/audit -s
+	@echo "Tests for audit agent completed."
+
 .PHONY: stop
 stop: docker-down
 	@echo "Environment and Docker Compose have been stopped."
