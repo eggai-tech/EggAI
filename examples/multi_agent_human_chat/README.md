@@ -62,9 +62,9 @@ Agents collaborate with clear defined roles, objectives, and skills.
 
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/>
 
-**Role**: Monitor all message traffic across channels for logging and auditing purposes.
-**Objective**: Provide visibility into agent communication by logging messages for debugging, analytics, and compliance.
-**Skill**: Channel-wide subscription, message auditing, log management, and extensibility for database or monitoring integration.
+**Role**: Monitor all message traffic across channels for logging and auditing purposes.  
+**Objective**: Provide visibility into agent communication by logging messages for debugging, analytics, and compliance.  
+**Skill**: Channel-wide subscription, message auditing, log management, and extensibility for database or monitoring integration.  
 
 ## Communication Flow Example
 
