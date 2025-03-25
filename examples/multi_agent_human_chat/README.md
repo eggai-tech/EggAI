@@ -58,18 +58,13 @@ Agents collaborate with clear defined roles, objectives, and skills.
 **Objective**: Ensure unresolved issues are properly documented and assigned to the correct human support teams.  
 **Skill**: Escalation management and ticket tracking.
 
-### **AuditAgent (Audit Logging)**
+### **AuditAgent**
 
-The demo also includes an `AuditAgent` to showcase how to audit messages across all channels. This agent subscribes to every channel (using a wildcard pattern) and logs each message received. This simple auditing mechanism can be extended to store data in a database or into logs for monitoring and debugging.
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/>
 
-```python
-audit_agent = Agent("AuditAgent")
-
-@audit_agent.subscribe(pattern="{channel}")
-def audit_message(message, msg: KafkaMessage):
-    logger.info(f"AuditAgent received message: channel={msg.path}, {message}")
-    return message
-```
+**Role**: Monitor all message traffic across channels for logging and auditing purposes.
+**Objective**: Provide visibility into agent communication by logging messages for debugging, analytics, and compliance.
+**Skill**: Channel-wide subscription, message auditing, log management, and extensibility for database or monitoring integration.
 
 ## Communication Flow Example
 
