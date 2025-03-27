@@ -12,3 +12,5 @@ opentelemetry-sdk==1.30.0
 python-json-logger==2.0.7
 colorlog==6.8.2
 pydantic-settings==2.4.0
+colbert-ai==0.2.21
+transformers[torch]==4.49.0

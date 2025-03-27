@@ -148,6 +148,12 @@ Create and activate a virtual environment and install required dependencies:
 make setup
 ```
 
+**Note for Mac users**: You may need to install torch compatibility package separately:
+
+```bash
+pip install "transformers[torch]<=4.49.0"
+```
+
 Configure Guardrails (Optional):
 
 ```bash
@@ -160,6 +166,32 @@ Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose
 ```bash
 make docker-up
 ```
+### Model Configuration
+
+The system supports both cloud and local language models:
+
+#### Using OpenAI (Default)
+By default, the system uses OpenAI models via the API key specified above.
+
+#### Using Local Models 
+You can run the system with local language models (via LiteLLM):
+
+1. Start a local model server (e.g., Ollama):
+   ```bash
+   # Install Ollama first, then pull a model
+   ollama pull gemma3
+   ```
+
+2. Create a `.env` file in the project root with your model configuration:
+   ```
+   TRIAGE_LANGUAGE_MODEL=ollama_chat/gemma3
+   POLICIES_LANGUAGE_MODEL=ollama_chat/gemma3
+   BILLING_LANGUAGE_MODEL=ollama_chat/gemma3
+   ESCALATION_LANGUAGE_MODEL=ollama_chat/gemma3
+   ```
+
+Each agent can use a different model. All LiteLLM providers are supported, allowing you to mix local and cloud models as needed.
+
 
 ### Run the Example
 

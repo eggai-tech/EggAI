@@ -35,25 +35,25 @@ def audit_message(message, msg: KafkaMessage):
         channel = msg.path
         message_type = message.get("type", "unknown")
         source = message.get("source", "unknown")
-        
+
         # Categorize the message
         category = MESSAGE_CATEGORIES.get(message_type, "Other")
-        
+
         # Create a detailed audit log
         with tracer.start_as_current_span("process_audit_message") as span:
             span.set_attribute("audit.channel", channel)
             span.set_attribute("audit.message_type", message_type)
             span.set_attribute("audit.source", source)
             span.set_attribute("audit.category", category)
-            
+
             # Log with categorization
             logger.info(
-                f"AuditAgent received message: category={category}, channel={channel}, " 
+                f"AuditAgent received message: category={category}, channel={channel}, "
                 f"type={message_type}, source={source}, content={message}"
             )
-            
+
             # Here you could add persistent storage logic in the future
-        
+
         return message
     except Exception as e:
         logger.error(f"Error processing audit message: {e}", exc_info=True)
