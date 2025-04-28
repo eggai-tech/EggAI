@@ -10,7 +10,7 @@ import uvicorn
 from opentelemetry import trace
 from fastapi import FastAPI, Query
 
-from libraries.tracing.otel import get_traceparent_from_connection_id, traced_handler, extract_span_context
+from libraries.tracing.otel import traced_handler, extract_span_context
 from .websocket_manager import WebSocketManager
 from .config import settings
 from libraries.logger import get_console_logger

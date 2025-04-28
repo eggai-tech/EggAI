@@ -1,10 +1,8 @@
 from faststream.kafka import KafkaMessage
-from typing import Dict, Any, Optional
 from eggai import Channel, Agent
 from eggai.transport import KafkaTransport, eggai_set_default_transport
 from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, traced_handler, create_tracer, format_span_as_traceparent
-from opentelemetry import trace
+from libraries.tracing import traced_handler, create_tracer
 from .config import settings
 
 eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))

@@ -1,6 +1,5 @@
 import asyncio
 from eggai import eggai_main
-from eggai.transport import eggai_set_default_transport, KafkaTransport
 from libraries.tracing import init_telemetry
 from libraries.logger import get_console_logger
 from .config import settings

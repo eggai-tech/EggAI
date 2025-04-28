@@ -8,7 +8,7 @@ import functools
 import os
 import random
 import uuid
-from typing import Optional, Dict, Any, Callable, Awaitable, Any
+from typing import Optional, Dict, Callable, Awaitable
 
 from opentelemetry import trace
 from opentelemetry.trace import Tracer, SpanContext, TraceFlags, TraceState

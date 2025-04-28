@@ -1,0 +1,212 @@
+{
+  "self": {
+    "lm": null,
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "chat_history": "User: Hi there! I was just looking at my last invoice and I have a question about a charge.\nBillingAgent: Of course! What specific charge are you inquiring about?\nUser: I see a charge for a service I didn't use, can you explain that?\n",
+        "reasoning": "The user is inquiring about a specific charge on their invoice that they believe is incorrect. This falls under the responsibilities of the BillingAgent, who handles billing inquiries and disputes.",
+        "target_agent": "BillingAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I'm trying to get support for a system error I'm encountering.\nEscalationAgent: I can assist you with that. What type of system error are you facing?\nUser: It says \"Error 503: Service Unavailable\" whenever I try to access my account.\n",
+        "reasoning": "The user is experiencing a technical issue related to accessing their account, which falls under the purview of the EscalationAgent, as they are already in contact with this agent for support regarding a system error.",
+        "target_agent": "EscalationAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I'm having trouble logging into my account, and I've tried resetting my password multiple times.\nEscalationAgent: I can assist you with that. Can you please provide me with your account email or username to create a ticket for this issue?\nUser: My email is user@example.com.\n",
+        "reasoning": "The user is experiencing issues with logging into their account and has provided their email for assistance. This indicates that the issue requires escalation for further support, which aligns with the role of the EscalationAgent.",
+        "target_agent": "EscalationAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Hey there! What's your favorite color?\n",
+        "reasoning": "The user is engaging in a casual conversation that does not pertain to insurance-related inquiries. The ChattyAgent is designed for such interactions, making it the appropriate target agent for this context.",
+        "target_agent": "ChattyAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Hallo, wie geht es dir heute?\nChattyAgent: Mir geht es gut, danke! Und dir? Gibt es etwas, wor\u00fcber du sprechen m\u00f6chtest?\nUser: Ich habe \u00fcber meine Versicherung nachgedacht.\nChattyAgent: Das ist ein gutes Thema! Welche Fragen hast du zu deiner Versicherung?\nUser: Ich bin mir nicht sicher, ob ich die richtige Police habe.\n",
+        "reasoning": "The user is expressing uncertainty about their insurance policy, which indicates they may need assistance or information related to their insurance coverage. Given the context, the ChattyAgent is appropriate for engaging in a conversational manner and guiding the user towards the necessary information.",
+        "target_agent": "ChattyAgent",
+        "confidence": 0.8
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Hi there! Can you tell me a joke?\nChattyAgent: Of course! Why did the scarecrow win an award? Because he was outstanding in his field!\nUser: That's funny! So, what's your favorite type of insurance?\nChattyAgent: I like all types of insurance, but I think health insurance is really important. It helps people stay covered when they need it most!\nUser: Can you recommend a good insurance policy?\nChattyAgent: I'm not a human, so I can't give specific recommendations, but I can help answer any questions you have about insurance!\n",
+        "reasoning": "The user is engaging in a light-hearted conversation with the ChattyAgent, asking for jokes and discussing insurance in a casual manner. The ChattyAgent is designed to handle such interactions, making it the appropriate target agent for this conversation.",
+        "target_agent": "ChattyAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Hi there! How's your day going?\nChattyAgent: Hello! I'm just a chatbot, but I'm here to help you. How can I assist you today?\nUser: I need to check the status of my claim.\nClaimsAgent: I can help with that! Could you please provide me with your claim number?\nUser: Sure, it's 123456.\nClaimsAgent: Thank you! Let me check the status of claim number 123456 for you.\n",
+        "reasoning": "The user is inquiring about the status of their claim, which is a specific request related to claims processing. The ClaimsAgent is the appropriate agent to handle this type of inquiry, as they are responsible for managing claims and providing updates on their status.",
+        "target_agent": "ClaimsAgent",
+        "confidence": 1.0
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I want to check if I\u2019ve been charged for the optional insurance.\nBillingAgent: I can help with that! Please provide your account number so I can look at your billing details.\nUser: My account number is 222333.\nBillingAgent: Thank you! I see that you have been charged for the optional insurance on your last bill. Would you like to know the specific amount?\nUser: Yes, please tell me how much it is.\nBillingAgent: The charge for the optional insurance is $25. Let me know if you need more information!\n",
+        "reasoning": "The user is inquiring about a charge related to optional insurance, which falls under billing inquiries. The BillingAgent is the appropriate agent to handle this request as it pertains to billing details and charges.",
+        "target_agent": "BillingAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I need to know more about my policy coverage.\n",
+        "reasoning": "The user is inquiring about their policy coverage, which falls under the responsibilities of the PolicyAgent. The request is straightforward and requires information related to the user's insurance policy.",
+        "target_agent": "PolicyAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I need to speak with a manager about my account issue.\nEscalationAgent: I can help with that. Can you please tell me the nature of your account issue?\nUser: I've been charged incorrectly for my last payment and I want it resolved.\nEscalationAgent: I understand your concern. I will create a ticket for this issue. Can you please provide your ticket number if you have one, or should I proceed without it?\nUser: I don't have a ticket number yet.\n",
+        "reasoning": "The user is expressing a need to escalate an issue regarding incorrect charges on their account, which is a situation that requires the attention of a higher authority or manager. The conversation is already with the EscalationAgent, who is equipped to handle such matters.",
+        "target_agent": "EscalationAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I have a question about my policy details.\nPolicyAgent: I'd be glad to assist you! Could you please provide me with your policy number first?\nUser: Sure, my policy number is 789012.\nPolicyAgent: Thank you! Your policy includes comprehensive coverage, collision coverage, and uninsured motorist protection. Is there anything specific you need clarification on?\nUser: Can you explain what comprehensive coverage entails?\nUser: I want to make sure I understand all the benefits.\n",
+        "reasoning": "The user is seeking clarification on their policy details, specifically about comprehensive coverage. The conversation is focused on understanding the benefits of their insurance policy, which falls under the responsibilities of the PolicyAgent.",
+        "target_agent": "PolicyAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I'm so fed up! Why the hell did you charge me for a service I didn't even use?!\nBillingAgent: I understand your frustration, and I'm here to help you resolve this. Can you please provide me with the details of the charge?\nUser: This is ridiculous! Just fix it already!\n",
+        "reasoning": "The user is expressing frustration about an unauthorized charge and is seeking resolution. The conversation is directed towards billing issues, indicating that the appropriate agent to handle this situation is the BillingAgent.",
+        "target_agent": "BillingAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: What's your favorite color?\n",
+        "reasoning": "The user is asking a personal question that does not pertain to insurance or billing matters. The appropriate agent for this type of interaction is the ChattyAgent, as it is designed for casual conversation rather than specific inquiries about policies or claims.",
+        "target_agent": "ChattyAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I would like to inquire about the progress of my claim submission.\n",
+        "reasoning": "The user is inquiring about the progress of their claim submission, which indicates that they need assistance related to a claim. Therefore, the appropriate target agent to handle this inquiry is the ClaimsAgent.",
+        "target_agent": "ClaimsAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Hallo, wie geht es dir?\nChattyAgent: Mir geht es gut, danke! Und dir? Gibt es etwas, wor\u00fcber du sprechen m\u00f6chtest, vielleicht zu deiner Versicherung?\nUser: Ich wollte nur plaudern, nichts Bestimmtes.\n",
+        "reasoning": "The user is engaging in casual conversation without specific inquiries about insurance, which aligns with the ChattyAgent's role in providing light-hearted interaction rather than addressing specific insurance issues.",
+        "target_agent": "ChattyAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Can I make changes to my beneficiaries on the policy?\nPolicyAgent: Yes, you can. Please provide your policy number to proceed with the changes.\nUser: My policy number is 987STU.\n",
+        "reasoning": "The user is inquiring about making changes to the beneficiaries on their policy, which falls under the responsibilities of a PolicyAgent. The conversation indicates that the PolicyAgent is ready to assist with this request by asking for the policy number.",
+        "target_agent": "PolicyAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I noticed an error in my most recent bill. Can you help?\nBillingAgent: Of course! Please tell me what the error is, and I'll assist you in resolving it.\nUser: It looks like I was charged for a service I didn't use.\n",
+        "reasoning": "The user is reporting an error in their bill, specifically a charge for a service they did not use. This falls under the responsibilities of the BillingAgent, who handles billing inquiries and disputes.",
+        "target_agent": "BillingAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Can I get a copy of my billing history?\n",
+        "reasoning": "The user is requesting a copy of their billing history, which falls under the responsibilities of the BillingAgent. Therefore, the appropriate agent to handle this request is the BillingAgent.",
+        "target_agent": "BillingAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I noticed an error in my billing statement, can you help me with that?\n",
+        "reasoning": "The user is inquiring about an error in their billing statement, which falls under the responsibilities of the BillingAgent. Therefore, the appropriate target agent for this inquiry is the BillingAgent.",
+        "target_agent": "BillingAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: I need an update on my claim status.\nClaimsAgent: Of course! Please give me your claim number so I can look it up.\nUser: My claim number is 890123.\n",
+        "reasoning": "The user is inquiring about the status of their claim and has provided their claim number. This indicates that the interaction is related to claims processing, which falls under the responsibility of the ClaimsAgent.",
+        "target_agent": "ClaimsAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Ich m\u00f6chte Informationen \u00fcber die \u00c4nderungen in meiner Police erhalten.\nPolicyAgent: Gerne! K\u00f6nnten Sie mir bitte Ihre Policennummer mitteilen, damit ich Ihnen genauer helfen kann?\nUser: Meine Policennummer ist 987654.\nPolicyAgent: Vielen Dank! Welche spezifischen \u00c4nderungen interessieren Sie sich?\nUser: Ich habe geh\u00f6rt, dass die Deckung f\u00fcr bestimmte Sch\u00e4den ge\u00e4ndert wurde.\nPolicyAgent: Ja, das stimmt. Lassen Sie mich die Details f\u00fcr Sie \u00fcberpr\u00fcfen.\n",
+        "reasoning": "The user is inquiring about changes to their insurance policy, which indicates they need assistance related to policy details. The conversation is directed towards the PolicyAgent, who is equipped to handle such inquiries.",
+        "target_agent": "PolicyAgent",
+        "confidence": 0.95
+      },
+      {
+        "augmented": true,
+        "chat_history": "User: Can you assist me with understanding my insurance premium due date?\n",
+        "reasoning": "The user is asking for assistance regarding their insurance premium due date, which falls under billing inquiries. Therefore, the appropriate agent to handle this request is the BillingAgent.",
+        "target_agent": "BillingAgent",
+        "confidence": 0.95
+      }
+    ],
+    "signature": {
+      "instructions": "Given the fields `chat_history`, produce the fields `target_agent`, `confidence`.",
+      "fields": [
+        {
+          "prefix": "Chat History:",
+          "description": "Full chat history providing context for the classification process."
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Target Agent:",
+          "description": "Target agent classified for triage based on context and rules."
+        },
+        {
+          "prefix": "Confidence:",
+          "description": "Confidence score (0.0 - 1.0) indicating certainty in classification."
+        }
+      ]
+    },
+    "extended_signature": {
+      "instructions": "Given the fields `chat_history`, produce the fields `target_agent`, `confidence`.",
+      "fields": [
+        {
+          "prefix": "Chat History:",
+          "description": "Full chat history providing context for the classification process."
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Target Agent:",
+          "description": "Target agent classified for triage based on context and rules."
+        },
+        {
+          "prefix": "Confidence:",
+          "description": "Confidence score (0.0 - 1.0) indicating certainty in classification."
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12.6",
+      "dspy": "2.6.17",
+      "cloudpickle": "3.1.1"
+    }
+  }
+}

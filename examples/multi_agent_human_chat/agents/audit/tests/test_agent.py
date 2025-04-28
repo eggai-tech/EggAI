@@ -1,11 +1,7 @@
-import asyncio
 import pytest
 import dspy
-from unittest.mock import patch, MagicMock, AsyncMock
 from uuid import uuid4
-from eggai import Agent, Channel
-from agents.audit.agent import audit_agent, MESSAGE_CATEGORIES
-from libraries.tracing import TracedMessage
+from agents.audit.agent import MESSAGE_CATEGORIES
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("audit_agent.tests")

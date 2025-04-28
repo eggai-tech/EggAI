@@ -4,10 +4,12 @@ from eggai import Channel, Agent
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 
 from libraries.tracing import TracedMessage, traced_handler, format_span_as_traceparent
-from agents.triage.dspy_modules.v1 import triage_classifier
 from libraries.logger import get_console_logger
 from opentelemetry import trace
 from .config import settings
+from .dspy_modules.classifier_v2 import classifier_v2
+from .dspy_modules.small_talk import chatty
+from .models import TargetAgent, AGENT_REGISTRY
 
 eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
 
@@ -38,7 +40,7 @@ async def handle_user_message(msg: TracedMessage):
         
         logger.info("Classifying message...")
         initial_time = time.time()
-        response = triage_classifier(chat_history=conversation_string)
+        response = classifier_v2(chat_history=conversation_string)
         processing_time = time.time() - initial_time
         logger.info(f"Classification completed in {processing_time:.2f} seconds")
         
@@ -54,7 +56,7 @@ async def handle_user_message(msg: TracedMessage):
         current_span = trace.get_current_span()
         traceparent, tracestate = format_span_as_traceparent(current_span)
 
-        if target_agent in settings.agent_registry and target_agent != "TriageAgent":
+        if target_agent != TargetAgent.ChattyAgent:
             logger.info(f"Routing message to {target_agent}")
             
             # Create a child span for the publish operation
@@ -63,7 +65,7 @@ async def handle_user_message(msg: TracedMessage):
                 child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
                 await agents_channel.publish(
                     TracedMessage(
-                        type=settings.agent_registry[target_agent]["message_type"],
+                        type=AGENT_REGISTRY[target_agent]["message_type"],
                         source="TriageAgent",
                         data={
                             "chat_messages": triage_to_agent_messages,
@@ -74,12 +76,10 @@ async def handle_user_message(msg: TracedMessage):
                         tracestate=child_tracestate,
                     )
                 )
-            logger.debug(f"Message sent to {target_agent} via {settings.agent_registry[target_agent]['message_type']} channel")
         else:
-            logger.info("Handling message with TriageAgent")
-            message_to_send = (
-                    response.small_talk_message or response.fall_back_message or ""
-            )
+            message_to_send = chatty(
+                chat_history=conversation_string,
+            ).response
             
             # Create a child span for the publish operation
             with tracer.start_as_current_span("publish_to_human") as publish_span:

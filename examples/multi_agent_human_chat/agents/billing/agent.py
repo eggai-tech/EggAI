@@ -5,7 +5,6 @@ from eggai.transport import eggai_set_default_transport, KafkaTransport
 
 from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_handler, format_span_as_traceparent
 from libraries.logger import get_console_logger
-from opentelemetry import trace
 from .config import settings
 
 eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
