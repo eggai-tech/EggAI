@@ -111,7 +111,7 @@ start-audit:
 
 start-all:
 	@echo "Starting all agents..."
-	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit
+	@make -j start-frontend start-billing start-escalation start-policies start-triage
 
 restart: stop start
 	@echo "Environment and Docker Compose have been restarted."

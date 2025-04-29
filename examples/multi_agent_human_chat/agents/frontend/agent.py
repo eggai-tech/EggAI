@@ -71,7 +71,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 f"{root_span_ctx.trace_flags:02x}"
             )
             root_span.set_attribute('connection.id', str(connection_id))
-            trace_state = str(root_span_ctx.trace_state)
+            trace_state = str(root_span_ctx.trace_state) if root_span_ctx.trace_state else ""
 
         root_span_ctx = extract_span_context(trace_parent, trace_state)
 

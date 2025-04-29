@@ -4,10 +4,12 @@ OpenTelemetry initialization and configuration utilities.
 This module provides centralized configuration and tracer creation for OpenTelemetry.
 """
 
+import asyncio
 import functools
 import os
 import random
 import uuid
+import json
 from asyncio import iscoroutine
 from typing import Optional, Dict, Callable, Awaitable
 
@@ -20,224 +22,112 @@ def init_telemetry(
     endpoint: Optional[str] = None,
     **kwargs
 ) -> None:
-    """
-    Initialize OpenTelemetry for the application.
-    
-    This is a wrapper around openlit.init that centralizes the initialization.
-    
-    Args:
-        app_name: Name of the application/agent for telemetry
-        endpoint: OTLP endpoint URL (defaults to OTEL_ENDPOINT env var or http://localhost:4318)
-        **kwargs: Additional parameters to pass to openlit.init
-    """
     import openlit
-    
-    # Get endpoint from env var if not provided
     otlp_endpoint = endpoint or os.getenv("OTEL_ENDPOINT", "http://localhost:4318")
-    
-    # Default configuration that can be overridden by kwargs
     config = {
         "application_name": app_name,
         "otlp_endpoint": otlp_endpoint,
-        # By default, disable langchain instrumentation as it's not used in our agents
         "disabled_instrumentors": ["langchain"],
     }
-    
-    # Override defaults with any provided kwargs
     config.update(kwargs)
-    
-    # Initialize OpenTelemetry
     openlit.init(**config)
 
 
-# Cache for tracers to avoid creating duplicates
 _TRACERS: Dict[str, Tracer] = {}
 
-
 def get_tracer(name: str) -> Tracer:
-    """
-    Get a tracer by name with caching.
-    
-    Args:
-        name: The name for the tracer, typically the module name
-        
-    Returns:
-        A tracer instance that can be used to create spans
-    """
     if name not in _TRACERS:
         _TRACERS[name] = trace.get_tracer(name)
     return _TRACERS[name]
 
 
 def _normalize_name(name: str) -> str:
-    """
-    Normalize a name for use in tracer names.
-    
-    Args:
-        name: The name to normalize
-        
-    Returns:
-        Normalized name (lowercase with spaces and hyphens replaced with underscores)
-    """
     return name.lower().replace(" ", "_").replace("-", "_")
 
 
 def create_tracer(name: str, component: Optional[str] = None) -> Tracer:
-    """
-    Create a standardized tracer with consistent naming.
-    
-    Args:
-        name: The base name for the tracer (e.g., "billing", "triage")
-        component: Optional component name (e.g., "rag", "dspy", "api")
-        
-    Returns:
-        A tracer instance with a standardized name
-    """
-    normalized_name = _normalize_name(name)
-    
-    if component:
-        normalized_component = _normalize_name(component)
-        tracer_name = f"{normalized_name}.{normalized_component}"
-    else:
-        tracer_name = normalized_name
-        
+    normalized = _normalize_name(name)
+    tracer_name = f"{normalized}.{_normalize_name(component)}" if component else normalized
     return get_tracer(tracer_name)
 
 
-def extract_span_context(traceparent: str, tracestate: str = None) -> SpanContext:
-    """
-    Extract SpanContext from traceparent and tracestate strings.
-    
-    Args:
-        traceparent: W3C traceparent header (format: "00-{trace_id}-{span_id}-{trace_flags}")
-        tracestate: Optional W3C tracestate header
-        
-    Returns:
-        SpanContext object or None if traceparent format is invalid
-    """
-    # Parse traceparent format: "00-{trace_id}-{span_id}-{trace_flags}"
+def extract_span_context(traceparent: str, tracestate: str = None) -> Optional[SpanContext]:
     parts = traceparent.split('-')
     if len(parts) != 4 or parts[0] != '00':
         return None
-    
-    trace_id = int(parts[1], 16)
-    span_id = int(parts[2], 16)
-    trace_flags = TraceFlags(int(parts[3], 16))
-    
-    trace_state_obj = TraceState.from_header(tracestate) if tracestate else TraceState()
+    try:
+        trace_id = int(parts[1], 16)
+        span_id = int(parts[2], 16)
+        trace_flags = TraceFlags(int(parts[3], 16))
+    except Exception:
+        return None
+    state = TraceState.from_header(tracestate) if tracestate else TraceState()
     return SpanContext(
         trace_id=trace_id,
         span_id=span_id,
         is_remote=True,
         trace_flags=trace_flags,
-        trace_state=trace_state_obj
+        trace_state=state
     )
 
 
 def format_span_as_traceparent(span) -> tuple:
-    """
-    Format current span into traceparent and tracestate strings.
-    
-    Args:
-        span: The current span object
-        
-    Returns:
-        Tuple of (traceparent, tracestate) strings
-    """
-    span_context = span.get_span_context()
-    
-    # Format traceparent: "00-{trace_id}-{span_id}-{trace_flags}"
-    traceparent = f"00-{span_context.trace_id:032x}-{span_context.span_id:016x}-{int(span_context.trace_flags):02x}"
-    
-    # Format tracestate 
-    tracestate = str(span_context.trace_state) if span_context.trace_state else ""
-    
+    sc = span.get_span_context()
+    traceparent = f"00-{sc.trace_id:032x}-{sc.span_id:016x}-{int(sc.trace_flags):02x}"
+    tracestate = str(sc.trace_state) if sc.trace_state else ""
     return traceparent, tracestate
 
 
 def traced_handler(span_name: str = None):
-    """
-    A decorator for agent message handlers that ensures proper tracing.
-
-    This decorator:
-    1. Extracts trace context from incoming messages
-    2. Creates a new span with the extracted context as parent or starts a new trace
-    3. Ensures the span is properly closed when the handler completes
-
-    Args:
-        span_name: Optional name for the span (defaults to the decorated function's name)
-
-    Returns:
-        A decorator function that wraps the handler with tracing logic
-    """
-
     def decorator(handler_func: Callable[[Dict], Awaitable[None]]):
         @functools.wraps(handler_func)
         async def wrapper(*args, **kwargs):
             from libraries.tracing.schemas import TracedMessage
             from libraries.logger import get_console_logger
 
-            module_name = handler_func.__module__.split('.')[-2]  # e.g., "triage" from "agents.triage.agent"
+            module_name = handler_func.__module__.split('.')[-2]
             tracer_name = f"{module_name}_agent"
-
             tracer = get_tracer(tracer_name)
             logger = get_console_logger(f"{tracer_name}.handler")
 
-            try:
-                # Try to extract the message from arguments
-                msg = next((arg for arg in args if isinstance(arg, TracedMessage)), None)
-                if not msg:
-                    msg = next((arg for arg in kwargs.values() if isinstance(arg, TracedMessage)), None)
-                if not msg:
-                    msg = next((arg for arg in args if isinstance(arg, dict)), None)
-                    if not msg:
-                        msg = next((arg for arg in kwargs.values() if isinstance(arg, dict)), None)
-                        if msg:
-                            msg = TracedMessage(**msg)
+            msg = next((arg for arg in args if isinstance(arg, TracedMessage)), None)
+            if not msg:
+                msg = next((v for v in kwargs.values() if isinstance(v, TracedMessage)), None)
+            if not msg:
+                raw = next((arg for arg in args if isinstance(arg, dict)), None) or \
+                      next((v for v in kwargs.values() if isinstance(v, dict)), None)
+                if raw:
+                    msg = TracedMessage(**raw)
 
-                parent_context = None
-                if getattr(msg, 'traceparent', None):
-                    try:
-                        # Try to extract the span context
-                        span_context = extract_span_context(msg.traceparent, getattr(msg, 'tracestate', None))
-                        if span_context:
-                            parent_context = trace.set_span_in_context(trace.NonRecordingSpan(span_context))
-                    except Exception as e:
-                        logger.warning(f"Failed to extract span context: {e}")
+            if isinstance(msg, dict) and isinstance(msg.get('channel'), dict):
+                original = msg['channel']
+                msg['channel'] = original.get('channel') or json.dumps(original)
 
-                span_name_to_use = span_name or f"handle_{module_name}_message"
-                context = parent_context
+            parent_context = None
+            traceparent = getattr(msg, 'traceparent', None)
+            tracestate = getattr(msg, 'tracestate', None)
+            if traceparent:
+                span_ctx = extract_span_context(traceparent, tracestate)
+                if span_ctx:
+                    parent_context = trace.set_span_in_context(trace.NonRecordingSpan(span_ctx))
 
-                span_kind = trace.SpanKind.SERVER
-                with tracer.start_as_current_span(
-                        span_name_to_use,
-                        context=context,
-                        kind=span_kind
-                ) as span:
-                    # Set standard attributes
-                    span.set_attribute("agent.name", module_name)
-                    span.set_attribute("agent.handler", handler_func.__name__)
-                    span.set_attribute("message.id", str(getattr(msg, 'id', 'unknown')))
+            span_name_to_use = span_name or f"handle_{module_name}_message"
+            with tracer.start_as_current_span(
+                span_name_to_use,
+                context=parent_context,
+                kind=trace.SpanKind.SERVER
+            ) as span:
+                span.set_attribute("agent.name", module_name)
+                span.set_attribute("agent.handler", handler_func.__name__)
+                span.set_attribute("message.id", str(getattr(msg, 'id', 'unknown')))
 
-                    # Call the original handler function
-                    try:
-                        # if is awaitable, await it
-                        if iscoroutine(handler_func):
-                            result = await handler_func(*args, **kwargs)
-                        else:
-                            result = handler_func(*args, **kwargs)
-                        return result
-                    except Exception as handler_error:
-                        logger.error(f"Error while executing the handler: {handler_error}", exc_info=True)
-                        raise
-            except Exception as e:
-                # Log any errors in the decorator and ensure no uncaught exception propagates
-                logger.error(f"Error in traced handler: {e}", exc_info=True)
-                raise  # Re-raise to let the exception propagate to the caller
-
+                if iscoroutine(handler_func) or asyncio.iscoroutinefunction(handler_func):
+                    return await handler_func(*args, **kwargs)
+                else:
+                    return handler_func(*args, **kwargs)
         return wrapper
-
     return decorator
+
 
 def get_traceparent_from_connection_id(connection_id: str) -> str:
     connection_uuid = uuid.UUID(connection_id)
