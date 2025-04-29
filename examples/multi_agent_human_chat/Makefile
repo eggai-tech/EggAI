@@ -98,7 +98,7 @@ start-policies:
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.policies.main
 
 start-claims:
-	@echo "Starting Policies Agent..."
+	@echo "Starting Claims Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.claims.main
 
 start-triage:
@@ -111,7 +111,7 @@ start-audit:
 
 start-all:
 	@echo "Starting all agents..."
-	@make -j start-frontend start-billing start-escalation start-policies start-triage
+	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims
 
 restart: stop start
 	@echo "Environment and Docker Compose have been restarted."
