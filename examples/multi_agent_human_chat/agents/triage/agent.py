@@ -23,6 +23,7 @@ logger = get_console_logger("triage_agent.handler")
 @triage_agent.subscribe(
     channel=human_channel, filter_by_message=lambda msg: msg.get("type") == "user_message"
 )
+
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage):
     try:
@@ -63,6 +64,7 @@ async def handle_user_message(msg: TracedMessage):
             with tracer.start_as_current_span("publish_to_agent") as publish_span:
                 # Get updated trace context from current span
                 child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
+
                 await agents_channel.publish(
                     TracedMessage(
                         type=AGENT_REGISTRY[target_agent]["message_type"],

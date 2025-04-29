@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, model_validator
+from pydantic import Field
 from dotenv import load_dotenv
 
 # Load environment variables at module level
@@ -25,16 +25,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="TRIAGE_", env_file=".env", env_ignore_empty=True, extra="ignore"
     )
-    
-    @model_validator(mode='after')
-    def ensure_triage_agent_in_registry(self) -> 'Settings':
-        """Ensures TriageAgent is in the registry for fallback handling."""
-        if "TriageAgent" not in self.agent_registry:
-            self.agent_registry["TriageAgent"] = {
-                "message_type": "triage_request",
-                "description": "Default agent for handling unclassified requests and smalltalk",
-            }
-        return self
 
 
 settings = Settings()
