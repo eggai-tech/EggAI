@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-triage start-audit start-all restart setup-and-run
+.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run
 
 PYTHON := python
 VENV_DIR := .venv
@@ -96,6 +96,10 @@ start-escalation:
 start-policies:
 	@echo "Starting Policies Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.policies.main
+
+start-claims:
+	@echo "Starting Policies Agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.claims.main
 
 start-triage:
 	@echo "Starting Triage Agent..."
