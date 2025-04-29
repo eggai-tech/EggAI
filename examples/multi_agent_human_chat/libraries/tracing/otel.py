@@ -8,6 +8,7 @@ import functools
 import os
 import random
 import uuid
+from asyncio import iscoroutine
 from typing import Optional, Dict, Callable, Awaitable
 
 from opentelemetry import trace
@@ -157,87 +158,85 @@ def format_span_as_traceparent(span) -> tuple:
 def traced_handler(span_name: str = None):
     """
     A decorator for agent message handlers that ensures proper tracing.
-    
+
     This decorator:
     1. Extracts trace context from incoming messages
     2. Creates a new span with the extracted context as parent or starts a new trace
     3. Ensures the span is properly closed when the handler completes
-    
+
     Args:
         span_name: Optional name for the span (defaults to the decorated function's name)
-        
+
     Returns:
         A decorator function that wraps the handler with tracing logic
     """
+
     def decorator(handler_func: Callable[[Dict], Awaitable[None]]):
         @functools.wraps(handler_func)
         async def wrapper(*args, **kwargs):
-            # Import here to avoid circular dependencies
             from libraries.tracing.schemas import TracedMessage
             from libraries.logger import get_console_logger
-            
-            # Get the agent name from the function's module
+
             module_name = handler_func.__module__.split('.')[-2]  # e.g., "triage" from "agents.triage.agent"
             tracer_name = f"{module_name}_agent"
-            
-            # Create a tracer for this handler
+
             tracer = get_tracer(tracer_name)
             logger = get_console_logger(f"{tracer_name}.handler")
-            
+
             try:
+                # Try to extract the message from arguments
                 msg = next((arg for arg in args if isinstance(arg, TracedMessage)), None)
                 if not msg:
                     msg = next((arg for arg in kwargs.values() if isinstance(arg, TracedMessage)), None)
-
-                # If no message is found, try to find a dict
                 if not msg:
                     msg = next((arg for arg in args if isinstance(arg, dict)), None)
                     if not msg:
                         msg = next((arg for arg in kwargs.values() if isinstance(arg, dict)), None)
+                        if msg:
+                            msg = TracedMessage(**msg)
 
-                    if msg:
-                        msg = TracedMessage(**msg)
-
-                
-                # Extract parent context from the incoming message if available
                 parent_context = None
                 if getattr(msg, 'traceparent', None):
                     try:
+                        # Try to extract the span context
                         span_context = extract_span_context(msg.traceparent, getattr(msg, 'tracestate', None))
                         if span_context:
-                            # Create a parent context with a NonRecordingSpan - this links to parent 
-                            # without modifying the parent span
                             parent_context = trace.set_span_in_context(trace.NonRecordingSpan(span_context))
                     except Exception as e:
                         logger.warning(f"Failed to extract span context: {e}")
-                
-                # Use the provided span_name or default to the handler function name
+
                 span_name_to_use = span_name or f"handle_{module_name}_message"
-                
-                # Create a new span for handling this message
-                # Use the root span (no context) if we couldn't extract a valid parent
                 context = parent_context
-                
-                span_kind = trace.SpanKind.SERVER  # Mark as a server span to show this as handling a request
+
+                span_kind = trace.SpanKind.SERVER
                 with tracer.start_as_current_span(
-                    span_name_to_use, 
-                    context=context,
-                    kind=span_kind
+                        span_name_to_use,
+                        context=context,
+                        kind=span_kind
                 ) as span:
                     # Set standard attributes
                     span.set_attribute("agent.name", module_name)
                     span.set_attribute("agent.handler", handler_func.__name__)
                     span.set_attribute("message.id", str(getattr(msg, 'id', 'unknown')))
-                    
+
                     # Call the original handler function
-                    result = await handler_func(*args, **kwargs)
-                    return result
+                    try:
+                        # if is awaitable, await it
+                        if iscoroutine(handler_func):
+                            result = await handler_func(*args, **kwargs)
+                        else:
+                            result = handler_func(*args, **kwargs)
+                        return result
+                    except Exception as handler_error:
+                        logger.error(f"Error while executing the handler: {handler_error}", exc_info=True)
+                        raise
             except Exception as e:
+                # Log any errors in the decorator and ensure no uncaught exception propagates
                 logger.error(f"Error in traced handler: {e}", exc_info=True)
-                # Ensure we re-raise so the error is properly handled
-                raise
-                
+                raise  # Re-raise to let the exception propagate to the caller
+
         return wrapper
+
     return decorator
 
 def get_traceparent_from_connection_id(connection_id: str) -> str:
