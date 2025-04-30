@@ -85,7 +85,8 @@ def traced_handler(span_name: str = None):
             from libraries.tracing.schemas import TracedMessage
             from libraries.logger import get_console_logger
 
-            module_name = handler_func.__module__.split('.')[-2]
+            splitted = handler_func.__module__.split('.')
+            module_name = splitted[-2] if len(splitted) > 1 else splitted[0]
             tracer_name = f"{module_name}_agent"
             tracer = get_tracer(tracer_name)
             logger = get_console_logger(f"{tracer_name}.handler")

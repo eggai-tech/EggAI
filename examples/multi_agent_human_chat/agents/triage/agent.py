@@ -43,9 +43,8 @@ async def handle_user_message(msg: TracedMessage):
         initial_time = time.time()
         response = classifier_v2(chat_history=conversation_string)
         processing_time = time.time() - initial_time
-        logger.info(f"Classification completed in {processing_time:.2f} seconds")
-        
         target_agent = response.target_agent
+        logger.info(f"Classification completed in {processing_time:.2f} seconds, target agent: {target_agent}")
         triage_to_agent_messages = [
             {
                 "role": "user",
@@ -108,3 +107,23 @@ async def handle_user_message(msg: TracedMessage):
 @triage_agent.subscribe(channel=human_channel)
 async def handle_others(msg: TracedMessage):
     logger.debug("Received message: %s", msg)
+
+
+if __name__ == "__main__":
+    async def run_triage():
+        await handle_user_message(
+            TracedMessage(
+                type="user_message",
+                source="TriageAgent",
+                data={
+                    "chat_messages": [
+                        {"role": "user", "content": "I need to know what's the weather in New York."}
+                    ],
+                    "connection_id": "test_connection",
+                },
+            )
+        )
+        
+    import asyncio
+    asyncio.run(run_triage())
+        
