@@ -1,6 +1,11 @@
 import dspy
+from dotenv import load_dotenv
 
-lm = dspy.LM("openai/gpt-4o-mini", cache=False)
+from agents.triage.config import Settings
+settings = Settings()
+
+load_dotenv()
+lm = dspy.LM(settings.language_model, cache=settings.cache_enabled)
 dspy.configure(lm=lm)
 
 class ChattySignature(dspy.Signature):

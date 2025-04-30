@@ -5,7 +5,11 @@ from dotenv import load_dotenv
 
 from .classifier_v2 import AgentClassificationSignature, classifier_v2 as classifier_v2
 
-lm = dspy.LM("openai/gpt-4o-mini", cache=False)
+from agents.triage.config import Settings
+settings = Settings()
+
+load_dotenv()
+lm = dspy.LM(settings.language_model, cache=settings.cache_enabled)
 dspy.configure(lm=lm)
 
 classifier_v3_json_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "optimizations_v3.json"))

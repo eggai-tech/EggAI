@@ -23,7 +23,6 @@ logger = get_console_logger("triage_agent.handler")
 @triage_agent.subscribe(
     channel=human_channel, filter_by_message=lambda msg: msg.get("type") == "user_message"
 )
-
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage):
     try:

@@ -6,7 +6,12 @@ from dotenv import load_dotenv
 from .report import generate_report
 import csv
 from libraries.logger import get_console_logger
+from agents.triage.config import Settings
+settings = Settings()
 
+load_dotenv()
+lm = dspy.LM(settings.language_model, cache=settings.cache_enabled)
+dspy.configure(lm=lm)
 logger = get_console_logger("triage_agent.dspy_modules")
 
 def load_dataset(filename: str) -> list:
@@ -54,9 +59,7 @@ def run_evaluation(program, devset):
     return score, results
 
 def run_evaluation_v1():
-    load_dotenv()
-    language_model = dspy.LM("openai/gpt-4o-mini", cache=True)
-    dspy.configure(lm=language_model)
+
 
     from agents.triage.dspy_modules.v1 import triage_classifier as classifier_v1
     test_dataset = load_data("triage-testing")
