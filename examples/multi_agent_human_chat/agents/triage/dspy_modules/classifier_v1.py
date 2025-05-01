@@ -38,9 +38,6 @@ class AgentClassificationSignature(dspy.Signature):
     target_agent: TargetAgent = dspy.OutputField(
         desc="Target agent classified for triage based on context and rules."
     )
-    confidence: float = dspy.OutputField(
-        desc="Confidence score (0.0 - 1.0) indicating certainty in classification."
-    )
 
 
 classifier_v1 = dspy.ChainOfThought(signature=AgentClassificationSignature)

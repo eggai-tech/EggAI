@@ -24,7 +24,7 @@ def get_current_classifier():
         from agents.triage.dspy_modules.classifier_v1 import classifier_v1
         return classifier_v1
     elif settings.classifier_version == "v2":
-        from agents.triage.dspy_modules.classifier_v2 import classifier_v2
+        from agents.triage.dspy_modules.classifier_v2.classifier_v2 import classifier_v2
         return classifier_v2
     elif settings.classifier_version == "v3":
         from agents.triage.baseline_model.classifier_v3 import classifier_v3

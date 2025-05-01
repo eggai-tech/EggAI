@@ -1,7 +1,10 @@
 import dspy
+from dotenv import load_dotenv
 
 
 def dspy_set_language_model(settings):
+    load_dotenv()
+
     language_model = dspy.LM(
         settings.language_model,
         cache=settings.cache_enabled,

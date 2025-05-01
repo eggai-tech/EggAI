@@ -4,7 +4,7 @@ import dspy
 from dotenv import load_dotenv
 
 from agents.triage.config import Settings
-from agents.triage.dspy_modules.classifier_v1 import classifier_v1, AgentClassificationSignature
+from agents.triage.dspy_modules.classifier_v1 import AgentClassificationSignature
 from libraries.dspy_set_language_model import dspy_set_language_model
 
 settings = Settings()
@@ -12,10 +12,10 @@ settings = Settings()
 load_dotenv()
 lm = dspy_set_language_model(settings)
 
-classifier_v3_json_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "optimizations_v2.json"))
+optimizations_json = os.path.abspath(os.path.join(os.path.dirname(__file__), "optimizations_v2.json"))
 
 classifier_v2 = dspy.ChainOfThought(signature=AgentClassificationSignature)
-classifier_v2.load(classifier_v3_json_path)
+classifier_v2.load(optimizations_json)
 
 if __name__ == "__main__":
     load_dotenv()
