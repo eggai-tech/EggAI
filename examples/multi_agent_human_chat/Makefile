@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run
+.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-triage setup-and-run
 
 PYTHON := python
 VENV_DIR := .venv
@@ -22,7 +22,7 @@ setup:
 	@if [ -f $(DEV_REQ_FILE) ]; then $(VENV_DIR)/bin/pip install -r $(DEV_REQ_FILE); fi
 	@echo "Environment setup complete."
 
-start: setup docker-up start-all
+start: setup docker-up setup-triage start-all
 	@echo "Environment, Docker Compose, and agents are running."
 
 test:
@@ -116,5 +116,10 @@ start-all:
 restart: stop start
 	@echo "Environment and Docker Compose have been restarted."
 
-setup-and-run: setup start
+setup-triage:
+	@echo "Setting up Triage Agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.mlflow_experiments.upload_checkpoints
+	@echo "Triage Agent setup completed."
+
+setup-and-run: setup setup-triage start
 	@echo "Setup and all services started."
