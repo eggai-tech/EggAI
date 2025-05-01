@@ -30,7 +30,7 @@ audit_agent = Agent("AuditAgent")
 def audit_message(message, msg: KafkaMessage):
     try:
         # Extract message details
-        channel = msg.path
+        channel = msg.path["channel"]
         message_type = message.get("type", "unknown")
         source = message.get("source", "unknown")
 
@@ -46,10 +46,9 @@ def audit_message(message, msg: KafkaMessage):
 
             # Log with categorization
             logger.info(
-                f"AuditAgent received message: category={category}, channel={channel}, "
+                f"AuditAgent: category={category}, channel={channel}, "
                 f"type={message_type}, source={source}, content={message}"
             )
-
             # Here you could add persistent storage logic in the future
 
         return message

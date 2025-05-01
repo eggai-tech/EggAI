@@ -4,9 +4,10 @@ from dotenv import load_dotenv
 from agents.triage.models import formatted_agent_registry, TargetAgent
 
 from agents.triage.config import Settings
+load_dotenv()
+
 settings = Settings()
 
-load_dotenv()
 lm = dspy.LM(settings.language_model, cache=settings.cache_enabled)
 dspy.configure(lm=lm)
 

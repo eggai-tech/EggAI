@@ -18,8 +18,13 @@ for key, value in sorted(os.environ.items()):
         print(f"{key}: {value}")
 
 if __name__ == "__main__":
-    checkpoint_dir = Path("baseline_checkpoints")
-    for pickle_file in checkpoint_dir.glob("*.pkl"):
+    current_file_dir = Path(__file__).parent
+    checkpoint_dir = current_file_dir / "baseline_checkpoints"
+    
+    pickle_files = list(checkpoint_dir.glob("*.pkl"))
+    print(f"Found {len(pickle_files)} pickle files in {checkpoint_dir}")
+    
+    for pickle_file in pickle_files:
         print(f"Loading checkpoint: {pickle_file}")
         with open(pickle_file, "rb") as f:
             current_classifier = pickle.load(f)

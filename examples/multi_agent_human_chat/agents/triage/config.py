@@ -2,7 +2,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from dotenv import load_dotenv
 
-# Load environment variables at module level
 load_dotenv()
 
 
@@ -21,6 +20,11 @@ class Settings(BaseSettings):
     # Observability settings
     otel_endpoint: str = Field(default="http://localhost:4318", env="OTEL_ENDPOINT") 
     tracing_enabled: bool = Field(default=True, env="TRACING_ENABLED")
+
+    # Classifier settings
+    classifier_version: str = Field(default="v2", env="CLASSIFIER_VERSION")
+    classifier_v4_model_name: str = Field(default="fewshot_classifier_n_200", env="CLASSIFIER_V4_MODEL_NAME")
+    classifier_v4_model_version: str = Field(default="1", env="CLASSIFIER_V4_MODEL_VERSION")
     
     model_config = SettingsConfigDict(
         env_prefix="TRIAGE_", env_file=".env", env_ignore_empty=True, extra="ignore"

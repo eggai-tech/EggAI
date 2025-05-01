@@ -1,7 +1,7 @@
 eggai==0.1.44
 python-dotenv==1.0.1
 fastapi==0.115.6
-dspy-ai==2.5.43
+dspy==2.6.22
 psutil==7.0.0
 websockets==14.1
 guardrails-ai==0.6.2

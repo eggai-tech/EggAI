@@ -2,14 +2,13 @@ import time
 
 from eggai import Channel, Agent
 from eggai.transport import eggai_set_default_transport, KafkaTransport
-
-from libraries.tracing import TracedMessage, traced_handler, format_span_as_traceparent
-from libraries.logger import get_console_logger
 from opentelemetry import trace
-from .config import settings
-from .dspy_modules.classifier_v2 import classifier_v2
-from .dspy_modules.small_talk import chatty
-from .models import TargetAgent, AGENT_REGISTRY
+
+from agents.triage.config import settings
+from agents.triage.dspy_modules.small_talk import chatty
+from agents.triage.models import TargetAgent, AGENT_REGISTRY
+from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage, traced_handler, format_span_as_traceparent
 
 eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
 
@@ -19,6 +18,24 @@ agents_channel = Channel("agents")
 
 tracer = trace.get_tracer("triage_agent")
 logger = get_console_logger("triage_agent.handler")
+
+def get_current_classifier():
+    if settings.classifier_version == "v1":
+        from agents.triage.dspy_modules.classifier_v1 import classifier_v1
+        return classifier_v1
+    elif settings.classifier_version == "v2":
+        from agents.triage.dspy_modules.classifier_v2 import classifier_v2
+        return classifier_v2
+    elif settings.classifier_version == "v3":
+        from agents.triage.dspy_modules.classifier_v3 import classifier_v3
+        return classifier_v3
+    elif settings.classifier_version == "v4":
+        from agents.triage.baseline_model.classifier_v4 import classifier_v4
+        return classifier_v4
+    else:
+        raise ValueError(f"Unknown classifier version: {settings.classifier_version}")
+
+current_classifier = get_current_classifier()
 
 @triage_agent.subscribe(
     channel=human_channel, filter_by_message=lambda msg: msg.get("type") == "user_message"
@@ -30,20 +47,16 @@ async def handle_user_message(msg: TracedMessage):
         connection_id = msg.data.get("connection_id", "unknown")
         
         logger.info(f"Received message from connection {connection_id}")
-        logger.debug(f"Message content: {msg.id}")
-
-        # Combine chat history
         conversation_string = ""
         for chat in chat_messages:
             user = chat.get("agent", "User")
             conversation_string += f"{user}: {chat['content']}\n"
         
-        logger.info("Classifying message...")
         initial_time = time.time()
-        response = classifier_v2(chat_history=conversation_string)
+        response = current_classifier(chat_history=conversation_string)
         processing_time = time.time() - initial_time
         target_agent = response.target_agent
-        logger.info(f"Classification completed in {processing_time:.2f} seconds, target agent: {target_agent}")
+        logger.info(f"Classification completed in {processing_time:.2f} seconds, target agent: {target_agent}, classifier version: {settings.classifier_version}")
         triage_to_agent_messages = [
             {
                 "role": "user",
@@ -51,18 +64,14 @@ async def handle_user_message(msg: TracedMessage):
             }
         ]
 
-        # Get the current span for propagation - this ensures trace continuity
         current_span = trace.get_current_span()
         traceparent, tracestate = format_span_as_traceparent(current_span)
 
         if target_agent != TargetAgent.ChattyAgent:
             logger.info(f"Routing message to {target_agent}")
             
-            # Create a child span for the publish operation
             with tracer.start_as_current_span("publish_to_agent") as publish_span:
-                # Get updated trace context from current span
                 child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
-
                 await agents_channel.publish(
                     TracedMessage(
                         type=AGENT_REGISTRY[target_agent]["message_type"],
@@ -81,9 +90,7 @@ async def handle_user_message(msg: TracedMessage):
                 chat_history=conversation_string,
             ).response
             
-            # Create a child span for the publish operation
             with tracer.start_as_current_span("publish_to_human") as publish_span:
-                # Get updated trace context from current span
                 child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
                 await human_channel.publish(
                     TracedMessage(
@@ -99,7 +106,6 @@ async def handle_user_message(msg: TracedMessage):
                         tracestate=child_tracestate,
                     )
                 )
-            logger.debug(f"Response sent to user: {message_to_send[:50]}...")
     except Exception as e:
         logger.error(f"Error processing message: {e}", exc_info=True)
 
