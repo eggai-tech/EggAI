@@ -3,6 +3,7 @@ import os
 import dspy
 from dotenv import load_dotenv
 
+from libraries.dspy_set_language_model import dspy_set_language_model
 from .report import generate_report
 import csv
 from libraries.logger import get_console_logger
@@ -10,8 +11,7 @@ from agents.triage.config import Settings
 settings = Settings()
 
 load_dotenv()
-lm = dspy.LM(settings.language_model, cache=settings.cache_enabled)
-dspy.configure(lm=lm)
+lm = dspy_set_language_model(settings)
 logger = get_console_logger("triage_agent.dspy_modules")
 
 def load_dataset(filename: str) -> list:

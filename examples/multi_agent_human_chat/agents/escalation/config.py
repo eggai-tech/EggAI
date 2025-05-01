@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from dotenv import load_dotenv
@@ -11,6 +13,7 @@ class Settings(BaseSettings):
     
     # Language model settings
     language_model: str = Field(default="openai/gpt-4o-mini", env="LANGUAGE_MODEL")
+    language_model_api_base: Optional[str] = Field(default=None, env="LANGUAGE_MODEL_API_BASE")
     cache_enabled: bool = Field(default=False, env="CACHE_ENABLED")
     
     # Kafka transport settings

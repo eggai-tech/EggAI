@@ -11,8 +11,7 @@ from agents.triage.config import Settings
 settings = Settings()
 
 load_dotenv()
-lm = dspy.LM(settings.language_model, cache=settings.cache_enabled)
-dspy.configure(lm=lm)
+dspy.configure(lm=dspy.configure(lm=dspy.LM("openai/gpt-4o-mini")))
 
 # Test data for the TriageAgent
 test_cases = [

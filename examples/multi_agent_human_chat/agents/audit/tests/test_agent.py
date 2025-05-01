@@ -6,6 +6,7 @@ from libraries.logger import get_console_logger
 
 logger = get_console_logger("audit_agent.tests")
 
+# we use gpt-4o-mini as LLM Judge
 dspy.configure(lm=dspy.LM("openai/gpt-4o-mini"))
 
 # Sample test data for the AuditAgent

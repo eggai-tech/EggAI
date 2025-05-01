@@ -4,13 +4,13 @@ from dotenv import load_dotenv
 from agents.triage.models import formatted_agent_registry, TargetAgent
 
 from agents.triage.config import Settings
+from libraries.dspy_set_language_model import dspy_set_language_model
+
 load_dotenv()
 
 settings = Settings()
 
-lm = dspy.LM(settings.language_model, cache=settings.cache_enabled)
-dspy.configure(lm=lm)
-
+lm = dspy_set_language_model(settings)
 
 class AgentClassificationSignature(dspy.Signature):
     """

@@ -3,6 +3,7 @@ import dspy
 from eggai import Channel, Agent
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 
+from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_handler, format_span_as_traceparent
 from libraries.logger import get_console_logger
 from .config import settings
@@ -184,8 +185,7 @@ async def handle_others(msg: TracedMessage):
 
 
 if __name__ == "__main__":
-    language_model = dspy.LM(settings.language_model, cache=settings.cache_enabled)
-    dspy.configure(lm=language_model)
+    language_model = dspy_set_language_model(settings)
     test_conversation = (
         "User: Hi, I'd like to know my next billing date.\n"
         "BillingAgent: Sure! Please provide your policy number.\n"

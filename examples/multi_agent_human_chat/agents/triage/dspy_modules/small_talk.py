@@ -2,11 +2,12 @@ import dspy
 from dotenv import load_dotenv
 
 from agents.triage.config import Settings
+from libraries.dspy_set_language_model import dspy_set_language_model
+
 settings = Settings()
 
 load_dotenv()
-lm = dspy.LM(settings.language_model, cache=settings.cache_enabled)
-dspy.configure(lm=lm)
+lm = dspy_set_language_model(settings)
 
 class ChattySignature(dspy.Signature):
     """

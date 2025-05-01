@@ -6,6 +6,8 @@ from eggai.transport import KafkaTransport, eggai_set_default_transport
 from opentelemetry import trace
 import dspy
 from eggai import Channel, Agent
+
+from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.tracing import TracedReAct, TracedMessage, traced_handler, format_span_as_traceparent
 from libraries.logger import get_console_logger
 
@@ -262,10 +264,7 @@ async def handle_others(msg: TracedMessage):
 if __name__ == "__main__":
     logger.info("Running policies agent as script")
 
-    language_model = dspy.LM(settings.language_model, cache=settings.cache_enabled)
-    logger.info(f"Configured language model: {settings.language_model}")
-
-    dspy.configure(lm=language_model)
+    dspy_set_language_model(settings)
 
     # Test policy request
     test_conversation = """
