@@ -3,25 +3,24 @@ import pytest
 import dspy
 from uuid import uuid4
 from eggai import Agent, Channel
+
+from libraries.dspy_set_language_model import dspy_set_language_model
 from ..agent import triage_agent
-from ..config import settings
 from dotenv import load_dotenv
 
 from agents.triage.config import Settings
+from ..models import AGENT_REGISTRY, TargetAgent
+
 settings = Settings()
 
 load_dotenv()
-dspy.configure(lm=dspy.configure(lm=dspy.LM("openai/gpt-4o-mini")))
+dspy_set_language_model(settings)
 
 # Test data for the TriageAgent
 test_cases = [
     {
-        "chat_history": "User: I need help with my billing issue.",
-        "expected_target_agent": "BillingAgent",
-    },
-    {
-        "chat_history": "User: My policy details seem incorrect.",
-        "expected_target_agent": "PoliciesAgent",
+        "chat_history": "User: I need to know my policy due date",
+        "expected_target_agent": TargetAgent.PolicyAgent,
     },
 ]
 
@@ -47,8 +46,7 @@ received_event = None
 
 @test_agent.subscribe(
     channel=agents_channel,
-    filter_by_message=lambda event: event.get("type")
-    in ["billing_request", "policy_request"],
+    filter_by_message=lambda event: event.get("type") != "user_message",
 )
 async def handle_response(event):
     global received_event
@@ -92,7 +90,7 @@ async def test_triage_agent():
         agent_type = next(
             (
                 key
-                for key, value in settings.agent_registry.items()
+                for key, value in AGENT_REGISTRY.items()
                 if value["message_type"] == received_event["type"]
             ),
             "UnknownAgent",

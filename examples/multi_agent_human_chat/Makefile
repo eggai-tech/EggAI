@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-triage setup-and-run
+.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 compile-triage-classifier-v2 test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-triage setup-and-run
 
 PYTHON := python
 VENV_DIR := .venv
@@ -50,9 +50,21 @@ test-policies:
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/policies -s
 	@echo "Tests for policies agent completed."
 
-test-triage:
+test-triage-classifier-v1:
+	@echo "Running tests classifier v1 for triage agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v1.py -s
+
+test-triage-classifier-v2:
+	@echo "Running test classifier v2 for triage agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v2.py -s
+
+test-triage-classifier-v3:
+	@echo "Running tests classifier v3 for triage agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v3.py -s
+
+test-triage-agent:
 	@echo "Running tests for triage agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_agent.py -s
 	@echo "Tests for triage agent completed."
 
 test-audit:
@@ -115,6 +127,12 @@ start-all:
 
 restart: stop start
 	@echo "Environment and Docker Compose have been restarted."
+
+
+compile-triage-classifier-v2:
+	@echo "Compiling Classifier Dspy Optimizer..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.dspy_modules.classifier_v2.classifier_v2_optimizer
+	@echo "Triage Agent setup completed."
 
 setup-triage:
 	@echo "Setting up Triage Agent..."

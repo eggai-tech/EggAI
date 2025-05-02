@@ -2,6 +2,7 @@ from itertools import product
 from pathlib import Path
 from types import SimpleNamespace
 
+import mlflow
 from dspy.evaluate import Evaluate
 from dspy.teleprompt import BootstrapFewShotWithRandomSearch
 from sklearn.model_selection import train_test_split
@@ -28,6 +29,14 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     from dotenv import load_dotenv
     load_dotenv()
+
+    mlflow.dspy.autolog(
+        log_compiles=True,
+        log_traces=True,
+        log_evals=True,
+        log_traces_from_compile=True,
+        log_traces_from_eval=True
+    )
 
     lm = dspy_set_language_model(
         SimpleNamespace(
