@@ -1,0 +1,27 @@
+name: eggai
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - pip
+  - numpy
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - pandas
+  - psutil
+  - fastapi
+  - dspy
+  - websockets
+  - transformers
+  - sentence-transformers
+  - mlflow
+  - boto3
+  # - pip:
+      # - eggai
+      # - guardrails-ai
+      # - RAGatouille
+      # - openlit
+      # - opentelemetry-sdk
+      # - transformers

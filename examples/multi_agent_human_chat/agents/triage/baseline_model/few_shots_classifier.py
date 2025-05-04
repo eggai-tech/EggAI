@@ -8,6 +8,7 @@ from sklearn.linear_model import LogisticRegression
 
 from agents.triage.baseline_model.utils import sample_training_examples
 
+
 class FewShotsClassifier:
     """
     Simple few-shot linear classifier for classifying incoming messages based on SentenceTransformer embeddings.

@@ -3,11 +3,33 @@
 PYTHON := python
 VENV_DIR := .venv
 REQ_FILE := requirements.txt
+ENV_FILE := environment.yaml
+ENV_NAME := eggai
 DEV_REQ_FILE := dev-requirements.txt
 DOCKER_COMPOSE := docker compose
 SHELL := $(shell which bash)
+UNAME := $(shell uname)
+CONDA_ACTIVATE := source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
+
 
 default: start
+
+install-conda:
+	@echo "Installing conda..."
+	@if [ "$(UNAME)" = "Linux" ]; then \
+		echo "Linux detected. Installing Miniconda..."; \
+		mkdir -p ~/miniconda3 && wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh && bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3 && rm ~/miniconda3/miniconda.sh \
+	else \
+		echo "Installing Miniconda for MacOS."; \
+		mkdir -p ~/miniconda3 && curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -o ~/miniconda3/miniconda.sh && bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3 && rm ~/miniconda3/miniconda.sh \
+	fi
+
+setup-env:
+	@echo "Setting up conda environment..."
+	@~/miniconda3/bin/conda env create -f $(ENV_FILE)
+
+train-triage-classifier-v3:
+	@source $$(conda info --base)/etc/profile.d/conda.sh &&  conda activate $(ENV_NAME) && python agents/triage/baseline_model/fewshot_trainer.py
 
 setup:
 	@echo "Setting up the environment..."
