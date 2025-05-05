@@ -12,20 +12,19 @@ load_dotenv()
 class FewshotSettings(BaseSettings):
     # Model configuration
     n_classes: int = Field(default=5)
-    n_examples: Optional[int] = Field(default=None)
+    n_examples: Optional[int] = Field(default=None, env="N_EXAMPLES")
     seed: Union[int, List[int]] = Field(default=[42, 47, 53])
-    checkpoint_dir: str = Field(default="checkpoints")
-    model_name: str = Field(default="fewshot_baseline_n_all")
+    model_name_template: str = Field(default="fewshot_baseline_n_{n_examples}")
     
     # Dataset configuration
-    dataset_paths: List[str] = Field(
+    train_dataset_paths: List[str] = Field(
         default_factory=lambda: [
             os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
                 "data_sets/triage-training.jsonl"
             )
         ],
-        env="DATASET_PATHS"
+        env="TRAIN_DATASET_PATHS"
     )
     
     # MLflow configuration
@@ -34,15 +33,13 @@ class FewshotSettings(BaseSettings):
     mlflow_run_name: str = Field(default="fewshot_baseline_n_all")
     
     # For evaluation
-    eval_dataset_path: str = Field(
+    test_dataset_path: str = Field(
         default=os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "data_sets/triage-testing.jsonl"
         ),
-        env="EVAL_DATASET_PATH"
+        env="TEST_DATASET_PATH"
     )
-    model_path: Optional[str] = Field(default=None)
-    model_artifact_uri: Optional[str] = Field(default=None)
     
     @property
     def model_config_dict(self):
@@ -50,8 +47,7 @@ class FewshotSettings(BaseSettings):
             "n_classes": self.n_classes,
             "n_examples": self.n_examples,
             "seed": self.seed,
-            "checkpoint_dir": self.checkpoint_dir,
-            "name": self.model_name
+            "name": self.model_name_template
         }
     
     @property
