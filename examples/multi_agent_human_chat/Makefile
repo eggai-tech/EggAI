@@ -36,27 +36,37 @@ start: setup docker-up start-all
 
 test:
 	@echo "Running tests..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests completed."
 
 test-billing:
 	@echo "Running tests for billing agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/billing -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/billing -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for billing agent completed."
 
 test-escalation:
 	@echo "Running tests for escalation agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/escalation -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/escalation -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for escalation agent completed."
 
 test-frontend:
 	@echo "Running tests for frontend agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/frontend -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/frontend -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for frontend agent completed."
 
 test-policies:
 	@echo "Running tests for policies agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/policies -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/policies -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for policies agent completed."
 
 test-triage-classifier-v1:
@@ -67,11 +77,15 @@ test-triage-classifier-v1:
 
 test-triage-classifier-v2:
 	@echo "Running test classifier v2 for triage agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v2.py -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v2.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 
 test-triage-classifier-v3:
 	@echo "Running tests classifier v3 for triage agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v3.py -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v3.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 
 test-triage-agent:
 	@echo "Running tests for triage agent..."
@@ -82,7 +96,9 @@ test-triage-agent:
 
 test-audit:
 	@echo "Running tests for audit agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/audit -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/audit -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for audit agent completed."
 
 stop: docker-down

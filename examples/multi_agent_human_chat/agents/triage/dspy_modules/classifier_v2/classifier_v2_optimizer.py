@@ -50,7 +50,6 @@ if __name__ == "__main__":
     # Data
     # ------------------------------------------------------------------
     full_train = as_dspy_examples(load_dataset_triage_training())   # 1 000
-    test_set   = as_dspy_examples(load_dataset_triage_testing())    # 2 400
 
     train_set, dev_set = train_test_split(
         full_train,
