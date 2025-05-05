@@ -1,3 +1,5 @@
+from typing import Optional
+
 import dspy
 from dotenv import load_dotenv
 
@@ -25,12 +27,16 @@ class TrackingLM(dspy.LM):
         self.total_tokens += forward_result.usage.get("total_tokens", 0)
         return forward_result
 
-def dspy_set_language_model(settings):
+def dspy_set_language_model(settings, overwrite_cache_enabled: Optional[bool] = None):
     load_dotenv()
+
+    cache_enabled = settings.cache_enabled
+    if overwrite_cache_enabled is not None:
+        cache_enabled = overwrite_cache_enabled
 
     language_model = TrackingLM(
         settings.language_model,
-        cache=settings.cache_enabled,
+        cache=cache_enabled,
         api_base=settings.language_model_api_base if settings.language_model_api_base else None,
     )
 

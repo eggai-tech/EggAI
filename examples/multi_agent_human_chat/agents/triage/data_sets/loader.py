@@ -39,6 +39,20 @@ def load_dataset(file_path: Path):
             dataset.append(DatasetRow(**data))
     return dataset
 
+def translate_agent_str_to_enum(agent_str: str) -> TargetAgent:
+    if agent_str == "BillingAgent":
+        return TargetAgent.BillingAgent
+    elif agent_str == "PolicyAgent":
+        return TargetAgent.PolicyAgent
+    elif agent_str == "ClaimsAgent":
+        return TargetAgent.ClaimsAgent
+    elif agent_str == "EscalationAgent":
+        return TargetAgent.EscalationAgent
+    elif agent_str == "ChattyAgent":
+        return TargetAgent.ChattyAgent
+    else:
+        raise ValueError(f"Unknown agent string: {agent_str}")
+
 
 def load_dataset_triage_testing():
     return load_dataset(Path(__file__).resolve().parent / "triage-testing.jsonl")

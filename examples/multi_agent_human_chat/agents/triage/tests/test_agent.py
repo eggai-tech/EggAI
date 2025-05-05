@@ -1,4 +1,6 @@
 import asyncio
+import random
+
 import pytest
 import dspy
 from uuid import uuid4
@@ -9,6 +11,7 @@ from ..agent import triage_agent
 from dotenv import load_dotenv
 
 from agents.triage.config import Settings
+from ..data_sets.loader import load_dataset_triage_testing, translate_agent_str_to_enum
 from ..models import AGENT_REGISTRY, TargetAgent
 
 settings = Settings()
@@ -59,7 +62,10 @@ async def test_triage_agent():
     await triage_agent.start()
     await test_agent.start()
 
-    for case in test_cases:
+    random.seed(42)
+    test_dataset = random.sample(load_dataset_triage_testing(), 10)
+
+    for case in test_dataset:
         event_received.clear()
 
         # Simulate a user message event
@@ -70,7 +76,7 @@ async def test_triage_agent():
                 "source": "TestTriageAgent",
                 "data": {
                     "chat_messages": [
-                        {"role": "User", "content": case["chat_history"]},
+                        {"role": "User", "content": case.conversation},
                     ],
                     "connection_id": str(uuid4()),
                     "message_id": str(uuid4()),
@@ -82,7 +88,7 @@ async def test_triage_agent():
             await asyncio.wait_for(event_received.wait(), timeout=5.0)
         except asyncio.TimeoutError:
             pytest.fail(
-                f"Timeout: No response event received for chat history: {case['chat_history']}"
+                f"Timeout: No response event received for chat history: {case.conversation}"
             )
 
         assert received_event is not None, "No agent response received."
@@ -96,16 +102,16 @@ async def test_triage_agent():
             "UnknownAgent",
         )
 
-        assert agent_type == case["expected_target_agent"], (
-            f"Expected agent '{case['expected_target_agent']}', but triage routed to '{agent_type}'."
+        assert agent_type == case.target_agent, (
+            f"Expected agent '{translate_agent_str_to_enum(case.target_agent)}', but triage routed to '{agent_type}'."
         )
 
         # Evaluate the response
         eval_model = dspy.asyncify(dspy.Predict(TriageEvaluationSignature))
         evaluation_result = await eval_model(
-            chat_history=case["chat_history"],
+            chat_history=case.conversation,
             agent_response=agent_type,
-            expected_target_agent=case["expected_target_agent"],
+            expected_target_agent=translate_agent_str_to_enum(case.target_agent),
         )
 
         assert evaluation_result.judgment, (

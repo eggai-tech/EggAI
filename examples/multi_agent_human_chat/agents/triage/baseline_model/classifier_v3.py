@@ -12,7 +12,7 @@ load_dotenv()
 settings = Settings()
 
 few_shots_classifier = FewShotsClassifier()
-few_shots_classifier.load(find_model(settings.classifier_v4_model_name, version=settings.classifier_v4_model_version))
+few_shots_classifier.load(find_model(settings.classifier_v3_model_name, version=settings.classifier_v3_model_version))
 
 @dataclass
 class ClassificationResult:

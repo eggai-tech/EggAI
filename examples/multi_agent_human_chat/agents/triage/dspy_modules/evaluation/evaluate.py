@@ -2,6 +2,7 @@ import os
 import random
 import statistics
 import time
+import types
 
 import dspy
 import mlflow
@@ -19,7 +20,6 @@ from agents.triage.config import Settings
 settings = Settings()
 
 load_dotenv()
-lm = dspy_set_language_model(settings)
 logger = get_console_logger("triage_agent.dspy_modules")
 
 
@@ -55,7 +55,7 @@ def load_data(file: str):
     return devset
 
 
-def run_evaluation(program, report_name):
+def run_evaluation(program, report_name, lm: dspy.LM):
     random.seed(42)
     test_dataset = random.sample(as_dspy_examples(load_dataset_triage_testing()), 1000)
     evaluator = dspy.evaluate.Evaluate(
@@ -100,7 +100,7 @@ def run_evaluation(program, report_name):
 
     def p95(vals):  return float(np.percentile(vals, 95))
 
-    mlflow.log_metrics({
+    metrics = {
         "accuracy": accuracy,
         # latency
         "latency_mean_ms": ms(latencies_sec),
@@ -112,13 +112,19 @@ def run_evaluation(program, report_name):
         "tokens_completion_total": sum(completion_tok_counts),
         "tokens_mean": statistics.mean(total_tok_counts),
         "tokens_p95": p95(total_tok_counts),
-    })
+    }
+    mlflow.log_metrics(metrics)
 
     generate_report(results, report_name)
 
-    return accuracy
+    return accuracy, results, all_scores, metrics
 
 
 if __name__ == "__main__":
-    sc = run_evaluation(classifier_v1, "classifier_v1")
+    current_language_model = dspy_set_language_model(types.SimpleNamespace(
+        language_model=settings.language_model,
+        cache_enabled=True,
+        language_model_api_base=settings.language_model_api_base,
+    ))
+    sc = run_evaluation(classifier_v1, "classifier_v1", current_language_model)
     logger.info(f"Accuracy: {sc}")
