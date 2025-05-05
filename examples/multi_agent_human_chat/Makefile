@@ -1,6 +1,6 @@
 .PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 compile-triage-classifier-v2 test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-triage setup-and-run
 
-PYTHON := python3.12
+PYTHON := python3.11
 VENV_DIR := .venv
 REQ_FILE := requirements.txt
 DEV_REQ_FILE := dev-requirements.txt
@@ -13,6 +13,10 @@ default: start
 train-triage-classifier-v3:
 	@echo "Training triage classifier v3..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/baseline_model/fewshot_trainer.py
+
+make test-triage-classifier-v3:
+	@echo "Evaluating the triage classifier v3..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/baseline_model/fewshot_eval.py
 
 setup:
 	@echo "Setting up the environment..."
