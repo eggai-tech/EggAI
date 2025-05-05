@@ -231,6 +231,15 @@ When running the tests for the Triage Agent, a DSPy performance report will be g
 ### Custom Model Training and Evaluation
 In order to improve the response latency and cost of the Triage Agent, you can train a custom classifier to classify the incoming messages. 
 The training and test data has been generated via our data generation scripts.
+A short exploratory data analysis consisting train/test class distribution and data visualization can be found in [exploratory_data_analysis.ipynb](agents/triage/notebooks/exploratory_data_analysis.ipynb).
+
+One can play around with the notebook by running the Jupyter server:
+
+```
+make start-eda-notebook
+```
+
+#### Model Architecture, Training and Evaluation
 
 Specifically, our custom model is a simple few-shot logistic regression model trained on the message embeddings. The embeddings
 were computed using the `sentence-transformers/all-MiniLM-L6-v2` model. See [Sentence Transformers](https://www.sbert.net/) for more details.
