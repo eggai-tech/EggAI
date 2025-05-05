@@ -117,14 +117,17 @@ class FewShotsClassifier:
         return output_path
 
     @staticmethod
-    def load(input_path: str):
+    def load(input_path: str) -> "FewShotsClassifier":
         """
-        Load the model from a file.
+        Load the model from a file and returns a FewShotsClassifier instance.
 
         Args:
             input_path: Path to load the model.
         """
         with open(input_path, "rb") as f:
-            return pickle.load(f)
+            loaded = pickle.load(f)
+            if not isinstance(loaded, FewShotsClassifier):
+                raise ValueError(f"Loaded object is not a FewShotsClassifier: {type(loaded)}")
+            return loaded
 
 

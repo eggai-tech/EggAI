@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 
 from agents.triage.baseline_model.few_shots_classifier import FewShotsClassifier
 from agents.triage.config import Settings
-from agents.triage.mlflow_experiments.utils import find_model
 from agents.triage.models import TargetAgent
+from libraries.mlflow_utils import find_model
 
 load_dotenv()
 settings = Settings()
@@ -33,5 +33,5 @@ def classifier_v3(chat_history: str) -> ClassificationResult:
     return ClassificationResult(target_agent=best_target_agent)
     
 if __name__ == "__main__":
-    result = classifier_v3(chat_history="User: I want to talk with manager, im so angry.")
+    result = classifier_v3(chat_history="User: I want to know my policy due date.")
     print(result.target_agent)
