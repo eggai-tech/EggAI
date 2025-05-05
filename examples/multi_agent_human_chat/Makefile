@@ -61,7 +61,9 @@ test-policies:
 
 test-triage-classifier-v1:
 	@echo "Running tests classifier v1 for triage agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v1.py -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v1.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 
 test-triage-classifier-v2:
 	@echo "Running test classifier v2 for triage agent..."

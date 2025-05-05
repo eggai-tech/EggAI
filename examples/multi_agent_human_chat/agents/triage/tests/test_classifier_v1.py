@@ -4,9 +4,12 @@ from datetime import datetime
 import mlflow
 import pytest
 
+from agents.triage.config import Settings
 from libraries.dspy_set_language_model import dspy_set_language_model
-from ..dspy_modules.classifier_v1 import classifier_v1, settings
-from ..dspy_modules.evaluation.evaluate import run_evaluation
+from agents.triage.dspy_modules.classifier_v1 import classifier_v1, settings
+from agents.triage.dspy_modules.evaluation.evaluate import run_evaluation
+
+settings = Settings()
 
 lm = dspy_set_language_model(types.SimpleNamespace(
     language_model=settings.language_model,
@@ -34,3 +37,5 @@ async def test_dspy_modules():
 
     accuracy, results, all_scores, metrics = run_evaluation(classifier_v1, "classifier_v1", lm)
     assert accuracy > 0.8, "Evaluation score is below threshold."
+
+    #

@@ -21,3 +21,4 @@ matplotlib==3.10.1
 seaborn==0.13.2
 pandas==2.2.3
 sentence-transformers==4.0.2
+pytest-html==4.1.1

@@ -11,7 +11,7 @@ from agents.triage.models import TargetAgent
 @dataclass
 class DatasetRow:
     conversation: str
-    target_agent: str
+    target_agent: TargetAgent
     turns: int
     temperature: float
     index_batch: int
@@ -36,6 +36,7 @@ def load_dataset(file_path: Path):
             data = json.loads(line)
             if data.get("target_agent") is None:
                 continue
+            data["target_agent"] = translate_agent_str_to_enum(data["target_agent"])
             dataset.append(DatasetRow(**data))
     return dataset
 
