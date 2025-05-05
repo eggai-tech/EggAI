@@ -116,7 +116,8 @@ class FewShotsClassifier:
 
         return output_path
 
-    def load(self, input_path: str):
+    @staticmethod
+    def load(input_path: str):
         """
         Load the model from a file.
 
@@ -124,4 +125,6 @@ class FewShotsClassifier:
             input_path: Path to load the model.
         """
         with open(input_path, "rb") as f:
-            self.classifiers = [pickle.load(f)]
+            return pickle.load(f)
+
+
