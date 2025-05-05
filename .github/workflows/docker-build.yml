@@ -28,7 +28,7 @@ jobs:
         with:
           context: examples/multi_agent_human_chat
           push: true
-          platforms: linux/amd64, linux/arm64/v8
+          platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: multi_agent_human_chat:${{ github.sha }}
+          tags: ghcr.io/eggai-tech/multi_agent_human_chat:${{ github.sha }}
