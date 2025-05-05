@@ -118,7 +118,7 @@ sequenceDiagram
 
 Ensure you have the following dependencies installed:
 
-- **Python** 3.12
+- **Python** 3.11
 - **Docker** and **Docker Compose**
 
 Ensure you have a valid OpenAI API key set in your environment:
@@ -227,6 +227,40 @@ You can optimize agents using DSPy evaluation and optimization techniques.
 You can find an optimization setup [here](https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/tests/test_dspy_modules.py).
 
 When running the tests for the Triage Agent, a DSPy performance report will be generated in the `agents/triage/dspy_modules/evaluation/reports` folder ([example report](https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/dspy_modules/evaluation/reports/classifier_v1.html)).
+
+### Custom Model Training and Evaluation
+In order to improve the response latency and cost of the Triage Agent, you can train a custom classifier to classify the incoming messages. 
+The training and test data has been generated via our data generation scripts.
+
+Specifically, our custom model is a simple few-shot logistic regression model trained on the message embeddings. The embeddings
+were computed using the `sentence-transformers/all-MiniLM-L6-v2` model. See [Sentence Transformers](https://www.sbert.net/) for more details.
+
+In order to train the model:
+
+1. Create the `.env` file containing the following variables:
+
+```
+FEWSHOT_N_EXAMPLES=100
+AWS_ACCESS_KEY_ID=user
+AWS_SECRET_ACCESS_KEY=password
+MLFLOW_TRACKING_URI=http://localhost:5001
+MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
+```
+One can train several models with different number of examples per class by setting the `FEWSHOT_N_EXAMPLES` variable to the desired number of examples.
+For each `FEWSHOT_N_EXAMPLES` we used 3 different random seeds to sample the examples.
+This means that each model is an ensemble of 3 models trained on different random samples of the training set.
+The average of the predictions of the 3 models is used as the final prediction.
+
+
+If you want to train the model with **all training data**, just remove the `FEWSHOT_N_EXAMPLES` variable from the `.env` file.
+
+2. Run the training script:
+
+```bash
+make train-triage-classifier-v3
+```
+
+Ideally run this command several times with different `FEWSHOT_N_EXAMPLES` values to train several models with different number of examples per class and compare the results in [MLFlow UI](http://localhost:5001).
 
 ### Cleaning Up
 
