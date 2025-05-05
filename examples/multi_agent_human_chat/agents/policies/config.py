@@ -10,25 +10,25 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    app_name: str = Field(default="policies_agent", env="APP_NAME")
+    app_name: str = Field(default="policies_agent")
     
     # Language model settings
-    language_model: str = Field(default="openai/gpt-4o-mini", env="LANGUAGE_MODEL")
-    language_model_api_base: Optional[str] = Field(default=None, env="LANGUAGE_MODEL_API_BASE")
-    cache_enabled: bool = Field(default=False, env="CACHE_ENABLED")
+    language_model: str = Field(default="openai/gpt-4o-mini")
+    language_model_api_base: Optional[str] = Field(default=None)
+    cache_enabled: bool = Field(default=False)
     
     # Kafka transport settings
-    kafka_bootstrap_servers: str = Field(default="localhost:19092", env="KAFKA_BOOTSTRAP_SERVERS")
-    kafka_topic_prefix: str = Field(default="eggai", env="KAFKA_TOPIC_PREFIX")
-    kafka_rebalance_timeout_ms: int = Field(default=20000, env="KAFKA_REBALANCE_TIMEOUT_MS")
+    kafka_bootstrap_servers: str = Field(default="localhost:19092")
+    kafka_topic_prefix: str = Field(default="eggai")
+    kafka_rebalance_timeout_ms: int = Field(default=20000)
     
     # Observability settings
-    otel_endpoint: str = Field(default="http://localhost:4318", env="OTEL_ENDPOINT") 
-    tracing_enabled: bool = Field(default=True, env="TRACING_ENABLED")
+    otel_endpoint: str = Field(default="http://localhost:4318") 
+    tracing_enabled: bool = Field(default=True)
     
     # RAG settings
-    rag_max_documents: int = Field(default=5, env="RAG_MAX_DOCUMENTS")
-    rag_index_path: str = Field(default="", env="RAG_INDEX_PATH")
+    rag_max_documents: int = Field(default=5)
+    rag_index_path: str = Field(default="")
     
     @property
     def default_rag_index_path(self) -> str:

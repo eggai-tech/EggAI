@@ -11,11 +11,11 @@ load_dotenv()
 
 class FewshotSettings(BaseSettings):
     # Model configuration
-    n_classes: int = Field(default=5, env="N_CLASSES")
-    n_examples: Optional[int] = Field(default=None, env="N_EXAMPLES")
-    seed: Union[int, List[int]] = Field(default=[42, 47, 53], env="SEED")
-    checkpoint_dir: str = Field(default="checkpoints", env="CHECKPOINT_DIR")
-    model_name: str = Field(default="fewshot_baseline_n_all", env="MODEL_NAME")
+    n_classes: int = Field(default=5)
+    n_examples: Optional[int] = Field(default=None)
+    seed: Union[int, List[int]] = Field(default=[42, 47, 53])
+    checkpoint_dir: str = Field(default="checkpoints")
+    model_name: str = Field(default="fewshot_baseline_n_all")
     
     # Dataset configuration
     dataset_paths: List[str] = Field(
@@ -29,9 +29,9 @@ class FewshotSettings(BaseSettings):
     )
     
     # MLflow configuration
-    mlflow_tracking_uri: str = Field(default="http://127.0.0.1:5001", env="MLFLOW_TRACKING_URI")
-    mlflow_experiment_name: str = Field(default="triage-model-training", env="MLFLOW_EXPERIMENT_NAME")
-    mlflow_run_name: str = Field(default="fewshot_baseline_n_all", env="MLFLOW_RUN_NAME")
+    mlflow_tracking_uri: str = Field(default="http://127.0.0.1:5001")
+    mlflow_experiment_name: str = Field(default="triage-model-training")
+    mlflow_run_name: str = Field(default="fewshot_baseline_n_all")
     
     # For evaluation
     eval_dataset_path: str = Field(
@@ -41,8 +41,8 @@ class FewshotSettings(BaseSettings):
         ),
         env="EVAL_DATASET_PATH"
     )
-    model_path: Optional[str] = Field(default=None, env="MODEL_PATH")
-    model_artifact_uri: Optional[str] = Field(default=None, env="MODEL_ARTIFACT_URI")
+    model_path: Optional[str] = Field(default=None)
+    model_artifact_uri: Optional[str] = Field(default=None)
     
     @property
     def model_config_dict(self):
