@@ -14,7 +14,7 @@ train-triage-classifier-v3:
 	@echo "Training triage classifier v3..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/baseline_model/fewshot_trainer.py
 
-make test-triage-classifier-v3:
+test-triage-classifier-v3:
 	@echo "Evaluating the triage classifier v3..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/baseline_model/fewshot_eval.py
 
