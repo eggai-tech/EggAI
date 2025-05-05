@@ -75,7 +75,9 @@ test-triage-classifier-v3:
 
 test-triage-agent:
 	@echo "Running tests for triage agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_agent.py -s
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_agent.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for triage agent completed."
 
 test-audit:

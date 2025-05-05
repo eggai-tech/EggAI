@@ -30,8 +30,8 @@ test_cases = [
 
 class TriageEvaluationSignature(dspy.Signature):
     chat_history: str = dspy.InputField(desc="Full conversation context.")
-    agent_response: str = dspy.InputField(desc="Agent-generated response.")
-    expected_target_agent: str = dspy.InputField(desc="Expected agent classification.")
+    agent_response: TargetAgent = dspy.InputField(desc="Agent-generated response.")
+    expected_target_agent: TargetAgent = dspy.InputField(desc="Expected agent classification.")
 
     judgment: bool = dspy.OutputField(desc="Pass (True) or Fail (False).")
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
@@ -111,7 +111,7 @@ async def test_triage_agent():
         evaluation_result = await eval_model(
             chat_history=case.conversation,
             agent_response=agent_type,
-            expected_target_agent=translate_agent_str_to_enum(case.target_agent),
+            expected_target_agent=case.target_agent,
         )
 
         assert evaluation_result.judgment, (

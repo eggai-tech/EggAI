@@ -27,4 +27,5 @@ async def test_classifier_v3():
         accuracies.append(res.target_agent == case.target_agent)
 
     accuracy = sum(accuracies) / len(accuracies)
+
     assert accuracy > 0.8, "Evaluation score is below threshold."
