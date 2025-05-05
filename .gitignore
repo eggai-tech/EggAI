@@ -114,3 +114,4 @@ coverage.xml
 .DS_Store
 examples/multi_agent_human_chat/temp
 site
+checkpoints/

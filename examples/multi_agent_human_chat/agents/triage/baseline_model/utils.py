@@ -1,10 +1,10 @@
 import json
 import logging
+from typing import Dict, Any
 
 import mlflow
 import numpy as np
 import pandas as pd
-from omegaconf import DictConfig, OmegaConf
 
 CATEGORY_LABEL_MAP = {
     "BILLING": 0,
@@ -141,15 +141,14 @@ def setup_logging(log_level: str = "INFO"):
     )
 
 
-def init_mlflow(cfg: DictConfig):
+def init_mlflow(cfg: Dict[str, Any]):
     """
     Initialize MLflow tracking.
     """
     # Set the tracking URI and experiment name
-    mlflow.set_tracking_uri(cfg.mlflow.tracking_uri)
-    mlflow.set_experiment(cfg.mlflow.experiment_name)
-    run_name = cfg.mlflow.get("run_name", None)
+    mlflow.set_tracking_uri(cfg["tracking_uri"])
+    mlflow.set_experiment(cfg["experiment_name"])
+    run_name = cfg.get("run_name", None)
     mlflow.start_run(run_name=run_name)
     # log the config
-    conf_dict = OmegaConf.to_container(cfg, resolve=True)
-    mlflow.log_params(conf_dict)
+    mlflow.log_params(cfg)

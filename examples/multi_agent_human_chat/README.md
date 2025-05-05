@@ -146,6 +146,7 @@ Create and activate a virtual environment and install required dependencies:
 
 ```bash
 make setup
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
 **Note for Mac users**: You may need to install torch compatibility package separately:
