@@ -263,7 +263,7 @@ make train-triage-classifier-v3
 Ideally run this command several times with different `FEWSHOT_N_EXAMPLES` values to train several models with different number of examples per class and compare the results in [MLFlow UI](http://localhost:5001).
 Here's a screenshot from the MLFlow UI comparing 3 models trained with `n=10`, `n=100` and `n=all` examples per class:
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-custom-classifier-training.png" width="600"/>
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-custom-classifier-training.png" width="1600"/>
 
 ### Cleaning Up
 
