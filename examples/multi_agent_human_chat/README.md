@@ -239,6 +239,11 @@ One can play around with the notebook by running the Jupyter server:
 make start-eda-notebook
 ```
 
+Here are two plots showing the t-SNE projection of the message embeddings and the class distribution of the training and test data:
+
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/train_tsne.png" width="600"/>
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/test_tsne.png" width="600"/>
+
 #### Model Architecture, Training and Evaluation
 
 Specifically, our custom model is a simple few-shot logistic regression model trained on the message embeddings. The embeddings
