@@ -13,6 +13,9 @@ from libraries.dspy_set_language_model import dspy_set_language_model
 from ..agent import triage_agent
 from ..data_sets.loader import load_dataset_triage_testing, translate_agent_str_to_enum
 from ..models import AGENT_REGISTRY, TargetAgent
+from unittest.mock import AsyncMock
+from agents.triage.agent import handle_user_message
+from libraries.tracing import TracedMessage
 
 # ---------------------------------------------------------------------------
 # Global setup
@@ -28,7 +31,9 @@ class TriageEvaluationSignature(dspy.Signature):
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     agent_response: TargetAgent = dspy.InputField(desc="Agent selected by triage.")
-    expected_target_agent: TargetAgent = dspy.InputField(desc="Ground‑truth agent label.")
+    expected_target_agent: TargetAgent = dspy.InputField(
+        desc="Ground‑truth agent label."
+    )
 
     judgment: bool = dspy.OutputField(desc="Pass (True) or Fail (False).")
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
@@ -61,6 +66,7 @@ async def _handle_response(event):
 # Helper utilities
 # ---------------------------------------------------------------------------
 
+
 def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
     """Return a GitHub‑style markdown table given *headers* and *rows*."""
     # Calculate max width per column
@@ -70,12 +76,17 @@ def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
             widths[i] = max(widths[i], len(cell))
 
     def _fmt_row(cells):
-        return "| " + " | ".join(cell.ljust(widths[i]) for i, cell in enumerate(cells)) + " |"
+        return (
+            "| "
+            + " | ".join(cell.ljust(widths[i]) for i, cell in enumerate(cells))
+            + " |"
+        )
 
     sep = "| " + " | ".join("-" * widths[i] for i in range(len(headers))) + " |"
     out = [_fmt_row(headers), sep]
     out.extend(_fmt_row(r) for r in rows)
     return "\n".join(out)
+
 
 @pytest.mark.asyncio
 async def test_triage_agent():
@@ -158,7 +169,8 @@ async def test_triage_agent():
                 "judgment": "✔" if evaluation.judgment else "✘",
                 "precision": f"{evaluation.precision_score:.2f}",
                 "latency": f"{latency_ms:.1f} ms",
-                "reason": (evaluation.reasoning or "")[:40] + ("…" if len(evaluation.reasoning or "") > 40 else ""),
+                "reason": (evaluation.reasoning or "")[:40]
+                + ("…" if len(evaluation.reasoning or "") > 40 else ""),
             }
         )
 
@@ -186,7 +198,9 @@ async def test_triage_agent():
     timeout_per_msg = 30.0
     try:
         while pending:
-            event = await asyncio.wait_for(_response_queue.get(), timeout=timeout_per_msg)
+            event = await asyncio.wait_for(
+                _response_queue.get(), timeout=timeout_per_msg
+            )
             await _process_event(event)
     except asyncio.TimeoutError:
         for mid, dataset_case in pending.items():
@@ -236,3 +250,62 @@ async def test_triage_agent():
 
     if errors:
         pytest.fail("\n\n".join(errors))
+
+
+@pytest.mark.asyncio
+async def test_triage_agent_simple(monkeypatch):
+    load_dotenv()
+
+    test_message = TracedMessage(
+        id=str(uuid4()),
+        type="user_message",
+        source="frontend_agent",
+        data={
+            "chat_messages": [{"role": "User", "content": "hi how are you?"}],
+            "connection_id": str(uuid4()),
+            "agent": "TriageAgent",
+        },
+    )
+
+    mock_publish = AsyncMock()
+    monkeypatch.setattr(Channel, "publish", mock_publish)
+    await handle_user_message(test_message)
+
+    args, kwargs = mock_publish.call_args_list[0]
+
+    is_chatty = args[0].data.get("agent") == "TriageAgent"
+    assert is_chatty
+
+
+@pytest.mark.asyncio
+async def test_triage_agent_intent_change(monkeypatch):
+    load_dotenv()
+
+    test_message = TracedMessage(
+        id=str(uuid4()),
+        type="user_message",
+        source="frontend_agent",
+        data={
+            "chat_messages": [
+                {"role": "User", "content": "hi how are you?"},
+                {
+                    "role": "assistant",
+                    "agent": "ChattyAgent",
+                    "content": "I'm here to help you with your insurance needs! If you have any questions about insurance or need assistance, feel free to ask.",
+                },
+                {"role": "User", "content": "could you please give me my policy details?"},
+            ],
+            "connection_id": str(uuid4()),
+            "agent": "TriageAgent",
+        },
+    )
+
+    mock_publish = AsyncMock()
+    monkeypatch.setattr(Channel, "publish", mock_publish)
+    await handle_user_message(test_message)
+
+    args, kwargs = mock_publish.call_args_list[0]
+
+    print(args[0])
+    is_policy = args[0].type == "policy_request"
+    assert is_policy

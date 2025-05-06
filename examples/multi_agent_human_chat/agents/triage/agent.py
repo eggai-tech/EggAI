@@ -1,4 +1,3 @@
-import time
 from time import perf_counter
 
 from eggai import Channel, Agent
