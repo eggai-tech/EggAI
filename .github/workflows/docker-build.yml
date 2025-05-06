@@ -23,6 +23,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Genetare image tag
+        id: image_tag
+        run: |
+          today=$(date -d@$(git show -s --format=%ct ${{ github.sha }}) +%Y%m%d%H%M%S)
+          shortSha=$(git rev-parse --short=8 ${{ github.sha }})
+          echo "tag=${shortSha}-${today}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -31,4 +38,4 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ghcr.io/eggai-tech/multi_agent_human_chat:${{ github.sha }}
+          tags: ghcr.io/eggai-tech/multi_agent_human_chat:${{ steps.image_tag.outputs.tag }}
