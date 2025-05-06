@@ -10,7 +10,6 @@ from sklearn.model_selection import train_test_split
 from agents.triage.data_sets.loader import (
     as_dspy_examples,
     load_dataset_triage_training,
-    load_dataset_triage_testing,
 )
 from agents.triage.dspy_modules.classifier_v1 import classifier_v1
 from libraries.dspy_set_language_model import dspy_set_language_model
