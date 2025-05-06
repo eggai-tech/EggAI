@@ -1,6 +1,5 @@
 import asyncio
 import random
-from time import perf_counter
 from typing import Any, Dict, List
 from uuid import uuid4
 
@@ -142,7 +141,7 @@ async def test_triage_agent():
             "UnknownAgent",
         )
 
-        # Ask DSPy to judge the decision
+        # Evaluate the response
         eval_model = dspy.asyncify(dspy.Predict(TriageEvaluationSignature))
         evaluation = await eval_model(
             chat_history=case.conversation,
@@ -172,7 +171,7 @@ async def test_triage_agent():
                 ).format(
                     expected=translate_agent_str_to_enum(case.target_agent),
                     actual=routed_agent,
-                    snippet=case.conversation[:60].replace("\n", " "),
+                    snippet=case.conversation.replace("\n", " "),
                 )
             )
 
