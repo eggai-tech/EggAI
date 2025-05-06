@@ -196,7 +196,7 @@ claims_react = TracedReAct(
 
 
 @claims_agent.subscribe(
-    channel=agents_channel, filter_by_message=lambda msg: msg["type"] == "claims_request"
+    channel=agents_channel, filter_by_message=lambda msg: msg["type"] == "claim_request"
 )
 @traced_handler("handle_claims_message")
 async def handle_claims_message(msg_dict):
