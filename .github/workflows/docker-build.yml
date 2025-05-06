@@ -23,7 +23,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Genetare image tag
+      - name: Generate image tag
         id: image_tag
         run: |
           today=$(date -d@$(git show -s --format=%ct ${{ github.sha }}) +%Y%m%d%H%M%S)
