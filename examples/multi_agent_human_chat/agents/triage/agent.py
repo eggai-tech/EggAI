@@ -1,4 +1,5 @@
 import time
+from time import perf_counter
 
 from eggai import Channel, Agent
 from eggai.transport import eggai_set_default_transport, KafkaTransport
@@ -49,9 +50,9 @@ async def handle_user_message(msg: TracedMessage):
             user = chat.get("agent", "User")
             conversation_string += f"{user}: {chat['content']}\n"
         
-        initial_time = time.time()
+        initial_time = perf_counter()
         response = current_classifier(chat_history=conversation_string)
-        processing_time = time.time() - initial_time
+        processing_time = perf_counter() - initial_time
         target_agent = response.target_agent
         logger.info(f"Classification completed in {processing_time:.2f} seconds, target agent: {target_agent}, classifier version: {settings.classifier_version}")
         triage_to_agent_messages = [
@@ -77,6 +78,9 @@ async def handle_user_message(msg: TracedMessage):
                             "chat_messages": triage_to_agent_messages,
                             "message_id": msg.id,
                             "connection_id": connection_id,
+                            "metrics": {
+                                "latency": processing_time,
+                            },
                         },
                         traceparent=child_traceparent,
                         tracestate=child_tracestate,
