@@ -85,12 +85,14 @@ class FewShotsClassifier:
         Returns:
             y_pred: predicted class probabilities of size (n_samples, n_classes)
         """
+
         X = self.sentence_transformer.encode(instructions)
         y_pred = [classifier.predict_proba(X) for classifier in self.classifiers]
         # stack the predictions from all classifiers
         y_pred = np.stack(y_pred)
         # average the predictions across classifiers
         y_pred = y_pred.mean(axis=0)
+
         # return the predicted class probabilities
         return y_pred
 

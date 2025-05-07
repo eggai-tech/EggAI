@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import random
 
 import mlflow
 from dotenv import load_dotenv
@@ -29,7 +30,11 @@ def main() -> int:
     train_dataset = load_datasets(settings.train_dataset_paths)
     # unroll training dataset
     unrolled_train_dataset = unroll_dataset(train_dataset)
-
+    # shuffle dataset
+    keys = list(unrolled_train_dataset.keys())
+    random.shuffle(keys)
+    shuffled_unrolled_train_dataset = {k: unrolled_train_dataset[k] for k in keys}
+    
     if isinstance(settings.seed, int):
         seeds = [settings.seed]
     else:
@@ -45,10 +50,10 @@ def main() -> int:
 
     # Train the classifier
     logger.info(f"Training few-shot classifier with {settings.n_examples} examples per class")
-    fewshot_classifier.fit(unrolled_train_dataset)
+    fewshot_classifier.fit(shuffled_unrolled_train_dataset)
 
     # Evaluate on the test set
-    logger.info(f"Evaluating few-shot classifier on test set")
+    logger.info("Evaluating few-shot classifier on test set")
     test_dataset = load_dataset(settings.test_dataset_path)
     # Get instructions and labels, by splitting keys and values
     X_test, y_test = list(test_dataset.keys()), list(test_dataset.values())
