@@ -88,7 +88,7 @@ def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
     return "\n".join(out)
 
 
-# @pytest.mark.asyncio
+@pytest.mark.asyncio
 async def test_triage_agent():
     """Send all test conversations concurrently, collect rich metrics, and log a results table."""
 
