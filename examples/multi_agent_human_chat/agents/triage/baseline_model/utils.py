@@ -11,7 +11,7 @@ CATEGORY_LABEL_MAP = {
     "POLICY": 1,
     "CLAIM": 2,
     "ESCALATION": 3,
-    "GENERAL": 4,
+    "CHATTY": 4,
 }
 
 AGENT_TO_CLASS = {
@@ -21,20 +21,6 @@ AGENT_TO_CLASS = {
     "EscalationAgent": 3,
     "ChattyAgent": 4,
 }
-
-
-def _replace_agent(msg: str) -> str:
-    # replace names of the agents from AGENT_TO_CLASS with "Agent"
-    for agent in AGENT_TO_CLASS.keys():
-        if agent in msg:
-            msg = msg.replace(agent, "Agent")
-    return msg
-
-
-def replace_agent_name(conversation: str) -> str:
-    conversation = [_replace_agent(msg) for msg in conversation.split("\n")]
-    conversation = "\n".join(conversation)
-    return conversation
 
 
 def sample_training_examples(dataset: dict[str, int], n_examples: int, seed: int) -> tuple[list[str], list[int]]:
@@ -83,7 +69,7 @@ def load_json_dataset(file_path: str) -> dict[str, int]:
         dataset = [item for item in dataset if item["target_agent"] is not None]
 
         return {
-            replace_agent_name(item["conversation"]): AGENT_TO_CLASS[item["target_agent"]] for item in dataset
+            item["conversation"]: AGENT_TO_CLASS[item["target_agent"]] for item in dataset
         }
 
 
@@ -152,3 +138,33 @@ def init_mlflow(cfg: Dict[str, Any]):
     mlflow.start_run(run_name=run_name)
     # log the config
     mlflow.log_params(cfg)
+
+
+def unroll_dataset(train_dataset: dict[str, int]) -> dict[str, int]:
+    """
+    A simple annotation technique to increase the number of training examples and potentially improve the performance
+    of the classifier, especially in cases when the intent is changed during the conversation.
+    Basically splits the conversation by new line and creates subset of conversation, e.g. user, user-agent-user, ...
+    """
+    unrolled_dataset = {}
+    for instruction, label in train_dataset.items():
+        # add the ground truth instruction to the unrolled dataset first
+        unrolled_dataset[instruction] = label
+
+        # split the instruction by new line
+        instructions = instruction.split("\n")
+        # unroll
+        for i in range(1, len(instructions), 2):
+            # create a new instruction by joining the first i lines
+            new_instruction = "\n".join(instructions[:i])
+            # get the next instruction to extract the label
+            lbl_instruction = instructions[i]
+            actor = lbl_instruction.split(":")[0]
+            # if not an agent, skip
+            if not actor.endswith("Agent"):
+                continue
+            label = AGENT_TO_CLASS[actor]
+            # add the new instruction to the unrolled dataset
+            unrolled_dataset[new_instruction] = label
+
+    return unrolled_dataset

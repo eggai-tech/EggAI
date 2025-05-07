@@ -10,7 +10,7 @@ from agents.triage.baseline_model.config import settings
 from agents.triage.baseline_model.few_shots_classifier import FewShotsClassifier
 from agents.triage.baseline_model.metrics import compute_f1_score, compute_roc_auc
 from agents.triage.baseline_model.utils import load_dataset, load_datasets, init_mlflow, setup_logging, \
-    CATEGORY_LABEL_MAP
+    CATEGORY_LABEL_MAP, unroll_dataset
 
 logger = logging.getLogger("fewshot_trainer")
 
@@ -27,6 +27,8 @@ def main() -> int:
     # Load triage dataset
     logger.info(f"Loading dataset from {settings.train_dataset_paths}")
     train_dataset = load_datasets(settings.train_dataset_paths)
+    # unroll training dataset
+    unrolled_train_dataset = unroll_dataset(train_dataset)
 
     if isinstance(settings.seed, int):
         seeds = [settings.seed]
@@ -43,7 +45,7 @@ def main() -> int:
 
     # Train the classifier
     logger.info(f"Training few-shot classifier with {settings.n_examples} examples per class")
-    fewshot_classifier.fit(train_dataset)
+    fewshot_classifier.fit(unrolled_train_dataset)
 
     # Evaluate on the test set
     logger.info(f"Evaluating few-shot classifier on test set")
