@@ -9,6 +9,7 @@ import uuid
 import uvicorn
 from opentelemetry import trace
 from fastapi import FastAPI, Query
+from faststream.security import BaseSecurity
 
 from libraries.tracing.otel import traced_handler, extract_span_context
 from .websocket_manager import WebSocketManager
@@ -32,7 +33,8 @@ else:
 
 def create_kafka_transport():
     return KafkaTransport(
-        bootstrap_servers=settings.kafka_bootstrap_servers
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        security=BaseSecurity(use_ssl=True)
     )
 
 
