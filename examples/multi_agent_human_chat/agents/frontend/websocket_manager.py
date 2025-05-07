@@ -1,11 +1,12 @@
+from collections import defaultdict
 from typing import Dict
 from starlette.websockets import WebSocketState, WebSocket
 
 class WebSocketManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
-        self.message_buffers: Dict[str, list] = {}
-        self.message_ids: Dict[str, str] = {}
+        self.message_buffers: Dict[str, list] = defaultdict(list)
+        self.message_ids: Dict[str, str] = defaultdict(str)
 
     async def connect(self, websocket: WebSocket, connection_id: str):
         await websocket.accept()
