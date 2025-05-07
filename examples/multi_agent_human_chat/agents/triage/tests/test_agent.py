@@ -204,10 +204,11 @@ async def test_triage_agent():
             await _process_event(event)
     except asyncio.TimeoutError:
         for mid, dataset_case in pending.items():
+            conversation_start = dataset_case.conversation[:60].replace('\n', ' ')
             errors.append(
                 (
                     f"Timeout (> {timeout_per_msg}s): no triage response for message_id {mid}. "
-                    f"Conversation start: '{dataset_case.conversation[:60].replace('\n', ' ')}…'"
+                    f"Conversation start: '{conversation_start}'"
                 )
             )
 
