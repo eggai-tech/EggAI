@@ -56,8 +56,7 @@ def load_data(file: str):
 
 
 def run_evaluation(program, report_name, lm: dspy.LM):
-    random.seed(42)
-    test_dataset = random.sample(as_dspy_examples(load_dataset_triage_testing()), 1000)
+    test_dataset = as_dspy_examples(load_dataset_triage_testing())
     evaluator = dspy.evaluate.Evaluate(
         devset=test_dataset,
         num_threads=20,

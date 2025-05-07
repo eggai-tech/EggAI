@@ -1,3 +1,4 @@
+from time import perf_counter
 from typing import Optional
 
 import dspy
@@ -9,16 +10,21 @@ class TrackingLM(dspy.LM):
         self.completion_tokens = 0
         self.prompt_tokens = 0
         self.total_tokens = 0
+        self.latency_ms = 0
         self.run_logs = []
 
     def __call__(self, *args, **kwargs):
         self.start_run()
-        return super().__call__(*args, **kwargs)
+        start_time = perf_counter()
+        res = super().__call__(*args, **kwargs)
+        self.latency_ms = (perf_counter() - start_time) * 1000
+        return res
 
     def start_run(self):
         self.completion_tokens = 0
         self.prompt_tokens = 0
         self.total_tokens = 0
+        self.latency_ms = 0
 
     def forward(self, prompt=None, messages=None, **kwargs):
         forward_result = super().forward(prompt, messages, **kwargs)

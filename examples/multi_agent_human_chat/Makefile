@@ -161,6 +161,14 @@ restart: stop start
 
 compile-triage-classifier-v2:
 	@echo "Compiling Classifier Dspy Optimizer..."
+	# ask the user if he wants to continue
+	@read -p "Do you want to delete the existing optimizations_v2.json file and recompile the classifier? (y/n): " choice; \
+	if [ "$$choice" != "y" ]; then \
+		echo "Aborting..."; \
+		exit 1; \
+	fi
+
+	rm agents/triage/dspy_modules/classifier_v2/optimizations_v2.json
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.dspy_modules.classifier_v2.classifier_v2_optimizer
 	@echo "Triage Agent setup completed."
 

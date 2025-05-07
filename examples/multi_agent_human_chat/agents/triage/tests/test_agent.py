@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Awaitable
 from uuid import uuid4
 
 import dspy

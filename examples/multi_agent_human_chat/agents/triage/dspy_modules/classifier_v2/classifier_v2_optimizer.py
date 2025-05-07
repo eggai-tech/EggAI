@@ -11,7 +11,7 @@ from agents.triage.data_sets.loader import (
     as_dspy_examples,
     load_dataset_triage_training,
 )
-from agents.triage.dspy_modules.classifier_v1 import classifier_v1
+from agents.triage.dspy_modules.classifier_v2.classifier_v2 import classifier_v2_program
 from libraries.dspy_set_language_model import dspy_set_language_model
 
 
@@ -83,7 +83,7 @@ if __name__ == "__main__":
             **hp,
         )
 
-        prog = tele.compile(classifier_v1, trainset=train_set, valset=dev_set)
+        prog = tele.compile(classifier_v2_program, trainset=train_set, valset=dev_set)
 
         # -------------------------- FIXED EVALUATION -------------------
         score = evaluator(prog)            # average accuracy on dev_set
@@ -91,7 +91,11 @@ if __name__ == "__main__":
 
         if score > best_dev:
             best_program, best_dev, best_hp = prog, score, hp
-            print(f"✓ new best {best_dev:.3f} with {best_hp}")
+            print(f"\n{'=' * 80}")
+            print(f"Best program so far: {best_program}")
+            print(f"Best score so far: {best_dev:.3f}")
+            print(f"Best hyper-parameters so far: {best_hp}")
+            print(f"{'=' * 80}\n")
 
     # ------------------------------------------------------------------
     # Persist the winner
