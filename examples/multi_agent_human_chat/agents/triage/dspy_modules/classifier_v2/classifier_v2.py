@@ -5,7 +5,7 @@ import dspy
 from dotenv import load_dotenv
 
 from agents.triage.config import Settings
-from agents.triage.models import formatted_agent_registry, TargetAgent
+from agents.triage.models import formatted_agent_registry, TargetAgent, ClassifierMetrics
 from libraries.dspy_set_language_model import dspy_set_language_model
 
 settings = Settings()
@@ -13,10 +13,11 @@ settings = Settings()
 load_dotenv()
 lm = dspy_set_language_model(settings)
 
+
 class AgentClassificationSignature(dspy.Signature):
     def __init__(self, chat_history: str):
         super().__init__(chat_history=chat_history)
-        self.metrics: Dict[str, Any] = {}
+        self.metrics: ClassifierMetrics
 
     chat_history: str = dspy.InputField(
         desc="Full chat history providing context for the classification process."
@@ -25,30 +26,30 @@ class AgentClassificationSignature(dspy.Signature):
         desc="Target agent classified for triage based on context and rules."
     )
 
+
 classifier_v2_program = dspy.Predict(signature=AgentClassificationSignature.with_instructions(
-"""
-As a classifier, you have to classify and route messages to appropriate target agents based on context in a multi-agent insurance support system.
-Available Target Agents: 
-"""+formatted_agent_registry()+"""
+    """
+    As a classifier, you have to classify and route messages to appropriate target agents based on context in a multi-agent insurance support system.
+    Available Target Agents: 
+    """ + formatted_agent_registry() + """
 Fallback Rules: Route to ChattyAgent if the query is not insurance-related."""
 ))
-
 
 optimizations_json = os.path.abspath(os.path.join(os.path.dirname(__file__), "optimizations_v2.json"))
 if os.path.exists(optimizations_json):
     print(f"Loading optimizations from {optimizations_json}")
     classifier_v2_program.load(optimizations_json)
 
+
 def classifier_v2(chat_history: str) -> AgentClassificationSignature:
     result = classifier_v2_program(chat_history=chat_history)
-    result.metrics = {
-        "total_tokens": lm.total_tokens,
-        "prompt_tokens": lm.prompt_tokens,
-        "completion_tokens": lm.completion_tokens,
-        "latency_ms": lm.latency_ms,
-    }
+    result.metrics = ClassifierMetrics(
+        total_tokens=lm.total_tokens,
+        prompt_tokens=lm.prompt_tokens,
+        completion_tokens=lm.completion_tokens,
+        latency_ms=lm.latency_ms,
+    )
     return result
-
 
 
 if __name__ == "__main__":

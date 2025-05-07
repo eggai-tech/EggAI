@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Any, Dict, List, Awaitable
+from typing import Any, Dict, List
 from uuid import uuid4
 
 import dspy
@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from eggai import Agent, Channel
 from agents.triage.config import Settings
 from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.logger import get_console_logger
 from ..agent import triage_agent
 from ..data_sets.loader import load_dataset_triage_testing, translate_agent_str_to_enum
 from ..models import AGENT_REGISTRY, TargetAgent
@@ -20,20 +21,19 @@ from libraries.tracing import TracedMessage
 # ---------------------------------------------------------------------------
 # Global setup
 # ---------------------------------------------------------------------------
-
-settings = Settings()
 load_dotenv()
+settings = Settings()
+logger = get_console_logger("triage_test")
 dspy_set_language_model(settings)
 
 
+# ---------------------------------------------------------------------------
+# DSPy signature for LLM judging
+# ---------------------------------------------------------------------------
 class TriageEvaluationSignature(dspy.Signature):
-    """DSPy program signature for judging the triage routing decision."""
-
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     agent_response: TargetAgent = dspy.InputField(desc="Agent selected by triage.")
-    expected_target_agent: TargetAgent = dspy.InputField(
-        desc="Ground‑truth agent label."
-    )
+    expected_target_agent: TargetAgent = dspy.InputField(desc="Ground-truth agent label.")
 
     judgment: bool = dspy.OutputField(desc="Pass (True) or Fail (False).")
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
@@ -45,218 +45,192 @@ class TriageEvaluationSignature(dspy.Signature):
 # ---------------------------------------------------------------------------
 
 test_agent = Agent("TestTriageAgent")
-
 test_channel = Channel("human")
 agents_channel = Channel("agents")
 
-# A central queue that gathers every non‑user event we receive from triage
-_response_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
+_response_queue: asyncio.Queue[TracedMessage] = asyncio.Queue()
 
 
 @test_agent.subscribe(
     channel=agents_channel,
     filter_by_message=lambda event: event.get("type") != "user_message",
+    auto_offset_reset="latest",
+    group_id="test_agent_group-agents"
 )
-async def _handle_response(event):
-    """Push every triage event into the asyncio queue so the pytest coroutine can consume it."""
+async def _handle_response(event: TracedMessage):
+    await _response_queue.put(event)
+
+
+@test_agent.subscribe(
+    channel=test_channel,
+    filter_by_message=lambda event: event.get("type") == "agent_message",
+    auto_offset_reset="latest",
+    group_id="test_agent_group-human"
+)
+async def _handle_test_message(event: TracedMessage):
     await _response_queue.put(event)
 
 
 # ---------------------------------------------------------------------------
-# Helper utilities
+# Utilities
 # ---------------------------------------------------------------------------
 
-
 def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
-    """Return a GitHub‑style markdown table given *headers* and *rows*."""
-    # Calculate max width per column
     widths = [len(h) for h in headers]
     for row in rows:
         for i, cell in enumerate(row):
             widths[i] = max(widths[i], len(cell))
 
     def _fmt_row(cells):
-        return (
-            "| "
-            + " | ".join(cell.ljust(widths[i]) for i, cell in enumerate(cells))
-            + " |"
-        )
+        return "| " + " | ".join(cell.ljust(widths[i]) for i, cell in enumerate(cells)) + " |"
 
     sep = "| " + " | ".join("-" * widths[i] for i in range(len(headers))) + " |"
-    out = [_fmt_row(headers), sep]
-    out.extend(_fmt_row(r) for r in rows)
-    return "\n".join(out)
+    lines = [_fmt_row(headers), sep]
+    lines += [_fmt_row(r) for r in rows]
+    return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Main refactored test
+# ---------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_triage_agent():
-    """Send all test conversations concurrently, collect rich metrics, and log a results table."""
+    """Send all test conversations, validate classifier, then use LLM judge with controlled concurrency."""
 
+    # Start agents
     await triage_agent.start()
     await test_agent.start()
 
-    random.seed(42)
+    # Sample test cases
+    random.seed(1989)
     test_dataset = random.sample(load_dataset_triage_testing(), 10)
 
-    # Map message_id → dataset case plus start timestamp
+    # Phase 1: Fire off all messages
     pending: Dict[str, Any] = {}
+    classification_results: List[Dict[str, Any]] = []
+    for case in test_dataset:
+        msg_id = str(uuid4())
+        pending[msg_id] = case
+        await test_channel.publish({
+            "id": msg_id,
+            "type": "user_message",
+            "source": "TestTriageAgent",
+            "data": {
+                "chat_messages": [{"role": "User", "content": case.conversation}],
+                "connection_id": str(uuid4()),
+                "message_id": msg_id,
+            },
+        })
 
-    # Storage for per‑case results
-    results: List[Dict[str, Any]] = []
+    # Phase 2: Collect classification decisions
+    classification_errors: List[str] = []
+    for _ in range(len(test_dataset)):
+        event = await _response_queue.get()
+        mid = event.data.get("message_id")
 
-    # -------------------------------------------------------------------
-    # 1. Fire off *all* user messages without awaiting individual responses
-    # -------------------------------------------------------------------
+        if mid not in pending:
+            logger.warning(f"Received unexpected message ID: {mid}")
+            logger.warning(pending)
+            continue
+        case = pending.pop(mid)
+        latency = event.data.get("metrics").get("latency_ms")
 
-    for dataset_case in test_dataset:
-        message_id = str(uuid4())
-        pending[message_id] = dataset_case
-
-        await test_channel.publish(
-            {
-                "id": message_id,  # propagate msg id to top‑level id for easier tracking
-                "type": "user_message",
-                "source": "TestTriageAgent",
-                "data": {
-                    "chat_messages": [
-                        {"role": "User", "content": dataset_case.conversation},
-                    ],
-                    "connection_id": str(uuid4()),
-                    "message_id": message_id,
-                },
-            }
-        )
-
-    # -------------------------------------------------------------------
-    # 2. Consume responses from the queue and evaluate routing decisions
-    # -------------------------------------------------------------------
-
-    errors: List[str] = []
-
-    async def _process_event(event: Dict[str, Any]):
-        """Evaluate a single triage response event and store metrics."""
-        message_id = event.get("data", {}).get("message_id")
-        latency = event.get("data", {}).get("latency", 0.0)
-        if not message_id or message_id not in pending:
-            return  # Unknown or duplicate event – ignore
-
-        case = pending.pop(message_id)
-        latency_ms = latency * 1000.0
-
-        routed_agent = next(
-            (
-                key
-                for key, value in AGENT_REGISTRY.items()
-                if value["message_type"] == event["type"]
-            ),
+        routed = next(
+            (k for k, v in AGENT_REGISTRY.items() if v.get("message_type", "agent_message") == event.type),
             "UnknownAgent",
         )
+        if routed == "UnknownAgent":
+            if event["type"] == "agent_message":
+                routed = "ChattyAgent"
 
-        # Evaluate the response
-        eval_model = dspy.asyncify(dspy.Predict(TriageEvaluationSignature))
-        evaluation = await eval_model(
-            chat_history=case.conversation,
-            agent_response=routed_agent,
-            expected_target_agent=case.target_agent,
+        classification_results.append({
+            "id": mid,
+            "expected": translate_agent_str_to_enum(case.target_agent),
+            "routed": routed,
+            "latency": f"{latency:.1f} ms",
+            "conversation": case.conversation,
+            "expected_target_agent": case.target_agent,
+        })
+
+        if routed != translate_agent_str_to_enum(case.target_agent):
+            classification_errors.append(
+                f"Expected '{translate_agent_str_to_enum(case.target_agent)}', but got '{routed}' (ID {mid[:8]})."
+            )
+
+    # Phase 3: LLM judge with controlled concurrency
+    eval_fn = dspy.asyncify(dspy.Predict(TriageEvaluationSignature))
+    semaphore = asyncio.Semaphore(10)
+
+    async def limited_eval(res: Dict[str, Any]) -> Any:
+        async with semaphore:
+            evaluation = await eval_fn(
+                chat_history=res['conversation'],
+                agent_response=res['routed'],
+                expected_target_agent=res['expected_target_agent'],
+            )
+            return res, evaluation
+
+    tasks = [asyncio.create_task(limited_eval(res)) for res in classification_results]
+
+    judge_results: List[Dict[str, Any]] = []
+    for coro in asyncio.as_completed(tasks):
+        res, evaluation = await coro
+        passed = evaluation.judgment
+        prec = evaluation.precision_score
+        reason = evaluation.reasoning or ""
+
+        print(
+            f"ID {res['id']}: judgment={passed}, precision={prec:.2f}, reason={reason[:40]}{'...' if len(reason) > 40 else ''}"
         )
 
-        # Save granular metrics for later reporting
-        results.append(
-            {
-                "id": message_id[:8],
-                "expected": translate_agent_str_to_enum(case.target_agent),
-                "routed": routed_agent,
-                "judgment": "✔" if evaluation.judgment else "✘",
-                "precision": f"{evaluation.precision_score:.2f}",
-                "latency": f"{latency_ms:.1f} ms",
-                "reason": (evaluation.reasoning or "")[:40]
-                + ("…" if len(evaluation.reasoning or "") > 40 else ""),
-            }
-        )
+        judge_results.append({
+            **res,
+            "judgment": "✔" if passed else "✘",
+            "precision": f"{prec:.2f}",
+            "reason": reason[:40] + ("..." if len(reason) > 40 else ""),
+        })
 
-        # Collect any deviations for final assertion
-        if routed_agent != case.target_agent:
-            errors.append(
-                (
-                    "Expected agent '{expected}', but triage routed to '{actual}'. "
-                    "Conversation start: '{snippet}…'"
-                ).format(
-                    expected=translate_agent_str_to_enum(case.target_agent),
-                    actual=routed_agent,
-                    snippet=case.conversation.replace("\n", " "),
-                )
-            )
-
-        if not evaluation.judgment:
-            errors.append(f"DSPy judged routing incorrect: {evaluation.reasoning}")
-
-        if not 0.8 <= evaluation.precision_score <= 1.0:
-            errors.append(
-                f"Precision score {evaluation.precision_score:.2f} outside acceptable range [0.8, 1.0]."
-            )
-
-    timeout_per_msg = 30.0
-    try:
-        while pending:
-            event = await asyncio.wait_for(
-                _response_queue.get(), timeout=timeout_per_msg
-            )
-            await _process_event(event)
-    except asyncio.TimeoutError:
-        for mid, dataset_case in pending.items():
-            conversation_start = dataset_case.conversation[:60].replace('\n', ' ')
-            errors.append(
-                (
-                    f"Timeout (> {timeout_per_msg}s): no triage response for message_id {mid}. "
-                    f"Conversation start: '{conversation_start}'"
-                )
-            )
-
-    # -------------------------------------------------------------------
-    # 3. Log detailed results as a markdown table
-    # -------------------------------------------------------------------
-
+    # Phase 4: Report full results
     headers = [
-        "ID",
-        "Expected",
-        "Routed",
-        "PASS/FAIL",
-        "Latency",
-        "LLM ✓",
-        "LLM Prec",
-        "LLM Reason (trunc)",
+        "ID", "Expected", "Routed", "Latency", "LLM ✓", "LLM Prec", "LLM Reason (trunc)"
     ]
     rows = [
         [
-            r["id"],
-            r["expected"],
-            r["routed"],
-            "✓" if r["expected"] == r["routed"] else "✘",
-            r["latency"],
-            r["judgment"],
-            r["precision"],
-            r["reason"],
+            r["id"], r["expected"], r["routed"], r["latency"],
+            r["judgment"], r["precision"], r["reason"],
         ]
-        for r in results
+        for r in judge_results
     ]
-    table_str = _markdown_table(rows, headers)
+    table = _markdown_table(rows, headers)
 
     print("\n=== Triage test results ===\n")
-    print(table_str)
+    print(table)
     print("\n===========================\n")
 
-    # -------------------------------------------------------------------
-    # 4. Final assertion block
-    # -------------------------------------------------------------------
+    # Phase 5: Final assertions
+    final_errors: List[str] = []
+    final_errors.extend(classification_errors)
+    for r in judge_results:
+        if r["routed"] != r["expected"]:
+            final_errors.append(
+                f"Routing mismatch: expected {r['expected']} but got {r['routed']} (ID {r['id']})"
+            )
+        if r["judgment"] != "✔":
+            final_errors.append(f"LLM judged routing incorrect for ID {r['id']}")
+        if not (0.8 <= float(r["precision"]) <= 1.0):
+            final_errors.append(
+                f"Precision {float(r['precision']):.2f} out of range [0.8,1.0] for ID {r['id']}"
+            )
+    if final_errors:
+        pytest.fail("\n".join(final_errors))
 
-    if errors:
-        pytest.fail("\n\n".join(errors))
 
-
+# ---------------------------------------------------------------------------
+# Simple unit tests unchanged
+# ---------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_triage_agent_simple(monkeypatch):
     load_dotenv()
-
     test_message = TracedMessage(
         id=str(uuid4()),
         type="user_message",
@@ -267,21 +241,17 @@ async def test_triage_agent_simple(monkeypatch):
             "agent": "TriageAgent",
         },
     )
-
     mock_publish = AsyncMock()
     monkeypatch.setattr(Channel, "publish", mock_publish)
     await handle_user_message(test_message)
 
-    args, kwargs = mock_publish.call_args_list[0]
-
-    is_chatty = args[0].data.get("agent") == "TriageAgent"
-    assert is_chatty
+    args, _ = mock_publish.call_args_list[0]
+    assert args[0].data.get("agent") == "TriageAgent"
 
 
 @pytest.mark.asyncio
 async def test_triage_agent_intent_change(monkeypatch):
     load_dotenv()
-
     test_message = TracedMessage(
         id=str(uuid4()),
         type="user_message",
@@ -292,7 +262,9 @@ async def test_triage_agent_intent_change(monkeypatch):
                 {
                     "role": "assistant",
                     "agent": "ChattyAgent",
-                    "content": "I'm here to help you with your insurance needs! If you have any questions about insurance or need assistance, feel free to ask.",
+                    "content": (
+                        "I'm here to help you with your insurance needs! ..."
+                    ),
                 },
                 {"role": "User", "content": "could you please give me my policy details?"},
             ],
@@ -300,13 +272,9 @@ async def test_triage_agent_intent_change(monkeypatch):
             "agent": "TriageAgent",
         },
     )
-
     mock_publish = AsyncMock()
     monkeypatch.setattr(Channel, "publish", mock_publish)
     await handle_user_message(test_message)
 
-    args, kwargs = mock_publish.call_args_list[0]
-
-    print(args[0])
-    is_policy = args[0].type == "policy_request"
-    assert is_policy
+    args, _ = mock_publish.call_args_list[0]
+    assert args[0].type == "policy_request"

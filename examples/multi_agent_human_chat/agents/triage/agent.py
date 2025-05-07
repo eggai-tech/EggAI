@@ -19,6 +19,7 @@ agents_channel = Channel("agents")
 tracer = trace.get_tracer("triage_agent")
 logger = get_console_logger("triage_agent.handler")
 
+
 def get_current_classifier():
     if settings.classifier_version == "v1":
         from agents.triage.dspy_modules.classifier_v1 import classifier_v1
@@ -32,28 +33,34 @@ def get_current_classifier():
     else:
         raise ValueError(f"Unknown classifier version: {settings.classifier_version}")
 
+
 current_classifier = get_current_classifier()
 
+
+# add offset from faststream config
 @triage_agent.subscribe(
-    channel=human_channel, filter_by_message=lambda msg: msg.get("type") == "user_message"
+    channel=human_channel,
+    filter_by_message=lambda msg: msg.get("type") == "user_message",
+    auto_offset_reset="latest",
+    group_id="triage_agent_group"
 )
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage):
     try:
         chat_messages = msg.data.get("chat_messages", [])
         connection_id = msg.data.get("connection_id", "unknown")
-        
+
         logger.info(f"Received message from connection {connection_id}")
         conversation_string = ""
         for chat in chat_messages:
             user = chat.get("agent", "User")
             conversation_string += f"{user}: {chat['content']}\n"
-        
-        initial_time = perf_counter()
+
         response = current_classifier(chat_history=conversation_string)
-        processing_time = perf_counter() - initial_time
         target_agent = response.target_agent
-        logger.info(f"Classification completed in {processing_time:.2f} seconds, target agent: {target_agent}, classifier version: {settings.classifier_version}")
+
+        logger.info(
+            f"Classification completed in {(response.metrics.latency_ms / 1000):.2f} seconds, target agent: {target_agent}, classifier version: {settings.classifier_version}")
         triage_to_agent_messages = [
             {
                 "role": "user",
@@ -66,7 +73,7 @@ async def handle_user_message(msg: TracedMessage):
 
         if target_agent != TargetAgent.ChattyAgent:
             logger.info(f"Routing message to {target_agent}")
-            
+
             with tracer.start_as_current_span("publish_to_agent") as publish_span:
                 child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
                 await agents_channel.publish(
@@ -77,9 +84,7 @@ async def handle_user_message(msg: TracedMessage):
                             "chat_messages": triage_to_agent_messages,
                             "message_id": msg.id,
                             "connection_id": connection_id,
-                            "metrics": {
-                                "latency": processing_time,
-                            },
+                            "metrics": response.metrics,
                         },
                         traceparent=child_traceparent,
                         tracestate=child_tracestate,
@@ -89,7 +94,7 @@ async def handle_user_message(msg: TracedMessage):
             message_to_send = chatty(
                 chat_history=conversation_string,
             ).response
-            
+
             with tracer.start_as_current_span("publish_to_human") as publish_span:
                 child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
                 await human_channel.publish(
@@ -101,6 +106,7 @@ async def handle_user_message(msg: TracedMessage):
                             "message_id": msg.id,
                             "agent": "TriageAgent",
                             "connection_id": connection_id,
+                            "metrics": response.metrics,
                         },
                         traceparent=child_traceparent,
                         tracestate=child_tracestate,
@@ -108,6 +114,7 @@ async def handle_user_message(msg: TracedMessage):
                 )
     except Exception as e:
         logger.error(f"Error processing message: {e}", exc_info=True)
+
 
 @triage_agent.subscribe(channel=human_channel)
 async def handle_others(msg: TracedMessage):
@@ -128,7 +135,8 @@ if __name__ == "__main__":
                 },
             )
         )
-        
+
+
     import asyncio
+
     asyncio.run(run_triage())
-        
