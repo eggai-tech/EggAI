@@ -6,9 +6,10 @@ import uvicorn
 from eggai import eggai_cleanup
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
-from eggai.transport import eggai_set_default_transport, KafkaTransport
+from eggai.transport import eggai_set_default_transport
 from libraries.tracing import init_telemetry
 from libraries.logger import get_console_logger
+from libraries.kafka_transport import create_kafka_transport
 
 from .agent import (
     add_websocket_gateway,
@@ -25,12 +26,13 @@ async def lifespan(app: FastAPI):
         # Configure Kafka transport
         logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
         
-        def create_kafka_transport():
-            return KafkaTransport(
+        # Use the shared utility function with certificate from settings
+        eggai_set_default_transport(
+            lambda: create_kafka_transport(
                 bootstrap_servers=settings.kafka_bootstrap_servers,
+                ssl_cert=settings.kafka_ca_content
             )
-        
-        eggai_set_default_transport(create_kafka_transport)
+        )
         
         await frontend_agent.start()
         logger.info(f"{settings.app_name} started successfully")
@@ -83,7 +85,6 @@ add_websocket_gateway(settings.websocket_path, api, frontend_server)
 if __name__ == "__main__":
     try:
         logger.info(f"Starting {settings.app_name}")
-        
         init_telemetry(app_name=settings.app_name)
         logger.info(f"Telemetry initialized for {settings.app_name}")
         

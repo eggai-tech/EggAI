@@ -1,7 +1,9 @@
 import asyncio
 from eggai import eggai_main
+from eggai.transport import eggai_set_default_transport
 from libraries.tracing import init_telemetry
 from libraries.logger import get_console_logger
+from libraries.kafka_transport import create_kafka_transport
 from .config import settings
 from .agent import audit_agent
 
@@ -13,6 +15,17 @@ async def main():
     
     init_telemetry(app_name=settings.app_name)
     logger.info(f"Telemetry initialized for {settings.app_name}")
+    
+    # Configure Kafka transport
+    logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
+    
+    # Use the shared utility function with certificate from settings
+    eggai_set_default_transport(
+        lambda: create_kafka_transport(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            ssl_cert=settings.kafka_ca_content
+        )
+    )
     
     await audit_agent.start()
     logger.info(f"{settings.app_name} started successfully")

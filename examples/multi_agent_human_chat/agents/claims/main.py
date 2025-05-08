@@ -1,11 +1,12 @@
 import asyncio
 import dspy
 from eggai import eggai_main
-from eggai.transport import eggai_set_default_transport, KafkaTransport
+from eggai.transport import eggai_set_default_transport
 
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.tracing import init_telemetry
 from libraries.logger import get_console_logger
+from libraries.kafka_transport import create_kafka_transport
 from .agent import claims_agent
 from .config import settings
 
@@ -23,13 +24,14 @@ async def main():
 
     # Configure Kafka transport
     logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-
-    def create_kafka_transport():
-        return KafkaTransport(
+    
+    # Use the shared utility function with certificate from settings
+    eggai_set_default_transport(
+        lambda: create_kafka_transport(
             bootstrap_servers=settings.kafka_bootstrap_servers,
+            ssl_cert=settings.kafka_ca_content
         )
-
-    eggai_set_default_transport(create_kafka_transport)
+    )
 
     # Start the Claims Agent
     await claims_agent.start()

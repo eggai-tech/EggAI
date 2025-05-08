@@ -2,7 +2,7 @@ import json
 import threading
 from typing import Optional, Literal
 
-from eggai.transport import KafkaTransport, eggai_set_default_transport
+from eggai.transport import eggai_set_default_transport
 from opentelemetry import trace
 import dspy
 from eggai import Channel, Agent
@@ -10,17 +10,18 @@ from eggai import Channel, Agent
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.tracing import TracedReAct, TracedMessage, traced_handler, format_span_as_traceparent
 from libraries.logger import get_console_logger
+from libraries.kafka_transport import create_kafka_transport
 
 from agents.policies.rag.retrieving import retrieve_policies
 from agents.policies.config import settings
 
-
-def create_kafka_transport():
-    return KafkaTransport(
-        bootstrap_servers=settings.kafka_bootstrap_servers
+# Set up Kafka transport
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content
     )
-
-eggai_set_default_transport(create_kafka_transport)
+)
 
 policies_agent = Agent(name="PoliciesAgent")
 

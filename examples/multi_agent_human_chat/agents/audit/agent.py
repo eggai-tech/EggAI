@@ -1,11 +1,18 @@
 from faststream.kafka import KafkaMessage
 from eggai import Channel, Agent
-from eggai.transport import KafkaTransport, eggai_set_default_transport
+from eggai.transport import eggai_set_default_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import traced_handler, create_tracer
+from libraries.kafka_transport import create_kafka_transport
 from .config import settings
 
-eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
+# Set up Kafka transport
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content
+    )
+)
 
 agents_channel = Channel("agents")
 human_channel = Channel("human")
