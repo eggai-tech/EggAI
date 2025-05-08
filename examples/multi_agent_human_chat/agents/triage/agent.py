@@ -1,7 +1,7 @@
 from time import perf_counter
 
 from eggai import Channel, Agent
-from eggai.transport import eggai_set_default_transport, KafkaTransport
+from eggai.transport import eggai_set_default_transport
 from opentelemetry import trace
 
 from agents.triage.config import settings
@@ -9,8 +9,15 @@ from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import TargetAgent, AGENT_REGISTRY
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, traced_handler, format_span_as_traceparent
+from libraries.kafka_transport import create_kafka_transport
 
-eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
+# Set up Kafka transport
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content
+    )
+)
 
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel("human")

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     kafka_bootstrap_servers: str = Field(default="localhost:19092")
     kafka_topic_prefix: str = Field(default="eggai")
     kafka_rebalance_timeout_ms: int = Field(default=20000)
+    kafka_ca_content: str = Field(default="")
     
     # Observability settings
     otel_endpoint: str = Field(default="http://localhost:4318")

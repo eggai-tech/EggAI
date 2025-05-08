@@ -1,20 +1,20 @@
 import os
+import asyncio
+import uuid
 from eggai import Channel, Agent
-from eggai.transport import KafkaTransport, eggai_set_default_transport
+from eggai.transport import eggai_set_default_transport
 
 from libraries.tracing import TracedMessage
 from starlette.websockets import WebSocket, WebSocketDisconnect
-import asyncio
-import uuid
 import uvicorn
 from opentelemetry import trace
 from fastapi import FastAPI, Query
 
 from libraries.tracing.otel import traced_handler, extract_span_context
+from libraries.kafka_transport import create_kafka_transport
 from .websocket_manager import WebSocketManager
 from .config import settings
 from libraries.logger import get_console_logger
-
 logger = get_console_logger("frontend_agent")
 
 # Load environment variable
@@ -30,13 +30,13 @@ else:
     toxic_language_guard = None  # Assign a no-op function
 
 
-def create_kafka_transport():
-    return KafkaTransport(
-        bootstrap_servers=settings.kafka_bootstrap_servers
+# Set up Kafka transport
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content
     )
-
-
-eggai_set_default_transport(create_kafka_transport)
+)
 
 frontend_agent = Agent("FrontendAgent")
 
