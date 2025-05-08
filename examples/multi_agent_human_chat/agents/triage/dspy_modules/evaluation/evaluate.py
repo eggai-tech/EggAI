@@ -56,10 +56,24 @@ def load_data(file: str):
 
 
 def run_evaluation(program, report_name, lm: dspy.LM):
-    test_dataset = as_dspy_examples(load_dataset_triage_testing())
+    full_test_dataset = as_dspy_examples(load_dataset_triage_testing())
+    
+    # Limit dataset size for testing based on settings
+    test_dataset_size = min(settings.test_dataset_size, len(full_test_dataset))
+    
+    # If test_dataset_size is set to a value, use a subset of the test dataset
+    if test_dataset_size < len(full_test_dataset):
+        # Use seed for reproducibility
+        random.seed(42)
+        test_dataset = random.sample(full_test_dataset, test_dataset_size)
+        logger.info(f"Using {test_dataset_size} examples for testing (from total {len(full_test_dataset)})")
+    else:
+        test_dataset = full_test_dataset
+        logger.info(f"Using all {len(full_test_dataset)} examples for testing")
+    
     evaluator = dspy.evaluate.Evaluate(
         devset=test_dataset,
-        num_threads=20,
+        num_threads=8,
         display_progress=True,
         return_outputs=True,
         return_all_scores=True
@@ -80,14 +94,6 @@ def run_evaluation(program, report_name, lm: dspy.LM):
         total_tok_counts.append(lm.total_tokens)
 
         return pred
-
-    evaluator = dspy.evaluate.Evaluate(
-        devset=test_dataset,
-        num_threads=10,
-        display_progress=True,
-        return_outputs=True,
-        return_all_scores=True
-    )
 
     accuracy, results, all_scores = evaluator(
         timed_program,

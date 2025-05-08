@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     classifier_v3_model_name: str = Field(default="fewshot_classifier_n_200")
     classifier_v3_model_version: str = Field(default="1")
     
+    # COPRO optimizer settings for classifier_v4
+    copro_dataset_size: int = Field(default=100)
+    copro_breadth: int = Field(default=10)
+    copro_depth: int = Field(default=3)
+    
+    # Testing settings
+    test_dataset_size: int = Field(default=10)  # Limit number of test examples for quicker comparison
+    
     model_config = SettingsConfigDict(
         env_prefix="TRIAGE_", env_file=".env", env_ignore_empty=True, extra="ignore"
     )
