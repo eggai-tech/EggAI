@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 compile-triage-classifier-v2 test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run
+.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -87,6 +87,12 @@ test-triage-classifier-v3:
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v3.py -s \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
+       
+test-triage-classifier-v4:
+	@echo "Running tests classifier v4 for triage agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v4.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 
 test-triage-agent:
 	@echo "Running tests for triage agent..."
@@ -171,6 +177,21 @@ compile-triage-classifier-v2:
 	rm agents/triage/dspy_modules/classifier_v2/optimizations_v2.json
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.dspy_modules.classifier_v2.classifier_v2_optimizer
 	@echo "Triage Agent setup completed."
+
+compile-triage-classifier-v4:
+	@echo "Compiling Classifier v4 with COPRO Zero-Shot Optimizer..."
+	# ask the user if he wants to continue
+	@read -p "Do you want to delete the existing optimizations_v4.json file (if any) and compile the zero-shot classifier? (y/n): " choice; \
+	if [ "$$choice" != "y" ]; then \
+		echo "Aborting..."; \
+		exit 1; \
+	fi
+	
+	@if [ -f agents/triage/dspy_modules/classifier_v4/optimizations_v4.json ]; then \
+		rm agents/triage/dspy_modules/classifier_v4/optimizations_v4.json; \
+	fi
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.dspy_modules.classifier_v4.classifier_v4_optimizer
+	@echo "Triage Agent v4 setup completed."
 
 setup-and-run: setup start
 	@echo "Setup and all services started."
