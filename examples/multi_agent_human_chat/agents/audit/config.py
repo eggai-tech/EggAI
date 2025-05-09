@@ -1,3 +1,5 @@
+from typing import Optional
+
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -7,6 +9,12 @@ load_dotenv()
 
 class Settings(BaseSettings):
     app_name: str = Field(default="audit_agent")
+    
+    # Language model settings
+    language_model: str = Field(default="openai/gpt-4o-mini")
+    language_model_api_base: Optional[str] = Field(default=None)
+    cache_enabled: bool = Field(default=False)
+    max_context_window: Optional[int] = Field(default=None)
     
     # Kafka transport settings
     kafka_bootstrap_servers: str = Field(default="localhost:19092")

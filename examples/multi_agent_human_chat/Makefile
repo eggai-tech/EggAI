@@ -114,7 +114,7 @@ test-triage-agent:
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for triage agent completed."
 
-test-audit:
+test-audit-agent:
 	@echo "Running tests for audit agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/audit -s \
        --junitxml=reports/pytest-results.xml \
