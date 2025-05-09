@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-all test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -42,28 +42,35 @@ test:
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests completed."
 
-test-billing:
+test-billing-agent:
 	@echo "Running tests for billing agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/billing -s \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for billing agent completed."
 
-test-escalation:
+test-claims-agent:
+	@echo "Running tests for claims agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/claims -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
+	@echo "Tests for claims agent completed."
+
+test-escalation-agent:
 	@echo "Running tests for escalation agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/escalation -s \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for escalation agent completed."
 
-test-frontend:
+test-frontend-agent:
 	@echo "Running tests for frontend agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/frontend -s \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for frontend agent completed."
 
-test-policies:
+test-policies-agent:
 	@echo "Running tests for policies agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/policies -s \
        --junitxml=reports/pytest-results.xml \
@@ -206,6 +213,86 @@ compile-triage-classifier-v4:
 	fi
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.dspy_modules.classifier_v4.classifier_v4_optimizer
 	@echo "Triage Agent v4 setup completed."
+
+compile-billing-optimizer:
+	@echo "Compiling Billing Agent with COPRO Optimizer..."
+	# ask the user if he wants to continue
+	@read -p "Do you want to compile the billing agent optimizer (and delete existing optimized_billing.json if it exists)? (y/n): " choice; \
+	if [ "$$choice" != "y" ]; then \
+		echo "Aborting..."; \
+		exit 1; \
+	fi
+	
+	@if [ -f agents/billing/dspy_modules/optimized_billing.json ]; then \
+		rm agents/billing/dspy_modules/optimized_billing.json; \
+		echo "Deleted existing optimization file"; \
+	else \
+		echo "No existing optimization file found, creating new one"; \
+	fi
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.billing.dspy_modules.billing_optimizer
+	@echo "Billing Agent optimization completed."
+
+compile-claims-optimizer:
+	@echo "Compiling Claims Agent with COPRO Optimizer..."
+	# ask the user if he wants to continue
+	@read -p "Do you want to compile the claims agent optimizer (and delete existing optimized_claims.json if it exists)? (y/n): " choice; \
+	if [ "$$choice" != "y" ]; then \
+		echo "Aborting..."; \
+		exit 1; \
+	fi
+	
+	@if [ -f agents/claims/dspy_modules/optimized_claims.json ]; then \
+		rm agents/claims/dspy_modules/optimized_claims.json; \
+		echo "Deleted existing optimization file"; \
+	else \
+		echo "No existing optimization file found, creating new one"; \
+	fi
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.claims.dspy_modules.claims_optimizer
+	@echo "Claims Agent optimization completed."
+
+compile-policies-optimizer:
+	@echo "Compiling Policies Agent with COPRO Optimizer..."
+	# ask the user if he wants to continue
+	@read -p "Do you want to compile the policies agent optimizer (and delete existing optimized_policies.json if it exists)? (y/n): " choice; \
+	if [ "$$choice" != "y" ]; then \
+		echo "Aborting..."; \
+		exit 1; \
+	fi
+	
+	@if [ -f agents/policies/dspy_modules/optimized_policies.json ]; then \
+		rm agents/policies/dspy_modules/optimized_policies.json; \
+		echo "Deleted existing optimization file"; \
+	else \
+		echo "No existing optimization file found, creating new one"; \
+	fi
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.policies.dspy_modules.policies_optimizer
+	@echo "Policies Agent optimization completed."
+
+compile-all:
+	@echo "Compiling all agent optimizers..."
+	@echo "This will sequentially run all optimizers with automatic 'yes' responses."
+	@read -p "Do you want to proceed? This will overwrite existing optimization files. (y/n): " choice; \
+	if [ "$$choice" != "y" ]; then \
+		echo "Aborting..."; \
+		exit 1; \
+	fi
+	
+	@echo "Starting Billing Agent optimizer..."
+	@echo "y" | make compile-billing-optimizer
+	
+	@echo "Starting Claims Agent optimizer..."
+	@echo "y" | make compile-claims-optimizer
+	
+	@echo "Starting Policies Agent optimizer..."
+	@echo "y" | make compile-policies-optimizer
+	
+	@echo "Starting Triage Classifier v2 optimizer..."
+	@echo "y" | make compile-triage-classifier-v2
+	
+	@echo "Starting Triage Classifier v4 optimizer..."
+	@echo "y" | make compile-triage-classifier-v4
+	
+	@echo "All optimizers completed successfully."
 
 setup-and-run: setup start
 	@echo "Setup and all services started."
