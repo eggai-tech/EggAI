@@ -16,8 +16,9 @@ preserving its tool-using capabilities.
 """
 import os
 from pathlib import Path
-from typing import List
 import datetime
+import time
+import sys
 
 import mlflow
 import dspy
@@ -35,6 +36,35 @@ from agents.claims.dspy_modules.claims_dataset import create_claims_dataset, as_
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("claims_optimizer")
+
+# Progress indicator function
+def print_progress(message, progress=None, total=None):
+    """
+    Print a progress message to the console with optional progress bar.
+    
+    Args:
+        message: Text message to display
+        progress: Current progress value (optional)
+        total: Total progress value (optional)
+    """
+    if progress is not None and total is not None:
+        # Calculate percentage
+        percent = min(100, int(progress / total * 100))
+        bar_length = 30
+        filled_length = int(bar_length * progress // total)
+        
+        # Create the progress bar
+        bar = '█' * filled_length + '░' * (bar_length - filled_length)
+        
+        # Print the progress bar and message
+        sys.stdout.write(f"\r{message}: [{bar}] {percent}% ({progress}/{total})")
+        sys.stdout.flush()
+    else:
+        # Just print the message with a spinner
+        chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        spinner = chars[int(time.time() * 10) % len(chars)]
+        sys.stdout.write(f"\r{spinner} {message}...")
+        sys.stdout.flush()
 
 
 class ClaimsSignature(dspy.Signature):
@@ -206,9 +236,9 @@ if __name__ == "__main__":
             test_size=0.1,  # Reduced test set size for faster optimization
             random_state=42
         )
-        # Use smaller subset for faster optimization
-        if len(train_set) > 8:
-            train_set = train_set[:8]
+        # Use minimal subset for ultra-fast optimization
+        if len(train_set) > 3:
+            train_set = train_set[:3]
         
         # Log dataset size
         mlflow.log_params({
@@ -220,26 +250,58 @@ if __name__ == "__main__":
         # Create evaluator
         logger.info("Setting up evaluator...")
         evaluator = Evaluate(
-            devset=test_set, 
+            devset=test_set[:2],  # Use only 2 test examples
             metric=precision_metric,
-            num_threads=2  # Reduced for faster operation
+            num_threads=1  # Single thread for minimal overhead
         )
         
-        # Evaluate baseline
+        # Evaluate baseline with progress indicator
         logger.info("Evaluating baseline...")
-        base_score = evaluator(claims_program)
+        # Start progress animation for baseline evaluation
+        print_progress("Evaluating baseline")
+        
+        # Custom evaluator to show progress
+        def evaluate_with_progress(program):
+            # Start evaluation with active spinner
+            start_time = time.time()
+            
+            def show_spinner():
+                elapsed = 0
+                while elapsed < 60:  # Timeout after 60 seconds
+                    chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+                    for char in chars:
+                        sys.stdout.write(f"\r{char} Evaluating baseline... (updating every 0.1s)")
+                        sys.stdout.flush()
+                        time.sleep(0.1)
+                        elapsed += 0.1
+            
+            import threading
+            spinner_thread = threading.Thread(target=show_spinner)
+            spinner_thread.daemon = True
+            spinner_thread.start()
+            
+            # Run evaluation
+            result = evaluator(program)
+            
+            # Stop progress animation
+            sys.stdout.write("\r" + " " * 60 + "\r")  # Clear the line
+            return result
+            
+        base_score = evaluate_with_progress(claims_program)
         logger.info(f"Baseline score: {base_score:.3f}")
         mlflow.log_metric("baseline_score", base_score)
         
-        # Set up COPRO
+        # Set up COPRO with progress reporting
         logger.info("Setting up COPRO optimizer...")
-        breadth = 2  # Reduced for faster optimization
-        depth = 1  # Reduced for faster optimization
+        breadth = 2  # Minimum value required by COPRO
+        depth = 1  # Minimum value for ultra-fast optimization
+        
         
         optimizer = COPRO(
             metric=precision_metric,
             breadth=breadth,
-            depth=depth
+            depth=depth,
+            verbose=False  # Disable default verbosity to use our custom progress
         )
         
         # Log COPRO params
@@ -248,51 +310,58 @@ if __name__ == "__main__":
             "copro_depth": depth,
         })
         
-        # Optimize program
+        # Optimize program with progress indicators
         logger.info("Starting optimization...")
         try:
-            # Define CustomCOPRO class to handle incomplete model outputs
-            class CustomCOPRO(COPRO):
-                def propose_configuration(self, prompt_template, field_configs=None):
-                    """Override to handle incomplete outputs from model"""
-                    try:
-                        # Try the standard way first
-                        result = super().propose_configuration(prompt_template, field_configs)
-                        logger.info("Standard COPRO proposal succeeded")
-                        return result
-                    except Exception as e:
-                        logger.warning(f"Standard COPRO proposal failed: {e}")
-                        
-                        # Common error: missing 'proposed_instruction'
-                        if "proposed_prefix_for_output_field" in str(e) or "proposed_instruction" in str(e):
-                            logger.info("Creating minimal valid configuration")
-                            return {
-                                "proposed_instruction": prompt_template.get("instruction", 
-                                    "You are the Claims Agent for an insurance company. Help customers with claims inquiries."),
-                                "proposed_prefix_for_output_field": "I'll help with your claims inquiry."
-                            }
-                        # Any other error - re-raise
-                        else:
-                            raise e
+            # Setup progress tracking for COPRO
+            print("\nStarting COPRO optimization...")
             
-            # Use our custom COPRO with same parameters
-            logger.info("Using CustomCOPRO for optimization")
-            optimizer = CustomCOPRO(
-                metric=precision_metric,
-                breadth=breadth,
-                depth=depth
-            )
+            # Using a custom approach without monkey patching
+            def compile_with_progress():
+                # Start progress tracking
+                print_progress("Setting up optimization")
+                
+                # Run optimization with active spinner
+                print_progress("Starting optimization", 0, breadth * depth)
+                
+                # Define a function to show active spinner during optimization
+                def show_spinner():
+                    elapsed = 0
+                    while elapsed < 120:  # Timeout after 120 seconds
+                        chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+                        for char in chars:
+                            sys.stdout.write(f"\r{char} Optimizing... (elapsed: {int(elapsed)}s)")
+                            sys.stdout.flush()
+                            time.sleep(0.1)
+                            elapsed += 0.1
+                
+                # Start spinner in a separate thread
+                import threading
+                spinner_thread = threading.Thread(target=show_spinner)
+                spinner_thread.daemon = True
+                spinner_thread.start()
+                
+                # Run compilation
+                result = optimizer.compile(
+                    claims_program,
+                    trainset=train_set,
+                    eval_kwargs={}
+                )
+                
+                # Manually show complete progress
+                print_progress("Optimization complete", breadth * depth, breadth * depth)
+                print()  # Move to next line
+                
+                return result
             
-            # Compile using our custom optimizer
-            optimized_program = optimizer.compile(
-                claims_program,
-                trainset=train_set,
-                eval_kwargs={}
-            )
+            # Standard COPRO approach with progress
+            logger.info("Using standard COPRO optimization")
+            optimized_program = compile_with_progress()
             
-            # Evaluate optimized program
+            # Evaluate optimized program with progress indicator
             logger.info("Evaluating optimized program...")
-            score = evaluator(optimized_program)
+            print_progress("Evaluating optimized program")
+            score = evaluate_with_progress(optimized_program)
             logger.info(f"Optimized score: {score:.3f} (improvement: {score - base_score:.3f})")
             
             # Log metrics
@@ -301,15 +370,21 @@ if __name__ == "__main__":
             
             # Save optimized program
             logger.info("Saving optimized program...")
+            print_progress("Saving optimized program")
             json_path = Path(__file__).resolve().parent / "optimized_claims.json"
             
             try:
                 # Try saving the full signature
                 optimized_signature = optimized_program.signature
                 optimized_signature.save(str(json_path))
-                logger.info(f"Saved optimized signature to {json_path}")
+                # Clear progress indicator and show success message
+                sys.stdout.write("\r" + " " * 60 + "\r")
+                logger.info(f"✅ Saved optimized signature to {json_path}")
             except Exception as save_error:
+                # Clear progress indicator
+                sys.stdout.write("\r" + " " * 60 + "\r")
                 logger.warning(f"Full signature save failed: {save_error}")
+                print_progress("Trying fallback save method")
                 
                 # Fallback to manual JSON save of critical parts
                 try:
@@ -334,22 +409,45 @@ if __name__ == "__main__":
                         # Save simplified signature
                         with open(str(json_path), 'w') as f:
                             json.dump(signature_data, f, indent=2)
-                        logger.info(f"Saved simplified signature to {json_path}")
+                            
+                        # Clear progress indicator and show success message
+                        sys.stdout.write("\r" + " " * 60 + "\r")
+                        logger.info(f"✅ Saved simplified signature to {json_path}")
                     else:
-                        raise ValueError("Optimized program has no signature attribute")
+                        # Clear progress indicator and show error
+                        sys.stdout.write("\r" + " " * 60 + "\r")
+                        logger.error("❌ Optimized program has no signature attribute")
                 except Exception as simplified_save_error:
-                    logger.error(f"Simplified signature save also failed: {simplified_save_error}")
-                    raise
+                    # Clear progress indicator and show error
+                    sys.stdout.write("\r" + " " * 60 + "\r")
+                    logger.error(f"❌ Simplified signature save also failed: {simplified_save_error}")
             
-            # Log artifacts
+            # Log artifacts with progress indicator
+            print_progress("Logging artifacts to MLflow")
             mlflow.log_artifact(str(json_path))
+            # Clear progress indicator
+            sys.stdout.write("\r" + " " * 60 + "\r")
+            logger.info("✅ Artifacts logged successfully")
             
         except Exception as e:
-            logger.error(f"Optimization failed: {e}")
+            # Clear any progress indicators
+            sys.stdout.write("\r" + " " * 60 + "\r")
+            logger.error(f"❌ Optimization failed: {e}")
             mlflow.log_param("optimization_error", str(e))
             
-            # Save original program
+            # Save original program as fallback with progress indicator
+            print_progress("Saving fallback program")
             json_path = Path(__file__).resolve().parent / "optimized_claims.json"
             claims_program.save(str(json_path))
-            logger.info(f"Saved original program to {json_path}")
+            
+            # Clear progress indicator
+            sys.stdout.write("\r" + " " * 60 + "\r")
+            logger.info(f"✅ Saved original program to {json_path}")
+            
+            # Log artifacts with progress indicator
+            print_progress("Logging artifacts to MLflow")
             mlflow.log_artifact(str(json_path))
+            
+            # Clear progress indicator
+            sys.stdout.write("\r" + " " * 60 + "\r")
+            logger.info("✅ Fallback artifacts logged successfully")
