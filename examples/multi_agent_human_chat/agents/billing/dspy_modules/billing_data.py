@@ -1,6 +1,4 @@
 """
-Shared billing data and tools to prevent circular imports.
-
 This module contains the shared database and tools used by both the main agent
 and the optimized DSPy version, preventing circular dependencies.
 """

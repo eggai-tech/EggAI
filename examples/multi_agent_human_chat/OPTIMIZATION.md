@@ -13,10 +13,16 @@ The optimization of ReAct-based agents presents unique challenges compared to si
    - ReAct's multi-step reasoning and tool usage creates complexity for traditional optimizers
    - Current DSPy documentation lacks clear guidance on optimizing ReAct agents (see [DSPy Issue #703](https://github.com/stanfordnlp/dspy/issues/703))
 
-2. **Our Solution Overview**:
+2. **Circular Import Issues**:
+   - When optimized DSPy modules need to reference tools from the main agent, this creates circular imports
+   - Standard approaches of importing tools directly between modules lead to initialization errors
+
+3. **Our Solution Overview**:
    - Use COPRO to optimize the agent's signature (instructions)
    - Preserve the ReAct framework and tool-using capabilities
    - Apply custom loading mechanisms to incorporate optimized instructions
+   - Implement shared data modules to break circular dependencies
+   - Ensure consistent date formatting across all agent responses
 
 ## Implementation Details
 
@@ -283,7 +289,8 @@ Optimizer commands will:
 3. **Custom Metrics**: Our precision metrics could be expanded to better capture agent performance
 4. **Parallel Optimization**: Using cloud models or multiple local models could speed up optimization
 5. **Adaptive Model Selection**: Automatically choose the best model for optimization based on performance characteristics
+6. **Improved Date Handling**: Add standardized date parsing and formatting utilities across all agents
 
 ## Conclusion
 
-Our approach balances the current limitations in DSPy's support for ReAct optimization while still achieving improved agent performance. By optimizing the signature instructions while preserving the ReAct framework, we get the benefits of COPRO's prompt optimization without losing the tool-using capabilities of our agents.
+Our approach balances the current limitations in DSPy's support for ReAct optimization while still achieving improved agent performance. By optimizing the signature instructions while preserving the ReAct framework, we get the benefits of COPRO's prompt optimization without losing the tool-using capabilities of our agents. The shared data module pattern effectively solves circular import issues, and the standardized date formatting ensures consistent responses across all agents.
