@@ -246,7 +246,7 @@ make compile-all                   # Runs all optimizers sequentially with autom
 
 These commands use COPRO to optimize agent prompts based on synthetic datasets and precision metrics. The optimization results are stored as JSON files and logged to MLflow. Once optimized, agents will automatically load and use these optimized prompts when running.
 
-For detailed information about our approach to optimizing ReAct-based agents with COPRO, please see [OPTIMIZATION.md](OPTIMIZATION.md). This document explains the challenges of optimizing ReAct agents and our solutions.
+Once optimized, the agents will automatically load and use these optimized prompts to improve their performance.
 
 ### Custom Model Training and Evaluation
 In order to improve the response latency and cost of the Triage Agent, you can train a custom classifier to classify the incoming messages. 

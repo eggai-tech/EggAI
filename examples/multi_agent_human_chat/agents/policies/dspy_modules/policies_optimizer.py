@@ -4,7 +4,7 @@ Optimizer for Policies Agent prompts using COPRO.
 Note on ReAct Optimization:
 ---------------------------
 This optimizer uses COPRO to optimize a TracedReAct module, which is not
-the standard use case for COPRO. See OPTIMIZATION.md for full details.
+the standard use case for COPRO.
 
 Key points:
 1. We use mock tools during optimization that return fixed data

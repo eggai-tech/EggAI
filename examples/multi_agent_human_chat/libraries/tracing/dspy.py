@@ -158,7 +158,7 @@ class TracedReAct(dspy.ReAct):
         Load a signature from a JSON file saved by an optimizer.
         
         This method is a custom extension to support our approach to optimizing
-        ReAct agents with COPRO. See OPTIMIZATION.md for a detailed explanation.
+        ReAct agents with COPRO.
         
         The DSPy framework doesn't natively support optimizing ReAct agents, so we've
         implemented this approach to use COPRO optimization while preserving the
