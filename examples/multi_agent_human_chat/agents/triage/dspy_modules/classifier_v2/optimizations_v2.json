@@ -3,59 +3,27 @@
   "train": [],
   "demos": [
     {
-      "augmented": true,
-      "chat_history": "User: I have a question about my claim submission.\nClaimsAgent: Sure! Could you please provide me with your claim number to assist you better?\nUser: My claim number is 54321.\nClaimsAgent: Thank you! Let me pull up the details of your claim. One moment, please.\nClaimsAgent: It looks like your claim is still awaiting documentation from your side. Have you submitted everything required?\nUser: I thought I submitted all the documents. What am I missing?",
-      "target_agent": "ClaimsAgent"
-    },
-    {
-      "augmented": true,
-      "chat_history": "User: Can I get a copy of my last bill?\nBillingAgent: Absolutely! Please provide your account number so I can retrieve your billing information.\nUser: My account number is 666777.\nBillingAgent: Thank you! I will send a copy of your last bill to your registered email address.\nUser: Can you confirm what email address you have on file?\nBillingAgent: Your registered email address is user123@example.com. Is that correct?",
+      "chat_history": "User: I would like to know if I can set up automatic payments for my policy.",
       "target_agent": "BillingAgent"
     },
     {
-      "augmented": true,
-      "chat_history": "User: Hey! Do you have any fun facts to share?\nChattyAgent: Hi there! While I don't have fun facts, I'm here to help you with your insurance inquiries. What can I assist you with today?\nUser: I was just looking for something interesting to talk about.\nChattyAgent: I get it! But my specialty is insurance. If you have any questions about your coverage or claims, feel free to ask!\nUser: Okay, maybe another time then.",
-      "target_agent": "ChattyAgent"
-    },
-    {
-      "augmented": true,
-      "chat_history": "User: I want to know if my payment went through successfully.\nBillingAgent: I can assist you with that. Let me verify your payment status for you.",
+      "chat_history": "User: I need to request a refund for a recent payment I made.",
       "target_agent": "BillingAgent"
     },
     {
-      "chat_history": "User: I have a question about my invoice.\nBillingAgent: I'd be happy to help! What specifically would you like to know about your invoice?\nUser: I noticed an extra charge on it.\nBillingAgent: I see. Can you please provide the invoice number so I can look into that charge for you?\nUser: The invoice number is 12345.\nBillingAgent: Thank you! Let me check that for you right now.",
+      "chat_history": "User: Ich m\u00f6chte meine Zahlungsoptionen \u00e4ndern.\nBillingAgent: Gerne, ich kann Ihnen dabei helfen. Welche Zahlungsmethode m\u00f6chten Sie nutzen?\nUser: Ich m\u00f6chte von Kreditkarte auf Bankeinzug wechseln.",
       "target_agent": "BillingAgent"
     },
     {
-      "chat_history": "User: I want to escalate my issue because I haven't received a response to my last ticket.\nEscalationAgent: I can assist you with that. Could you please provide me with your ticket number?\nUser: Sure, it's 12345.",
-      "target_agent": "EscalationAgent"
-    },
-    {
-      "chat_history": "User: What should I do if my claim is denied?",
-      "target_agent": "ClaimsAgent"
-    },
-    {
-      "chat_history": "User: I need to know when my payment is due.",
+      "chat_history": "User: I noticed an error in my payment history, can you help me with that?",
       "target_agent": "BillingAgent"
     },
     {
-      "chat_history": "User: I want to escalate my issue because my claim is still not processed.\nEscalationAgent: I can help you with that. Can you please provide me with your claim number so I can look into it?\nUser: My claim number is 123456.",
-      "target_agent": "EscalationAgent"
-    },
-    {
-      "chat_history": "User: I need to request a payment extension.\nBillingAgent: I can assist you with that. Can you please provide your account number for verification?\nUser: My account number is 65432.\nBillingAgent: Thank you! What new due date would you like to request for your payment?\nUser: I would like to extend it by two weeks.\nBillingAgent: Got it! I\u2019ll process that request for you now.",
+      "chat_history": "User: I need assistance with a double charge on my account.",
       "target_agent": "BillingAgent"
     },
     {
-      "chat_history": "User: I noticed a late fee on my account. Can you explain it?\nBillingAgent: Sure! Late fees are applied when payments are not received by the due date. Would you like to know the due date for your last payment?\nUser: Yes, that would be helpful.",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: I need to know if my last payment was received.",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: I want to change the billing address on my account.\nBillingAgent: I can assist you with that! Could you please provide your current billing address and the new one you'd like to use?\nUser: My current address is 789 Pine St, and I want to change it to 101 Maple St.\nBillingAgent: Thank you for that information. I'll also need your policy number to verify your account.\nUser: My policy number is 555444.",
+      "chat_history": "User: I have a question about my invoice; it seems higher than expected.",
       "target_agent": "BillingAgent"
     },
     {
@@ -63,80 +31,12 @@
       "target_agent": "BillingAgent"
     },
     {
-      "chat_history": "User: I noticed a late fee on my invoice, but I paid on time.\nBillingAgent: I can assist you with that. Could you please provide your invoice number for verification?\nUser: My invoice number is 123456.",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: I need to know the status of my claim, can you help me with that?",
-      "target_agent": "ClaimsAgent"
-    },
-    {
-      "chat_history": "User: Ich m\u00f6chte meine Zahlungsoptionen \u00e4ndern.\nBillingAgent: Gerne! Welche Zahlungsoptionen m\u00f6chten Sie in Betracht ziehen?\nUser: Ich m\u00f6chte von Kreditkarte auf Lastschrift wechseln.\nBillingAgent: Das ist m\u00f6glich. Haben Sie Ihre Kontoinformationen zur Hand, um den Wechsel vorzunehmen?\nUser: Ja, ich habe meine Kontodaten bereit.\nBillingAgent: Perfekt! Bitte teilen Sie mir die Kontoinformationen mit, damit ich die \u00c4nderung vornehmen kann.",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: Can you check on the status of my claim for me?\nClaimsAgent: I can certainly do that. Please provide your claim number.\nUser: My claim number is 24680.",
-      "target_agent": "ClaimsAgent"
-    },
-    {
-      "chat_history": "User: I have a question about my recent invoice.\nBillingAgent: I'd be happy to help! What is your question regarding the invoice?\nUser: Why is there an extra charge on it?",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: I want to know if my claim has been approved yet.",
-      "target_agent": "ClaimsAgent"
-    },
-    {
-      "chat_history": "User: Can you tell me about your favorite food?\nChattyAgent: Hello! I don't eat food, but I'm here to assist you with any insurance questions you might have. What can I help you with today?\nUser: Just curious about what you might like to eat if you could!\nChattyAgent: I appreciate your curiosity! However, my focus is on your insurance needs. Do you have any questions regarding your policy or claims?\nUser: Not really, I just wanted to chat a bit.",
-      "target_agent": "ChattyAgent"
-    },
-    {
-      "chat_history": "User: I need help understanding my recent bill.\nBillingAgent: Of course! Can you tell me what specific charges you're unsure about?\nUser: There's a charge labeled \"service fee\" that I don\u2019t recall.\nBillingAgent: I can look into that for you. Could you please provide the date of the bill?\nUser: It was dated last month, on the 15th.\nBillingAgent: Thank you! I will review the details and clarify the service fee for you.",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: I have a question about the payment methods available for my account.\nBillingAgent: I can help with that. Could you please provide your account number so I can check your payment options?\nUser: My account number is 789012.",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: Can you let me know if there are any updates on my claim?",
-      "target_agent": "ClaimsAgent"
-    },
-    {
-      "chat_history": "User: I need help with my payment method.\nBillingAgent: Of course! What specific issue are you facing with your payment method?\nUser: I want to update my credit card information.\nBillingAgent: I can assist you with that. Please provide me with the new credit card details.\nUser: Is it safe to share my credit card information here?\nBillingAgent: Yes, our system is secure. However, if you prefer, I can guide you through the process to update it directly on your account.",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: Ich m\u00f6chte den Status meines Anspruchs wissen.\nClaimsAgent: Nat\u00fcrlich, ich kann Ihnen dabei helfen. K\u00f6nnten Sie mir bitte Ihre Anspruchsnummer mitteilen?\nUser: Meine Anspruchsnummer ist 123456.",
-      "target_agent": "ClaimsAgent"
-    },
-    {
-      "chat_history": "User: I heard there's a way to add a new driver to my policy. Can you tell me how to do that?\nPolicyAgent: I can assist with that. First, could you please provide me with your policy number?\nUser: My policy number is 789012.",
-      "target_agent": "PolicyAgent"
-    },
-    {
-      "chat_history": "User: I need clarification on my policy's exclusions.\nPolicyAgent: I can assist you with that! Please provide your policy number to get started.\nUser: My policy number is 987POI.",
-      "target_agent": "PolicyAgent"
-    },
-    {
-      "chat_history": "User: Can I get a copy of my previous invoices?\nBillingAgent: Yes, I can help with that! How far back would you like to request invoices?\nUser: I'd like copies for the last three months, please.",
-      "target_agent": "BillingAgent"
-    },
-    {
-      "chat_history": "User: I'm unable to log into my account, and I keep getting an error message.\nEscalationAgent: I\u2019m sorry to hear that you\u2019re experiencing login issues. I can help you with this. Could you please provide me with your email address associated with the account so I can create a ticket for you?",
-      "target_agent": "EscalationAgent"
-    },
-    {
-      "chat_history": "User: I need to check my claim status.\nClaimsAgent: I can help you with that. Could you please provide your claim number?\nUser: My claim number is 12345.",
-      "target_agent": "ClaimsAgent"
-    },
-    {
-      "chat_history": "User: Ich habe eine Frage zu meiner R\u00fcckerstattung.\nBillingAgent: Nat\u00fcrlich, ich helfe Ihnen gerne. Was m\u00f6chten Sie \u00fcber Ihre R\u00fcckerstattung wissen?\nUser: Wann kann ich mit der R\u00fcckerstattung rechnen?",
+      "chat_history": "User: I noticed a charge on my invoice for a service I never requested.",
       "target_agent": "BillingAgent"
     }
   ],
   "signature": {
-    "instructions": "As a classifier, you have to classify and route messages to appropriate target agents based on context in a multi-agent insurance support system.\nAvailable Target Agents: \nBillingAgent: Handling invoices, bills, payments, payment methods, receipts, refunds, and all financial transactions\nPolicyAgent: Explaining policy coverage, terms, conditions, policy changes, renewals, and policy documents. You will always ask the user for their policy number first.\nClaimsAgent: Processing new claims, claim status inquiries, incident reports, claim documentation, and claim history. You will always ask the user for their claim number first.\nEscalationAgent: Handling escalations and requests to speak with managers, or technical issues not solvable from the other agents, e.g. login problems, and system errors. His context is to create a Ticket about the problem. If the user asks about previous ticket, you always ask for ticket number.\nChattyAgent: The fallback agent, engaging in friendly conversation, responding to greetings and guiding users to ask about their insurance needs. When User asks about an off topic question, you will kindly redirect the user to ask about their insurance needs, specifying that you are not a human and cannot answer those questions.\n\nFallback Rules: Route to ChattyAgent if the query is not insurance-related.",
+    "instructions": "    As a classifier, you have to classify and route messages to appropriate target agents based on context in a multi-agent insurance support system.\n    Available Target Agents: \n    BillingAgent: Handling invoices, bills, payments, payment methods, receipts, refunds, and all financial transactions\nPolicyAgent: Explaining policy coverage, terms, conditions, policy changes, renewals, and policy documents. You will always ask the user for their policy number first.\nClaimsAgent: Processing new claims, claim status inquiries, incident reports, claim documentation, and claim history. You will always ask the user for their claim number first.\nEscalationAgent: Handling escalations and requests to speak with managers, or technical issues not solvable from the other agents, e.g. login problems, and system errors. His context is to create a Ticket about the problem. If the user asks about previous ticket, you always ask for ticket number.\nChattyAgent: The fallback agent, engaging in friendly conversation, responding to greetings and guiding users to ask about their insurance needs. When User asks about an off topic question, you will kindly redirect the user to ask about their insurance needs, specifying that you are not a human and cannot answer those questions.\n\nFallback Rules: Route to ChattyAgent if the query is not insurance-related.",
     "fields": [
       {
         "prefix": "Chat History:",
@@ -151,8 +51,8 @@
   "lm": null,
   "metadata": {
     "dependency_versions": {
-      "python": "3.12",
-      "dspy": "2.6.22",
+      "python": "3.11",
+      "dspy": "2.6.23",
       "cloudpickle": "3.1"
     }
   }

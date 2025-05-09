@@ -56,6 +56,9 @@ def load_data(file: str):
 
 
 def run_evaluation(program, report_name, lm: dspy.LM):
+    # Print language model info for debugging
+    logger.info(f"Using language model: {settings.language_model}")
+    
     full_test_dataset = as_dspy_examples(load_dataset_triage_testing())
     
     # Limit dataset size for testing based on settings
@@ -86,12 +89,25 @@ def run_evaluation(program, report_name, lm: dspy.LM):
 
     def timed_program(**kwargs):
         start = time.perf_counter()
+        lm.start_run()  # Reset token counts before each call
         pred = program(**kwargs)  # your original module call
         latencies_sec.append(time.perf_counter() - start)
 
+        # Get token counts from LM
         prompt_tok_counts.append(lm.prompt_tokens)
         completion_tok_counts.append(lm.completion_tokens)
         total_tok_counts.append(lm.total_tokens)
+        
+        # Also record token counts in prediction metrics if possible
+        if hasattr(pred, "metrics"):
+            pred.metrics.prompt_tokens = lm.prompt_tokens
+            pred.metrics.completion_tokens = lm.completion_tokens
+            pred.metrics.total_tokens = lm.total_tokens
+            pred.metrics.latency_ms = (time.perf_counter() - start) * 1000
+
+        # Debug logging
+        if os.environ.get('TRIAGE_DEBUG_EVAL') == '1':
+            logger.debug(f"Tokens - P:{lm.prompt_tokens}, C:{lm.completion_tokens}, T:{lm.total_tokens}")
 
         return pred
 
@@ -117,7 +133,24 @@ def run_evaluation(program, report_name, lm: dspy.LM):
         "tokens_completion_total": sum(completion_tok_counts),
         "tokens_mean": statistics.mean(total_tok_counts),
         "tokens_p95": p95(total_tok_counts),
+        # per example
+        "tokens_per_example": sum(total_tok_counts) / len(total_tok_counts),
+        "prompt_tokens_per_example": sum(prompt_tok_counts) / len(prompt_tok_counts),
+        "completion_tokens_per_example": sum(completion_tok_counts) / len(completion_tok_counts),
     }
+    
+    # Log summary metrics for easy comparison
+    logger.info("\n" + "="*80)
+    logger.info(f"CLASSIFIER PERFORMANCE SUMMARY: {report_name}")
+    logger.info(f"Accuracy: {accuracy:.2f}%")
+    logger.info(f"Avg Latency: {ms(latencies_sec):.2f}ms")
+    logger.info(f"Avg Total Tokens: {sum(total_tok_counts)/len(total_tok_counts):.1f}")
+    logger.info(f"Avg Prompt Tokens: {sum(prompt_tok_counts)/len(prompt_tok_counts):.1f}")
+    logger.info(f"Avg Completion Tokens: {sum(completion_tok_counts)/len(completion_tok_counts):.1f}")
+    logger.info(f"Examples tested: {len(test_dataset)}")
+    logger.info("="*80 + "\n")
+    
+    # Log to MLflow
     mlflow.log_metrics(metrics)
 
     generate_report(results, report_name)

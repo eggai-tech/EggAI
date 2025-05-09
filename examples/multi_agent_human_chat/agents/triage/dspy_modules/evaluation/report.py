@@ -8,13 +8,26 @@ logger = get_console_logger("triage.dspy_modules")
 
 def generate_report(results, report_name):
     test_results = []
+    token_counts = {"prompt": [], "completion": [], "total": []}
+    
     for example, pred, score in results:
+        # Extract token count metrics if available
+        if hasattr(pred, "metrics") and pred.metrics:
+            token_counts["prompt"].append(pred.metrics.prompt_tokens)
+            token_counts["completion"].append(pred.metrics.completion_tokens)
+            token_counts["total"].append(pred.metrics.total_tokens)
+            
         test_results.append(
             {
                 "conversation": example.chat_history,
                 "expected_target": example.target_agent,
                 "actual_target": pred.target_agent,
                 "status": "PASS" if score else "FAIL",
+                "token_stats": {
+                    "prompt": getattr(pred.metrics, "prompt_tokens", 0) if hasattr(pred, "metrics") else 0,
+                    "completion": getattr(pred.metrics, "completion_tokens", 0) if hasattr(pred, "metrics") else 0,
+                    "total": getattr(pred.metrics, "total_tokens", 0) if hasattr(pred, "metrics") else 0,
+                } if hasattr(pred, "metrics") else None
             }
         )
 
@@ -25,6 +38,15 @@ def generate_report(results, report_name):
         "failure": len([r for r in test_results if r["status"] == "FAIL"]),
         "success_percentage": f"{success_percentage:.2f}",
     }
+    
+    # Add token usage statistics to summary if available
+    if token_counts["total"]:
+        import statistics
+        summary["token_usage"] = {
+            "prompt_avg": statistics.mean(token_counts["prompt"]),
+            "completion_avg": statistics.mean(token_counts["completion"]),
+            "total_avg": statistics.mean(token_counts["total"]),
+        }
 
     return write_html_report(test_results, summary, report_name)
 
@@ -76,6 +98,15 @@ def write_html_report(test_results, summary, report_name):
                     <li>Passed: <span class="pass">{{ summary.success }}</span></li>
                     <li>Failed: <span class="fail">{{ summary.failure }}</span></li>
                     <li>Success Rate: {{ summary.success_percentage }}%</li>
+                    {% if summary.token_usage %}
+                    <li>Token Usage (avg per example):
+                        <ul>
+                            <li>Prompt: {{ "%.1f"|format(summary.token_usage.prompt_avg) }}</li>
+                            <li>Completion: {{ "%.1f"|format(summary.token_usage.completion_avg) }}</li>
+                            <li>Total: {{ "%.1f"|format(summary.token_usage.total_avg) }}</li>
+                        </ul>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
 
@@ -90,6 +121,7 @@ def write_html_report(test_results, summary, report_name):
                         <th>Expected Target</th>
                         <th>Actual Target</th>
                         <th>Status</th>
+                        <th>Tokens</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -103,6 +135,15 @@ def write_html_report(test_results, summary, report_name):
                                 <span class="pass">{{ result.status }}</span>
                             {% else %}
                                 <span class="fail">{{ result.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.token_stats %}
+                                P: {{ result.token_stats.prompt }}, 
+                                C: {{ result.token_stats.completion }}, 
+                                T: {{ result.token_stats.total }}
+                            {% else %}
+                                N/A
                             {% endif %}
                         </td>
                     </tr>

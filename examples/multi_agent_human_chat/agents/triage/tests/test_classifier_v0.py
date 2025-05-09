@@ -5,11 +5,11 @@ import mlflow
 import pytest
 
 from libraries.dspy_set_language_model import dspy_set_language_model
-from ..dspy_modules.classifier_v2.classifier_v2 import classifier_v2, settings
-from ..dspy_modules.evaluation.evaluate import run_evaluation
+from agents.triage.dspy_modules.classifier_v0 import classifier_v0, settings
+from agents.triage.dspy_modules.evaluation.evaluate import run_evaluation
 from libraries.logger import get_console_logger
 
-logger = get_console_logger("test_classifier_v2")
+logger = get_console_logger("test_classifier_v0")
 
 lm = dspy_set_language_model(types.SimpleNamespace(
     language_model=settings.language_model,
@@ -32,11 +32,11 @@ async def test_dspy_modules():
     )
 
     mlflow.set_experiment("triage_classifier")
-    with mlflow.start_run(run_name="test_classifier_v2_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
-        mlflow.log_param("model_name", "classifier_v2")
+    with mlflow.start_run(run_name="test_classifier_v0_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
+        mlflow.log_param("model_name", "classifier_v0")
 
-        accuracy, results, all_scores, metrics = run_evaluation(classifier_v2, "classifier_v2", lm)
-
+        accuracy, results, all_scores, metrics = run_evaluation(classifier_v0, "classifier_v0", lm)
+        
         failing_indices = [i for i, is_correct in enumerate(all_scores) if not is_correct]
         if failing_indices:
             logger.error(f"Accuracy: '{accuracy}'; Metrics: '{metrics}'")
@@ -51,4 +51,4 @@ async def test_dspy_modules():
                     logger.error(f"PREDICTED AGENT: {str(prediction)}")
                     logger.error(f"{'='*80}")
 
-        assert accuracy > 0.9, "Evaluation score is below threshold."
+        assert accuracy > 0.6, "Evaluation score is below threshold. Basic classifier v0 needs improvement."

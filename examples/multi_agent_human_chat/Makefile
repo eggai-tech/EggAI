@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run
+.PHONY: default setup start test test-billing test-escalation test-frontend test-policies test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -69,6 +69,12 @@ test-policies:
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for policies agent completed."
+
+test-triage-classifier-v0:
+	@echo "Running tests for basic classifier v0 (minimal prompt)..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v0.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
 
 test-triage-classifier-v1:
 	@echo "Running tests classifier v1 for triage agent..."
@@ -168,20 +174,25 @@ restart: stop start
 compile-triage-classifier-v2:
 	@echo "Compiling Classifier Dspy Optimizer..."
 	# ask the user if he wants to continue
-	@read -p "Do you want to delete the existing optimizations_v2.json file and recompile the classifier? (y/n): " choice; \
+	@read -p "Do you want to compile the classifier (and delete existing optimizations_v2.json if it exists)? (y/n): " choice; \
 	if [ "$$choice" != "y" ]; then \
 		echo "Aborting..."; \
 		exit 1; \
 	fi
 
-	rm agents/triage/dspy_modules/classifier_v2/optimizations_v2.json
+	@if [ -f agents/triage/dspy_modules/classifier_v2/optimizations_v2.json ]; then \
+		rm agents/triage/dspy_modules/classifier_v2/optimizations_v2.json; \
+		echo "Deleted existing optimization file"; \
+	else \
+		echo "No existing optimization file found, creating new one"; \
+	fi
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.dspy_modules.classifier_v2.classifier_v2_optimizer
 	@echo "Triage Agent setup completed."
 
 compile-triage-classifier-v4:
 	@echo "Compiling Classifier v4 with COPRO Zero-Shot Optimizer..."
 	# ask the user if he wants to continue
-	@read -p "Do you want to delete the existing optimizations_v4.json file (if any) and compile the zero-shot classifier? (y/n): " choice; \
+	@read -p "Do you want to compile the zero-shot classifier (and delete existing optimizations_v4.json if it exists)? (y/n): " choice; \
 	if [ "$$choice" != "y" ]; then \
 		echo "Aborting..."; \
 		exit 1; \
@@ -189,6 +200,9 @@ compile-triage-classifier-v4:
 	
 	@if [ -f agents/triage/dspy_modules/classifier_v4/optimizations_v4.json ]; then \
 		rm agents/triage/dspy_modules/classifier_v4/optimizations_v4.json; \
+		echo "Deleted existing optimization file"; \
+	else \
+		echo "No existing optimization file found, creating new one"; \
 	fi
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.triage.dspy_modules.classifier_v4.classifier_v4_optimizer
 	@echo "Triage Agent v4 setup completed."

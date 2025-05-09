@@ -1,5 +1,9 @@
+import os
 import random
 from datetime import datetime
+
+# Set tokenizers parallelism to avoid warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import mlflow
 import pytest

@@ -1,15 +1,16 @@
 import os
-from typing import Dict, Any
 
 import dspy
 from dotenv import load_dotenv
 import json
 
 from agents.triage.config import Settings
-from agents.triage.models import formatted_agent_registry, TargetAgent, ClassifierMetrics, AGENT_REGISTRY
+from agents.triage.models import formatted_agent_registry, TargetAgent, ClassifierMetrics
 from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.logger import get_console_logger
 
 settings = Settings()
+logger = get_console_logger("triage_classifier_v4")
 
 load_dotenv()
 lm = dspy_set_language_model(settings)
@@ -59,7 +60,7 @@ optimizations_json = os.path.abspath(os.path.join(os.path.dirname(__file__), "op
 
 # Check if the optimizations file exists and load it
 if os.path.exists(optimizations_json):
-    print(f"Loading optimizations from {optimizations_json}")
+    logger.info(f"Loading optimizations from {optimizations_json}")
     with open(optimizations_json, 'r') as f:
         optimizations = json.load(f)
         if 'instructions' in optimizations:
@@ -76,6 +77,11 @@ def classifier_v4(chat_history: str) -> AgentClassificationSignature:
         completion_tokens=lm.completion_tokens,
         latency_ms=lm.latency_ms,
     )
+    
+    # Log token usage when in debug mode
+    if os.environ.get('TRIAGE_DEBUG') == '1':
+        logger.debug(f"Token usage - Total: {lm.total_tokens}, "
+                    f"Prompt: {lm.prompt_tokens}, Completion: {lm.completion_tokens}")
     return result
 
 
@@ -89,7 +95,7 @@ if __name__ == "__main__":
         "User: I've been trying to resolve this for weeks! I need to speak to a manager!"
     ]
     
-    print("Testing zero-shot classifier on example cases:")
+    logger.info("Testing zero-shot classifier on example cases:")
     for test in test_cases:
         res = classifier_v4(chat_history=test)
-        print(f"Input: {test}\nClassified as: {res.target_agent}\n")
+        logger.info(f"Input: {test}\nClassified as: {res.target_agent}\n")

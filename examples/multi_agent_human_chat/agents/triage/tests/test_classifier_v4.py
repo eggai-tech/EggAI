@@ -13,7 +13,7 @@ logger = get_console_logger("test_classifier_v4")
 
 lm = dspy_set_language_model(types.SimpleNamespace(
     language_model=settings.language_model,
-    cache_enabled=True,
+    cache_enabled=False,  # Disable cache for tests to get accurate token counts
     language_model_api_base=settings.language_model_api_base,
 ))
 

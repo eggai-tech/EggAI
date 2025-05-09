@@ -101,7 +101,6 @@ coverage.xml
 
 # Environments
 .env
-.env.*
 
 # Logs
 *.log

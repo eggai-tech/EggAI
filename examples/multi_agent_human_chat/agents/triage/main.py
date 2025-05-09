@@ -1,5 +1,4 @@
 import asyncio
-import dspy
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport
 

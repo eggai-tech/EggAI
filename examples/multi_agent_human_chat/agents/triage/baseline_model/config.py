@@ -52,7 +52,7 @@ class FewshotSettings(BaseSettings):
 
     @property
     def dataset_config_dict(self):
-        return {"paths": self.dataset_paths}
+        return {"paths": self.train_dataset_paths}
 
     def generate_run_name(self):
         """Generate a dynamic run name with timestamp and metadata."""
@@ -79,15 +79,17 @@ class FewshotSettings(BaseSettings):
         return {
             "model": {
                 "n_classes": self.n_classes,
-                "path": self.model_path,
-                "artifact_uri": self.model_artifact_uri,
             },
-            "dataset": {"path": self.eval_dataset_path},
+            "dataset": {"path": self.test_dataset_path},
             "mlflow": self.mlflow_config_dict,
         }
 
     model_config = SettingsConfigDict(
-        env_prefix="FEWSHOT_", env_file=".env", env_ignore_empty=True, extra="ignore"
+        env_prefix="FEWSHOT_", 
+        env_file=".env", 
+        env_ignore_empty=True, 
+        extra="ignore",
+        protected_namespaces=('settings_',)  # Fix for model_name_template warning
     )
 
 

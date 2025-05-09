@@ -30,8 +30,9 @@ class Settings(BaseSettings):
     classifier_v3_model_name: str = Field(default="fewshot_classifier_n_200")
     classifier_v3_model_version: str = Field(default="1")
     
-    # COPRO optimizer settings for classifier_v4
-    copro_dataset_size: int = Field(default=100)
+    # Optimizer settings
+    copro_dataset_size: int = Field(default=50)  # Dataset size for v4 COPRO optimizer
+    bootstrap_dataset_size: int = Field(default=30)  # Dataset size for v2 bootstrap optimizer (reduced for faster execution)
     copro_breadth: int = Field(default=10)
     copro_depth: int = Field(default=3)
     

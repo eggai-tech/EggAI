@@ -1,6 +1,5 @@
 from itertools import product
 from pathlib import Path
-from types import SimpleNamespace
 
 import mlflow
 from dspy.evaluate import Evaluate
@@ -13,6 +12,9 @@ from agents.triage.data_sets.loader import (
 )
 from agents.triage.dspy_modules.classifier_v2.classifier_v2 import classifier_v2_program
 from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("triage_optimizer_v2")
 
 
 # ------------------------------------------------------------------
@@ -29,77 +31,161 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
 
-    mlflow.dspy.autolog(
-        log_compiles=True,
-        log_traces=True,
-        log_evals=True,
-        log_traces_from_compile=True,
-        log_traces_from_eval=True
-    )
-
-    lm = dspy_set_language_model(
-        SimpleNamespace(
-            language_model="openai/gpt-4o-mini",
-            cache_enabled=True,
-            language_model_api_base=None,
+    # Use settings from config instead of hardcoding
+    from agents.triage.config import Settings
+    settings = Settings()
+    
+    # Set up MLflow tracking
+    mlflow.set_experiment("triage_classifier_optimization")
+    run_name = f"classifier_v2_bootstrap_optimization_{settings.bootstrap_dataset_size}examples"
+    
+    with mlflow.start_run(run_name=run_name):
+        # Log configuration parameters
+        mlflow.log_params({
+            "model_name": "classifier_v2",
+            "optimizer": "BootstrapFewShotWithRandomSearch",
+            "language_model": settings.language_model,
+            "dataset_size": settings.bootstrap_dataset_size,
+            "speed_optimized": True,
+            "num_candidate_programs": 4,
+            "max_labeled_demos": 8,
+            "max_bootstrapped_demos": 4,
+            "max_rounds": 2
+        })
+        
+        mlflow.dspy.autolog(
+            log_compiles=True,
+            log_traces=True,
+            log_evals=True,
+            log_traces_from_compile=True,
+            log_traces_from_eval=True
         )
-    )
+        lm = dspy_set_language_model(settings)
 
-    # ------------------------------------------------------------------
-    # Data
-    # ------------------------------------------------------------------
-    full_train = as_dspy_examples(load_dataset_triage_training())   # 1 000
-
-    train_set, dev_set = train_test_split(
-        full_train,
-        test_size=0.20,
-        stratify=[ex.target_agent for ex in full_train],
-        random_state=42,
-    )
-
-    # ------------------------------------------------------------------
-    # Evaluator (re-used for every candidate prompt)
-    # ------------------------------------------------------------------
-    evaluator = Evaluate(devset=dev_set, metric=macro_f1, num_threads=8)
-
-    # ------------------------------------------------------------------
-    # Tiny hyper-grid search
-    # ------------------------------------------------------------------
-    SEARCH_SPACE = {
-        "max_labeled_demos":      [16, 32],
-        "max_bootstrapped_demos": [4, 8],
-        "max_rounds":             [6, 10],
-    }
-
-    best_program, best_dev = None, -1
-
-    for values in product(*SEARCH_SPACE.values()):
-        hp = dict(zip(SEARCH_SPACE.keys(), values))
-
-        tele = BootstrapFewShotWithRandomSearch(
-            metric=macro_f1,
-            num_candidate_programs=8,      # shuffled-prompt candidates
-            max_errors=15,
-            **hp,
+        # ------------------------------------------------------------------
+        # Data preparation with configurable dataset size
+        # ------------------------------------------------------------------
+        all_examples = as_dspy_examples(load_dataset_triage_training())
+        
+        # Use a smaller subset for faster optimization based on settings
+        train_size = min(settings.bootstrap_dataset_size, len(all_examples))
+        logger.info(f"Using {train_size} examples for optimization (from total {len(all_examples)})")
+        
+        # Create train/test split with proper stratification
+        train_set, dev_set = train_test_split(
+            all_examples[:train_size],  # Use only the configured number of examples
+            test_size=0.20,
+            stratify=[ex.target_agent for ex in all_examples[:train_size]],
+            random_state=42,
         )
-
-        prog = tele.compile(classifier_v2_program, trainset=train_set, valset=dev_set)
-
-        # -------------------------- FIXED EVALUATION -------------------
-        score = evaluator(prog)            # average accuracy on dev_set
-        # ----------------------------------------------------------------
-
-        if score > best_dev:
-            best_program, best_dev, best_hp = prog, score, hp
-            print(f"\n{'=' * 80}")
-            print(f"Best program so far: {best_program}")
-            print(f"Best score so far: {best_dev:.3f}")
-            print(f"Best hyper-parameters so far: {best_hp}")
-            print(f"{'=' * 80}\n")
-
-    # ------------------------------------------------------------------
-    # Persist the winner
-    # ------------------------------------------------------------------
-    json_path = Path(__file__).resolve().parent / "optimizations_v2.json"
-    best_program.save(str(json_path))
-    print(f"Saved best program ({best_dev:.3f} dev accuracy) → {json_path}")
+    
+        # ------------------------------------------------------------------
+        # Evaluator (re-used for every candidate prompt)
+        # ------------------------------------------------------------------
+        evaluator = Evaluate(devset=dev_set, metric=macro_f1, num_threads=8)
+    
+        # ------------------------------------------------------------------
+        # Configurable hyper-grid search
+        # ------------------------------------------------------------------
+        SEARCH_SPACE = {
+            # Number of labeled examples from the training set to use for few-shot prompting
+            # Higher values provide more context but increase token usage
+            "max_labeled_demos":      [8],
+            
+            # Number of bootstrapped (AI-generated) examples to incorporate during optimization
+            # These are generated by the model based on existing examples
+            "max_bootstrapped_demos": [4],
+            
+            # Number of optimization rounds to perform in the BootstrapFewShotWithRandomSearch
+            # More rounds can improve results but increase optimization time
+            # Using minimal rounds for faster execution
+            "max_rounds":             [2],
+        }
+        
+        logger.info(f"Hyperparameter grid search space: {SEARCH_SPACE}")
+        logger.info(f"Total configurations to try: {len(list(product(*SEARCH_SPACE.values())))}")
+    
+        best_program, best_dev = None, -1
+    
+        total_configs = len(list(product(*SEARCH_SPACE.values())))
+        current_config = 0
+        
+        for values in product(*SEARCH_SPACE.values()):
+            current_config += 1
+            hp = dict(zip(SEARCH_SPACE.keys(), values))
+            
+            logger.info(f"\n{'=' * 80}")
+            logger.info(f"Testing configuration {current_config}/{total_configs}:")
+            logger.info(f"Parameters: {hp}")
+            logger.info(f"{'=' * 80}")
+    
+            # Configure the optimizer with current hyperparameters
+            tele = BootstrapFewShotWithRandomSearch(
+                metric=macro_f1,
+                num_candidate_programs=4,      # reduced number of shuffled-prompt candidates for faster execution
+                max_errors=15,
+                **hp,
+            )
+    
+            # Compile and optimize the program
+            logger.info(f"Starting compilation with {hp['max_labeled_demos']} demos, "
+                      f"{hp['max_bootstrapped_demos']} bootstrapped demos, and {hp['max_rounds']} rounds...")
+                  
+            try:
+                prog = tele.compile(classifier_v2_program, trainset=train_set, valset=dev_set)
+                
+                # Log progress to MLflow
+                mlflow.log_params({
+                    f"config_{current_config}_labeled_demos": hp['max_labeled_demos'],
+                    f"config_{current_config}_bootstrapped_demos": hp['max_bootstrapped_demos'],
+                    f"config_{current_config}_rounds": hp['max_rounds'],
+                })
+    
+                # Evaluate the optimized program
+                logger.info(f"Evaluating optimized program...")
+                score = evaluator(prog)  # average accuracy on dev_set
+                
+                # Log the score
+                mlflow.log_metric(f"config_{current_config}_score", score)
+                logger.info(f"Configuration {current_config} score: {score:.3f}")
+    
+                if score > best_dev:
+                    best_program, best_dev, best_hp = prog, score, hp
+                    logger.info(f"\n{'=' * 80}")
+                    logger.info(f"NEW BEST PROGRAM FOUND!")
+                    logger.info(f"Best score so far: {best_dev:.3f}")
+                    logger.info(f"Best hyper-parameters so far: {best_hp}")
+                    logger.info(f"{'=' * 80}\n")
+                    
+                    # Log best model parameters
+                    mlflow.log_params({
+                        "best_labeled_demos": best_hp['max_labeled_demos'],
+                        "best_bootstrapped_demos": best_hp['max_bootstrapped_demos'],
+                        "best_rounds": best_hp['max_rounds'],
+                    })
+                    mlflow.log_metric("best_score", best_dev)
+            except Exception as e:
+                logger.error(f"Error during compilation of config {current_config}: {e}")
+                mlflow.log_param(f"config_{current_config}_error", str(e))
+    
+        # ------------------------------------------------------------------
+        # Persist the winner
+        # ------------------------------------------------------------------
+        json_path = Path(__file__).resolve().parent / "optimizations_v2.json"
+        
+        if best_program is not None:
+            try:
+                best_program.save(str(json_path))
+                logger.info(f"Saved best program ({best_dev:.3f} dev accuracy) → {json_path}")
+                mlflow.log_artifact(str(json_path))
+            except Exception as e:
+                logger.error(f"Error saving optimized program: {e}")
+                # Save the original program when saving the optimized one fails
+                try:
+                    classifier_v2_program.save(str(json_path))
+                    logger.info(f"Saved original program instead → {json_path}")
+                    mlflow.log_artifact(str(json_path))
+                except Exception as e2:
+                    logger.error(f"Error saving original program: {e2}")
+        else:
+            logger.warning("No successful optimizations were performed. No program to save.")
