@@ -42,8 +42,4 @@ if __name__ == "__main__":
     )
     print(res.target_agent)
     print(res.metrics)
-    res2 = classifier_v1(
-        chat_history="User: I need to speak with a supervisor about my claim immediately!",
-    )
-    print(res2.target_agent)
-    print(res2.metrics)
+

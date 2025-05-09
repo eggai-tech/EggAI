@@ -18,7 +18,6 @@ class TrackingLM(dspy.LM):
         start_time = perf_counter()
         res = super().__call__(*args, **kwargs)
         self.latency_ms = (perf_counter() - start_time) * 1000
-        print(f"Latency: {self.latency_ms} ms")
         return res
 
     def start_run(self):
@@ -26,7 +25,6 @@ class TrackingLM(dspy.LM):
         self.prompt_tokens = 0
         self.total_tokens = 0
         self.latency_ms = 0
-        print("Starting new run...")
 
     def forward(self, prompt=None, messages=None, **kwargs):
         forward_result = super().forward(prompt, messages, **kwargs)
