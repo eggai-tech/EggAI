@@ -14,6 +14,7 @@ from libraries.kafka_transport import create_kafka_transport
 
 from agents.policies.rag.retrieving import retrieve_policies
 from agents.policies.config import settings
+from agents.policies.dspy_modules.policies import policies_optimized_dspy
 
 # Set up Kafka transport
 eggai_set_default_transport(
@@ -193,29 +194,55 @@ async def handle_policy_request(msg_dict):
 
         logger.debug(f"Conversation context: {conversation_string[:100]}...")
 
-        # Process with DSPy module
-        logger.info("Processing with policies_react module")
-        response = await policies_react(chat_history=conversation_string)
+        # Use optimized DSPy module if available, otherwise fallback to TracedReAct
+        try:
+            logger.info("Using optimized policies module")
+            opt_response = policies_optimized_dspy(chat_history=conversation_string)
+            
+            # Extract final response from optimized module result
+            final_response = opt_response.get("final_response", "")
+            if "final_response_with_documentation_reference" in opt_response and opt_response["final_response_with_documentation_reference"]:
+                final_response = opt_response["final_response_with_documentation_reference"]
+                logger.info("Using optimized response with documentation references")
+                
+        except Exception as e:
+            logger.warning(f"Error using optimized module: {e}, falling back to TracedReAct")
+            # Process with TracedReAct module
+            logger.info("Processing with policies_react module")
+            response = await policies_react(chat_history=conversation_string)
 
-        # Extract final response
-        final_response = response.final_response
-        if (
-            "final_response_with_documentation_reference" in response
-            and response.final_response_with_documentation_reference
-        ):
-            final_response = response.final_response_with_documentation_reference
-            logger.info("Using response with documentation references")
+            # Extract final response
+            final_response = response.final_response
+            if (
+                "final_response_with_documentation_reference" in response
+                and response.final_response_with_documentation_reference
+            ):
+                final_response = response.final_response_with_documentation_reference
+                logger.info("Using response with documentation references")
 
         # Log additional information
-        if hasattr(response, "policy_number") and response.policy_number:
-            logger.info(f"Policy number identified: {response.policy_number}")
-        if hasattr(response, "policy_category") and response.policy_category:
-            logger.info(f"Policy category identified: {response.policy_category}")
-        if (
-            hasattr(response, "documentation_reference")
-            and response.documentation_reference
-        ):
-            logger.info(f"Documentation reference: {response.documentation_reference}")
+        try:
+            # For optimized response
+            if 'opt_response' in locals():
+                if opt_response.get("policy_number"):
+                    logger.info(f"Policy number identified (opt): {opt_response.get('policy_number')}")
+                if opt_response.get("policy_category"):
+                    logger.info(f"Policy category identified (opt): {opt_response.get('policy_category')}")
+                if opt_response.get("documentation_reference"):
+                    logger.info(f"Documentation reference (opt): {opt_response.get('documentation_reference')}")
+            # For TracedReAct response
+            elif 'response' in locals():
+                if hasattr(response, "policy_number") and response.policy_number:
+                    logger.info(f"Policy number identified: {response.policy_number}")
+                if hasattr(response, "policy_category") and response.policy_category:
+                    logger.info(f"Policy category identified: {response.policy_category}")
+                if (
+                    hasattr(response, "documentation_reference")
+                    and response.documentation_reference
+                ):
+                    logger.info(f"Documentation reference: {response.documentation_reference}")
+        except Exception as e:
+            logger.warning(f"Error while logging response metadata: {e}")
 
         # Send response
         logger.info(f"Sending response to user: {final_response[:50]}...")

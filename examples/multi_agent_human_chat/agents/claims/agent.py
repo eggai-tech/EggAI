@@ -8,6 +8,7 @@ from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_
 from libraries.logger import get_console_logger
 from libraries.kafka_transport import create_kafka_transport
 from .config import settings
+from agents.claims.dspy_modules.claims import claims_optimized_dspy
 
 # Set up Kafka transport
 eggai_set_default_transport(
@@ -220,8 +221,14 @@ async def handle_claims_message(msg_dict):
         logger.info("Processing claims request")
         logger.debug(f"Conversation context: {conversation_string[:100]}...")
 
-        response = claims_react(chat_history=conversation_string)
-        final_text = response.final_response
+        # Use optimized DSPy module if available, otherwise fallback to TracedReAct
+        try:
+            logger.info("Using optimized claims module")
+            final_text = claims_optimized_dspy(chat_history=conversation_string)
+        except Exception as e:
+            logger.warning(f"Error using optimized module: {e}, falling back to TracedReAct")
+            response = claims_react(chat_history=conversation_string)
+            final_text = response.final_response
 
         logger.info("Sending response to user")
         logger.debug(f"Response: {final_text[:100]}...")

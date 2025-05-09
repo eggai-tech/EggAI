@@ -8,6 +8,7 @@ from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_
 from libraries.logger import get_console_logger
 from libraries.kafka_transport import create_kafka_transport
 from .config import settings
+from agents.billing.dspy_modules.billing import billing_optimized_dspy
 
 # Set up Kafka transport
 eggai_set_default_transport(
@@ -39,15 +40,19 @@ class BillingAgentSignature(dspy.Signature):
       - update_billing_info(policy_number, field, new_value): Updates a particular field in the billing record.
 
     RESPONSE FORMAT:
-      - Provide a concise, courteous message summarizing relevant billing info or acknowledging an update.
-        For instance:
-          "Your next payment of $100 is due on 2025-02-01, and your current status is 'Paid'."
+      - Provide a concise, courteous message summarizing relevant billing info using specific patterns:
+        - For current balance inquiries: "Your current amount due is $X.XX with a due date of YYYY-MM-DD. Your status is 'Status'."
+        - For next payment info: "Your next payment of $X.XX is due on YYYY-MM-DD, and your current status is 'Status'."
+        - For billing cycle inquiries: "Your current billing cycle is 'Cycle' with the next payment of $X.XX due on YYYY-MM-DD."
 
     GUIDELINES:
       - Maintain a polite, professional tone.
       - Only use the tools if necessary (e.g., if the user provides a policy number and requests an update or info).
       - If a policy number is missing or unclear, politely ask for it.
       - Avoid speculation or divulging irrelevant details.
+      - IMPORTANT: When a user asks "How much do I owe", always use the "current amount due" format.
+      - IMPORTANT: When a user asks about billing date, use the "next payment" format.
+      - IMPORTANT: When a user mentions "billing cycle", use the "billing cycle" format.
 
     Input Fields:
       - chat_history: A string containing the full conversation thus far.
@@ -160,8 +165,14 @@ async def handle_billing_message(msg_dict):
         logger.info("Processing billing request")
         logger.debug(f"Conversation context: {conversation_string[:100]}...")
 
-        response = billing_react(chat_history=conversation_string)
-        final_text = response.final_response
+        # Use optimized DSPy module if available, otherwise fallback to TracedReAct
+        try:
+            logger.info("Using optimized billing module")
+            final_text = billing_optimized_dspy(chat_history=conversation_string)
+        except Exception as e:
+            logger.warning(f"Error using optimized module: {e}, falling back to TracedReAct")
+            response = billing_react(chat_history=conversation_string)
+            final_text = response.final_response
 
         logger.info("Sending response to user")
         logger.info(f"Response: {final_text[:100]}...")

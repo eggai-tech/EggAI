@@ -215,18 +215,38 @@ make test
 Running Specific Agent Tests:
 
 ```bash
-make test-audit        # Runs tests for the Audit Agent
-make test-billing      # Runs tests for the Billing Agent
-make test-escalation   # Runs tests for the Escalation Agent
-make test-frontend     # Runs tests for the Frontend Agent
-make test-policies     # Runs tests for the Policies Agent
-make test-triage       # Runs tests for the Triage Agent
+make test-audit-agent        # Runs tests for the Audit Agent
+make test-billing-agent      # Runs tests for the Billing Agent
+make test-escalation-agent   # Runs tests for the Escalation Agent
+make test-frontend-agent     # Runs tests for the Frontend Agent
+make test-policies-agent     # Runs tests for the Policies Agent
+make test-triage-agent       # Runs tests for the Triage Agent
 ```
 
 You can optimize agents using DSPy evaluation and optimization techniques.
 You can find an optimization setup [here](https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/tests/test_dspy_modules.py).
 
 When running the tests for the Triage Agent, a DSPy performance report will be generated in the `agents/triage/dspy_modules/evaluation/reports` folder ([example report](https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/dspy_modules/evaluation/reports/classifier_v1.html)).
+
+#### DSPy COPRO Optimization
+
+You can use COPRO (Constrained PROmpt optimization) to optimize agent prompts:
+
+```bash
+# Optimize Individual Components
+make compile-triage-classifier-v2  # Optimizes the Triage Classifier v2
+make compile-triage-classifier-v4  # Optimizes the Triage Classifier v4 (zero-shot)
+make compile-billing-optimizer     # Optimizes the Billing Agent prompt
+make compile-claims-optimizer      # Optimizes the Claims Agent prompt
+make compile-policies-optimizer    # Optimizes the Policies Agent prompt
+
+# Optimize All Components at Once
+make compile-all                   # Runs all optimizers sequentially with automatic confirmation
+```
+
+These commands use COPRO to optimize agent prompts based on synthetic datasets and precision metrics. The optimization results are stored as JSON files and logged to MLflow. Once optimized, agents will automatically load and use these optimized prompts when running.
+
+For detailed information about our approach to optimizing ReAct-based agents with COPRO, please see [OPTIMIZATION.md](OPTIMIZATION.md). This document explains the challenges of optimizing ReAct agents and our solutions.
 
 ### Custom Model Training and Evaluation
 In order to improve the response latency and cost of the Triage Agent, you can train a custom classifier to classify the incoming messages. 

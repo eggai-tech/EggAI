@@ -21,6 +21,7 @@ from libraries.tracing.otel import (
 from libraries.tracing.dspy import (
     TracedChainOfThought,
     TracedReAct,
+    traced_dspy_function,
 )
 
 __all__ = [
@@ -35,4 +36,5 @@ __all__ = [
     # DSPy-module-specific tracing
     "TracedChainOfThought",
     "TracedReAct",
+    "traced_dspy_function",
 ]
