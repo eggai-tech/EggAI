@@ -67,7 +67,7 @@ async def handle_user_message(msg: TracedMessage):
         target_agent = response.target_agent
 
         logger.info(
-            f"Classification completed in {(response.metrics.latency_ms / 1000):.2f} seconds, target agent: {target_agent}, classifier version: {settings.classifier_version}")
+            f"Classification completed in {response.metrics.latency_ms:.2f} ms, target agent: {target_agent}, classifier version: {settings.classifier_version}")
         triage_to_agent_messages = [
             {
                 "role": "user",

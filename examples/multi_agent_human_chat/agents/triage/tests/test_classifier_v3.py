@@ -1,11 +1,13 @@
 import os
 import random
+import statistics
 from datetime import datetime
 
 # Set tokenizers parallelism to avoid warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import mlflow
+import numpy as np
 import pytest
 
 from agents.triage.baseline_model.classifier_v3 import classifier_v3
@@ -40,8 +42,37 @@ async def test_classifier_v3():
                     "conversation": case.conversation,
                     "expected_agent": case.target_agent,
                     "predicted_agent": res.target_agent,
+                    "metrics": res.metrics
                 }
             )
+
+        #log the metrics on mlflow
+        def ms(vals):
+            return statistics.mean(vals) * 1_000
+
+        def p95(vals):
+            return float(np.percentile(vals, 95))
+
+        accuracy = sum(all_scores) / len(all_scores)
+        latencies_sec = [res["metrics"].latency_ms / 1_000 for res in results]
+        prompt_tok_counts = [res["metrics"].prompt_tokens for res in results]
+        completion_tok_counts = [res["metrics"].completion_tokens for res in results]
+        total_tok_counts = [res["metrics"].total_tokens for res in results]
+
+        metrics = {
+            "accuracy": accuracy * 100,
+            # latency
+            "latency_mean_ms": ms(latencies_sec),
+            "latency_p95_ms": ms(latencies_sec) * 0 + p95(latencies_sec) * 1_000,  # p95 in ms
+            "latency_max_ms": max(latencies_sec) * 1_000,
+            # tokens
+            "tokens_total": sum(total_tok_counts),
+            "tokens_prompt_total": sum(prompt_tok_counts),
+            "tokens_completion_total": sum(completion_tok_counts),
+            "tokens_mean": statistics.mean(total_tok_counts),
+            "tokens_p95": p95(total_tok_counts),
+        }
+        mlflow.log_metrics(metrics)
 
         accuracy = sum(all_scores) / len(all_scores)
 
