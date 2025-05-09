@@ -4,12 +4,13 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from eggai import eggai_cleanup
+from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
-from eggai.transport import eggai_set_default_transport
-from libraries.tracing import init_telemetry
-from libraries.logger import get_console_logger
+
 from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import init_telemetry
 
 from .agent import (
     add_websocket_gateway,

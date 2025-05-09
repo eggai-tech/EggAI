@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import Dict
-from starlette.websockets import WebSocketState, WebSocket
+
+from starlette.websockets import WebSocket, WebSocketState
+
 
 class WebSocketManager:
     def __init__(self):
@@ -55,7 +57,7 @@ class WebSocketManager:
         return self.message_ids.get(message_id)
 
     async def broadcast_message(self, message_data: dict):
-        for connection_id, connection in self.active_connections.items():
+        for _, connection in self.active_connections.items():
             await connection.send_json(message_data)
 
     async def disconnect_all(self):

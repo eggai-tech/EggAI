@@ -1,11 +1,13 @@
 import asyncio
+
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport
 
 from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.tracing import init_telemetry
-from libraries.logger import get_console_logger
 from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import init_telemetry
+
 from .agent import triage_agent
 from .config import settings
 

@@ -1,3 +1,4 @@
+import csv
 import os
 import random
 import statistics
@@ -9,13 +10,12 @@ import mlflow
 import numpy as np
 from dotenv import load_dotenv
 
-from agents.triage.data_sets.loader import load_dataset_triage_testing, as_dspy_examples
+from agents.triage.config import Settings
+from agents.triage.data_sets.loader import as_dspy_examples, load_dataset_triage_testing
 from agents.triage.dspy_modules.classifier_v1 import classifier_v1
 from agents.triage.dspy_modules.evaluation.report import generate_report
 from libraries.dspy_set_language_model import dspy_set_language_model
-import csv
 from libraries.logger import get_console_logger
-from agents.triage.config import Settings
 
 settings = Settings()
 

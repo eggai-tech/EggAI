@@ -1,17 +1,16 @@
 import asyncio
-import pytest
-import dspy
-import mlflow
-import time
-from uuid import uuid4
 from datetime import datetime
 from typing import List
+
+import mlflow
+import pytest
 from eggai import Agent, Channel
-from ..agent import billing_agent, settings
-from libraries.tracing import TracedMessage
-from libraries.logger import get_console_logger
-from libraries.dspy_set_language_model import dspy_set_language_model
+
 from agents.billing.dspy_modules.billing import billing_optimized_dspy
+from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.logger import get_console_logger
+
+from ..agent import settings
 
 logger = get_console_logger("billing_agent.tests")
 
@@ -128,7 +127,7 @@ async def test_billing_agent():
             
             # For C24680 specifically, the model sometimes updates billing_cycle rather than just returning info
             if policy_number == "C24680" and "billing cycle has been successfully changed" in agent_response:
-                logger.info(f"Agent chose to update billing cycle - this is also a valid response for this test case")
+                logger.info("Agent chose to update billing cycle - this is also a valid response for this test case")
                 # In this case, we don't expect to see amount/date in response
                 pass
             else:

@@ -1,23 +1,24 @@
-import json
-from typing import Optional, Literal
+from typing import Literal, Optional
 
+import dspy
+from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 from opentelemetry import trace
-import dspy
-from eggai import Channel, Agent
 
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.tracing import TracedReAct, TracedMessage, traced_handler, format_span_as_traceparent
-from libraries.logger import get_console_logger
-from libraries.kafka_transport import create_kafka_transport
-
-from agents.policies.rag.retrieving import retrieve_policies
 from agents.policies.config import settings
 from agents.policies.dspy_modules.policies import policies_optimized_dspy
 from agents.policies.dspy_modules.policies_data import (
-    take_policy_by_number_from_database,
     query_policy_documentation,
-    POLICIES_DATABASE
+    take_policy_by_number_from_database,
+)
+from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import (
+    TracedMessage,
+    TracedReAct,
+    format_span_as_traceparent,
+    traced_handler,
 )
 
 # Set up Kafka transport
@@ -37,8 +38,6 @@ tracer = trace.get_tracer("policies_agent")
 logger = get_console_logger("policies_agent.handler")
 
 PolicyCategory = Literal["auto", "life", "home", "health"]
-
-# Using shared POLICIES_DATABASE and tools from policies_data.py
 
 
 class PolicyAgentSignature(dspy.Signature):
@@ -166,11 +165,6 @@ async def handle_policy_request(msg_dict):
         except Exception as e:
             logger.warning(f"Error while logging response metadata: {e}")
 
-        # Special handling for test cases
-        if connection_id == "test-1":
-            final_response = "Your next premium payment of $300.00 is due on 2025-03-15."
-            logger.info("Using hardcoded response for test-1 (policy B67890)")
-        
         # Send response
         logger.info(f"Sending response to user: {final_response[:50]}...")
         with tracer.start_as_current_span("publish_to_human") as publish_span:

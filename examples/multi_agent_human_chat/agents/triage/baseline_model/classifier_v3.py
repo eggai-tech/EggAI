@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 from agents.triage.baseline_model.few_shots_classifier import FewShotsClassifier
 from agents.triage.config import Settings
-from agents.triage.models import TargetAgent, ClassifierMetrics
+from agents.triage.models import ClassifierMetrics, TargetAgent
 from libraries.mlflow_utils import find_model
 
 load_dotenv()

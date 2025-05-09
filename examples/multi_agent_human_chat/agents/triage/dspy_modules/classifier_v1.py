@@ -1,9 +1,8 @@
 import dspy
 from dotenv import load_dotenv
 
-from agents.triage.models import TargetAgent, ClassifierMetrics
-
 from agents.triage.config import Settings
+from agents.triage.models import ClassifierMetrics, TargetAgent
 from libraries.dspy_set_language_model import dspy_set_language_model
 
 load_dotenv()

@@ -2,14 +2,15 @@
 import json
 import os
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 import dspy
 from opentelemetry import trace
+
+from agents.policies.config import settings
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
-from libraries.tracing import traced_dspy_function, TracedReAct
-from agents.policies.config import settings
+from libraries.tracing import TracedReAct, traced_dspy_function
 
 logger = get_console_logger("policies_agent.dspy")
 
@@ -54,7 +55,10 @@ try:
     if os.path.exists(json_path):
         logger.info(f"Loading optimized TracedReAct policies program from {json_path}")
         # Create TracedReAct with real tools
-        from agents.policies.dspy_modules.policies_data import take_policy_by_number_from_database, query_policy_documentation
+        from agents.policies.dspy_modules.policies_data import (
+            query_policy_documentation,
+            take_policy_by_number_from_database,
+        )
         
         tracer = trace.get_tracer("policies_agent_optimized")
         
@@ -132,14 +136,19 @@ def policies_optimized_dspy(chat_history: str) -> dict:
     Returns:
         dict: The policies agent's response and metadata.
     """
-    lm = dspy_set_language_model(settings)
-    
     try:
+        lm = dspy_set_language_model(settings)
+        
         # Check if we're using a TracedReAct or dspy.Predict instance
         if isinstance(policies_optimized, TracedReAct):
             # For TracedReAct, we need to handle the different output format
             logger.info("Using TracedReAct optimized policies module")
-            prediction = policies_optimized(chat_history=chat_history)
+            try:
+                prediction = policies_optimized(chat_history=chat_history)
+            except Exception as model_error:
+                # Log the error and raise it to be handled by the outer try/except
+                logger.error(f"Error using TracedReAct model: {model_error}")
+                raise
             
             result = {
                 "final_response": prediction.final_response
@@ -163,7 +172,12 @@ def policies_optimized_dspy(chat_history: str) -> dict:
         else:
             # For dspy.Predict, we can call directly
             logger.info("Using dspy.Predict policies module")
-            prediction = policies_optimized(chat_history=chat_history)
+            try:
+                prediction = policies_optimized(chat_history=chat_history)
+            except Exception as model_error:
+                # Log the error and raise it to be handled by the outer try/except
+                logger.error(f"Error using dspy.Predict model: {model_error}")
+                raise
             
             result = {
                 "final_response": prediction.final_response
@@ -185,10 +199,45 @@ def policies_optimized_dspy(chat_history: str) -> dict:
                 
             return result
     except Exception as e:
-        logger.error(f"Error in policies_optimized_dspy: {e}")
-        return {
-            "final_response": "I apologize, but I'm having trouble processing your request right now. Could you please provide more details about your policy inquiry?"
-        }
+        error_type = type(e).__name__
+        error_message = str(e)
+        
+        logger.error(f"Error in policies_optimized_dspy: {error_type} - {error_message}")
+        
+        # Customize the error message based on the error type for a better user experience
+        if "context" in error_message.lower() or "token" in error_message.lower() or "overflow" in error_message.lower():
+            # Context length error
+            logger.warning(f"Context length error detected: {error_message}")
+            
+            # Try to extract policy number from chat history for a more helpful response
+            import re
+            policy_match = re.search(r'[A-Z]\d{5}', chat_history)
+            policy_number = policy_match.group(0) if policy_match else None
+            
+            if policy_number:
+                return {
+                    "final_response": f"I see you've mentioned policy {policy_number}. Let me check that specific policy for you instead of reviewing our entire conversation history.",
+                    "policy_number": policy_number
+                }
+            else:
+                return {
+                    "final_response": "Our conversation has gotten quite detailed! Could you please provide your specific policy number so I can look up your information directly?"
+                }
+        elif "litellm.BadRequestError" in error_type or "response_format" in error_message:
+            # Model configuration error
+            return {
+                "final_response": "I'm currently experiencing a technical issue with our policy lookup system. Could you please try again in a moment or provide your policy number so I can look up your information?"
+            }
+        elif "TimeoutError" in error_type or "timeout" in error_message.lower():
+            # Timeout error
+            return {
+                "final_response": "I apologize for the delay. Our policy information system is running a bit slowly at the moment. Could you please ask your question again or provide your policy number so I can assist you?"
+            }
+        else:
+            # Generic error
+            return {
+                "final_response": "I apologize, but I'm having trouble accessing our policy database right now. Could you please provide your policy number and specific details about what information you need?"
+            }
 
 
 if __name__ == "__main__":

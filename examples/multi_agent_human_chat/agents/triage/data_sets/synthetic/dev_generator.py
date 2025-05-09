@@ -3,10 +3,11 @@
 Development script for running the dataset generator directly.
 For production use, install the package and use the `triage-generate` command.
 """
-import sys
-import os
-import asyncio
 import argparse
+import asyncio
+import os
+import sys
+
 from dotenv import load_dotenv
 
 # Add src directory to path

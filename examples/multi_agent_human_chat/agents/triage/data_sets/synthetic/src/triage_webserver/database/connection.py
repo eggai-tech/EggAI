@@ -1,4 +1,5 @@
 import logging
+
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
@@ -48,7 +49,6 @@ def init_db():
     """Initialize the database by creating all tables."""
     try:
         # Import all models here to ensure they are registered with Base
-        from triage_webserver.models.data_models import Dataset, Example
         
         # Create all tables
         Base.metadata.create_all(bind=engine)

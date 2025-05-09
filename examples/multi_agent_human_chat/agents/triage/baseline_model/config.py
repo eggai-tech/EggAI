@@ -1,10 +1,10 @@
-from typing import List, Optional, Union
-import os
 import datetime
+import os
+from typing import List, Optional, Union
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
 from dotenv import load_dotenv
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 load_dotenv()
 

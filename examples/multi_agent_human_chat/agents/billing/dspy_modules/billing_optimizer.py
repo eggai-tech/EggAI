@@ -14,14 +14,14 @@ Key points:
 This approach allows us to optimize the agent's instructions while
 preserving its tool-using capabilities.
 """
-from pathlib import Path
 import datetime
-import time
 import sys
+import time
+from pathlib import Path
 
-import mlflow
 import dspy
 import litellm
+import mlflow
 from dspy.evaluate import Evaluate
 from dspy.teleprompt import COPRO
 from sklearn.model_selection import train_test_split
@@ -29,9 +29,12 @@ from sklearn.model_selection import train_test_split
 # Configure litellm to drop unsupported parameters
 litellm.drop_params = True
 
-from libraries.dspy_set_language_model import dspy_set_language_model
 from agents.billing.config import settings
-from agents.billing.dspy_modules.billing_dataset import create_billing_dataset, as_dspy_examples
+from agents.billing.dspy_modules.billing_dataset import (
+    as_dspy_examples,
+    create_billing_dataset,
+)
+from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("billing_optimizer")
@@ -103,6 +106,7 @@ class BillingSignature(dspy.Signature):
 
 # Create the unoptimized react program
 from libraries.tracing import TracedReAct
+
 
 # Mock tools for optimization (these won't actually be called during optimization)
 def mock_get_billing_info(policy_number: str):

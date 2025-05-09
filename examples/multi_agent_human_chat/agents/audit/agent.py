@@ -1,9 +1,11 @@
-from faststream.kafka import KafkaMessage
-from eggai import Channel, Agent
+from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
-from libraries.logger import get_console_logger
-from libraries.tracing import traced_handler, create_tracer
+from faststream.kafka import KafkaMessage
+
 from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import create_tracer, traced_handler
+
 from .config import settings
 
 # Set up Kafka transport

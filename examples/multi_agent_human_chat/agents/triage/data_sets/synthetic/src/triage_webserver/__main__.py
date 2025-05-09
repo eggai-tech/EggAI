@@ -1,7 +1,9 @@
-import uvicorn
-from dotenv import load_dotenv
 import argparse
 import os
+
+import uvicorn
+from dotenv import load_dotenv
+
 
 def main():
     """

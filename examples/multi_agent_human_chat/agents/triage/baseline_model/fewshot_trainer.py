@@ -1,17 +1,23 @@
 import logging
 import os
-import sys
 import random
+import sys
 
 import mlflow
 from dotenv import load_dotenv
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 
 from agents.triage.baseline_model.config import settings
 from agents.triage.baseline_model.few_shots_classifier import FewShotsClassifier
 from agents.triage.baseline_model.metrics import compute_f1_score, compute_roc_auc
-from agents.triage.baseline_model.utils import load_dataset, load_datasets, init_mlflow, setup_logging, \
-    CATEGORY_LABEL_MAP, unroll_dataset
+from agents.triage.baseline_model.utils import (
+    CATEGORY_LABEL_MAP,
+    init_mlflow,
+    load_dataset,
+    load_datasets,
+    setup_logging,
+    unroll_dataset,
+)
 
 logger = logging.getLogger("fewshot_trainer")
 
@@ -82,7 +88,7 @@ def main() -> int:
     mlflow.log_metric("f1", f1)
     mlflow.log_metric("auc", auc)
     mlflow.log_metric("accuracy", acc)
-    for k, acc in zip(CATEGORY_LABEL_MAP.keys(), per_class_acc):
+    for k, acc in zip(CATEGORY_LABEL_MAP.keys(), per_class_acc, strict=False):
         mlflow.log_metric(f"{k}_accuracy", acc)
 
     # Save the model in the model registry

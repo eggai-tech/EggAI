@@ -4,10 +4,11 @@ import os
 from pathlib import Path
 
 import dspy
+
+from agents.claims.config import settings
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
-from libraries.tracing import traced_dspy_function, TracedReAct
-from agents.claims.config import settings
+from libraries.tracing import TracedReAct, traced_dspy_function
 
 logger = get_console_logger("claims_agent.dspy")
 
@@ -66,7 +67,11 @@ try:
     if os.path.exists(json_path):
         logger.info(f"Loading optimized TracedReAct claims program from {json_path}")
         # Create TracedReAct with real tools
-        from agents.claims.dspy_modules.claims_data import get_claim_status, file_claim, update_claim_info
+        from agents.claims.dspy_modules.claims_data import (
+            file_claim,
+            get_claim_status,
+            update_claim_info,
+        )
         from libraries.tracing import create_tracer
         
         tracer = create_tracer("claims_agent_optimized")

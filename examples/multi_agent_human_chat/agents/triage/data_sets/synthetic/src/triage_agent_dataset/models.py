@@ -1,6 +1,8 @@
-from pydantic import BaseModel
 from enum import Enum
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class Agents(str, Enum):
     BILLING = "BillingAgent"

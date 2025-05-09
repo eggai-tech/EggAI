@@ -1,17 +1,20 @@
 import asyncio
-import pytest
-import dspy
-import mlflow
 import time
-import json
-from uuid import uuid4
 from datetime import datetime
 from typing import List
+from uuid import uuid4
+
+import dspy
+import mlflow
+import pytest
 from eggai import Agent, Channel
-from ..agent import ticketing_agent as escalation_agent, settings
-from libraries.tracing import TracedMessage
-from libraries.logger import get_console_logger
+
 from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage
+
+from ..agent import settings
+from ..agent import ticketing_agent as escalation_agent
 
 logger = get_console_logger("escalation_agent.tests")
 

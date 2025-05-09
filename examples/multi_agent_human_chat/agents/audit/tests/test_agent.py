@@ -1,6 +1,8 @@
-import pytest
-import dspy
 from uuid import uuid4
+
+import dspy
+import pytest
+
 from agents.audit.agent import MESSAGE_CATEGORIES
 from libraries.logger import get_console_logger
 
@@ -71,8 +73,9 @@ async def test_error_handling_concept():
     # This is a more robust approach than trying to directly call the handler
     # which is complex due to decorators making it asynchronous
 
-    from agents.audit.agent import audit_message
     import inspect
+
+    from agents.audit.agent import audit_message
 
     # Check if the audit_message function contains a try-except block
     source_code = inspect.getsource(audit_message)

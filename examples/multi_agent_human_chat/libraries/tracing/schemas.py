@@ -1,6 +1,8 @@
 from typing import Optional
-from pydantic import Field
+
 from eggai.schemas import Message
+from pydantic import Field
+
 
 # TODO make traceparent required and remove default
 class TracedMessage(Message):

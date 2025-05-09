@@ -4,7 +4,11 @@ import dspy
 from dotenv import load_dotenv
 
 from agents.triage.config import Settings
-from agents.triage.models import formatted_agent_registry, TargetAgent, ClassifierMetrics
+from agents.triage.models import (
+    ClassifierMetrics,
+    TargetAgent,
+    formatted_agent_registry,
+)
 from libraries.dspy_set_language_model import dspy_set_language_model
 
 settings = Settings()

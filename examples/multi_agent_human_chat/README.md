@@ -202,7 +202,18 @@ make start-all
 
 Upon running the example and accessing the chat interface at [http://localhost:8000](http://localhost:8000), you should see a web-based chat UI.
 
-### Agent Evaluation and Optimization
+### Code Quality and Testing
+
+#### Linting
+
+The project uses Ruff for linting to ensure code quality. You can run the linter using:
+
+```bash
+make lint        # Check for linting errors
+make lint-fix    # Fix auto-fixable linting issues
+```
+
+#### Testing
 
 You can execute tests to validate the behavior of different agents using evaluation methods like LLM-as-a-Judge.
 

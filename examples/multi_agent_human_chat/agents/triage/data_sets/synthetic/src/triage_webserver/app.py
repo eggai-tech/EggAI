@@ -1,13 +1,14 @@
-from fastapi import FastAPI, Depends, Request, Response, HTTPException
+import os
+
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
-import os
 from sqlalchemy.orm import Session
 
-from triage_webserver.database.connection import init_db, get_db
-from triage_webserver.routes import datasets, examples
+from triage_webserver.database.connection import get_db, init_db
 from triage_webserver.models.data_models import Dataset, Example
+from triage_webserver.routes import datasets, examples
 
 app = FastAPI(title="Triage Dataset Manager")
 

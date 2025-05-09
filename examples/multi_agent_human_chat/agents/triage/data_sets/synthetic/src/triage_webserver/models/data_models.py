@@ -1,8 +1,10 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
-from sqlalchemy.orm import relationship
 import datetime
 
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
+
 from triage_webserver.database.base import Base
+
 
 class Dataset(Base):
     __tablename__ = "datasets"

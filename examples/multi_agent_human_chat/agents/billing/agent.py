@@ -1,15 +1,24 @@
-import json
 import dspy
-from eggai import Channel, Agent
+from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_handler, format_span_as_traceparent
-from libraries.logger import get_console_logger
-from libraries.kafka_transport import create_kafka_transport
-from .config import settings
 from agents.billing.dspy_modules.billing import billing_optimized_dspy
-from agents.billing.dspy_modules.billing_data import get_billing_info, update_billing_info, BILLING_DATABASE
+from agents.billing.dspy_modules.billing_data import (
+    get_billing_info,
+    update_billing_info,
+)
+from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import (
+    TracedMessage,
+    TracedReAct,
+    create_tracer,
+    format_span_as_traceparent,
+    traced_handler,
+)
+
+from .config import settings
 
 # Set up Kafka transport
 eggai_set_default_transport(

@@ -1,15 +1,14 @@
-from time import perf_counter
 
-from eggai import Channel, Agent
+from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 from opentelemetry import trace
 
 from agents.triage.config import settings
 from agents.triage.dspy_modules.small_talk import chatty
-from agents.triage.models import TargetAgent, AGENT_REGISTRY
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, traced_handler, format_span_as_traceparent
+from agents.triage.models import AGENT_REGISTRY, TargetAgent
 from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
 
 # Set up Kafka transport
 eggai_set_default_transport(
@@ -37,6 +36,9 @@ def get_current_classifier():
     elif settings.classifier_version == "v3":
         from agents.triage.baseline_model.classifier_v3 import classifier_v3
         return classifier_v3
+    elif settings.classifier_version == "v4":
+        from agents.triage.dspy_modules.classifier_v4 import classifier_v4
+        return classifier_v4
     else:
         raise ValueError(f"Unknown classifier version: {settings.classifier_version}")
 

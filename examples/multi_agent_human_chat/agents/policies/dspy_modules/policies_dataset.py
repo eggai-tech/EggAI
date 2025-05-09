@@ -1,8 +1,7 @@
 """Dataset generator for Policies Agent optimization."""
-import json
 import random
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional, Literal
+from typing import List, Literal, Optional
 
 import dspy
 

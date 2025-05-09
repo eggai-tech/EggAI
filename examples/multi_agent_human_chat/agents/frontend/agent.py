@@ -1,20 +1,22 @@
-import os
 import asyncio
+import os
 import uuid
-from eggai import Channel, Agent
-from eggai.transport import eggai_set_default_transport
 
-from libraries.tracing import TracedMessage
-from starlette.websockets import WebSocket, WebSocketDisconnect
 import uvicorn
-from opentelemetry import trace
+from eggai import Agent, Channel
+from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI, Query
+from opentelemetry import trace
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from libraries.tracing.otel import traced_handler, extract_span_context
 from libraries.kafka_transport import create_kafka_transport
-from .websocket_manager import WebSocketManager
-from .config import settings
 from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage
+from libraries.tracing.otel import extract_span_context, traced_handler
+
+from .config import settings
+from .websocket_manager import WebSocketManager
+
 logger = get_console_logger("frontend_agent")
 
 # Load environment variable

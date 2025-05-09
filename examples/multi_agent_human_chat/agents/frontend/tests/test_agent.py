@@ -1,10 +1,13 @@
-import pytest
 import asyncio
 import uuid
 from unittest.mock import AsyncMock
+
+import pytest
 from eggai import Channel
-from ..agent import frontend_agent, websocket_manager
+
 from libraries.tracing import TracedMessage
+
+from ..agent import frontend_agent, websocket_manager
 
 pytestmark = pytest.mark.asyncio
 

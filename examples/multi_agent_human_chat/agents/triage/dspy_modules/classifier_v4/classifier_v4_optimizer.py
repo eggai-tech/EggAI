@@ -1,12 +1,11 @@
-from pathlib import Path
-from sklearn.model_selection import train_test_split
-import datetime
-import time
 import sys
+import time
+from pathlib import Path
 
 import mlflow
 from dspy.evaluate import Evaluate
 from dspy.teleprompt import COPRO
+from sklearn.model_selection import train_test_split
 
 from agents.triage.config import Settings
 from agents.triage.data_sets.loader import (
@@ -256,7 +255,7 @@ if __name__ == "__main__":
                     import json
                     with open(str(json_path), 'w') as f:
                         json.dump(optimized_program.dumps(), f, indent=2)
-                    logger.info(f"✅ Saved optimized program using alternative method")
+                    logger.info("✅ Saved optimized program using alternative method")
                 except Exception as alt_save_error:
                     logger.error(f"❌ Alternative save method also failed: {alt_save_error}")
             
@@ -290,7 +289,7 @@ if __name__ == "__main__":
                     import json
                     with open(str(json_path), 'w') as f:
                         json.dump(classifier_v4_program.dumps(), f, indent=2)
-                    logger.info(f"✅ Saved original program using alternative method")
+                    logger.info("✅ Saved original program using alternative method")
                 except Exception as alt_save_error:
                     logger.error(f"❌ Alternative save method also failed: {alt_save_error}")
             

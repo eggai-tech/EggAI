@@ -6,15 +6,15 @@ This module provides centralized configuration and tracer creation for OpenTelem
 
 import asyncio
 import functools
+import json
 import os
 import random
 import uuid
-import json
 from asyncio import iscoroutine
-from typing import Optional, Dict, Callable, Awaitable
+from typing import Awaitable, Callable, Dict, Optional
 
 from opentelemetry import trace
-from opentelemetry.trace import Tracer, SpanContext, TraceFlags, TraceState
+from opentelemetry.trace import SpanContext, TraceFlags, Tracer, TraceState
 
 
 def init_telemetry(
@@ -82,8 +82,8 @@ def traced_handler(span_name: str = None):
     def decorator(handler_func: Callable[[Dict], Awaitable[None]]):
         @functools.wraps(handler_func)
         async def wrapper(*args, **kwargs):
-            from libraries.tracing.schemas import TracedMessage
             from libraries.logger import get_console_logger
+            from libraries.tracing.schemas import TracedMessage
 
             splitted = handler_func.__module__.split('.')
             module_name = splitted[-2] if len(splitted) > 1 else splitted[0]

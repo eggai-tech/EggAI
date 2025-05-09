@@ -1,14 +1,13 @@
-import asyncio
-import os
-import sys
-from typing import List, Optional
 import argparse
+import asyncio
+from typing import List, Optional
+
 import dotenv
 from tqdm import tqdm
 
-from triage_agent_dataset.models import Agents
 from triage_agent_dataset.config import AppConfig
 from triage_agent_dataset.dataset_generator import generate_conversation_per_agent
+from triage_agent_dataset.models import Agents
 
 
 async def generate_dataset(

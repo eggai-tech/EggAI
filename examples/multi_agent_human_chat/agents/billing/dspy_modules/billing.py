@@ -4,11 +4,15 @@ import os
 from pathlib import Path
 
 import dspy
+
+from agents.billing.config import settings
+from agents.billing.dspy_modules.billing_data import (
+    get_billing_info,
+    update_billing_info,
+)
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
-from libraries.tracing import traced_dspy_function, TracedReAct, create_tracer
-from agents.billing.config import settings
-from agents.billing.dspy_modules.billing_data import get_billing_info, update_billing_info
+from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
 
 logger = get_console_logger("billing_agent.dspy")
 

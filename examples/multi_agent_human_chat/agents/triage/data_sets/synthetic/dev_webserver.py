@@ -3,10 +3,11 @@
 Development script for running the webserver directly.
 For production use, install the package and use the `triage-server` command.
 """
-import sys
-import os
-import uvicorn
 import argparse
+import os
+import sys
+
+import uvicorn
 from dotenv import load_dotenv
 
 # Add src directory to path

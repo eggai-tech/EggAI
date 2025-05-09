@@ -1,9 +1,9 @@
+import os
 from typing import Optional
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
-import os
 from dotenv import load_dotenv
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Load environment variables at module level
 load_dotenv()
@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     language_model: str = Field(default="openai/gpt-4o-mini")
     language_model_api_base: Optional[str] = Field(default=None)
     cache_enabled: bool = Field(default=False)
+    max_context_window: Optional[int] = Field(default=None)  # Set to None to use provider defaults
     
     # Kafka transport settings
     kafka_bootstrap_servers: str = Field(default="localhost:19092")

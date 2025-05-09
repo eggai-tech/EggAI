@@ -1,11 +1,15 @@
+from typing import Optional, Union
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, cast, String
-from typing import List, Optional, Union
 
 from triage_webserver.database.connection import get_db
 from triage_webserver.models.data_models import Example
-from triage_webserver.schemas.example_schemas import ExampleResponse, ExampleUpdate, ExampleList
+from triage_webserver.schemas.example_schemas import (
+    ExampleList,
+    ExampleResponse,
+    ExampleUpdate,
+)
 
 router = APIRouter()
 

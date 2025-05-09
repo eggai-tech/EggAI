@@ -1,16 +1,19 @@
 import asyncio
-import pytest
-import dspy
-import mlflow
 import time
-from uuid import uuid4
 from datetime import datetime
 from typing import List
+from uuid import uuid4
+
+import dspy
+import mlflow
+import pytest
 from eggai import Agent, Channel
-from ..agent import claims_agent, settings
-from libraries.tracing import TracedMessage
-from libraries.logger import get_console_logger
+
 from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage
+
+from ..agent import claims_agent, settings
 
 logger = get_console_logger("claims_agent.tests")
 

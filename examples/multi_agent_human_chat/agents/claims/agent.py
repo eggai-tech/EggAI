@@ -1,15 +1,25 @@
-import json
 import dspy
-from eggai import Channel, Agent
+from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_handler, format_span_as_traceparent
-from libraries.logger import get_console_logger
-from libraries.kafka_transport import create_kafka_transport
-from .config import settings
 from agents.claims.dspy_modules.claims import claims_optimized_dspy
-from agents.claims.dspy_modules.claims_data import get_claim_status, file_claim, update_claim_info, CLAIMS_DATABASE
+from agents.claims.dspy_modules.claims_data import (
+    file_claim,
+    get_claim_status,
+    update_claim_info,
+)
+from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import (
+    TracedMessage,
+    TracedReAct,
+    create_tracer,
+    format_span_as_traceparent,
+    traced_handler,
+)
+
+from .config import settings
 
 # Set up Kafka transport
 eggai_set_default_transport(
@@ -74,9 +84,6 @@ class ClaimsAgentSignature(dspy.Signature):
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Claims response to the user.")
-
-
-# Using shared CLAIMS_DATABASE and tool functions from claims_data.py
 
 
 claims_react = TracedReAct(

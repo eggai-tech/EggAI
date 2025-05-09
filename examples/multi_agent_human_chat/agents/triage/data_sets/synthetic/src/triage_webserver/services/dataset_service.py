@@ -1,14 +1,14 @@
 import asyncio
-from typing import List, Dict, Any, Optional
 import datetime
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 from tqdm import tqdm
-
-from triage_agent_dataset.models import Agents, SpecialCaseType
 from triage_agent_dataset.dataset_generator import generate_conversation_per_agent
-from triage_webserver.models.data_models import Dataset, Example
+from triage_agent_dataset.models import Agents
+
 from triage_webserver.config import WebServerConfig
+from triage_webserver.models.data_models import Dataset, Example
 
 config = WebServerConfig()
 
@@ -19,8 +19,8 @@ async def create_dataset(
     total_target: int = 100,
     agent_distribution: Optional[Dict[str, float]] = None,
     special_case_distribution: Optional[Dict[str, float]] = None,
-    temperatures: List[float] = [0.7, 0.8, 0.9],
-    turns: List[int] = [1, 3, 5],
+    temperatures: Optional[List[float]] = None,
+    turns: Optional[List[int]] = None,
     model: Optional[str] = None
 ) -> Dataset:
     """
@@ -48,6 +48,12 @@ async def create_dataset(
             "technical_error": 0.025,
         }
     
+    if temperatures is None:
+        temperatures = [0.7, 0.8, 0.9]
+    
+    if turns is None:
+        turns = [1, 3, 5]
+        
     if model is None:
         model = config.MODEL
     

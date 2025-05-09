@@ -5,9 +5,9 @@ This module provides tracing utilities for DSPy modules, including ChainOfThough
 ReAct, and other DSPy components.
 """
 
-from typing import Optional, List, Callable, Union, Awaitable
 import asyncio
 import functools
+from typing import Callable, List, Optional
 
 import dspy
 from opentelemetry import trace

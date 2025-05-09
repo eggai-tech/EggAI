@@ -1,8 +1,7 @@
+import sys
+import time
 from itertools import product
 from pathlib import Path
-import datetime
-import time
-import sys
 
 import mlflow
 from dspy.evaluate import Evaluate
@@ -187,7 +186,7 @@ if __name__ == "__main__":
         # Set up hyperparameter grid search
         for values in product(*SEARCH_SPACE.values()):
             current_config += 1
-            hp = dict(zip(SEARCH_SPACE.keys(), values))
+            hp = dict(zip(SEARCH_SPACE.keys(), values, strict=False))
             
             logger.info(f"\n{'=' * 80}")
             logger.info(f"Testing configuration {current_config}/{total_configs}:")
@@ -195,7 +194,7 @@ if __name__ == "__main__":
             logger.info(f"{'=' * 80}")
             
             # Show grid search progress
-            print_progress(f"Grid search", current_config, total_configs)
+            print_progress("Grid search", current_config, total_configs)
     
             # Configure the optimizer with current hyperparameters
             tele = BootstrapFewShotWithRandomSearch(
@@ -214,12 +213,12 @@ if __name__ == "__main__":
                   
             try:
                 # Define a function to show active spinner during bootstrap
-                def show_spinner():
+                def show_spinner(config_num=current_config):
                     elapsed = 0
                     while elapsed < 300:  # Timeout after 5 minutes (300 seconds)
                         chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
                         for char in chars:
-                            sys.stdout.write(f"\r{char} Bootstrapping examples (config {current_config})... (elapsed: {int(elapsed)}s)")
+                            sys.stdout.write(f"\r{char} Bootstrapping examples (config {config_num})... (elapsed: {int(elapsed)}s)")
                             sys.stdout.flush()
                             time.sleep(0.1)
                             elapsed += 0.1
@@ -253,7 +252,7 @@ if __name__ == "__main__":
                 if score > best_dev:
                     best_program, best_dev, best_hp = prog, score, hp
                     logger.info(f"\n{'=' * 80}")
-                    logger.info(f"✨ NEW BEST PROGRAM FOUND! ✨")
+                    logger.info("✨ NEW BEST PROGRAM FOUND! ✨")
                     logger.info(f"Best score so far: {best_dev:.3f}")
                     logger.info(f"Best hyper-parameters so far: {best_hp}")
                     logger.info(f"{'=' * 80}\n")
@@ -267,7 +266,7 @@ if __name__ == "__main__":
                     mlflow.log_metric("best_score", best_dev)
                     
                     # Show visual indicator of progress and improvement
-                    print_progress(f"Best score improvement", int(100*best_dev), 100)
+                    print_progress("Best score improvement", int(100*best_dev), 100)
                     time.sleep(0.5)  # Pause briefly to show the progress bar
                     sys.stdout.write("\r" + " " * 60 + "\r")  # Clear the progress bar
             except Exception as e:

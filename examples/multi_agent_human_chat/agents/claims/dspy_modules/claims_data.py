@@ -5,6 +5,7 @@ This module contains the shared database and tools used by both the main agent
 and the optimized DSPy version, preventing circular dependencies.
 """
 import json
+
 from libraries.logger import get_console_logger
 from libraries.tracing import create_tracer
 

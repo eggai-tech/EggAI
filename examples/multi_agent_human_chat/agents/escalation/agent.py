@@ -1,14 +1,21 @@
 import json
-from uuid import uuid4
-import dspy
-from eggai import Channel, Agent
 from typing import Any, Literal
+from uuid import uuid4
 
+import dspy
+from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 from opentelemetry import trace
-from libraries.tracing import TracedChainOfThought, TracedReAct, TracedMessage, traced_handler
-from libraries.logger import get_console_logger
+
 from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import (
+    TracedChainOfThought,
+    TracedMessage,
+    TracedReAct,
+    traced_handler,
+)
+
 from .config import settings
 
 logger = get_console_logger("escalation_agent")

@@ -1,12 +1,15 @@
 import asyncio
-from typing import Optional, List
+from typing import Optional
 
 import litellm
 from tqdm import tqdm
 
-from triage_agent_dataset.models import Agents, SpecialCaseType, ConversationExample
-from triage_agent_dataset.constants import SYSTEM_PROMPT, SPECIAL_CASE_ADDITIONAL_INSTRUCTIONS
 from triage_agent_dataset.config import AppConfig
+from triage_agent_dataset.constants import (
+    SPECIAL_CASE_ADDITIONAL_INSTRUCTIONS,
+    SYSTEM_PROMPT,
+)
+from triage_agent_dataset.models import Agents, ConversationExample, SpecialCaseType
 
 config = AppConfig()
 

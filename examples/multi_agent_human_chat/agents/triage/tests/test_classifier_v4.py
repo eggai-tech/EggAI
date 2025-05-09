@@ -4,9 +4,12 @@ from datetime import datetime
 import mlflow
 import pytest
 
-from libraries.dspy_set_language_model import dspy_set_language_model
-from agents.triage.dspy_modules.classifier_v4.classifier_v4 import classifier_v4, settings
+from agents.triage.dspy_modules.classifier_v4.classifier_v4 import (
+    classifier_v4,
+    settings,
+)
 from agents.triage.dspy_modules.evaluation.evaluate import run_evaluation
+from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("test_classifier_v4")

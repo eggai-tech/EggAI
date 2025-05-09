@@ -1,11 +1,14 @@
 import asyncio
+
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport
-from libraries.tracing import init_telemetry
-from libraries.logger import get_console_logger
+
 from libraries.kafka_transport import create_kafka_transport
-from .config import settings
+from libraries.logger import get_console_logger
+from libraries.tracing import init_telemetry
+
 from .agent import audit_agent
+from .config import settings
 
 logger = get_console_logger("audit_agent")
 

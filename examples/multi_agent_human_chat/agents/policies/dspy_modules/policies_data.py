@@ -9,6 +9,7 @@ import threading
 from typing import Literal
 
 from opentelemetry import trace
+
 from libraries.logger import get_console_logger
 
 PolicyCategory = Literal["auto", "life", "home", "health"]

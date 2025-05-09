@@ -1,25 +1,26 @@
 import asyncio
-import random
 import os
-from typing import Any, Dict, List
-from uuid import uuid4
+import random
 from datetime import datetime
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock
+from uuid import uuid4
 
 import dspy
 import pytest
 from dotenv import load_dotenv
+from eggai import Agent, Channel
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from eggai import Agent, Channel
+from agents.triage.agent import handle_user_message
 from agents.triage.config import Settings
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage
+
 from ..agent import triage_agent
 from ..data_sets.loader import load_dataset_triage_testing, translate_agent_str_to_enum
 from ..models import AGENT_REGISTRY, TargetAgent
-from agents.triage.agent import handle_user_message
-from libraries.tracing import TracedMessage
-from unittest.mock import AsyncMock
 
 # ---------------------------------------------------------------------------
 # Global setup
