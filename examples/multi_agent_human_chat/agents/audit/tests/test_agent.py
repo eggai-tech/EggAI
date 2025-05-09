@@ -283,8 +283,8 @@ async def test_message_categories():
         # Measure test execution time
         start_time = time.perf_counter()
         
-        # Create DSPy evaluation model
-        eval_model = dspy.asyncify(dspy.Predict(AuditEvaluationSignature))
+        # Create DSPy evaluation model - use direct MockPredict to avoid async
+        eval_model = dspy.Predict(AuditEvaluationSignature)
         
         # Results tracking
         category_results = []
@@ -294,8 +294,8 @@ async def test_message_categories():
         for i, (msg_type, expected_category) in enumerate(MESSAGE_CATEGORIES.items()):
             case_start_time = time.perf_counter()
             
-            # Evaluate categorization with DSPy
-            evaluation_result = await eval_model(
+            # Evaluate categorization with our mocked DSPy Predict
+            evaluation_result = eval_model(
                 message_received=f"Message with type {msg_type}",
                 message_category=expected_category,
                 audit_success=True,
@@ -401,10 +401,10 @@ async def test_unknown_message_type():
         # Assert for test framework
         assert category_correct, f"Unknown type defaulted to '{default_category}' instead of 'Other'"
         
-        # Test 2: Evaluate with DSPy
+        # Test 2: Evaluate with DSPy using our mock
         dspy_start_time = time.perf_counter()
-        eval_model = dspy.asyncify(dspy.Predict(AuditEvaluationSignature))
-        evaluation_result = await eval_model(
+        eval_model = dspy.Predict(AuditEvaluationSignature)
+        evaluation_result = eval_model(
             message_received=str(unknown_message),
             message_category="Other",
             audit_success=True,
@@ -447,3 +447,6 @@ async def test_unknown_message_type():
         
         # Log overall test outcome
         mlflow.log_metric("test_passed", 1.0)
+
+# Restore the original dspy.Predict class after tests are done
+dspy.Predict = original_predict
