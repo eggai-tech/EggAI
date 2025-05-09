@@ -120,11 +120,9 @@ async def handle_policy_request(msg_dict):
                 
             # Make sure we have a valid response
             if not final_response or final_response == "NoneType":
-                policy_number = opt_response.get("policy_number", "")
-                if policy_number == "B67890":
-                    # Manually construct a fallback response for the failing test case
-                    final_response = "Your next premium payment of $300.00 is due on 2025-03-15."
-                    logger.info("Using fallback response for policy B67890")
+                # Use a generic fallback response if we couldn't get a valid final response
+                final_response = "I'm having trouble processing your request. Could you please provide your policy number again, and tell me what specific information you need?"
+                logger.warning("Using generic fallback response due to missing or invalid final_response")
                 
         except Exception as e:
             logger.warning(f"Error using optimized module: {e}, falling back to TracedReAct")
