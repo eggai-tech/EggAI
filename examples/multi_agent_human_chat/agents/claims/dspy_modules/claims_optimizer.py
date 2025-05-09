@@ -14,7 +14,6 @@ Key points:
 This approach allows us to optimize the agent's instructions while
 preserving its tool-using capabilities.
 """
-import os
 from pathlib import Path
 import datetime
 import time
@@ -261,10 +260,7 @@ if __name__ == "__main__":
         print_progress("Evaluating baseline")
         
         # Custom evaluator to show progress
-        def evaluate_with_progress(program):
-            # Start evaluation with active spinner
-            start_time = time.time()
-            
+        def evaluate_with_progress(program):            
             def show_spinner():
                 elapsed = 0
                 while elapsed < 60:  # Timeout after 60 seconds

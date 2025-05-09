@@ -14,7 +14,6 @@ Key points:
 This approach allows us to optimize the agent's instructions while
 preserving its tool-using capabilities.
 """
-import os
 from pathlib import Path
 import datetime
 import time

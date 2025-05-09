@@ -1,8 +1,7 @@
 """Dataset generator for Billing Agent optimization."""
-import json
 import random
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import List
 
 import dspy
 
