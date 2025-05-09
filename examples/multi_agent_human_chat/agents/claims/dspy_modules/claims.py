@@ -6,7 +6,7 @@ from pathlib import Path
 import dspy
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
-from libraries.tracing import traced_dspy_function
+from libraries.tracing import traced_dspy_function, TracedReAct
 from agents.claims.config import settings
 
 logger = get_console_logger("claims_agent.dspy")
@@ -66,7 +66,7 @@ try:
     if os.path.exists(json_path):
         logger.info(f"Loading optimized TracedReAct claims program from {json_path}")
         # Create TracedReAct with real tools
-        from agents.claims.agent import get_claim_status, file_claim, update_claim_info
+        from agents.claims.dspy_modules.claims_data import get_claim_status, file_claim, update_claim_info
         from libraries.tracing import create_tracer
         
         tracer = create_tracer("claims_agent_optimized")
@@ -98,7 +98,11 @@ try:
                 
                 # Set custom instructions if available
                 if "instructions" in signature_data:
-                    ClaimsCustomSignature.__doc__ = signature_data["instructions"]
+                    instructions = signature_data["instructions"]
+                    # Ensure date formatting instructions are included
+                    if "IMPORTANT: Dates MUST be in the format YYYY-MM-DD" not in instructions:
+                        instructions += "\n    IMPORTANT: Dates MUST be in the format YYYY-MM-DD. For example, use \"2025-03-15\" instead of \"March 15th, 2025\"."
+                    ClaimsCustomSignature.__doc__ = instructions
                 
                 # Create a new TracedReAct with the custom signature
                 claims_optimized = TracedReAct(

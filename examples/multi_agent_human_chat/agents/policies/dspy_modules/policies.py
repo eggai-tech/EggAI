@@ -54,7 +54,7 @@ try:
     if os.path.exists(json_path):
         logger.info(f"Loading optimized TracedReAct policies program from {json_path}")
         # Create TracedReAct with real tools
-        from agents.policies.agent import take_policy_by_number_from_database, query_policy_documentation
+        from agents.policies.dspy_modules.policies_data import take_policy_by_number_from_database, query_policy_documentation
         
         tracer = trace.get_tracer("policies_agent_optimized")
         
@@ -88,7 +88,11 @@ try:
                 
                 # Set custom instructions if available
                 if "instructions" in signature_data:
-                    PoliciesCustomSignature.__doc__ = signature_data["instructions"]
+                    instructions = signature_data["instructions"]
+                    # Ensure date formatting instructions are included
+                    if "IMPORTANT: Dates MUST be in the format YYYY-MM-DD" not in instructions:
+                        instructions += "\n    IMPORTANT: Dates MUST be in the format YYYY-MM-DD. For example, use \"2025-03-15\" instead of \"March 15th, 2025\"."
+                    PoliciesCustomSignature.__doc__ = instructions
                 
                 # Create a new TracedReAct with the custom signature
                 policies_optimized = TracedReAct(
