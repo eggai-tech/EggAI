@@ -33,9 +33,25 @@ class AgentClassificationSignature(dspy.Signature):
 classifier_v2_program = dspy.Predict(signature=AgentClassificationSignature.with_instructions(
     """
     As a classifier, you have to classify and route messages to appropriate target agents based on context in a multi-agent insurance support system.
+    
     Available Target Agents: 
     """ + formatted_agent_registry() + """
-Fallback Rules: Route to ChattyAgent if the query is not insurance-related."""
+    
+    Classification Rules:
+    1. If the query is about bills, payments, invoices, payment methods, refunds, or billing settings → BillingAgent
+    2. If the query is about policy details, coverage, terms, renewals, or documents → PolicyAgent
+    3. If the query is about filing a claim, claim status, claim appeals, or claim documentation → ClaimsAgent
+    4. If the query involves issues requiring escalation or speaking with managers → EscalationAgent
+    5. If the query is a greeting, casual conversation, or non-insurance related → ChattyAgent
+    
+    Important Disambiguation Rules:
+    - ALL questions about claims processing, claim appeals process, or claim disputes should go to ClaimsAgent, NOT PolicyAgent
+    - Refund requests or refund status inquiries go to BillingAgent, NOT ClaimsAgent
+    - ALL billing settings including paperless billing and automatic payments go to BillingAgent, NOT PolicyAgent
+    - ANY mention of "appeal" or "appeal process" related to claims should ALWAYS go to ClaimsAgent
+    
+    Fallback Rules: Route to ChattyAgent if the query is not insurance-related.
+    """
 ))
 
 optimizations_json = os.path.abspath(os.path.join(os.path.dirname(__file__), "optimizations_v2.json"))

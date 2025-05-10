@@ -8,7 +8,7 @@ from eggai.transport import eggai_set_default_transport
 
 from agents.policies.config import settings
 from agents.policies.dspy_modules.policies import policies_optimized_dspy
-from agents.policies.types import ChatMessage
+from agents.policies.types import ChatMessage, ModelConfig
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
@@ -92,13 +92,18 @@ async def publish_agent_response(connection_id: str, message: str) -> None:
 async def process_policy_request(
     conversation_string: str, 
     connection_id: str,
-    timeout_seconds: float = 30.0
+    timeout_seconds: float = None
 ) -> str:
     """Generate a response to a policy request with timeout protection."""
+    # Create default model config with settings
+    config = ModelConfig(
+        timeout_seconds=timeout_seconds or 30.0
+    )
+    
     with tracer.start_as_current_span("process_policy_request") as span:
         span.set_attribute("connection_id", connection_id)
         span.set_attribute("conversation_length", len(conversation_string))
-        span.set_attribute("timeout_seconds", timeout_seconds)
+        span.set_attribute("timeout_seconds", config.timeout_seconds)
         
         start_time = time.perf_counter()
         
@@ -109,7 +114,7 @@ async def process_policy_request(
                 raise ValueError("Conversation history is too short to process")
                 
             logger.info("Calling policies model")
-            response_data = policies_optimized_dspy(chat_history=conversation_string)
+            response_data = policies_optimized_dspy(chat_history=conversation_string, config=config)
             
             processing_time = time.perf_counter() - start_time
             span.set_attribute("processing_time_ms", processing_time * 1000)

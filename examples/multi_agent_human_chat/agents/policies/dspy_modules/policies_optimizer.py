@@ -23,8 +23,9 @@ import dspy
 import litellm
 import mlflow
 from dspy.evaluate import Evaluate
-from dspy.teleprompt import COPRO
 from sklearn.model_selection import train_test_split
+
+from libraries.dspy_copro import SimpleCOPRO, save_and_log_optimized_instructions
 
 # Configure litellm to drop unsupported parameters
 litellm.drop_params = True
@@ -290,16 +291,21 @@ if __name__ == "__main__":
         logger.info(f"Baseline score: {base_score:.3f}")
         mlflow.log_metric("baseline_score", base_score)
         
-        # Set up COPRO with progress reporting
-        logger.info("Setting up COPRO optimizer...")
+        # Set up a custom COPRO implementation for simpler LLMs
+        logger.info("Setting up custom COPRO optimizer for simpler LLMs...")
         breadth = 2  # Minimum value required by COPRO
         depth = 1  # Minimum value for ultra-fast optimization
         
+        # Use the shared SimpleCOPRO class for simpler LLMs
+        # Define the critical text that must be preserved for policies
+        critical_policy_text = "NEVER reveal ANY policy details without EXPLICIT policy number"
         
-        optimizer = COPRO(
+        # Use our custom COPRO implementation
+        optimizer = SimpleCOPRO(
             metric=simple_precision_metric,
             breadth=breadth,
             depth=depth,
+            logger=logger,  # Pass our logger for consistent logging
             verbose=False  # Disable default verbosity to use our custom progress
         )
         
@@ -319,6 +325,85 @@ if __name__ == "__main__":
             def compile_with_progress():
                 # Start progress tracking
                 print_progress("Setting up optimization")
+                logger.info("====== DETAILED DEBUGGING FOR COPRO OPTIMIZATION ======")
+                
+                # Examine first example
+                if train_set and len(train_set) > 0:
+                    example = train_set[0]
+                    logger.info(f"First example type: {type(example)}")
+                    logger.info(f"First example attributes: {dir(example)}")
+                    logger.info(f"First example content: {str(example)[:200]}...")
+                else:
+                    logger.error("No training examples available!")
+                
+                # Debug signature
+                logger.info(f"Signature docstring sample: {policies_program.signature.__doc__[:200]}...")
+                logger.info(f"Signature type: {type(policies_program.signature)}")
+                
+                # Debug instruction proposal
+                try:
+                    # Test instruction proposal directly
+                    from dspy.propose.instruction_proposal import (
+                        BasicGenerateInstruction,
+                    )
+                    logger.info("Testing BasicGenerateInstruction directly")
+                    
+                    # Check BasicGenerateInstruction
+                    logger.info(f"BasicGenerateInstruction fields: {BasicGenerateInstruction.__init__.__annotations__ if hasattr(BasicGenerateInstruction.__init__, '__annotations__') else 'No annotations'}")
+                    
+                    # Print BasicGenerateInstruction details
+                    try:
+                        ip_fields = [(fname, str(ftype)) for fname, ftype in vars(BasicGenerateInstruction).items() if not fname.startswith('_')]
+                        logger.info(f"BasicGenerateInstruction fields: {ip_fields}")
+                    except Exception as field_error:
+                        logger.info(f"Could not extract BasicGenerateInstruction fields: {field_error}")
+                        
+                    # Try simple prediction
+                    try:
+                        from dspy.predict import Predict
+                        test_program = Predict(BasicGenerateInstruction)
+                        logger.info("Created test program for instruction proposal")
+                        
+                        # Context for instruction proposal
+                        context = f"Original signature docstring:\n{policies_program.signature.__doc__[:500]}"
+                        logger.info(f"Context sample: {context[:200]}...")
+                        
+                        # Try with a direct prediction
+                        logger.info("Attempting direct prediction for instruction proposal...")
+                        
+                        # Try to run lm in an isolated way
+                        if hasattr(example, 'with_answer'):
+                            example_with_answer = example.with_answer()
+                            logger.info(f"Example with answer: {type(example_with_answer)}")
+                        else:
+                            logger.info("Example doesn't have with_answer method")
+                            example_with_answer = example
+                            
+                        # Log LM information
+                        try:
+                            # Different versions of DSPy have different module structures
+                            try:
+                                import dspy.utils
+                                logger.info(f"DSPy utils available: {dir(dspy.utils)[:5]}...")
+                            except ImportError:
+                                logger.warning("Could not import dspy.utils")
+                                    
+                            # Try to access current language model
+                            import dspy
+                            logger.info(f"Current LM via dspy module: {dspy.settings.lm}")
+                            logger.info(f"LM type: {type(dspy.settings.lm)}")
+                        except Exception as lm_error:
+                            logger.error(f"Error getting LM: {lm_error}")
+                            
+                    except Exception as pred_error:
+                        logger.error(f"Error in test prediction: {pred_error}")
+                        import traceback
+                        logger.error(f"Test prediction traceback: {traceback.format_exc()}")
+                
+                except Exception as ip_error:
+                    logger.error(f"Error testing instruction proposal: {ip_error}")
+                    import traceback
+                    logger.error(f"InstructionProposal test traceback: {traceback.format_exc()}")
                 
                 # Run optimization with active spinner
                 print_progress("Starting optimization", 0, breadth * depth)
@@ -340,18 +425,26 @@ if __name__ == "__main__":
                 spinner_thread.daemon = True
                 spinner_thread.start()
                 
-                # Run compilation
-                result = optimizer.compile(
-                    policies_program,
-                    trainset=train_set,
-                    eval_kwargs={}
-                )
-                
-                # Manually show complete progress
-                print_progress("Optimization complete", breadth * depth, breadth * depth)
-                print()  # Move to next line
-                
-                return result
+                # Run compilation with more detailed logging
+                try:
+                    logger.info("Calling optimizer.compile...")
+                    result = optimizer.compile(
+                        policies_program,
+                        trainset=train_set,
+                        eval_kwargs={},
+                        critical_text=critical_policy_text
+                    )
+                    logger.info("optimizer.compile completed successfully")
+                    return result
+                except Exception as compile_error:
+                    logger.error(f"Error during COPRO compilation: {compile_error}")
+                    import traceback
+                    logger.error(f"COPRO compilation traceback: {traceback.format_exc()}")
+                    raise
+                finally:
+                    # Manually show complete progress
+                    print_progress("Optimization complete", breadth * depth, breadth * depth)
+                    print()  # Move to next line
             
             # Standard COPRO approach with progress
             logger.info("Using standard COPRO optimization")
@@ -372,81 +465,81 @@ if __name__ == "__main__":
             print_progress("Saving optimized program")
             json_path = Path(__file__).resolve().parent / "optimized_policies.json"
             
-            try:
-                # Try saving the full signature
-                optimized_signature = optimized_program.signature
-                optimized_signature.save(str(json_path))
-                # Clear progress indicator and show success message
-                sys.stdout.write("\r" + " " * 60 + "\r")
-                logger.info(f"✅ Saved optimized signature to {json_path}")
-            except Exception as save_error:
-                # Clear progress indicator
-                sys.stdout.write("\r" + " " * 60 + "\r")
-                logger.warning(f"Full signature save failed: {save_error}")
-                print_progress("Trying fallback save method")
-                
-                # Fallback to manual JSON save of critical parts
-                try:
-                    import json
-                    
-                    # Extract essential signature components
-                    if hasattr(optimized_program, 'signature'):
-                        signature_data = {
-                            "instructions": optimized_program.signature.instructions,
-                            "fields": []
-                        }
-                        
-                        # Try to extract field information
-                        if hasattr(optimized_program.signature, 'fields'):
-                            for field in optimized_program.signature.fields:
-                                if hasattr(field, 'name') and hasattr(field, 'prefix'):
-                                    signature_data["fields"].append({
-                                        "name": field.name,
-                                        "prefix": field.prefix
-                                    })
-                        
-                        # Save simplified signature
-                        with open(str(json_path), 'w') as f:
-                            json.dump(signature_data, f, indent=2)
-                            
-                        # Clear progress indicator and show success message
-                        sys.stdout.write("\r" + " " * 60 + "\r")
-                        logger.info(f"✅ Saved simplified signature to {json_path}")
-                    else:
-                        # Clear progress indicator and show error
-                        sys.stdout.write("\r" + " " * 60 + "\r")
-                        logger.error("❌ Optimized program has no signature attribute")
-                except Exception as simplified_save_error:
-                    # Clear progress indicator and show error
-                    sys.stdout.write("\r" + " " * 60 + "\r")
-                    logger.error(f"❌ Simplified signature save also failed: {simplified_save_error}")
-            
-            # Log artifacts with progress indicator
-            print_progress("Logging artifacts to MLflow")
-            mlflow.log_artifact(str(json_path))
-            # Clear progress indicator
+            # Clear progress indicator for next steps
             sys.stdout.write("\r" + " " * 60 + "\r")
-            logger.info("✅ Artifacts logged successfully")
+            
+            # Use the shared function to save and log instructions
+            save_result = save_and_log_optimized_instructions(
+                path=json_path,
+                optimized_program=optimized_program,
+                original_program=policies_program,
+                logger=logger,
+                mlflow=mlflow
+            )
+            
+            if save_result:
+                logger.info("✅ Successfully saved and logged optimized instructions")
+            else:
+                logger.warning("⚠️ There were issues saving or logging optimized instructions")
+                
+            # Clear progress indicator for next steps
+            sys.stdout.write("\r" + " " * 60 + "\r")
             
         except Exception as e:
             # Clear any progress indicators
             sys.stdout.write("\r" + " " * 60 + "\r")
             logger.error(f"❌ Optimization failed: {e}")
-            mlflow.log_param("optimization_error", str(e))
+            
+            # Log detailed error information
+            import traceback
+            detailed_traceback = traceback.format_exc()
+            logger.error(f"====== DETAILED ERROR TRACEBACK ======\n{detailed_traceback}")
+            
+            # Extract and log the error chain
+            logger.error("====== ERROR CHAIN ======")
+            current_exception = e
+            error_chain = []
+            while current_exception:
+                error_chain.append(f"{type(current_exception).__name__}: {str(current_exception)}")
+                current_exception = current_exception.__cause__
+            logger.error("Error chain: " + " -> ".join(error_chain))
+            
+            # Log to MLflow
+            try:
+                mlflow.log_param("optimization_error", str(e))
+                mlflow.log_param("error_type", type(e).__name__)
+                mlflow.log_text(detailed_traceback, "error_traceback.txt")
+            except Exception as mlflow_error:
+                logger.error(f"❌ Failed to log error to MLflow: {mlflow_error}")
             
             # Save original program as fallback with progress indicator
             print_progress("Saving fallback program")
             json_path = Path(__file__).resolve().parent / "optimized_policies.json"
-            policies_program.save(str(json_path))
             
-            # Clear progress indicator
+            # Clear progress indicator for next steps
             sys.stdout.write("\r" + " " * 60 + "\r")
-            logger.info(f"✅ Saved original program to {json_path}")
             
-            # Log artifacts with progress indicator
-            print_progress("Logging artifacts to MLflow")
-            mlflow.log_artifact(str(json_path))
+            # Create a fallback emergency instruction for worst-case scenario
+            emergency_instruction = "You are the Policy Agent for an insurance company. Your #1 responsibility is data privacy. NEVER reveal ANY policy details without EXPLICIT policy number."
             
-            # Clear progress indicator
-            sys.stdout.write("\r" + " " * 60 + "\r")
-            logger.info("✅ Fallback artifacts logged successfully")
+            # Use the shared function to save and log original instructions as fallback
+            save_result = save_and_log_optimized_instructions(
+                path=json_path,
+                optimized_program=policies_program,  # Use original program as fallback
+                original_program=None, 
+                logger=logger,
+                mlflow=mlflow
+            )
+            
+            if save_result:
+                logger.info("✅ Successfully saved and logged fallback instructions")
+            else:
+                logger.warning("⚠️ There were issues with fallback save - creating emergency file")
+                
+                # Try one last emergency save with minimal content
+                try:
+                    with open(str(json_path), 'w') as f:
+                        f.write('{"instructions": "' + emergency_instruction + '", "fields": []}')
+                    logger.info("✅ Created emergency minimal fallback file")
+                except Exception as emergency_error:
+                    logger.error(f"❌ Emergency fallback failed: {emergency_error}")

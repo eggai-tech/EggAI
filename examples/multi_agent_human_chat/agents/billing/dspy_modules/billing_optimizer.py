@@ -23,8 +23,9 @@ import dspy
 import litellm
 import mlflow
 from dspy.evaluate import Evaluate
-from dspy.teleprompt import COPRO
 from sklearn.model_selection import train_test_split
+
+from libraries.dspy_copro import SimpleCOPRO, save_and_log_optimized_instructions
 
 # Configure litellm to drop unsupported parameters
 litellm.drop_params = True
@@ -160,6 +161,19 @@ def precision_metric(example, pred, trace=None) -> float:
     return 1.0
 
 
+# Define the critical text that must be preserved for billing
+critical_privacy_text = "NEVER reveal ANY billing information unless the user has provided a specific, valid policy number"
+date_format_text = "Dates MUST be in the format YYYY-MM-DD"
+
+def format_examples(examples, max_examples=3):
+    """Format a few examples for the optimization prompt."""
+    formatted = []
+    for i, example in enumerate(examples[:max_examples]):
+        if hasattr(example, 'chat_history') and hasattr(example, 'final_response'):
+            formatted.append(f"EXAMPLE {i+1}:\nUser input: {example.chat_history}\nExpected response: {example.final_response}\n")
+    return "\n".join(formatted)
+
+
 if __name__ == "__main__":
     # Set up env & LM - explicitly disable cache for optimization
     lm = dspy_set_language_model(settings, overwrite_cache_enabled=False)
@@ -172,7 +186,7 @@ if __name__ == "__main__":
         # Log configuration
         mlflow.log_params({
             "model_name": "billing_agent",
-            "optimizer": "COPRO",
+            "optimizer": "SimpleCOPRO",
             "language_model": settings.language_model,
         })
         
@@ -252,15 +266,16 @@ if __name__ == "__main__":
         logger.info(f"Baseline score: {base_score:.3f}")
         mlflow.log_metric("baseline_score", base_score)
         
-        # Set up COPRO with progress reporting
-        logger.info("Setting up COPRO optimizer...")
+        # Set up SimpleCOPRO optimizer
+        logger.info("Setting up SimpleCOPRO optimizer...")
         breadth = 2  # Minimum value required by COPRO
         depth = 1  # Minimum value for ultra-fast optimization
                 
-        optimizer = COPRO(
+        optimizer = SimpleCOPRO(
             metric=precision_metric,
             breadth=breadth,
             depth=depth,
+            logger=logger,  # Pass our logger for consistent logging
             verbose=False  # Disable default verbosity to use our custom progress
         )
         
@@ -274,7 +289,7 @@ if __name__ == "__main__":
         logger.info("Starting optimization...")
         try:
             # Setup progress tracking for COPRO
-            print("\nStarting COPRO optimization...")
+            print("\nStarting SimpleCOPRO optimization...")
             
             def compile_with_progress():
                 # Start progress tracking
@@ -301,7 +316,8 @@ if __name__ == "__main__":
                 result = optimizer.compile(
                     billing_program,
                     trainset=train_set,
-                    eval_kwargs={}
+                    eval_kwargs={},
+                    critical_text=critical_privacy_text
                 )
                 
                 print_progress("Optimization complete", breadth * depth, breadth * depth)
@@ -310,7 +326,7 @@ if __name__ == "__main__":
                 return result
             
             # Standard COPRO approach with progress
-            logger.info("Using standard COPRO optimization")
+            logger.info("Using SimpleCOPRO optimization")
             optimized_program = compile_with_progress()
             
             # Evaluate optimized program with progress indicator
@@ -323,66 +339,30 @@ if __name__ == "__main__":
             mlflow.log_metric("optimized_score", score)
             mlflow.log_metric("improvement", score - base_score)
             
-            # Save optimized program
+            # Save optimized program using shared save function
             logger.info("Saving optimized program...")
             print_progress("Saving optimized program")
             json_path = Path(__file__).resolve().parent / "optimized_billing.json"
             
-            try:
-                # Try saving the full signature
-                optimized_signature = optimized_program.signature
-                optimized_signature.save(str(json_path))
-                # Clear progress indicator and show success message
-                sys.stdout.write("\r" + " " * 60 + "\r")
-                logger.info(f"✅ Saved optimized signature to {json_path}")
-            except Exception as save_error:
-                # Clear progress indicator
-                sys.stdout.write("\r" + " " * 60 + "\r")
-                logger.warning(f"Full signature save failed: {save_error}")
-                print_progress("Trying fallback save method")
-                
-                # Fallback to manual JSON save of critical parts
-                try:
-                    import json
-                    
-                    # Extract essential signature components
-                    if hasattr(optimized_program, 'signature'):
-                        signature_data = {
-                            "instructions": optimized_program.signature.instructions,
-                            "fields": []
-                        }
-                        
-                        # Try to extract field information
-                        if hasattr(optimized_program.signature, 'fields'):
-                            for field in optimized_program.signature.fields:
-                                if hasattr(field, 'name') and hasattr(field, 'prefix'):
-                                    signature_data["fields"].append({
-                                        "name": field.name,
-                                        "prefix": field.prefix
-                                    })
-                        
-                        # Save simplified signature
-                        with open(str(json_path), 'w') as f:
-                            json.dump(signature_data, f, indent=2)
-                            
-                        # Clear progress indicator and show success message
-                        sys.stdout.write("\r" + " " * 60 + "\r")
-                        logger.info(f"✅ Saved simplified signature to {json_path}")
-                    else:
-                        # Clear progress indicator and show error
-                        sys.stdout.write("\r" + " " * 60 + "\r")
-                        logger.error("❌ Optimized program has no signature attribute")
-                except Exception as simplified_save_error:
-                    # Clear progress indicator and show error
-                    sys.stdout.write("\r" + " " * 60 + "\r")
-                    logger.error(f"❌ Simplified signature save also failed: {simplified_save_error}")
-            
-            # Log artifacts with progress indicator
-            print_progress("Logging artifacts to MLflow")
-            mlflow.log_artifact(str(json_path))
-            # Clear progress indicator
+            # Clear progress indicator for next steps
             sys.stdout.write("\r" + " " * 60 + "\r")
-            logger.info("✅ Artifacts logged successfully")
+            
+            # Use the shared function to save and log instructions
+            save_result = save_and_log_optimized_instructions(
+                path=json_path,
+                optimized_program=optimized_program,
+                original_program=billing_program,
+                logger=logger,
+                mlflow=mlflow
+            )
+            
+            if save_result:
+                logger.info("✅ Successfully saved and logged optimized instructions")
+            else:
+                logger.warning("⚠️ There were issues saving or logging optimized instructions")
+                
+            # Clear progress indicator for next steps
+            sys.stdout.write("\r" + " " * 60 + "\r")
             
         except Exception as e:
             # Clear any progress indicators
@@ -393,16 +373,31 @@ if __name__ == "__main__":
             # Save original program as fallback with progress indicator
             print_progress("Saving fallback program")
             json_path = Path(__file__).resolve().parent / "optimized_billing.json"
-            billing_program.save(str(json_path))
             
-            # Clear progress indicator
+            # Clear progress indicator for next steps
             sys.stdout.write("\r" + " " * 60 + "\r")
-            logger.info(f"✅ Saved original program to {json_path}")
             
-            # Log artifacts with progress indicator
-            print_progress("Logging artifacts to MLflow")
-            mlflow.log_artifact(str(json_path))
+            # Create a fallback emergency instruction for worst-case scenario
+            emergency_instruction = "You are the Billing Agent for an insurance company. Your #1 responsibility is data privacy. NEVER reveal ANY billing information unless the user has provided a specific, valid policy number."
             
-            # Clear progress indicator
-            sys.stdout.write("\r" + " " * 60 + "\r")
-            logger.info("✅ Fallback artifacts logged successfully")
+            # Use the shared function to save and log original instructions as fallback
+            save_result = save_and_log_optimized_instructions(
+                path=json_path,
+                optimized_program=billing_program,  # Use original program as fallback
+                original_program=None, 
+                logger=logger,
+                mlflow=mlflow
+            )
+            
+            if save_result:
+                logger.info("✅ Successfully saved and logged fallback instructions")
+            else:
+                logger.warning("⚠️ There were issues with fallback save - creating emergency file")
+                
+                # Try one last emergency save with minimal content
+                try:
+                    with open(str(json_path), 'w') as f:
+                        f.write('{"instructions": "' + emergency_instruction + '", "fields": []}')
+                    logger.info("✅ Created emergency minimal fallback file")
+                except Exception as emergency_error:
+                    logger.error(f"❌ Emergency fallback failed: {emergency_error}")

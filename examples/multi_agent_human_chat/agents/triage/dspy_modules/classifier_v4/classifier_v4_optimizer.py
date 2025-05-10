@@ -211,11 +211,11 @@ if __name__ == "__main__":
                 spinner_thread.daemon = True
                 spinner_thread.start()
                 
-                # Run compilation directly
+                # Run compilation directly - don't include metric in eval_kwargs since it's already provided to COPRO
                 result = optimizer.compile(
                     classifier_v4_program,
                     trainset=train_set,
-                    eval_kwargs={"metric": macro_f1}
+                    eval_kwargs={}  # Empty dict to avoid duplicate metric parameter
                 )
                 
                 # Show optimization completion
