@@ -96,7 +96,8 @@ async def publish_audit_event(message_id, message_type, source, channel, categor
     except Exception as e:
         logger.error(f"Failed to publish audit event: {e}")
 
-@audit_agent.subscribe(pattern="{channel}")
+@audit_agent.subscribe(channel=agents_channel)
+@audit_agent.subscribe(channel=human_channel)
 @traced_handler("audit_message")
 async def audit_message(message, msg: KafkaMessage):
     try:

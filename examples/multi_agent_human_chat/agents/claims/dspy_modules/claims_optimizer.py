@@ -69,49 +69,29 @@ def print_progress(message, progress=None, total=None):
         sys.stdout.flush()
 
 
+# Import core prompt from claims.py - single source of truth
+import importlib.util
+import inspect
+
+
+def get_claims_signature_prompt() -> str:
+    """Extract the docstring from ClaimsSignature without circular imports."""
+    # Load the claims module dynamically
+    spec = importlib.util.spec_from_file_location(
+        "claims", 
+        Path(__file__).resolve().parent / "claims.py"
+    )
+    claims_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(claims_module)
+    
+    # Extract the docstring from ClaimsSignature
+    return inspect.getdoc(claims_module.ClaimsSignature)
+
+# Use the same prompt from the main module
 class ClaimsSignature(dspy.Signature):
-    """
-    You are the Claims Agent for an insurance company.
-
-    ROLE:
-    - Help customers with all claims-related questions and actions, including:
-      • Filing a new claim
-      • Checking the status of an existing claim
-      • Explaining required documentation
-      • Estimating payouts and timelines
-      • Updating claim details (e.g. contact info, incident description)
-
-    TOOLS:
-    - get_claim_status(claim_number: str) -> str:
-        Retrieves the current status, payment estimate, next steps, and any outstanding items for a given claim. Returns JSON string.
-    - file_claim(policy_number: str, claim_details: str) -> str:
-        Creates a new claim under the customer's policy with the provided incident details. Returns JSON string of new claim.
-    - update_claim_info(claim_number: str, field: str, new_value: str) -> str:
-        Modifies a specified field (e.g., "address", "phone", "damage_description") on an existing claim. Returns JSON string of updated claim.
-
-    RESPONSE FORMAT:
-    - Respond in a clear, courteous, and professional tone.
-    - Summarize the key information or confirm the action taken.
-    - Example for status inquiry:
-        "Your claim #123456 is currently 'In Review'. We estimate a payout of $2,300 by 2025-05-15. We're still awaiting your repair estimates—please submit them at your earliest convenience."
-    - Example for filing a claim:
-        "I've filed a new claim #789012 under policy ABC-123. Please upload photos of the damage and any police report within 5 business days to expedite processing."
-
-    GUIDELINES:
-    - Only invoke a tool when the user provides or requests information that requires it (a claim number for status, policy number and details to file, etc.).
-    - If the user hasn't specified a claim or policy number when needed, politely request it:
-        "Could you please provide your claim number so I can check its status?"
-    - Do not disclose internal processes or irrelevant details.
-    - Keep answers concise—focus only on what the customer needs to know or do next.
-    - Always confirm changes you make:
-        "I've updated your mailing address on claim #123456 as requested."
-
-    Input Fields:
-    - chat_history: str — Full conversation context.
-
-    Output Fields:
-    - final_response: str — Claims response to the user.
-    """
+    """The claims agent signature for optimization."""
+    # Get the docstring from the main ClaimsSignature
+    __doc__ = get_claims_signature_prompt()
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Claims response to the user.")

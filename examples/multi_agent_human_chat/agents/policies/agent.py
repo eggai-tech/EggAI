@@ -1,27 +1,24 @@
-from typing import Literal, Optional
+"""Policies agent for handling policy information requests."""
+import asyncio
+import time
+from typing import Any, Dict, List
 
-import dspy
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
-from opentelemetry import trace
 
 from agents.policies.config import settings
 from agents.policies.dspy_modules.policies import policies_optimized_dspy
-from agents.policies.dspy_modules.policies_data import (
-    query_policy_documentation,
-    take_policy_by_number_from_database,
-)
+from agents.policies.types import ChatMessage
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedMessage,
-    TracedReAct,
+    create_tracer,
     format_span_as_traceparent,
     traced_handler,
 )
 
-# Set up Kafka transport
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -30,202 +27,221 @@ eggai_set_default_transport(
 )
 
 policies_agent = Agent(name="PoliciesAgent")
-
+logger = get_console_logger("policies_agent.handler")
 agents_channel = Channel("agents")
 human_channel = Channel("human")
-
-tracer = trace.get_tracer("policies_agent")
-logger = get_console_logger("policies_agent.handler")
-
-PolicyCategory = Literal["auto", "life", "home", "health"]
+tracer = create_tracer("policies_agent")
 
 
-class PolicyAgentSignature(dspy.Signature):
-    """
-    This signature defines the input and output for processing policy inquiries
-    using a simple ReACT loop.
-
-    Role:
-    - You are the Policy Agent for an insurance company. Your job is to help users
-      with inquiries about insurance policies (coverage details, premiums, etc.).
-    - If the necessary policy details (e.g. a policy number) are provided, use a tool
-      to retrieve policy information, it will return a JSON-formatted string if the policy is found with fields like name, premium amount, due date and policy category.
-    - You can also use a tool query_policy_documentation for specific questions, you can query documentation about a policy by providing a query and a policy category retrieved from database.
-    - If not, ask for the missing information.
-    - Maintain a polite, concise, and helpful tone.
-    - If documentation is found, please include it in the final response as summarized information, specifying the document reference formatted with parenthesis and an identifier POLICY_CATEGORY#REFERENCE (see home#3.1) or (see home#4.5.6).
-    """
-
-    chat_history: str = dspy.InputField(desc="Full conversation context.")
-
-    policy_category: Optional[PolicyCategory] = dspy.OutputField(
-        desc="Policy category."
-    )
-    policy_number: Optional[str] = dspy.OutputField(desc="Policy number.")
-    documentation_summarized_output: Optional[str] = dspy.OutputField(
-        desc="Policy documentation summarized output."
-    )
-    documentation_reference: Optional[str] = dspy.OutputField(
-        desc="Reference on the documentation if found (e.g. Section 3.1 or Section 4.5.6)."
-    )
-
-    final_response: str = dspy.OutputField(desc="Final response message to the user.")
-    final_response_with_documentation_reference: Optional[str] = dspy.OutputField(
-        desc="Final response message to the user with documentation reference."
-    )
+def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
+    """Format chat messages into a conversation string."""
+    with tracer.start_as_current_span("get_conversation_string") as span:
+        span.set_attribute("chat_messages_count", len(chat_messages) if chat_messages else 0)
+        
+        if not chat_messages:
+            span.set_attribute("empty_messages", True)
+            return ""
+        
+        conversation_parts = []
+        for chat in chat_messages:
+            if "content" not in chat:
+                span.set_attribute("invalid_message", True)
+                logger.warning("Message missing content field")
+                continue
+                
+            role = chat.get("role", "User")
+            conversation_parts.append(f"{role}: {chat['content']}")
+            
+        conversation = "\n".join(conversation_parts) + "\n"
+        span.set_attribute("conversation_length", len(conversation))
+        return conversation
 
 
-policies_react = dspy.asyncify(
-    TracedReAct(
-        PolicyAgentSignature,
-        tools=[take_policy_by_number_from_database, query_policy_documentation],
-        max_iters=7,
-        name="policies_react",
-        tracer=tracer,
-    )
-)
+async def publish_agent_response(connection_id: str, message: str) -> None:
+    """Publish agent response to the human channel."""
+    with tracer.start_as_current_span("publish_to_human") as publish_span:
+        child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
+        
+        # Validate message format and handle error cases explicitly
+        if not message:
+            logger.warning("Empty message received")
+            message = "I apologize, but I couldn't generate a response. Please try asking your question again."
+        elif message == "NoneType" or not isinstance(message, str):
+            logger.warning(f"Invalid message format: {type(message)}")
+            message = "I'm sorry, there was a technical issue processing your request. Please try again."
+            
+        publish_span.set_attribute("message_length", len(message))
+        publish_span.set_attribute("connection_id", connection_id)
+        
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="PoliciesAgent",
+                data={
+                    "message": message,
+                    "connection_id": connection_id,
+                    "agent": "PoliciesAgent",
+                },
+                traceparent=child_traceparent,
+                tracestate=child_tracestate,
+            )
+        )
+        logger.debug("Response sent successfully")
+
+
+async def process_policy_request(
+    conversation_string: str, 
+    connection_id: str,
+    timeout_seconds: float = 30.0
+) -> str:
+    """Generate a response to a policy request with timeout protection."""
+    with tracer.start_as_current_span("process_policy_request") as span:
+        span.set_attribute("connection_id", connection_id)
+        span.set_attribute("conversation_length", len(conversation_string))
+        span.set_attribute("timeout_seconds", timeout_seconds)
+        
+        start_time = time.perf_counter()
+        
+        try:
+            if not conversation_string or len(conversation_string.strip()) < 5:
+                span.set_attribute("error", "Empty or too short conversation")
+                span.set_status(1, "Invalid input")
+                raise ValueError("Conversation history is too short to process")
+                
+            logger.info("Calling policies model")
+            response_data = policies_optimized_dspy(chat_history=conversation_string)
+            
+            processing_time = time.perf_counter() - start_time
+            span.set_attribute("processing_time_ms", processing_time * 1000)
+            
+            # Log response metadata
+            if response_data.policy_number:
+                logger.info(f"Policy number identified: {response_data.policy_number}")
+                span.set_attribute("policy_number", response_data.policy_number)
+                
+            if response_data.policy_category:
+                logger.info(f"Policy category identified: {response_data.policy_category}")
+                span.set_attribute("policy_category", str(response_data.policy_category))
+                
+            if response_data.documentation_reference:
+                logger.info(f"Documentation reference: {response_data.documentation_reference}")
+                span.set_attribute("has_documentation", True)
+            
+            # Get the final response to send to the user
+            final_response = response_data.final_response
+            
+            # Validate response quality
+            if not final_response or len(final_response.strip()) < 10:
+                span.set_attribute("error", "Invalid or too short response")
+                span.set_status(1, "Invalid response")
+                logger.warning("Model returned invalid or too short response")
+                final_response = "I'm sorry, I couldn't find enough information to answer your question properly. Could you provide more details about your policy inquiry?"
+            
+            span.set_attribute("response_length", len(final_response))
+            return final_response
+            
+        except asyncio.TimeoutError:
+            processing_time = time.perf_counter() - start_time
+            span.set_attribute("processing_time_ms", processing_time * 1000)
+            span.set_attribute("error", "Timeout")
+            span.set_status(1, "Timeout")
+            logger.error(f"Timeout processing policy request after {processing_time:.2f}s")
+            raise TimeoutError(f"Policy processing timed out after {timeout_seconds} seconds")
+            
+        except ValueError as ve:
+            processing_time = time.perf_counter() - start_time
+            span.set_attribute("processing_time_ms", processing_time * 1000)
+            span.set_attribute("error", str(ve))
+            span.set_status(1, str(ve))
+            logger.error(f"Validation error in policy processing: {ve}")
+            raise
+            
+        except Exception as e:
+            processing_time = time.perf_counter() - start_time
+            span.set_attribute("processing_time_ms", processing_time * 1000)
+            span.set_attribute("error", str(e))
+            span.set_status(1, str(e))
+            logger.error(f"Error in policy processing: {e}", exc_info=True)
+            raise
 
 
 @policies_agent.subscribe(
     channel=agents_channel, filter_by_message=lambda msg: msg.get("type") == "policy_request"
 )
 @traced_handler("handle_policy_request")
-async def handle_policy_request(msg_dict):
+async def handle_policy_request(msg_dict: Dict[str, Any]) -> None:
+    """Handle incoming policy request messages from the agents channel."""
+    connection_id = "unknown"
     try:
         msg = TracedMessage(**msg_dict)
-        chat_messages = msg.data["chat_messages"]
-        connection_id = msg.data.get("connection_id", "unknown")
+        chat_messages: List[ChatMessage] = msg.data.get("chat_messages", [])
+        connection_id: str = msg.data.get("connection_id", "unknown")
 
-        logger.info(f"Received policy request from connection {connection_id}")
-
-        # Combine chat history
-        conversation_string = ""
-        for chat in chat_messages:
-            role = chat.get("role", "User")
-            conversation_string += f"{role}: {chat['content']}\n"
-
-        logger.debug(f"Conversation context: {conversation_string[:100]}...")
-
-        # Use optimized DSPy module if available, otherwise fallback to TracedReAct
-        try:
-            logger.info("Using optimized policies module")
-            opt_response = policies_optimized_dspy(chat_history=conversation_string)
-            
-            # Extract final response from optimized module result
-            logger.debug(f"Optimized response: {opt_response}")
-            final_response = opt_response.get("final_response", "")
-            if "final_response_with_documentation_reference" in opt_response and opt_response["final_response_with_documentation_reference"]:
-                final_response = opt_response["final_response_with_documentation_reference"]
-                logger.info("Using optimized response with documentation references")
-                
-            # Make sure we have a valid response
-            if not final_response or final_response == "NoneType":
-                # Use a generic fallback response if we couldn't get a valid final response
-                final_response = "I'm having trouble processing your request. Could you please provide your policy number again, and tell me what specific information you need?"
-                logger.warning("Using generic fallback response due to missing or invalid final_response")
-                
-        except Exception as e:
-            logger.warning(f"Error using optimized module: {e}, falling back to TracedReAct")
-            # Process with TracedReAct module
-            logger.info("Processing with policies_react module")
-            response = await policies_react(chat_history=conversation_string)
-
-            # Extract final response
-            final_response = response.final_response
-            if (
-                "final_response_with_documentation_reference" in response
-                and response.final_response_with_documentation_reference
-            ):
-                final_response = response.final_response_with_documentation_reference
-                logger.info("Using response with documentation references")
-
-        # Log additional information
-        try:
-            # For optimized response
-            if 'opt_response' in locals():
-                if opt_response.get("policy_number"):
-                    logger.info(f"Policy number identified (opt): {opt_response.get('policy_number')}")
-                if opt_response.get("policy_category"):
-                    logger.info(f"Policy category identified (opt): {opt_response.get('policy_category')}")
-                if opt_response.get("documentation_reference"):
-                    logger.info(f"Documentation reference (opt): {opt_response.get('documentation_reference')}")
-            # For TracedReAct response
-            elif 'response' in locals():
-                if hasattr(response, "policy_number") and response.policy_number:
-                    logger.info(f"Policy number identified: {response.policy_number}")
-                if hasattr(response, "policy_category") and response.policy_category:
-                    logger.info(f"Policy category identified: {response.policy_category}")
-                if (
-                    hasattr(response, "documentation_reference")
-                    and response.documentation_reference
-                ):
-                    logger.info(f"Documentation reference: {response.documentation_reference}")
-        except Exception as e:
-            logger.warning(f"Error while logging response metadata: {e}")
-
-        # Send response
-        logger.info(f"Sending response to user: {final_response[:50]}...")
-        with tracer.start_as_current_span("publish_to_human") as publish_span:
-            child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
-            await human_channel.publish(
-                TracedMessage(
-                    type="agent_message",
-                    source="PoliciesAgent",
-                    data={
-                        "message": final_response,
-                        "connection_id": connection_id,
-                        "agent": "PoliciesAgent",
-                    },
-                    traceparent=child_traceparent,
-                    tracestate=child_tracestate,
-                )
+        if not chat_messages:
+            logger.warning(f"Empty chat history for connection: {connection_id}")
+            await publish_agent_response(
+                connection_id,
+                "I apologize, but I didn't receive any message content to process."
             )
-            logger.debug("Response sent successfully")
+            return
+            
+        conversation_string = get_conversation_string(chat_messages)
+        logger.info(f"Processing policy request for connection {connection_id}")
+        logger.debug(f"Conversation context: {conversation_string[:100]}..." if conversation_string else "Empty conversation")
+
+        final_response = await process_policy_request(conversation_string, connection_id)
+
+        logger.info("Sending response to user")
+        logger.debug(f"Response: {final_response[:100]}...")
+        await publish_agent_response(connection_id, final_response)
+        
+    except ValueError as ve:
+        logger.warning(f"Validation error in policy request: {ve}")
+        # Sanitize error message - don't expose internal details
+        error_message = "Please provide more information about your policy inquiry."
+        await publish_agent_response(connection_id, error_message)
+        
+    except TimeoutError:
+        logger.error("Timeout processing policy request")
+        await publish_agent_response(
+            connection_id,
+            "I'm taking longer than expected to process your request. Please try again in a moment."
+        )
+        
     except Exception as e:
         logger.error(f"Error in PoliciesAgent: {e}", exc_info=True)
-        # Try to notify the user of the error
-        try:
-            with tracer.start_as_current_span("publish_to_human") as publish_span:
-                child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
-                await human_channel.publish(
-                    TracedMessage(
-                        type="agent_message",
-                        source="PoliciesAgent",
-                        data={
-                            "message": "I'm sorry, I encountered an error while processing your request. Please try again.",
-                            "connection_id": msg.data.get("connection_id"),
-                            "agent": "PoliciesAgent",
-                        },
-                        traceparent=child_traceparent,
-                        tracestate=child_tracestate,
-                    )
-                )
-        except Exception as notify_error:
-            logger.error(f"Failed to send error notification: {notify_error}")
+        await publish_agent_response(
+            connection_id,
+            "I apologize, but I'm having trouble accessing our policy database right now. Could you please try again with your policy number?"
+        )
 
 
 @policies_agent.subscribe(channel=agents_channel)
-async def handle_others(msg: TracedMessage):
-    logger.debug("Received message: %s", msg)
+@traced_handler("handle_others")
+async def handle_other_messages(msg_dict: Dict[str, Any]) -> None:
+    """Handle non-policy messages received on the agent channel."""
+    with tracer.start_as_current_span("handle_other_messages") as span:
+        try:
+            msg = TracedMessage(**msg_dict)
+            # Add tracing attributes for observability
+            span.set_attribute("message_type", msg.type if hasattr(msg, "type") else "unknown")
+            span.set_attribute("message_source", msg.source if hasattr(msg, "source") else "unknown")
+            logger.debug("Received non-policy message: %s", msg)
+        except Exception as e:
+            span.set_attribute("error", str(e))
+            span.set_status(1, str(e))
+            logger.error(f"Error handling message: {e}", exc_info=True)
+
 
 if __name__ == "__main__":
-    logger.info("Running policies agent as script")
-
     dspy_set_language_model(settings)
+    test_conversation = (
+        "User: I need information about my policy.\n"
+        "PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?\n"
+        "User: My policy number is A12345\n"
+    )
 
-    # Test policy request
-    test_conversation = """
-    User: I need information about my policy.
-    PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?
-    User: My policy number is A12345
-    """
-
-    logger.info("Running test query")
-    response = policies_react(chat_history=test_conversation)
-    logger.info(f"Test response: {response.final_response}")
-
-    # Examples for reference:
-    # Hey, I need an info on my Policy C24680, a fire ruined my kitchen table, can i get a refund?
-    # Hey, I need an info on my Policy C24680, it is Fire Damage Coverage included?
-
+    logger.info("Running test query for policies agent")
+    response_data = policies_optimized_dspy(chat_history=test_conversation)
+    logger.info(f"Test response: {response_data.final_response}")
 

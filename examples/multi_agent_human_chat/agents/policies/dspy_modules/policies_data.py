@@ -25,6 +25,7 @@ POLICIES_DATABASE = [
         "policy_category": "auto",
         "premium_amount": 500,
         "due_date": "2025-03-01",
+        "coverage_details": "collision, comprehensive, liability, and uninsured motorist protection",
     },
     {
         "policy_number": "B67890",
@@ -32,6 +33,7 @@ POLICIES_DATABASE = [
         "policy_category": "life",
         "premium_amount": 300,
         "due_date": "2025-03-15",
+        "coverage_details": "term life insurance with $500,000 death benefit",
     },
     {
         "policy_number": "C24680",
@@ -39,6 +41,7 @@ POLICIES_DATABASE = [
         "policy_category": "home",
         "premium_amount": 400,
         "due_date": "2025-03-01",
+        "coverage_details": "dwelling coverage, personal property, liability, and water damage from burst pipes",
     },
 ]
 
@@ -109,6 +112,14 @@ def take_policy_by_number_from_database(policy_number: str) -> str:
                 logger.info(
                     f"Found policy: {policy['policy_number']} for {policy['name']}"
                 )
+                # Format monetary values with proper currency notation
+                if policy.get("premium_amount"):
+                    policy["premium_amount_usd"] = f"${policy['premium_amount']:.2f}"
+                
+                # Ensure critical fields are explicitly labeled for importance
+                if "due_date" in policy:
+                    policy["payment_due_date"] = policy["due_date"]
+                    policy["next_payment_date"] = policy["due_date"]
                 return json.dumps(policy)
 
         logger.warning(f"Policy not found: '{policy_number}'")

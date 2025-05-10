@@ -69,36 +69,29 @@ def print_progress(message, progress=None, total=None):
         sys.stdout.flush()
 
 
+# Import core prompt from billing.py - single source of truth
+import importlib.util
+import inspect
+
+
+def get_billing_signature_prompt() -> str:
+    """Extract the docstring from BillingSignature without circular imports."""
+    # Load the billing module dynamically
+    spec = importlib.util.spec_from_file_location(
+        "billing", 
+        Path(__file__).resolve().parent / "billing.py"
+    )
+    billing_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(billing_module)
+    
+    # Extract the docstring from BillingSignature
+    return inspect.getdoc(billing_module.BillingSignature)
+
+# Use the same prompt from the main module
 class BillingSignature(dspy.Signature):
-    """
-    You are the Billing Agent for an insurance company.
-
-    ROLE:
-      - Assist customers with billing-related inquiries such as due amounts, billing cycles, payment statuses, etc.
-      - Retrieve or update billing information as needed.
-      - Provide polite, concise, and helpful answers.
-
-    TOOLS:
-      - get_billing_info(policy_number): Retrieves billing information (amount due, due date, payment status, etc.).
-      - update_billing_info(policy_number, field, new_value): Updates a particular field in the billing record.
-
-    RESPONSE FORMAT:
-      - Provide a concise, courteous message summarizing relevant billing info or acknowledging an update.
-        For instance:
-          "Your next payment of $100 is due on 2025-02-01, and your current status is 'Paid'."
-
-    GUIDELINES:
-      - Maintain a polite, professional tone.
-      - Only use the tools if necessary (e.g., if the user provides a policy number and requests an update or info).
-      - If a policy number is missing or unclear, politely ask for it.
-      - Avoid speculation or divulging irrelevant details.
-
-    Input Fields:
-      - chat_history: A string containing the full conversation thus far.
-
-    Output Fields:
-      - final_response: The final text answer to the user regarding their billing inquiry.
-    """
+    """The billing agent signature for optimization."""
+    # Get the docstring from the main BillingSignature
+    __doc__ = get_billing_signature_prompt()
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Billing response to the user.")

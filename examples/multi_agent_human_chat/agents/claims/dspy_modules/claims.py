@@ -39,6 +39,10 @@ class ClaimsSignature(dspy.Signature):
       • Explaining required documentation
       • Estimating payouts and timelines
       • Updating claim details (e.g. contact info, incident description)
+    - Your #1 responsibility is data privacy and security
+    - NEVER reveal, guess, or make up ANY claim information without explicit claim numbers
+    - When a user asks about claim status without providing a claim number, ALWAYS respond ONLY with:
+      "I need a valid claim number to check the status of your claim. Could you please provide it?"
 
     TOOLS:
     - get_claim_status(claim_number: str) -> str:
@@ -71,6 +75,14 @@ class ClaimsSignature(dspy.Signature):
     - Always confirm changes you make:
         "I've updated your mailing address on claim #123456 as requested."
 
+    CRITICAL PRIVACY PROTECTION:
+    - NEVER guess, invent, or assume claim numbers - they must be EXPLICITLY provided by the user
+    - NEVER use example claim numbers from your instructions (like #123456) as if they were real
+    - NEVER use or recognize claim details from previous conversation turns - each request must include its own claim number
+    - When a user says something like "I want to check my claim status" WITHOUT a claim number, respond ONLY with:
+      "I need a valid claim number to check the status of your claim. Could you please provide it?"
+    - NEVER reveal ANY claim information unless the user has provided a specific, valid claim number in their CURRENT message
+
     CRITICAL WORKFLOW FOR UPDATING INFORMATION:
     - If a user message contains both "update" and "address" or "phone", and includes a claim number, but does NOT include a new value, respond: "What is the new [field] you'd like to update on your claim?"
     - Do NOT call update_claim_info until you have BOTH the claim number AND the new value
@@ -81,6 +93,16 @@ class ClaimsSignature(dspy.Signature):
       Agent: "What is the new address you'd like to update on your claim?"
       User: "123 New Street, City, State, ZIP"
       Agent: [Now call update_claim_info with claim number and new address]
+
+    CRITICAL CLAIM STATUS WORKFLOW:
+    - When a user asks about claim status:
+      1. FIRST STEP: Check their CURRENT message for a claim number
+      2. If NO valid claim number is found IN THE CURRENT MESSAGE, respond ONLY with:
+         "I need a valid claim number to check the status of your claim. Could you please provide it?"
+      3. NEVER proceed beyond this point if there is no claim number in the current message
+      4. NEVER look at previous messages for claim numbers - they must be provided in the current message
+      5. NEVER guess or infer claim numbers - they must be explicitly provided by the user
+      6. Only use get_claim_status AFTER confirming a valid claim number exists in the current message
 
     Input Fields:
     - chat_history: str — Full conversation context.
@@ -110,29 +132,29 @@ def create_claims_model(config: Optional[ModelConfig] = None) -> TracedReAct:
     # Load the optimized model
     json_path = Path(__file__).resolve().parent / "optimized_claims.json"
     
-    if not os.path.exists(json_path):
-        raise ValueError(f"Optimized model file not found at {json_path}")
-        
-    with open(json_path, 'r') as f:
-        data = json.load(f)
-    
-    # Extract instructions
-    if "instructions" not in data:
-        raise ValueError("Invalid optimization file: missing 'instructions' field")
-        
-    instructions = data["instructions"]
-    logger.info("Loaded optimized instructions")
-    
-    # Create a subclass of ClaimsSignature with optimized instructions
+    # Create optimized signature subclass with base instructions as default
     class OptimizedClaimsSignature(ClaimsSignature):
-        """Optimized signature loaded from JSON."""
+        """Optimized signature based on ClaimsSignature."""
         pass
+        
+    # Default to the ClaimsSignature instructions
+    instructions = ClaimsSignature.__doc__
+    logger.info("Using base instructions from ClaimsSignature")
     
-    # Set the docstring to the optimized instructions
+    # Try to load optimized instructions if available
+    if os.path.exists(json_path):
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+        
+        if "instructions" in data and data["instructions"]:
+            instructions = data["instructions"]
+            logger.info("Loaded optimized instructions from JSON")
+    
+    # Set the docstring to the instructions (optimized or base)
     OptimizedClaimsSignature.__doc__ = instructions
     
-    # Create TracedReAct with optimized signature
-    logger.info(f"Creating optimized model: {config.name}_optimized")
+    # Create TracedReAct with signature
+    logger.info(f"Creating model: {config.name}_optimized")
     return TracedReAct(
         OptimizedClaimsSignature,
         tools=[get_claim_status, file_claim, update_claim_info],

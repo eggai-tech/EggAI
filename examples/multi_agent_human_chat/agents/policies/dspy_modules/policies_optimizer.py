@@ -69,43 +69,48 @@ def print_progress(message, progress=None, total=None):
         sys.stdout.flush()
 
 
-from typing import Literal
+from typing import Literal, Optional
 
 PolicyCategory = Literal["auto", "life", "home", "health"]
 
 
+# Rather than causing potential circular imports, we'll use a function to get the PolicyAgentSignature prompt
+import importlib.util
+import inspect
+
+
+def get_policy_agent_signature_prompt() -> str:
+    """Extract the docstring from PolicyAgentSignature without circular imports."""
+    # Load the policies module dynamically
+    spec = importlib.util.spec_from_file_location(
+        "policies", 
+        Path(__file__).resolve().parent / "policies.py"
+    )
+    policies_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(policies_module)
+    
+    # Extract the docstring from PolicyAgentSignature
+    return inspect.getdoc(policies_module.PolicyAgentSignature)
+
+# Use the same prompt from the main module
 class SimplePolicyAgentSignature(dspy.Signature):
-    """
-    You are the Policy Agent for an insurance company.
-
-    ROLE:
-    - Help customers with policy-related inquiries such as coverage details, premium amounts, etc.
-    - Retrieve policy information or documentation as needed.
-    - Provide polite, concise, and helpful answers.
-
-    TOOLS:
-    - get_policy_info(policy_number): Retrieves policy information (premium amount, due date, category, etc.).
-    - query_policy_documentation(category, query): Searches policy documentation for specific information.
-
-    RESPONSE FORMAT:
-    - Provide a concise, courteous message that answers the user's policy question.
-    - If documentation is referenced, include it in the format: (see category#section), for example (see home#3.1).
-
-    GUIDELINES:
-    - Maintain a polite, professional tone.
-    - Only use the tools if necessary (e.g., if the user provides a policy number and requests info).
-    - If a policy number is missing or unclear, politely ask for it.
-    - Avoid speculation or divulging irrelevant details.
-
-    Input Fields:
-    - chat_history: A string containing the full conversation thus far.
-
-    Output Fields:
-    - final_response: The final text answer to the user regarding their policy inquiry.
-    """
+    """The policy agent signature for optimization."""
+    # Get the docstring from the main PolicyAgentSignature
+    __doc__ = get_policy_agent_signature_prompt()
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
-    final_response: str = dspy.OutputField(desc="Policy response to the user.")
+    
+    policy_category: Optional[PolicyCategory] = dspy.OutputField(
+        desc="Policy category if identified."
+    )
+    policy_number: Optional[str] = dspy.OutputField(
+        desc="Policy number if provided by user."
+    )
+    documentation_reference: Optional[str] = dspy.OutputField(
+        desc="Reference on the documentation if found (e.g. Section 3.1)."
+    )
+    
+    final_response: str = dspy.OutputField(desc="Final response message to the user.")
 
 
 # Create the unoptimized react program
@@ -113,18 +118,18 @@ from libraries.tracing import TracedReAct
 
 
 # Mock tools for optimization (these won't actually be called during optimization)
-def mock_take_policy_by_number_from_database(policy_number: str):
+def take_policy_by_number_from_database(policy_number: str):
     """Mock implementation of take_policy_by_number_from_database for optimization."""
-    return '{"policy_number": "A12345", "name": "John Doe", "policy_category": "auto", "premium_amount": 500, "due_date": "2025-03-01"}'
+    return '{"policy_number": "A12345", "name": "John Doe", "policy_category": "auto", "premium_amount": 500, "premium_amount_usd": "$500.00", "due_date": "2025-03-01", "payment_due_date": "2025-03-01", "next_payment_date": "2025-03-01", "coverage_details": "collision, comprehensive, liability, and uninsured motorist protection"}'
 
-def mock_query_policy_documentation(query: str, policy_category: str):
+def query_policy_documentation(query: str, policy_category: str):
     """Mock implementation of query_policy_documentation for optimization."""
     return '[{"category": "' + policy_category + '", "section": "2.1", "content": "Coverage details for ' + query + '"}]'
 
 # Create TracedReAct program for optimization
 policies_program = TracedReAct(
     SimplePolicyAgentSignature,
-    tools=[mock_take_policy_by_number_from_database, mock_query_policy_documentation],
+    tools=[take_policy_by_number_from_database, query_policy_documentation],
     name="policies_react_optimizer",
     tracer=None,  # No tracing during optimization
     max_iters=5,
