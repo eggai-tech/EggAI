@@ -1,7 +1,7 @@
 import asyncio
 import time
 from datetime import datetime
-from typing import List
+from typing import Dict, List, Optional
 from uuid import uuid4
 
 import dspy
@@ -18,71 +18,45 @@ from ..agent import ticketing_agent as escalation_agent
 
 logger = get_console_logger("escalation_agent.tests")
 
-# Configure language model based on settings with caching disabled for accurate metrics
+# Configure language model based on settings
 dspy_lm = dspy_set_language_model(settings, overwrite_cache_enabled=False)
 logger.info(f"Using language model: {settings.language_model}")
 
-test_cases = [
-    {
-        "chat_messages": [
-            {
-                "role": "User",
-                "content": "My issue wasn't resolved by PoliciesAgent. I'm still having trouble.",
-            },
-            {
-                "role": "EscalationAgent",
-                "content": "Certainly. Could you describe the issue in more detail?",
-            },
-            {
-                "role": "User",
-                "content": "It's about my billing setup. The website keeps throwing an error.",
-            },
-        ],
-        "expected_meaning": (
-            "The agent asks the user to provide contact information."
-        ),
-    },
-    {
-        "chat_messages": [
-            {
-                "role": "User",
-                "content": "I need to speak with a manager immediately.",
-            },
-            {
-                "role": "EscalationAgent",
-                "content": "I understand you'd like to speak with a manager. Could you briefly explain what issue you're experiencing?",
-            },
-            {
-                "role": "User",
-                "content": "I've been double-charged for my insurance policy.",
-            },
-        ],
-        "expected_meaning": (
-            "The agent creates a ticket for the billing department."
-        ),
-    },
-    {
-        "chat_messages": [
-            {
-                "role": "User",
-                "content": "I'm having technical issues with the website.",
-            },
-            {
-                "role": "EscalationAgent", 
-                "content": "I'm sorry to hear you're experiencing technical issues. Could you provide more details about what specifically is happening?",
-            },
-            {
-                "role": "User",
-                "content": "The payment page won't load. I've tried three different browsers.",
-            },
-        ],
-        "expected_meaning": (
-            "The agent creates a technical support ticket."
-        ),
-    }
-]
+# Test agent setup
+test_agent = Agent("TestEscalationAgent")
+test_channel = Channel("agents")
+human_channel = Channel("human")
+_response_queue = asyncio.Queue()
 
+def create_test_cases():
+    return [
+        {
+            "chat_messages": [
+                {"role": "User", "content": "My issue wasn't resolved by PoliciesAgent. I'm still having trouble."},
+                {"role": "EscalationAgent", "content": "Certainly. Could you describe the issue in more detail?"},
+                {"role": "User", "content": "It's about my billing setup. The website keeps throwing an error."},
+            ],
+            "expected_meaning": "The agent asks the user to provide contact information."
+        },
+        {
+            "chat_messages": [
+                {"role": "User", "content": "I need to speak with a manager immediately."},
+                {"role": "EscalationAgent", "content": "I understand you'd like to speak with a manager. Could you briefly explain what issue you're experiencing?"},
+                {"role": "User", "content": "I've been double-charged for my insurance policy."},
+            ],
+            "expected_meaning": "The agent creates a ticket for the billing department."
+        },
+        {
+            "chat_messages": [
+                {"role": "User", "content": "I'm having technical issues with the website."},
+                {"role": "EscalationAgent", "content": "I'm sorry to hear you're experiencing technical issues. Could you provide more details about what specifically is happening?"},
+                {"role": "User", "content": "The payment page won't load. I've tried three different browsers."},
+            ],
+            "expected_meaning": "The agent creates a technical support ticket."
+        }
+    ]
 
+# DSPy Signature for evaluating responses
 class EscalationEvaluationSignature(dspy.Signature):
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     agent_response: str = dspy.InputField(desc="Agent-generated response.")
@@ -92,29 +66,29 @@ class EscalationEvaluationSignature(dspy.Signature):
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
     precision_score: float = dspy.OutputField(desc="Precision score (0.0 to 1.0).")
 
-
-test_agent = Agent("TestEscalationAgent")
-test_channel = Channel("agents")
-human_channel = Channel("human")
-
-_response_queue = asyncio.Queue()
-
-
-def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
-    """Generate a markdown table from rows and headers."""
+def generate_report(test_results: List[Dict], headers: List[str]) -> str:
+    """Generate a markdown table report from test results."""
     widths = [len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            widths[i] = max(widths[i], len(cell))
+    for row in test_results:
+        row_values = [row.get(h.lower().replace(" ", "_"), "") for h in headers]
+        for i, cell in enumerate(row_values):
+            widths[i] = max(widths[i], len(str(cell)))
 
-    def _fmt_row(cells):
-        return "| " + " | ".join(cell.ljust(widths[i]) for i, cell in enumerate(cells)) + " |"
+    def format_row(cells):
+        return "| " + " | ".join(str(cell).ljust(widths[i]) for i, cell in enumerate(cells)) + " |"
 
-    sep = "| " + " | ".join("-" * widths[i] for i in range(len(headers))) + " |"
-    lines = [_fmt_row(headers), sep]
-    lines += [_fmt_row(r) for r in rows]
+    separator = "| " + " | ".join("-" * widths[i] for i in range(len(headers))) + " |"
+    lines = [format_row(headers), separator]
+    
+    for row in test_results:
+        row_values = [row.get(h.lower().replace(" ", "_"), "") for h in headers]
+        lines.append(format_row(row_values))
+        
     return "\n".join(lines)
 
+def get_conversation_string(chat_messages: List[Dict]) -> str:
+    """Convert chat messages to conversation string."""
+    return "\n".join([f"{m['role']}: {m['content']}" for m in chat_messages])
 
 @test_agent.subscribe(
     channel=human_channel,
@@ -122,14 +96,49 @@ def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
     auto_offset_reset="latest",
     group_id="test_escalation_agent_group"
 )
-async def _handle_response(event):
+async def handle_agent_response(event):
+    """Handle agent responses during testing."""
     logger.info(f"Received event: {event}")
     await _response_queue.put(event)
 
+async def wait_for_agent_response(connection_id: str, timeout: float = 10.0) -> Optional[Dict]:
+    """Wait for a response from the agent with the specified connection ID."""
+    # Clear existing messages
+    while not _response_queue.empty():
+        try:
+            _response_queue.get_nowait()
+        except asyncio.QueueEmpty:
+            break
+    
+    # Wait for matching response
+    start_wait = time.perf_counter()
+    while (time.perf_counter() - start_wait) < timeout:
+        try:
+            event = await asyncio.wait_for(_response_queue.get(), timeout=2.0)
+            
+            if (event["data"].get("connection_id") == connection_id and 
+                event.get("source") == "TicketingAgent"):
+                logger.info(f"Found matching response for connection_id {connection_id}")
+                return event
+            else:
+                source = event.get("source", "unknown")
+                logger.info(f"Received non-matching response from {source}")
+        except asyncio.TimeoutError:
+            await asyncio.sleep(0.5)
+    
+    return None
 
-@pytest.mark.asyncio
-async def test_escalation_agent():
-    # Configure MLflow tracking
+async def evaluate_response(chat_history: str, agent_response: str, expected_meaning: str) -> Dict:
+    """Evaluate agent response against expected meaning."""
+    eval_model = dspy.asyncify(dspy.Predict(EscalationEvaluationSignature))
+    return await eval_model(
+        chat_history=chat_history,
+        agent_response=agent_response,
+        expected_meaning=expected_meaning
+    )
+
+def setup_mlflow():
+    """Configure MLflow for test tracking."""
     mlflow.dspy.autolog(
         log_compiles=True,
         log_traces=True,
@@ -137,9 +146,17 @@ async def test_escalation_agent():
         log_traces_from_compile=True,
         log_traces_from_eval=True
     )
-
+    
     mlflow.set_experiment("escalation_agent_tests")
-    with mlflow.start_run(run_name=f"escalation_agent_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"):
+    run_name = f"escalation_agent_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    return mlflow.start_run(run_name=run_name)
+
+@pytest.mark.asyncio
+async def test_escalation_agent():
+    """Test the escalation agent functionality."""
+    test_cases = create_test_cases()
+    
+    with setup_mlflow():
         mlflow.log_param("test_count", len(test_cases))
         mlflow.log_param("language_model", settings.language_model)
         
@@ -149,27 +166,23 @@ async def test_escalation_agent():
         test_results = []
         evaluation_results = []
         
-        # Send test cases one at a time to ensure proper matching
+        # Test each case
         for i, case in enumerate(test_cases):
-            # Log the test case
             logger.info(f"Running test case {i+1}/{len(test_cases)}")
-            formatted_chat = "\n".join([f"{m['role']}: {m['content']}" for m in case["chat_messages"]])
-            logger.info(f"Chat history: {formatted_chat[:50]}...")
             
+            # Setup test data
             connection_id = f"test-{i+1}"
             message_id = str(uuid4())
             session_id = f"session_{i+1}"
             
-            # Capture test start time for latency measurement
+            # Log test details
+            chat_history = get_conversation_string(case["chat_messages"])
+            logger.info(f"Chat history: {chat_history[:50]}...")
+            
+            # Measure performance
             start_time = time.perf_counter()
             
-            # Clear any existing responses in queue
-            while not _response_queue.empty():
-                try:
-                    _response_queue.get_nowait()
-                except asyncio.QueueEmpty:
-                    break
-            
+            # Send test request
             await test_channel.publish(
                 TracedMessage(
                     id=message_id,
@@ -180,57 +193,32 @@ async def test_escalation_agent():
                         "session": session_id,
                         "connection_id": connection_id,
                         "message_id": message_id,
-                    },
+                    }
                 )
             )
 
             try:
-                # Wait for response with timeout
-                logger.info(f"Waiting for response for test case {i+1} with connection_id {connection_id}")
+                # Wait for response
+                event = await wait_for_agent_response(connection_id)
+                if not event:
+                    raise asyncio.TimeoutError(f"Timeout waiting for response for test {i+1}")
                 
-                # Keep checking for matching responses
-                start_wait = time.perf_counter()
-                matching_event = None
-                
-                while (time.perf_counter() - start_wait) < 10.0:  # 10-second total timeout
-                    try:
-                        event = await asyncio.wait_for(_response_queue.get(), timeout=2.0)
-                        
-                        # Check if this response matches our request and comes from TicketingAgent
-                        if event["data"].get("connection_id") == connection_id and event.get("source") == "TicketingAgent":
-                            matching_event = event
-                            logger.info(f"Found matching response from TicketingAgent for connection_id {connection_id}")
-                            break
-                        else:
-                            # Log which agent is responding for debugging
-                            source = event.get("source", "unknown")
-                            logger.info(f"Received non-matching response from {source} for connection_id {event['data'].get('connection_id')}, waiting for TicketingAgent with {connection_id}")
-                    except asyncio.TimeoutError:
-                        # Wait a little and try again
-                        await asyncio.sleep(0.5)
-                
-                if not matching_event:
-                    raise asyncio.TimeoutError(f"Timeout waiting for response with connection_id {connection_id}")
-                    
-                event = matching_event
-                
-                # Get agent response from event
+                # Process response
                 agent_response = event["data"].get("message")
-                logger.info(f"FULL RESPONSE: {agent_response}")
+                logger.info(f"Response: {agent_response}")
                 
                 # Calculate latency
                 latency_ms = (time.perf_counter() - start_time) * 1000
-                logger.info(f"Response received in {latency_ms:.1f} ms")
+                logger.info(f"Response time: {latency_ms:.1f} ms")
 
-                # Evaluate the response
-                eval_model = dspy.asyncify(dspy.Predict(EscalationEvaluationSignature))
-                evaluation_result = await eval_model(
-                    chat_history="\n".join([f"{m['role']}: {m['content']}" for m in case["chat_messages"]]),
+                # Evaluate response
+                evaluation_result = await evaluate_response(
+                    chat_history=chat_history,
                     agent_response=agent_response,
-                    expected_meaning=case["expected_meaning"],
+                    expected_meaning=case["expected_meaning"]
                 )
                 
-                # Track results for reporting
+                # Track results
                 test_result = {
                     "id": f"test-{i+1}",
                     "expected": case["expected_meaning"][:30] + ("..." if len(case["expected_meaning"]) > 30 else ""),
@@ -241,40 +229,25 @@ async def test_escalation_agent():
                     "reasoning": (evaluation_result.reasoning or "")[:30] + "..."
                 }
                 test_results.append(test_result)
-                
                 evaluation_results.append(evaluation_result)
                 
-                # Log to MLflow
+                # Log metrics
                 mlflow.log_metric(f"precision_case_{i+1}", evaluation_result.precision_score)
                 mlflow.log_metric(f"latency_case_{i+1}", latency_ms)
                 
-                # Assertions
-                assert evaluation_result.judgment, (
-                    f"Test case {i+1} failed: " + evaluation_result.reasoning
-                )
+                # Verify expectations
+                assert evaluation_result.judgment, f"Test case {i+1} failed: {evaluation_result.reasoning}"
                 assert 0.7 <= evaluation_result.precision_score <= 1.0, (
                     f"Test case {i+1} precision score {evaluation_result.precision_score} out of range [0.7,1.0]"
                 )
                 
-            except asyncio.TimeoutError:
-                logger.error(f"Timeout: No response received within timeout period for test {i+1}")
-                pytest.fail(f"Timeout: No response received within timeout period for test {i+1}")
+            except asyncio.TimeoutError as e:
+                logger.error(f"Timeout: {str(e)}")
+                pytest.fail(f"Timeout: {str(e)}")
 
-        # Generate report
+        # Generate and log report
         headers = ["ID", "Expected", "Response", "Latency", "LLM ✓", "LLM Prec", "Reasoning"]
-        rows = [
-            [
-                r["id"], r["expected"], r["response"], r["latency"],
-                r["judgment"], r["precision"], r["reasoning"],
-            ]
-            for r in test_results
-        ]
-        table = _markdown_table(rows, headers)
+        report = generate_report(test_results, headers)
         
-        # Print report
-        logger.info("\n=== Escalation Agent Test Results ===\n")
-        logger.info(table)
-        logger.info("\n====================================\n")
-        
-        # Log report to MLflow
-        mlflow.log_text(table, "test_results.md")
+        logger.info(f"\n=== Escalation Agent Test Results ===\n{report}\n")
+        mlflow.log_text(report, "test_results.md")

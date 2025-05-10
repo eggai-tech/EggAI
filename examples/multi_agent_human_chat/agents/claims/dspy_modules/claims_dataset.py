@@ -1,9 +1,16 @@
 """Dataset generator for Claims Agent optimization."""
+import json
+import os
 import random
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
 import dspy
+
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("claims_agent.dataset")
 
 
 @dataclass
@@ -50,6 +57,7 @@ def create_claims_dataset() -> List[ClaimsExample]:
         },
     ]
     
+    logger.info("Creating claims dataset examples")
     examples = []
     
     # Claim status inquiries
@@ -135,6 +143,7 @@ User: I need to change the {field}."""
                 expected_response=follow_up_expected
             ))
     
+    logger.info(f"Created {len(examples)} claims dataset examples")
     return examples
 
 
@@ -155,13 +164,74 @@ def as_dspy_examples(examples: List[ClaimsExample]) -> List[dspy.Example]:
                 final_response=example.expected_response,
             ).with_inputs("chat_history")
         )
+    logger.info(f"Converted {len(dspy_examples)} examples to DSPy format")
     return dspy_examples
+
+
+def export_dataset(examples: List[ClaimsExample], output_path: str = None):
+    """Export dataset to a JSON file.
+    
+    Args:
+        examples: List of examples to export
+        output_path: Path to save JSON file (defaults to module directory)
+    """
+    if not output_path:
+        output_path = Path(__file__).resolve().parent / "claims_dataset.json"
+        
+    serialized = [
+        {"chat_history": e.chat_history, "expected_response": e.expected_response}
+        for e in examples
+    ]
+    
+    try:
+        with open(output_path, 'w') as f:
+            json.dump(serialized, f, indent=2)
+        logger.info(f"Exported {len(serialized)} examples to {output_path}")
+    except Exception as e:
+        logger.error(f"Error exporting dataset: {e}")
+
+
+def load_dataset(input_path: str = None) -> List[ClaimsExample]:
+    """Load dataset from a JSON file.
+    
+    Args:
+        input_path: Path to load JSON file from (defaults to module directory)
+        
+    Returns:
+        List[ClaimsExample]: Loaded examples
+    """
+    if not input_path:
+        input_path = Path(__file__).resolve().parent / "claims_dataset.json"
+    
+    if not os.path.exists(input_path):
+        logger.warning(f"Dataset file not found at {input_path}, creating new dataset")
+        return create_claims_dataset()
+        
+    try:
+        with open(input_path, 'r') as f:
+            data = json.load(f)
+            
+        examples = [
+            ClaimsExample(
+                chat_history=item["chat_history"],
+                expected_response=item["expected_response"]
+            )
+            for item in data
+        ]
+        logger.info(f"Loaded {len(examples)} examples from {input_path}")
+        return examples
+    except Exception as e:
+        logger.error(f"Error loading dataset: {e}")
+        return create_claims_dataset()
 
 
 if __name__ == "__main__":
     # Generate examples and print them
     examples = create_claims_dataset()
     print(f"Generated {len(examples)} examples")
+    
+    # Export examples to JSON
+    export_dataset(examples)
     
     # Print a sample
     random.seed(42)

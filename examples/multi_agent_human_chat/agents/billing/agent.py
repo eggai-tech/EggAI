@@ -20,7 +20,6 @@ from libraries.tracing import (
 
 from .config import settings
 
-# Set up Kafka transport
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -76,7 +75,6 @@ class BillingAgentSignature(dspy.Signature):
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
 
 
-# Create TracedReAct instance with the traced tools from billing_data
 billing_react = TracedReAct(
     BillingAgentSignature,
     tools=[get_billing_info, update_billing_info],
@@ -86,55 +84,68 @@ billing_react = TracedReAct(
 )
 
 
+def get_conversation_string(chat_messages):
+    conversation = ""
+    for chat in chat_messages:
+        role = chat.get("role", "User")
+        conversation += f"{role}: {chat['content']}\n"
+    return conversation
+
+
+async def publish_agent_response(connection_id, message):
+    with tracer.start_as_current_span("publish_to_human") as publish_span:
+        child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
+        
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="BillingAgent",
+                data={
+                    "message": message,
+                    "connection_id": connection_id,
+                    "agent": "BillingAgent",
+                },
+                traceparent=child_traceparent,
+                tracestate=child_tracestate,
+            )
+        )
+
+
+def get_billing_response(conversation_string):
+    try:
+        logger.info("Using optimized billing module")
+        return billing_optimized_dspy(chat_history=conversation_string)
+    except Exception as e:
+        logger.warning(f"Error using optimized module: {e}, falling back to TracedReAct")
+        response = billing_react(chat_history=conversation_string)
+        return response.final_response
+
+
 @billing_agent.subscribe(
-    channel=agents_channel, filter_by_message=lambda msg: msg["type"] == "billing_request"
+    channel=agents_channel, 
+    filter_by_message=lambda msg: msg["type"] == "billing_request"
 )
 @traced_handler("handle_billing_message")
 async def handle_billing_message(msg_dict):
     try:
         msg = TracedMessage(**msg_dict)
-        chat_messages = msg.data.get("chat_messages")
+        chat_messages = msg.data.get("chat_messages", [])
         connection_id = msg.data.get("connection_id", "unknown")
 
-        conversation_string = ""
-        for chat in chat_messages:
-            role = chat.get("role", "User")
-            conversation_string += f"{role}: {chat['content']}\n"
-
+        conversation_string = get_conversation_string(chat_messages)
         logger.info("Processing billing request")
         logger.debug(f"Conversation context: {conversation_string[:100]}...")
 
-        # Use optimized DSPy module if available, otherwise fallback to TracedReAct
-        try:
-            logger.info("Using optimized billing module")
-            final_text = billing_optimized_dspy(chat_history=conversation_string)
-        except Exception as e:
-            logger.warning(f"Error using optimized module: {e}, falling back to TracedReAct")
-            response = billing_react(chat_history=conversation_string)
-            final_text = response.final_response
+        final_text = get_billing_response(conversation_string)
         
         logger.info("Sending response to user")
         logger.info(f"Response: {final_text[:100]}...")
 
-        # Create a child span for the publish operation
-        with tracer.start_as_current_span("publish_to_human") as publish_span:
-            # Get updated trace context from current span
-            child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
-            await human_channel.publish(
-                TracedMessage(
-                    type="agent_message",
-                    source="BillingAgent",
-                    data={
-                        "message": final_text,
-                        "connection_id": connection_id,
-                        "agent": "BillingAgent",
-                    },
-                    traceparent=child_traceparent,
-                    tracestate=child_tracestate,
-                )
-            )
+        await publish_agent_response(connection_id, final_text)
+    
     except Exception as e:
         logger.error(f"Error in BillingAgent: {e}", exc_info=True)
+
 
 @billing_agent.subscribe(channel=agents_channel)
 async def handle_others(msg: TracedMessage):
