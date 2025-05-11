@@ -11,6 +11,13 @@ The Audit Agent monitors and logs all message activity across the platform, crea
 - **Audit Log Generation**: Creates standardized audit records with consistent metadata
 - **Error Handling**: Gracefully handles malformed messages and processing exceptions
 
+## Audit Capabilities
+
+The agent monitors system communication and generates audit logs:
+
+- **Monitoring**: Subscribes to all `human` and `agents` channel messages
+- **Logging**: Publishes standardized audit records to the `audit_logs` channel
+
 ## Process Flow
 
 1. Message arrives on `human` or `agents` channel

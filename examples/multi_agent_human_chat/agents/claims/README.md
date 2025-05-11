@@ -54,6 +54,16 @@ The Claims Agent follows a modular architecture with these key components:
 - **Claims Model** (`dspy_modules/claims.py`): Optimized DSPy model for generating context-aware responses, with standardized configuration.
 - **Claims Data** (`dspy_modules/claims_data.py`): Data operations for claim retrieval, filing, and updating.
 
+### Claims Capabilities
+
+The agent implements a DSPy-based solution using the ReAct framework:
+
+- **Signature**: ClaimsSignature defines the business logic for handling insurance claim interactions
+- **Tools**: Provides three specialized tools for claims processing:
+  - `get_claim_status`: Retrieves status information on existing claims
+  - `file_claim`: Creates new insurance claims
+  - `update_claim_info`: Updates information on existing claims
+
 ### Communication Flow
 
 1. Messages are received through the agents channel

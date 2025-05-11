@@ -29,6 +29,17 @@ The Escalation Agent manages a multi-step workflow with distinct states:
 4. **Ticket Creation**: Generating a support ticket
 5. **Resolution**: Providing reference number and next steps
 
+### Escalation Capabilities
+
+The agent implements multiple DSPy-based modules using ChainOfThought and ReAct modules:
+
+- **Signatures**: Various specialized signatures for different stages of the escalation process:
+  - RetrieveTicketInfoSignature: Extracts ticket information from conversations
+  - ClassifyConfirmationSignature: Classifies user confirmations 
+  - CreateTicketSignature: Creates support tickets with collected information
+- **Tools**: Provides a specialized tool for ticket operations:
+  - `create_ticket`: Creates a ticket in the database with department, title, and contact info
+
 ### Message Flow
 
 1. Messages arrive on the `agents` channel with `escalation_request` type

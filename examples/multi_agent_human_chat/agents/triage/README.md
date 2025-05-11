@@ -29,6 +29,19 @@ Multiple classifier implementations with increasing sophistication:
 - **v3** (`baseline_model/classifier_v3.py`): Few-shot learning baseline
 - **v4** (`dspy_modules/classifier_v4/`): Advanced optimized classifier
 
+### Triage Capabilities
+
+The agent implements multiple DSPy-based classifiers with the Predict pattern:
+
+- **Signature**: AgentClassificationSignature defines the business logic for message classification
+- **Classification**: Uses optimized prompts to analyze message content and determine message category
+- **Categories**: Routes messages to appropriate specialized agents:
+  - BillingAgent: For payment and financial inquiries
+  - PolicyAgent: For policy details and coverage questions
+  - ClaimsAgent: For filing and checking claim status
+  - EscalationAgent: For issues requiring special handling
+  - ChattyAgent: Handled directly by the Triage Agent itself for greetings and general conversation
+
 ### Data Integration
 
 Extensive datasets for training and evaluation:

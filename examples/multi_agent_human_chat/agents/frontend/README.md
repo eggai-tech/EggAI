@@ -21,6 +21,16 @@ The Frontend Agent manages WebSocket connections between users and the backend A
 - **WebSocket Manager** (`websocket_manager.py`): Handles WebSocket connections and communication
 - **Guardrails** (`guardrails.py`): Optional content moderation capabilities
 
+### Frontend Capabilities
+
+The agent serves as the primary interface between users and the backend AI system:
+
+- **WebSocket Management**: Maintains active connections with users through real-time WebSockets
+- **Message Routing**: Directs user messages to the appropriate backend agents for processing
+- **Response Delivery**: Returns agent responses to the correct user sessions
+- **Connection Management**: Handles session tracking and maintenance for consistent user experiences
+- **Content Moderation**: Optional guardrails for filtering inappropriate content
+
 ### Communication Flow
 
 1. User connects via WebSocket (handled by WebSocket Manager)

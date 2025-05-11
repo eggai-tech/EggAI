@@ -33,6 +33,15 @@ The Retrieval Augmented Generation system:
 - **Optimizer** (`dspy_modules/policies_optimizer.py`): Optimizes prompts for consistent responses
 - **Data Access** (`dspy_modules/policies_data.py`): Manages data operations for policy information
 
+### Policies Capabilities
+
+The agent implements a DSPy-based solution using the ReAct module:
+
+- **Signature**: PolicyAgentSignature defines the business logic for handling policy interactions
+- **Tools**: Provides two specialized tools for policy operations:
+  - `take_policy_by_number_from_database`: Retrieves policy details using policy number
+  - `query_policy_documentation`: Searches policy documentation for specific information
+
 ## Technical Details
 
 ### Policy Document Structure
