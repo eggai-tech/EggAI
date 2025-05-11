@@ -154,13 +154,6 @@ async def handle_claims_message(msg: TracedMessage) -> None:
         )
 
 
-@claims_agent.subscribe(channel=agents_channel)
-@traced_handler("handle_others")
-async def handle_other_messages(msg: TracedMessage) -> None:
-    """Handle non-claim messages received on the agent channel."""
-    logger.debug("Received non-claim message: %s", msg)
-
-
 if __name__ == "__main__":
     from libraries.dspy_set_language_model import dspy_set_language_model
     
