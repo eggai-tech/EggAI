@@ -343,7 +343,7 @@ if __name__ == "__main__":
                 # Debug instruction proposal
                 try:
                     # Test instruction proposal directly
-                    from dspy.propose.instruction_proposal import (
+                    from dspy.teleprompt.copro_optimizer import (
                         BasicGenerateInstruction,
                     )
                     logger.info("Testing BasicGenerateInstruction directly")
