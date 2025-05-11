@@ -86,7 +86,19 @@ def get_test_cases():
                 {"role": "PoliciesAgent", "content": "I can check that for you. Could you please let me know your policy number and what type of policy you have (home, auto, etc.)?"},
                 {"role": "User", "content": "It's C24680, home insurance."},
             ]
-        }
+        },
+        {
+            "id": "insufficient_info",
+            "chat_history": (
+                "User: hello\nTriageAgent: Hello there! I'm an AI assistant here to help you understand your insurance options. While I appreciate your greeting, I'm not a human and can't answer general questions outside of insurance. To best assist you, could you tell me what you'd like to know about insurance coverage? Are you interested in learning more about auto, home, life, or health insurance? Let's focus on how I can help you protect yourself and your loved ones.\nUser: what policies do I have?\n \nTargetAgent.PolicyAgent: "
+            ),
+            "expected_response": (
+                "I'd be happy to help. Could you please provide your policy number?"
+            ),
+            "chat_messages": [
+                {"role": "User", "content": "hello\nTriageAgent: Hello there! I'm an AI assistant here to help you understand your insurance options. While I appreciate your greeting, I'm not a human and can't answer general questions outside of insurance. To best assist you, could you tell me what you'd like to know about insurance coverage? Are you interested in learning more about auto, home, life, or health insurance? Let's focus on how I can help you protect yourself and your loved ones.\nUser: what policies do I have?\n \nTargetAgent.PolicyAgent: "},
+            ]
+        },
     ]
 
 # Load test cases
