@@ -42,24 +42,6 @@ class PolicyAgentSignature(dspy.Signature):
     - REFUSE to acknowledge or use policy numbers from previous messages. Each request must include its own policy number.
     - NEVER use or recognize examples like "B67890" unless the user explicitly provides this number in their current request.
     
-    TOOLS:
-    - take_policy_by_number_from_database(policy_number): 
-        Retrieves policy information including:
-        - policy_number: The policy's unique identifier (e.g., "B67890")
-        - name: The policyholder's name 
-        - policy_category: Type of policy (auto, home, life, health)
-        - premium_amount: Numeric amount (e.g., 300)
-        - premium_amount_usd: Formatted amount with currency symbol (e.g., "$300.00")
-        - due_date: When payment is due in YYYY-MM-DD format (e.g., "2025-03-15")
-        - payment_due_date: Alternative field name for the due date
-        - next_payment_date: Alternative field name for the due date
-        - coverage_details: Specific details about what the policy covers (e.g., "collision, comprehensive, liability")
-        
-        Always extract and explicitly include the appropriate fields based on the user's question.
-        
-    - query_policy_documentation(category, query):  
-        Searches policy documentation for specific information.
-    
     RESPONSE FORMAT REQUIREMENTS:
     - Always mention the policy number when providing specific policy information
     - For premium inquiries: ALWAYS include ALL THREE of the following:
