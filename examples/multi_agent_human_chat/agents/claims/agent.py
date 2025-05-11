@@ -15,6 +15,7 @@ from libraries.tracing import (
     format_span_as_traceparent,
     traced_handler,
 )
+from libraries.tracing.otel import safe_set_attribute
 
 claims_agent = Agent(name="ClaimsAgent")
 logger = get_console_logger("claims_agent.handler")
@@ -26,23 +27,23 @@ tracer = create_tracer("claims_agent")
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
     """Format chat messages into a conversation string."""
     with tracer.start_as_current_span("get_conversation_string") as span:
-        span.set_attribute("chat_messages_count", len(chat_messages) if chat_messages else 0)
+        safe_set_attribute(span, "chat_messages_count", len(chat_messages) if chat_messages else 0)
         
         if not chat_messages:
-            span.set_attribute("empty_messages", True)
+            safe_set_attribute(span, "empty_messages", True)
             return ""
         
         conversation_parts = []
         for chat in chat_messages:
             if "content" not in chat:
-                span.set_attribute("invalid_message", True)
+                safe_set_attribute(span, "invalid_message", True)
                 continue
                 
             role = chat.get("role", "User")
             conversation_parts.append(f"{role}: {chat['content']}")
             
         conversation = "\n".join(conversation_parts) + "\n"
-        span.set_attribute("conversation_length", len(conversation))
+        safe_set_attribute(span, "conversation_length", len(conversation))
         return conversation
 
 
@@ -73,15 +74,15 @@ async def process_claims_request(
 ) -> str:
     """Generate a response to a claims request with timeout protection."""
     with tracer.start_as_current_span("process_claims_request") as span:
-        span.set_attribute("connection_id", connection_id)
-        span.set_attribute("conversation_length", len(conversation_string))
-        span.set_attribute("timeout_seconds", timeout_seconds)
+        safe_set_attribute(span, "connection_id", connection_id)
+        safe_set_attribute(span, "conversation_length", len(conversation_string))
+        safe_set_attribute(span, "timeout_seconds", timeout_seconds)
         
         start_time = time.perf_counter()
         
         # Validate input
         if not conversation_string or len(conversation_string.strip()) < 5:
-            span.set_attribute("error", "Empty or too short conversation")
+            safe_set_attribute(span, "error", "Empty or too short conversation")
             span.set_status(1, "Invalid input")
             raise ValueError("Conversation history is too short to process")
             
@@ -91,13 +92,13 @@ async def process_claims_request(
         
         # Record metrics
         processing_time = time.perf_counter() - start_time
-        span.set_attribute("processing_time_ms", processing_time * 1000)
-        span.set_attribute("response_length", len(result))
+        safe_set_attribute(span, "processing_time_ms", processing_time * 1000)
+        safe_set_attribute(span, "response_length", len(result))
         
         # Validate response
         if not result or len(result.strip()) < 10:
-            span.set_attribute("error", "Empty or too short response")
-            span.set_status(1, "Invalid response")
+            safe_set_attribute(span, "error", "Empty or too short response")
+            safe_set_attribute(span, "error_details", "Invalid response")
             return "I apologize, but I couldn't generate a proper response. Please try asking again."
         
         return result

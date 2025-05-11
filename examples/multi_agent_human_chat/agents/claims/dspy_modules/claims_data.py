@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from libraries.logger import get_console_logger
 from libraries.tracing import create_tracer
+from libraries.tracing.otel import safe_set_attribute
 
 from .claims_errors import ErrorCategory, ErrorResponse, get_user_friendly_error
 
@@ -102,20 +103,20 @@ class ClaimDataException(Exception):
 def get_claim_record(claim_number: str) -> Optional[ClaimRecord]:
     """Find a claim record by claim number."""
     with tracer.start_as_current_span("get_claim_record") as span:
-        span.set_attribute("claim_number", claim_number)
+        safe_set_attribute(span, "claim_number", claim_number)
         
         clean_claim_number = claim_number.strip() if claim_number else ""
         
         if not clean_claim_number:
-            span.set_attribute("empty_claim_number", True)
+            safe_set_attribute(span, "empty_claim_number", True)
             return None
             
         for record in CLAIMS_DATABASE:
             if record.claim_number == clean_claim_number:
-                span.set_attribute("claim_found", True)
+                safe_set_attribute(span, "claim_found", True)
                 return record
                 
-        span.set_attribute("claim_found", False)
+        safe_set_attribute(span, "claim_found", False)
         return None
 
 

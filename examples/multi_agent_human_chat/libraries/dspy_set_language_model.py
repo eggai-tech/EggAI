@@ -15,7 +15,7 @@ class TrackingLM(dspy.LM):
             # Remove response_format for LM Studio
             kwargs.pop("response_format", None)
             # Set default max context window for LM Studio
-            self.max_context_window = 4096
+            self.max_context_window = 128000
         else:
             # Default max context window for other models
             self.max_context_window = 16384

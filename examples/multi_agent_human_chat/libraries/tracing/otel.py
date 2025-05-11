@@ -16,6 +16,9 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 from opentelemetry import trace
 from opentelemetry.trace import SpanContext, TraceFlags, Tracer, TraceState
 
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("tracing.dspy")
 
 def safe_set_attribute(span, key: str, value: Any) -> None:
     """
@@ -27,21 +30,53 @@ def safe_set_attribute(span, key: str, value: Any) -> None:
         value: The attribute value
     """
     if value is None:
-        # Skip None values
+        # Skip None values entirely
         return
-        
+    
+    # For gen_ai attributes specifically, ensure we have string values
+    if key.startswith("gen_ai."):
+        if isinstance(value, (bool, int, float)):
+            value = str(value)
+        elif not isinstance(value, (str, bytes)) and not isinstance(value, list):
+            try:
+                value = str(value)
+            except Exception:
+                # If conversion fails, just skip it
+                logger.debug(f"Skipping gen_ai attribute {key} with unconvertible type: {type(value)}")
+                return
+    
     # Handle basic types
     if isinstance(value, (bool, int, float, str, bytes)):
-        span.set_attribute(key, value)
+        try:
+            span.set_attribute(key, value)
+        except Exception as e:
+            # If setting fails, try string conversion
+            logger.debug(f"Error setting span attribute {key}: {e}")
+            try:
+                span.set_attribute(key, str(value))
+            except Exception:
+                logger.debug(f"Failed to set attribute {key} even after string conversion")
+                pass
+    
     # Handle lists of basic types
     elif isinstance(value, list) and all(isinstance(item, (bool, int, float, str, bytes)) for item in value):
-        span.set_attribute(key, value)
+        try:
+            span.set_attribute(key, value)
+        except Exception:
+            # List might be invalid - try converting the whole list to a string
+            try:
+                span.set_attribute(key, str(value))
+            except Exception:
+                logger.debug(f"Failed to set list attribute {key}")
+                pass
+    
     # Convert other types to string representation
     else:
         try:
             span.set_attribute(key, str(value))
         except Exception:
             # If all else fails, we just skip the attribute
+            logger.debug(f"Skipping attribute {key} with invalid value type: {type(value)}")
             pass
 
 
@@ -50,7 +85,17 @@ def init_telemetry(
     endpoint: Optional[str] = None,
     **kwargs
 ) -> None:
+    """
+    Initialize OpenTelemetry.
+    
+    Args:
+        app_name: The name of the application for OpenTelemetry
+        endpoint: Optional OTLP endpoint URL (defaults to env OTEL_ENDPOINT or localhost)
+        **kwargs: Additional configuration parameters for openlit.init
+    """
     import openlit
+    
+    # Initialize OpenTelemetry with openlit
     otlp_endpoint = endpoint or os.getenv("OTEL_ENDPOINT", "http://localhost:4318")
     config = {
         "application_name": app_name,
@@ -59,6 +104,62 @@ def init_telemetry(
     }
     config.update(kwargs)
     openlit.init(**config)
+    
+    # After initialization, get the actual Span class to patch
+    # We need to do this after OpenTelemetry is initialized
+    try:
+        # Try to find the span implementation being used
+        logger.info("Attempting to patch span attribute setter for safer attribute handling")
+        from opentelemetry.trace import Span
+        from opentelemetry.sdk.trace import Span as SDKSpan
+        
+        # Get actual implementation class - this will depend on the OpenTelemetry setup
+        span_classes = []
+        if hasattr(Span, "set_attribute"):
+            span_classes.append(Span)
+        if hasattr(SDKSpan, "set_attribute"):
+            span_classes.append(SDKSpan)
+            
+        # Patch any classes we found
+        for span_class in span_classes:
+            if hasattr(span_class, "set_attribute"):
+                logger.info(f"Patching {span_class.__name__}.set_attribute for safe attribute handling")
+                original_set_attribute = span_class.set_attribute
+                
+                # Define a safer attribute setter
+                def safe_set_attribute_middleware(self, key: str, value: Any):
+                    # Skip None values entirely
+                    if value is None:
+                        return self
+                    
+                    # For gen_ai attributes specifically, ensure we have string values
+                    if key.startswith("gen_ai."):
+                        if isinstance(value, (bool, int, float)):
+                            value = str(value)
+                        elif not isinstance(value, (str, bytes)):
+                            try:
+                                value = str(value)
+                            except Exception:
+                                # If conversion fails, just skip it
+                                return self
+                    
+                    # For other attribute types, follow normal OTel rules but with added safety
+                    try:
+                        return original_set_attribute(self, key, value)
+                    except Exception:
+                        # Try to convert to string as a last resort
+                        try:
+                            return original_set_attribute(self, key, str(value))
+                        except Exception:
+                            # If all else fails, just skip this attribute
+                            return self
+                
+                # Apply the patch
+                span_class.set_attribute = safe_set_attribute_middleware
+                logger.info(f"Successfully patched {span_class.__name__}.set_attribute")
+    except Exception as e:
+        # If patching fails, log but continue - we'll rely on safe_set_attribute instead
+        logger.warning(f"Unable to patch span attribute setter: {e}. Using manual safe_set_attribute instead.")
 
 
 _TRACERS: Dict[str, Tracer] = {}

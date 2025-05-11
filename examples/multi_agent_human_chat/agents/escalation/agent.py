@@ -14,6 +14,7 @@ from opentelemetry import trace
 
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, traced_handler
+from libraries.tracing.otel import safe_set_attribute
 
 from .config import settings
 from .dspy_modules.escalation import (
@@ -63,8 +64,8 @@ def get_conversation_string(chat_messages: list[ChatMessage]) -> str:
 async def publish_agent_response(message: str, meta: Dict) -> None:
     """Publish a response from the agent to the human channel."""
     with tracer.start_as_current_span("send_message") as span:
-        span.set_attribute("message.length", len(message))
-        span.set_attribute("connection_id", meta.get("connection_id", "unknown"))
+        safe_set_attribute(span, "message.length", len(message))
+        safe_set_attribute(span, "connection_id", meta.get("connection_id", "unknown"))
 
         try:
             await human_channel.publish(
@@ -80,11 +81,11 @@ async def publish_agent_response(message: str, meta: Dict) -> None:
                     }
                 )
             )
-            span.set_attribute("message.sent", True)
+            safe_set_attribute(span, "message.sent", True)
             logger.debug(f"Published message to human channel: {message[:50]}...")
         except Exception as e:
-            span.set_attribute("message.sent", False)
-            span.set_attribute("error", str(e))
+            safe_set_attribute(span, "message.sent", False)
+            safe_set_attribute(span, "error", str(e))
             logger.error(f"Failed to publish message: {str(e)}", exc_info=True)
             raise
 
