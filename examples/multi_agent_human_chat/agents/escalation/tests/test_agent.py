@@ -15,8 +15,6 @@ import pytest
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
-# Set up Kafka transport FIRST - before any agents or channels are created
-# This is critical - it must happen before importing escalation_agent or creating channels
 from agents.escalation.config import settings
 from libraries.kafka_transport import create_kafka_transport
 

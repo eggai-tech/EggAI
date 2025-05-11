@@ -11,10 +11,38 @@ import os
 import random
 import uuid
 from asyncio import iscoroutine
-from typing import Awaitable, Callable, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from opentelemetry import trace
 from opentelemetry.trace import SpanContext, TraceFlags, Tracer, TraceState
+
+
+def safe_set_attribute(span, key: str, value: Any) -> None:
+    """
+    Safely set a span attribute, handling None values and unsupported types.
+    
+    Args:
+        span: The OpenTelemetry span to set the attribute on
+        key: The attribute key
+        value: The attribute value
+    """
+    if value is None:
+        # Skip None values
+        return
+        
+    # Handle basic types
+    if isinstance(value, (bool, int, float, str, bytes)):
+        span.set_attribute(key, value)
+    # Handle lists of basic types
+    elif isinstance(value, list) and all(isinstance(item, (bool, int, float, str, bytes)) for item in value):
+        span.set_attribute(key, value)
+    # Convert other types to string representation
+    else:
+        try:
+            span.set_attribute(key, str(value))
+        except Exception:
+            # If all else fails, we just skip the attribute
+            pass
 
 
 def init_telemetry(
@@ -118,9 +146,9 @@ def traced_handler(span_name: str = None):
                 context=parent_context,
                 kind=trace.SpanKind.SERVER
             ) as span:
-                span.set_attribute("agent.name", module_name)
-                span.set_attribute("agent.handler", handler_func.__name__)
-                span.set_attribute("message.id", str(getattr(msg, 'id', 'unknown')))
+                safe_set_attribute(span, "agent.name", module_name)
+                safe_set_attribute(span, "agent.handler", handler_func.__name__)
+                safe_set_attribute(span, "message.id", str(getattr(msg, 'id', 'unknown')))
 
                 if iscoroutine(handler_func) or asyncio.iscoroutinefunction(handler_func):
                     return await handler_func(*args, **kwargs)

@@ -11,7 +11,6 @@ import pytest
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
-# Set up Kafka transport before any agents or channels are created
 from agents.audit.config import settings
 from libraries.kafka_transport import create_kafka_transport
 

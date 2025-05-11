@@ -10,6 +10,7 @@ from faststream.kafka import KafkaMessage
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, traced_handler
+from libraries.tracing.otel import safe_set_attribute
 
 from .config import settings
 from .types import AuditCategory, AuditConfig, AuditEvent
@@ -146,11 +147,11 @@ async def audit_message(message: Union[TracedMessage, Dict], msg: KafkaMessage) 
         
         try:
             with tracer.start_as_current_span("process_audit_message") as span:
-                span.set_attribute("audit.channel", channel)
-                span.set_attribute("audit.message_type", message_type)
-                span.set_attribute("audit.source", source)
-                span.set_attribute("audit.category", category)
-                span.set_attribute("audit.message_id", message_id)
+                safe_set_attribute(span, "audit.channel", channel)
+                safe_set_attribute(span, "audit.message_type", message_type)
+                safe_set_attribute(span, "audit.source", source)
+                safe_set_attribute(span, "audit.category", category)
+                safe_set_attribute(span, "audit.message_id", message_id)
 
                 if audit_config.enable_debug_logging:
                     logger.info(

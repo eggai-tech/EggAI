@@ -15,8 +15,17 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
-from .agent import ticketing_agent
 from .config import settings
+
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content
+    )
+)
+
+# Import agent after transport is configured
+from .agent import ticketing_agent
 
 # Configure logger
 logger = get_console_logger("escalation_agent")
@@ -35,15 +44,6 @@ async def main():
     # Configure language model
     dspy_set_language_model(settings)
     logger.info(f"Using language model: {settings.language_model}")
-    
-    # Configure Kafka transport
-    logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-    eggai_set_default_transport(
-        lambda: create_kafka_transport(
-            bootstrap_servers=settings.kafka_bootstrap_servers,
-            ssl_cert=settings.kafka_ca_content
-        )
-    )
     
     # Start the agent
     await ticketing_agent.start()

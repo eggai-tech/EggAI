@@ -16,6 +16,7 @@ from agents.policies.types import (
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
+from libraries.tracing.otel import safe_set_attribute
 
 logger = get_console_logger("policies_agent.dspy")
 
@@ -238,13 +239,13 @@ def truncate_long_history(chat_history: str, config: Optional[ModelConfig] = Non
 def get_prediction_from_model(model, chat_history: str) -> Any:
     """Get prediction from a DSPy model."""
     with policies_tracer.start_as_current_span("get_prediction_from_model") as span:
-        span.set_attribute("chat_history_length", len(chat_history) if chat_history else 0)
+        safe_set_attribute(span, "chat_history_length", len(chat_history) if chat_history else 0)
         
         if not chat_history:
             raise ValueError("Empty chat history provided to prediction model")
         
         model_type = type(model).__name__
-        span.set_attribute("model_type", model_type)
+        safe_set_attribute(span, "model_type", model_type)
         
         start_time = time.perf_counter()
         
@@ -252,11 +253,11 @@ def get_prediction_from_model(model, chat_history: str) -> Any:
         prediction = model(chat_history=chat_history)
         
         elapsed = time.perf_counter() - start_time
-        span.set_attribute("prediction_time_ms", elapsed * 1000)
+        safe_set_attribute(span, "prediction_time_ms", elapsed * 1000)
         
         # Validate response
         if hasattr(prediction, "final_response"):
-            span.set_attribute("response_length", len(prediction.final_response))
+            safe_set_attribute(span, "response_length", len(prediction.final_response))
         
         return prediction
 
@@ -267,7 +268,7 @@ def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = N
     config = config or DEFAULT_CONFIG
     
     with policies_tracer.start_as_current_span("policies_optimized_dspy") as span:
-        span.set_attribute("input_length", len(chat_history))
+        safe_set_attribute(span, "input_length", len(chat_history))
         start_time = time.perf_counter()
         
         # Initialize language model
@@ -279,9 +280,9 @@ def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = N
         
         # Record truncation if needed
         if truncation_result["truncated"]:
-            span.set_attribute("truncated", True)
-            span.set_attribute("original_length", truncation_result["original_length"])
-            span.set_attribute("truncated_length", truncation_result["truncated_length"])
+            safe_set_attribute(span, "truncated", True)
+            safe_set_attribute(span, "original_length", truncation_result["original_length"])
+            safe_set_attribute(span, "truncated_length", truncation_result["truncated_length"])
         
         # Get prediction from model
         prediction = policies_model(chat_history=chat_history)
@@ -297,8 +298,8 @@ def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = N
         
         # Record metrics
         elapsed = time.perf_counter() - start_time
-        span.set_attribute("processing_time_ms", elapsed * 1000)
-        span.set_attribute("response_length", len(response_data.final_response))
+        safe_set_attribute(span, "processing_time_ms", elapsed * 1000)
+        safe_set_attribute(span, "response_length", len(response_data.final_response))
         
         return response_data
 

@@ -15,6 +15,7 @@ from libraries.tracing import (
     format_span_as_traceparent,
     traced_handler,
 )
+from libraries.tracing.otel import safe_set_attribute
 
 policies_agent = Agent(name="PoliciesAgent")
 logger = get_console_logger("policies_agent.handler")
@@ -26,16 +27,16 @@ tracer = create_tracer("policies_agent")
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
     """Format chat messages into a conversation string."""
     with tracer.start_as_current_span("get_conversation_string") as span:
-        span.set_attribute("chat_messages_count", len(chat_messages) if chat_messages else 0)
+        safe_set_attribute(span, "chat_messages_count", len(chat_messages) if chat_messages else 0)
         
         if not chat_messages:
-            span.set_attribute("empty_messages", True)
+            safe_set_attribute(span, "empty_messages", True)
             return ""
         
         conversation_parts = []
         for chat in chat_messages:
             if "content" not in chat:
-                span.set_attribute("invalid_message", True)
+                safe_set_attribute(span, "invalid_message", True)
                 logger.warning("Message missing content field")
                 continue
                 
@@ -43,7 +44,7 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
             conversation_parts.append(f"{role}: {chat['content']}")
             
         conversation = "\n".join(conversation_parts) + "\n"
-        span.set_attribute("conversation_length", len(conversation))
+        safe_set_attribute(span, "conversation_length", len(conversation))
         return conversation
 
 
@@ -60,8 +61,8 @@ async def publish_agent_response(connection_id: str, message: str) -> None:
             logger.warning(f"Invalid message format: {type(message)}")
             message = "I'm sorry, there was a technical issue processing your request. Please try again."
             
-        publish_span.set_attribute("message_length", len(message))
-        publish_span.set_attribute("connection_id", connection_id)
+        safe_set_attribute(publish_span, "message_length", len(message))
+        safe_set_attribute(publish_span, "connection_id", connection_id)
         
         await human_channel.publish(
             TracedMessage(
@@ -89,15 +90,15 @@ async def process_policy_request(
     config = ModelConfig(timeout_seconds=timeout_seconds or 30.0)
     
     with tracer.start_as_current_span("process_policy_request") as span:
-        span.set_attribute("connection_id", connection_id)
-        span.set_attribute("conversation_length", len(conversation_string))
-        span.set_attribute("timeout_seconds", config.timeout_seconds)
+        safe_set_attribute(span, "connection_id", connection_id)
+        safe_set_attribute(span, "conversation_length", len(conversation_string))
+        safe_set_attribute(span, "timeout_seconds", config.timeout_seconds)
         
         start_time = time.perf_counter()
         
         # Validate input
         if not conversation_string or len(conversation_string.strip()) < 5:
-            span.set_attribute("error", "Empty or too short conversation")
+            safe_set_attribute(span, "error", "Empty or too short conversation")
             span.set_status(1, "Invalid input")
             raise ValueError("Conversation history is too short to process")
             
@@ -107,32 +108,32 @@ async def process_policy_request(
         
         # Record metrics
         processing_time = time.perf_counter() - start_time
-        span.set_attribute("processing_time_ms", processing_time * 1000)
+        safe_set_attribute(span, "processing_time_ms", processing_time * 1000)
         
         # Log response metadata
         if response_data.policy_number:
             logger.info(f"Policy number identified: {response_data.policy_number}")
-            span.set_attribute("policy_number", response_data.policy_number)
+            safe_set_attribute(span, "policy_number", response_data.policy_number)
             
         if response_data.policy_category:
             logger.info(f"Policy category identified: {response_data.policy_category}")
-            span.set_attribute("policy_category", str(response_data.policy_category))
+            safe_set_attribute(span, "policy_category", str(response_data.policy_category))
             
         if response_data.documentation_reference:
             logger.info(f"Documentation reference: {response_data.documentation_reference}")
-            span.set_attribute("has_documentation", True)
+            safe_set_attribute(span, "has_documentation", True)
         
         # Get the final response
         final_response = response_data.final_response
         
         # Validate response quality
         if not final_response or len(final_response.strip()) < 10:
-            span.set_attribute("error", "Invalid or too short response")
+            safe_set_attribute(span, "error", "Invalid or too short response")
             span.set_status(1, "Invalid response")
             logger.warning("Model returned invalid or too short response")
             final_response = "I'm sorry, I couldn't find enough information to answer your question properly. Could you provide more details about your policy inquiry?"
         
-        span.set_attribute("response_length", len(final_response))
+        safe_set_attribute(span, "response_length", len(final_response))
         return final_response
 
 

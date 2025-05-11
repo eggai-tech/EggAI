@@ -13,7 +13,11 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
-from libraries.tracing.otel import extract_span_context, traced_handler
+from libraries.tracing.otel import (
+    extract_span_context,
+    safe_set_attribute,
+    traced_handler,
+)
 
 from .config import settings
 from .websocket_manager import WebSocketManager
@@ -73,7 +77,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 f"{root_span_ctx.span_id:016x}-"
                 f"{root_span_ctx.trace_flags:02x}"
             )
-            root_span.set_attribute('connection.id', str(connection_id))
+            safe_set_attribute(root_span, 'connection.id', str(connection_id))
             trace_state = str(root_span_ctx.trace_state) if root_span_ctx.trace_state else ""
 
         # Extract span context for child spans
@@ -86,7 +90,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 kind=trace.SpanKind.SERVER
         ) as span:
             try:
-                span.set_attribute('connection.id', str(connection_id))
+                safe_set_attribute(span, 'connection.id', str(connection_id))
                 await websocket_manager.connect(websocket, connection_id)
                 await websocket_manager.send_message_to_connection(
                     connection_id, {"connection_id": connection_id}

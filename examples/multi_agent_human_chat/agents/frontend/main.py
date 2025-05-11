@@ -13,23 +13,26 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
-from .agent import add_websocket_gateway, frontend_agent
+# Import settings first
 from .config import settings
+
+# Configure transport with heartbeat and session timeout
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content
+    )
+)
+
+# Import agent after transport is configured
+from .agent import add_websocket_gateway, frontend_agent
 
 logger = get_console_logger("frontend_agent")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-        eggai_set_default_transport(
-            lambda: create_kafka_transport(
-                bootstrap_servers=settings.kafka_bootstrap_servers,
-                ssl_cert=settings.kafka_ca_content
-            )
-        )
-        
+    try:        
         await frontend_agent.start()
         logger.info(f"{settings.app_name} started successfully")
         

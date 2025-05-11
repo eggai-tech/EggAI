@@ -7,7 +7,7 @@ ReAct, and other DSPy components.
 
 import asyncio
 import functools
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 import dspy
 from opentelemetry import trace
@@ -15,6 +15,36 @@ from opentelemetry import trace
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("tracing.dspy")
+
+
+def safe_set_attribute(span, key: str, value: Any) -> None:
+    """
+    Safely set a span attribute, handling None values and unsupported types.
+    
+    Args:
+        span: The OpenTelemetry span to set the attribute on
+        key: The attribute key
+        value: The attribute value
+    """
+    if value is None:
+        # Skip None values
+        return
+        
+    # Handle basic types
+    if isinstance(value, (bool, int, float, str, bytes)):
+        span.set_attribute(key, value)
+    # Handle lists of basic types
+    elif isinstance(value, list) and all(isinstance(item, (bool, int, float, str, bytes)) for item in value):
+        span.set_attribute(key, value)
+    # Convert other types to string representation
+    else:
+        try:
+            span.set_attribute(key, str(value))
+        except Exception:
+            # If all else fails, we just skip the attribute
+            logger.debug(f"Skipping attribute {key} with invalid value type: {type(value)}")
+            pass
+
 
 class TracedChainOfThought(dspy.ChainOfThought):
     """
@@ -75,7 +105,7 @@ def traced_dspy_function(name=None, span_namer=None):
                     # Trace a subset of kwargs for context
                     if 'chat_history' in kwargs:
                         chat_excerpt = kwargs['chat_history'][:200] + "..." if len(kwargs['chat_history']) > 200 else kwargs['chat_history']
-                        span.set_attribute("dspy.chat_history", chat_excerpt)
+                        safe_set_attribute(span, "dspy.chat_history", chat_excerpt)
                         
                     result = fn(*args, **kwargs)
                     return result
@@ -98,7 +128,7 @@ def traced_dspy_function(name=None, span_namer=None):
                     # Trace a subset of kwargs for context
                     if 'chat_history' in kwargs:
                         chat_excerpt = kwargs['chat_history'][:200] + "..." if len(kwargs['chat_history']) > 200 else kwargs['chat_history']
-                        span.set_attribute("dspy.chat_history", chat_excerpt)
+                        safe_set_attribute(span, "dspy.chat_history", chat_excerpt)
                         
                     result = await fn(*args, **kwargs)
                     return result
@@ -156,19 +186,6 @@ class TracedReAct(dspy.ReAct):
     def load_signature(path):
         """
         Load a signature from a JSON file saved by an optimizer.
-        
-        This method is a custom extension to support our approach to optimizing
-        ReAct agents with COPRO.
-        
-        The DSPy framework doesn't natively support optimizing ReAct agents, so we've
-        implemented this approach to use COPRO optimization while preserving the
-        ReAct framework's tool-using capabilities.
-        
-        Args:
-            path: Path to the JSON file containing the signature
-            
-        Returns:
-            The loaded signature class that can be used to create a new TracedReAct
         """
         logger.info(f"Loading signature from {path}")
         try:
@@ -185,4 +202,3 @@ class TracedReAct(dspy.ReAct):
             except Exception as e2:
                 logger.error(f"Failed to load signature: {e2}")
                 raise ValueError(f"Could not load signature from {path}")
-

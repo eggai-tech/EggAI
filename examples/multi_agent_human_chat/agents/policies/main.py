@@ -8,8 +8,17 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
-from .agent import policies_agent
 from .config import settings
+
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content
+    )
+)
+
+# Import agent after transport is configured
+from .agent import policies_agent
 
 logger = get_console_logger("policies_agent")
 
@@ -21,14 +30,7 @@ async def main():
     init_telemetry(app_name=settings.app_name)
     dspy_set_language_model(settings)
     
-    # Set up transport
-    eggai_set_default_transport(
-        lambda: create_kafka_transport(
-            bootstrap_servers=settings.kafka_bootstrap_servers,
-            ssl_cert=settings.kafka_ca_content
-        )
-    )
-    
+
     # Start the agent
     await policies_agent.start()
     logger.info(f"{settings.app_name} started successfully")
