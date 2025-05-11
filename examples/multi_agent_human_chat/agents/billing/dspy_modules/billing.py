@@ -26,10 +26,6 @@ class BillingSignature(dspy.Signature):
       - Retrieve or update billing information when provided a policy number
       - Provide concise, helpful responses
 
-    TOOLS:
-      - get_billing_info(policy_number): Retrieves billing information
-      - update_billing_info(policy_number, field, new_value): Updates billing fields
-
     RESPONSE FORMAT:
       - For balance inquiries: "Your current amount due is $X.XX with a due date of YYYY-MM-DD. Your status is 'Status'."
       - For payment info: "Your next payment of $X.XX is due on YYYY-MM-DD, and your current status is 'Status'."
