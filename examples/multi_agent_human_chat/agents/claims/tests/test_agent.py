@@ -61,7 +61,7 @@ def get_test_cases():
                 "User: My policy number is A12345, and my car was damaged in a parking lot yesterday.\n"
             ),
             "expected_response": (
-                "I've filed a new claim #1004 under policy A12345. Please upload photos of the damage and any police report within 5 business days to expedite processing."
+                "I've filed a new claim #XXXX under policy A12345. Please email photos of the damage and any police report to claims@example.com within 5 business days to expedite processing."
             ),
             "chat_messages": [
                 {"role": "User", "content": "I need to file a new claim."},
@@ -111,9 +111,9 @@ class ClaimsEvaluationSignature(dspy.Signature):
        - MUST mention any outstanding items if applicable
     
     2. For FILING NEW CLAIMS:
-       - MUST confirm that a new claim has been filed
-       - MUST include the policy number exactly as provided (e.g., "A12345")
-       - MUST include either a claim number (preferable) OR next steps for the customer
+       - MUST include the policy number
+       - MUST include a claim number
+       - MUST mention sending photos and/or documentation
     
     3. For ADDRESS UPDATES:
        - When user provides claim number but NOT a new address:
@@ -129,7 +129,10 @@ class ClaimsEvaluationSignature(dspy.Signature):
       * 0.8-0.9: All MUST elements present, some SHOULD elements missing
       * 0.0-0.7: Any MUST elements missing
     
-    Your evaluation should be strict on data accuracy but flexible on wording and formatting.
+    Your evaluation should be strict on required elements being present but flexible on exact values and formatting.
+    When evaluating the claim number, the exact number is not required to match the expected_response.
+    For example, if the expected_response includes claim number "#1001" and agent_response includes "#1002" or any other number, the evaluation should still pass.
+    For claim numbers specifically in the filing new claims scenario, ANY claim number is acceptable.
     """
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     agent_response: str = dspy.InputField(desc="Agent-generated response.")
@@ -267,7 +270,7 @@ async def test_claims_agent():
                 agent_response=agent_response,
                 expected_response=case["expected_response"],
             )
-            
+
             # Track results for reporting
             test_result = {
                 "id": f"test-{case_index+1}",

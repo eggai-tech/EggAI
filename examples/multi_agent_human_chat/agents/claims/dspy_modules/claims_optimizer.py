@@ -103,22 +103,22 @@ from libraries.tracing import TracedReAct
 
 
 # Mock tools for optimization (these won't actually be called during optimization)
-def mock_get_claim_status(claim_number: str):
-    """Mock implementation of get_claim_status for optimization."""
+def get_claim_status(claim_number: str):
+    """Retrieve claim status and details for a given claim_number."""
     return '{"claim_number": "1001", "policy_number": "A12345", "status": "In Review", "estimate": 2300.0, "estimate_date": "2025-05-15", "next_steps": "Submit repair estimates"}'
 
-def mock_file_claim(policy_number: str, claim_details: str):
-    """Mock implementation of file_claim for optimization."""
+def file_claim(policy_number: str, claim_details: str):
+    """File a new claim under the given policy with provided details."""
     return '{"claim_number": "1004", "policy_number": "A12345", "status": "Filed", "next_steps": "Provide documentation"}'
 
-def mock_update_claim_info(claim_number: str, field: str, new_value: str):
-    """Mock implementation of update_claim_info for optimization."""
+def update_claim_info(claim_number: str, field: str, new_value: str):
+    """Update a given field in the claim record for the specified claim number."""
     return '{"claim_number": "1001", "policy_number": "A12345", "status": "Updated", "field": "' + field + '", "new_value": "' + new_value + '"}'
 
 # Create TracedReAct program for optimization
 claims_program = TracedReAct(
     ClaimsSignature,
-    tools=[mock_get_claim_status, mock_file_claim, mock_update_claim_info],
+    tools=[get_claim_status, file_claim, update_claim_info],
     name="claims_react_optimizer",
     tracer=None,  # No tracing during optimization
     max_iters=5,
