@@ -18,15 +18,11 @@ logger = get_console_logger("billing_agent")
 async def main():
     logger.info(f"Starting {settings.app_name}")
     
+    # Initialize telemetry and language model
     init_telemetry(app_name=settings.app_name)
-    logger.info(f"Telemetry initialized for {settings.app_name}")
-    
     dspy_set_language_model(settings)
     
-    # Configure Kafka transport
-    logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-    
-    # Use the shared utility function with certificate from settings
+    # Set up transport
     eggai_set_default_transport(
         lambda: create_kafka_transport(
             bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -34,9 +30,11 @@ async def main():
         )
     )
     
+    # Start the agent
     await billing_agent.start()
     logger.info(f"{settings.app_name} started successfully")
-
+    
+    # Wait indefinitely
     await asyncio.Future()
 
 

@@ -1,3 +1,4 @@
+"""Billing data access module."""
 import json
 
 from libraries.logger import get_console_logger
@@ -30,6 +31,7 @@ BILLING_DATABASE = [
 
 
 def get_policy_record(policy_number: str):
+    """Get a policy record by policy number."""
     clean_policy_number = policy_number.strip()
     for record in BILLING_DATABASE:
         if record["policy_number"] == clean_policy_number:
@@ -38,6 +40,7 @@ def get_policy_record(policy_number: str):
 
 
 def get_billing_info(policy_number: str):
+    """Retrieve billing information for a policy number."""
     logger.info(f"Retrieving billing info for policy number: {policy_number}")
     record = get_policy_record(policy_number)
     
@@ -50,6 +53,7 @@ def get_billing_info(policy_number: str):
 
 
 def update_billing_info(policy_number: str, field: str, new_value: str):
+    """Update billing information for a policy record."""
     logger.info(f"Updating billing info for policy {policy_number}: {field} -> {new_value}")
     record = get_policy_record(policy_number)
     

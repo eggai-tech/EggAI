@@ -125,45 +125,44 @@ from agents.claims.dspy_modules.claims_data import (
 # Create tracer for the optimized claims module
 claims_tracer = create_tracer("claims_agent_optimized")
 
-def create_claims_model(config: Optional[ModelConfig] = None) -> TracedReAct:
-    """Create a model for processing insurance claims requests."""
-    config = config or DEFAULT_CONFIG
-    
-    # Load the optimized model
+def load_optimized_signature() -> Optional[type]:
+    """Load the optimized signature from JSON file if available."""
     json_path = Path(__file__).resolve().parent / "optimized_claims.json"
     
-    # Create optimized signature subclass with base instructions as default
-    class OptimizedClaimsSignature(ClaimsSignature):
-        """Optimized signature based on ClaimsSignature."""
-        pass
-        
-    # Default to the ClaimsSignature instructions
-    instructions = ClaimsSignature.__doc__
-    logger.info("Using base instructions from ClaimsSignature")
+    if not os.path.exists(json_path):
+        logger.warning(f"No optimized signature file found at {json_path}")
+        return None
     
-    # Try to load optimized instructions if available
-    if os.path.exists(json_path):
-        with open(json_path, 'r') as f:
+    try:
+        with open(str(json_path), 'r') as f:
             data = json.load(f)
         
-        if "instructions" in data and data["instructions"]:
-            instructions = data["instructions"]
-            logger.info("Loaded optimized instructions from JSON")
+        if "instructions" in data:
+            # Create optimized signature subclass
+            class OptimizedClaimsSignature(ClaimsSignature):
+                """Optimized signature based on ClaimsSignature."""
+                pass
+            
+            OptimizedClaimsSignature.__doc__ = data["instructions"]
+            logger.info("Successfully loaded optimized claims signature")
+            return OptimizedClaimsSignature
+            
+        return None
     
-    # Set the docstring to the instructions (optimized or base)
-    OptimizedClaimsSignature.__doc__ = instructions
-    
-    # Create TracedReAct with signature
-    logger.info(f"Creating model: {config.name}_optimized")
-    return TracedReAct(
-        OptimizedClaimsSignature,
-        tools=[get_claim_status, file_claim, update_claim_info],
-        name=f"{config.name}_optimized", 
-        tracer=claims_tracer if config.use_tracing else None,
-        max_iters=config.max_iterations,
-    )
+    except Exception as e:
+        logger.error(f"Error loading optimized signature: {e}")
+        return None
 
-claims_optimized = create_claims_model()
+
+# Create the claims model
+signature_class = load_optimized_signature() or ClaimsSignature
+claims_optimized = TracedReAct(
+    signature_class,
+    tools=[get_claim_status, file_claim, update_claim_info],
+    name="claims_react_optimized",
+    tracer=claims_tracer,
+    max_iters=5,
+)
 
 
 def get_prediction_from_model(model, chat_history: str):
@@ -234,14 +233,14 @@ def claims_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = Non
         truncation_result = truncate_long_history(chat_history, config)
         chat_history = truncation_result["history"]
         
-        # Set tracing attributes for truncation
+        # Record truncation if needed
         if truncation_result["truncated"]:
             span.set_attribute("truncated", True)
             span.set_attribute("original_length", truncation_result["original_length"])
             span.set_attribute("truncated_length", truncation_result["truncated_length"])
         
-        # Generate response
-        prediction = get_prediction_from_model(claims_optimized, chat_history)
+        # Get prediction directly from model
+        prediction = claims_optimized(chat_history=chat_history)
         response = prediction.final_response
         
         if not response or len(response) < 10:

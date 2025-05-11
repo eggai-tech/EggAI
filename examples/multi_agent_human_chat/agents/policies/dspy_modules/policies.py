@@ -166,51 +166,44 @@ from agents.policies.dspy_modules.policies_data import (
 )
 
 
-def create_policies_model(config: Optional[ModelConfig] = None) -> TracedReAct:
-    """Create a model for processing policy inquiries."""
-    config = config or DEFAULT_CONFIG
-    
-    # Load the optimized model
+def load_optimized_signature() -> Optional[type]:
+    """Load the optimized signature from JSON file if available."""
     json_path = Path(__file__).resolve().parent / "optimized_policies.json"
     
-    # Create optimized signature subclass with base instructions as default
-    class OptimizedPolicySignature(PolicyAgentSignature):
-        """Optimized signature based on PolicyAgentSignature."""
-        pass
-        
-    # Default to the PolicyAgentSignature instructions
-    instructions = PolicyAgentSignature.__doc__
-    logger.info("Using base instructions from PolicyAgentSignature")
+    if not os.path.exists(json_path):
+        logger.warning(f"No optimized signature file found at {json_path}")
+        return None
     
-    # Load optimized instructions if available
-    if os.path.exists(json_path):
-        with open(json_path, 'r') as f:
+    try:
+        with open(str(json_path), 'r') as f:
             data = json.load(f)
         
-        if "instructions" in data and data["instructions"]:
-            instructions = data["instructions"]
-            logger.info("Loaded optimized instructions from JSON")
+        if "instructions" in data:
+            # Create optimized signature subclass
+            class OptimizedPolicySignature(PolicyAgentSignature):
+                """Optimized signature based on PolicyAgentSignature."""
+                pass
             
-            # Ensure date formatting instructions are included
-            if f"Dates MUST be in the format {config.date_format}" not in instructions:
-                instructions += f"\n    IMPORTANT: Dates MUST be in the format {config.date_format}. For example, use \"2025-03-15\" instead of \"March 15th, 2025\"."
+            OptimizedPolicySignature.__doc__ = data["instructions"]
+            logger.info("Successfully loaded optimized policy signature")
+            return OptimizedPolicySignature
+            
+        return None
     
-    # Set the docstring to the instructions (optimized or base)
-    OptimizedPolicySignature.__doc__ = instructions
-    
-    # Create TracedReAct with signature
-    logger.info(f"Creating model: {config.name}_optimized")
-    return TracedReAct(
-        OptimizedPolicySignature,
-        tools=[take_policy_by_number_from_database, query_policy_documentation],
-        name=f"{config.name}_optimized",
-        tracer=policies_tracer if config.use_tracing else None,
-        max_iters=config.max_iterations,
-    )
+    except Exception as e:
+        logger.error(f"Error loading optimized signature: {e}")
+        return None
 
 
 # Create the policies model
-policies_model = create_policies_model()
+signature_class = load_optimized_signature() or PolicyAgentSignature
+policies_model = TracedReAct(
+    signature_class,
+    tools=[take_policy_by_number_from_database, query_policy_documentation],
+    name="policies_react_optimized",
+    tracer=policies_tracer,
+    max_iters=5,
+)
 
 
 def truncate_long_history(chat_history: str, config: Optional[ModelConfig] = None) -> Dict[str, Any]:
@@ -284,45 +277,23 @@ def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = N
         truncation_result = truncate_long_history(chat_history, config)
         chat_history = truncation_result["history"]
         
-        # Set tracing attributes for truncation
+        # Record truncation if needed
         if truncation_result["truncated"]:
             span.set_attribute("truncated", True)
             span.set_attribute("original_length", truncation_result["original_length"])
             span.set_attribute("truncated_length", truncation_result["truncated_length"])
         
-        # Create response data with defaults
-        response_data = PolicyResponseData(truncated=truncation_result["truncated"])
+        # Get prediction from model
+        prediction = policies_model(chat_history=chat_history)
         
-        # Generate response
-        try:
-            # Get prediction from model
-            prediction = get_prediction_from_model(policies_model, chat_history)
-            
-            # Extract final response
-            if hasattr(prediction, "final_response") and prediction.final_response:
-                response_value = str(prediction.final_response).strip()
-                if response_value and response_value != "NoneType":
-                    response_data.final_response = response_value
-                else:
-                    logger.warning("Model returned empty or NoneType response, using default")
-            
-            # Add optional fields if present
-            if hasattr(prediction, "policy_category") and prediction.policy_category:
-                response_data.policy_category = prediction.policy_category
-                span.set_attribute("has_policy_category", True)
-                
-            if hasattr(prediction, "policy_number") and prediction.policy_number:
-                response_data.policy_number = prediction.policy_number
-                span.set_attribute("has_policy_number", True)
-                
-            if hasattr(prediction, "documentation_reference") and prediction.documentation_reference:
-                response_data.documentation_reference = prediction.documentation_reference
-                span.set_attribute("has_documentation_reference", True)
-                
-        except Exception as e:
-            logger.error(f"Error generating prediction: {e}", exc_info=True)
-            # Default response is already set during initialization
-            span.set_attribute("error", str(e))
+        # Create response with extracted data
+        response_data = PolicyResponseData(
+            final_response=prediction.final_response,
+            policy_category=prediction.policy_category if hasattr(prediction, "policy_category") else None,
+            policy_number=prediction.policy_number if hasattr(prediction, "policy_number") else None,
+            documentation_reference=prediction.documentation_reference if hasattr(prediction, "documentation_reference") else None,
+            truncated=truncation_result["truncated"]
+        )
         
         # Record metrics
         elapsed = time.perf_counter() - start_time

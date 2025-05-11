@@ -1,31 +1,14 @@
-import dspy
 from eggai import Agent, Channel
-from eggai.transport import eggai_set_default_transport
 
-from agents.billing.dspy_modules.billing import billing_optimized_dspy
-from agents.billing.dspy_modules.billing_data import (
-    get_billing_info,
-    update_billing_info,
-)
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedMessage,
-    TracedReAct,
     create_tracer,
     format_span_as_traceparent,
     traced_handler,
 )
 
-from .config import settings
-
-eggai_set_default_transport(
-    lambda: create_kafka_transport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
-    )
-)
+from .dspy_modules.billing import billing_optimized_dspy
 
 billing_agent = Agent(name="BillingAgent")
 logger = get_console_logger("billing_agent.handler")
@@ -34,54 +17,6 @@ agents_channel = Channel("agents")
 human_channel = Channel("human")
 
 tracer = create_tracer("billing_agent")
-
-class BillingAgentSignature(dspy.Signature):
-    """
-    You are the Billing Agent for an insurance company.
-
-    ROLE:
-      - Assist customers with billing-related inquiries such as due amounts, billing cycles, payment statuses, etc.
-      - Retrieve or update billing information as needed.
-      - Provide polite, concise, and helpful answers.
-
-    TOOLS:
-      - get_billing_info(policy_number): Retrieves billing information (amount due, due date, payment status, etc.).
-      - update_billing_info(policy_number, field, new_value): Updates a particular field in the billing record.
-
-    RESPONSE FORMAT:
-      - Provide a concise, courteous message summarizing relevant billing info using specific patterns:
-        - For current balance inquiries: "Your current amount due is $X.XX with a due date of YYYY-MM-DD. Your status is 'Status'."
-        - For next payment info: "Your next payment of $X.XX is due on YYYY-MM-DD, and your current status is 'Status'."
-        - For billing cycle inquiries: "Your current billing cycle is 'Cycle' with the next payment of $X.XX due on YYYY-MM-DD."
-
-    GUIDELINES:
-      - Maintain a polite, professional tone.
-      - Only use the tools if necessary (e.g., if the user provides a policy number and requests an update or info).
-      - If a policy number is missing or unclear, politely ask for it.
-      - Avoid speculation or divulging irrelevant details.
-      - IMPORTANT: When a user asks "How much do I owe", always use the "current amount due" format.
-      - IMPORTANT: When a user asks about billing date, use the "next payment" format.
-      - IMPORTANT: When a user mentions "billing cycle", use the "billing cycle" format.
-      - IMPORTANT: Dates MUST be in the format YYYY-MM-DD. For example, use "2025-03-15" instead of "March 15th, 2025".
-
-    Input Fields:
-      - chat_history: A string containing the full conversation thus far.
-
-    Output Fields:
-      - final_response: The final text answer to the user regarding their billing inquiry.
-    """
-
-    chat_history: str = dspy.InputField(desc="Full conversation context.")
-    final_response: str = dspy.OutputField(desc="Billing response to the user.")
-
-
-billing_react = TracedReAct(
-    BillingAgentSignature,
-    tools=[get_billing_info, update_billing_info],
-    name="billing_react",
-    tracer=tracer,
-    max_iters=5,
-)
 
 
 def get_conversation_string(chat_messages):
@@ -111,55 +46,87 @@ async def publish_agent_response(connection_id, message):
         )
 
 
-def get_billing_response(conversation_string):
-    try:
-        logger.info("Using optimized billing module")
-        return billing_optimized_dspy(chat_history=conversation_string)
-    except Exception as e:
-        logger.warning(f"Error using optimized module: {e}, falling back to TracedReAct")
-        response = billing_react(chat_history=conversation_string)
-        return response.final_response
-
-
 @billing_agent.subscribe(
     channel=agents_channel, 
-    filter_by_message=lambda msg: msg["type"] == "billing_request"
+    filter_by_message=lambda msg: msg.get("type") == "billing_request"
 )
 @traced_handler("handle_billing_message")
-async def handle_billing_message(msg_dict):
-    try:
-        msg = TracedMessage(**msg_dict)
-        chat_messages = msg.data.get("chat_messages", [])
-        connection_id = msg.data.get("connection_id", "unknown")
-
-        conversation_string = get_conversation_string(chat_messages)
-        logger.info("Processing billing request")
-        logger.debug(f"Conversation context: {conversation_string[:100]}...")
-
-        final_text = get_billing_response(conversation_string)
-        
-        logger.info("Sending response to user")
-        logger.info(f"Response: {final_text[:100]}...")
-
-        await publish_agent_response(connection_id, final_text)
+async def handle_billing_message(msg: TracedMessage):
+    # Add extensive debug logging
+    logger.info(f"Received billing request: {msg}")
+    logger.info(f"Message type: {msg.type}")
+    logger.info(f"Message data: {msg.data}")
     
-    except Exception as e:
-        logger.error(f"Error in BillingAgent: {e}", exc_info=True)
+    # Extract message data
+    chat_messages = msg.data.get("chat_messages", [])
+    connection_id = msg.data.get("connection_id", "unknown")
+    logger.info(f"Processing for connection_id: {connection_id}")
+
+    conversation_string = get_conversation_string(chat_messages)
+    logger.info("Processing billing request")
+    
+    response = billing_optimized_dspy(chat_history=conversation_string)
+    
+    logger.info("Sending response to user")
+    logger.info(f"Response: {response[:100]}...")
+
+    await publish_agent_response(connection_id, response)
 
 
 @billing_agent.subscribe(channel=agents_channel)
+@traced_handler("handle_others")
 async def handle_others(msg: TracedMessage):
-    logger.debug("Received message: %s", msg)
+    # Simply log non-billing messages
+    logger.debug("Received non-billing message: %s", msg)
 
 
 if __name__ == "__main__":
-    language_model = dspy_set_language_model(settings)
-    test_conversation = (
-        "User: Hi, I'd like to know my next billing date.\n"
-        "BillingAgent: Sure! Please provide your policy number.\n"
-        "User: It's B67890.\n"
-    )
+    import asyncio
+    from uuid import uuid4
 
-    logger.info("Running test query")
-    result = billing_react(chat_history=test_conversation)
-    logger.info(f"Test response: {result.final_response}")
+    from eggai.transport import eggai_set_default_transport
+
+    from agents.billing.config import settings
+    from libraries.dspy_set_language_model import dspy_set_language_model
+    from libraries.kafka_transport import create_kafka_transport
+    
+    # Set up transport
+    eggai_set_default_transport(
+        lambda: create_kafka_transport(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            ssl_cert=settings.kafka_ca_content
+        )
+    )
+    
+    dspy_set_language_model(settings)
+    logger.info("Running direct test for billing agent")
+    
+    # Define simple test case
+    async def test_billing_direct():
+        test_id = str(uuid4())
+        test_connection_id = f"test-{test_id}"
+        
+        logger.info(f"Testing with connection_id: {test_connection_id}")
+        
+        # Create test message
+        test_msg = TracedMessage(
+            id=test_id,
+            type="billing_request",
+            source="TestScript",
+            data={
+                "chat_messages": [
+                    {"role": "User", "content": "How much is my premium?"},
+                    {"role": "BillingAgent", "content": "Could you please provide your policy number?"},
+                    {"role": "User", "content": "It's B67890."}
+                ],
+                "connection_id": test_connection_id,
+                "message_id": test_id
+            }
+        )
+        
+        # Direct call to handler
+        await handle_billing_message(test_msg)
+        logger.info("Test complete")
+    
+    # Run the test
+    asyncio.run(test_billing_direct())
