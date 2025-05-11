@@ -23,10 +23,8 @@ async def main():
     
     dspy_set_language_model(settings)
     
-    # Configure Kafka transport
     logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
     
-    # Use the shared utility function with certificate from settings
     eggai_set_default_transport(
         lambda: create_kafka_transport(
             bootstrap_servers=settings.kafka_bootstrap_servers,

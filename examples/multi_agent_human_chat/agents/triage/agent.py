@@ -10,7 +10,6 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
 
-# Set up Kafka transport
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -27,6 +26,9 @@ logger = get_console_logger("triage_agent.handler")
 
 
 def get_current_classifier():
+    if settings.classifier_version == "v0":
+        from agents.triage.dspy_modules.classifier_v0 import classifier_v0
+        return classifier_v0
     if settings.classifier_version == "v1":
         from agents.triage.dspy_modules.classifier_v1 import classifier_v1
         return classifier_v1
@@ -46,7 +48,6 @@ def get_current_classifier():
 current_classifier = get_current_classifier()
 
 
-# add offset from faststream config
 @triage_agent.subscribe(
     channel=human_channel,
     filter_by_message=lambda msg: msg.get("type") == "user_message",

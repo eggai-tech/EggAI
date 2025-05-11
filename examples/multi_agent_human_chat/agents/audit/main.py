@@ -19,10 +19,8 @@ async def main():
     init_telemetry(app_name=settings.app_name)
     logger.info(f"Telemetry initialized for {settings.app_name}")
     
-    # Configure Kafka transport
     logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
     
-    # Use the shared utility function with certificate from settings
     eggai_set_default_transport(
         lambda: create_kafka_transport(
             bootstrap_servers=settings.kafka_bootstrap_servers,
