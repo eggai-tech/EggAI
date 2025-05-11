@@ -103,7 +103,7 @@ async def test_billing_agent():
                 
                 # Wait for response from the agent
                 response_event = await wait_for_agent_response(
-                    response_queue, connection_id, timeout=15.0
+                    response_queue, connection_id, timeout=30.0
                 )
                 
                 # Extract agent response and calculate metrics

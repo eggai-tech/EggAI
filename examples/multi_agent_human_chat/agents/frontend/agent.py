@@ -1,4 +1,3 @@
-"""Frontend Agent module for handling WebSocket connections."""
 import asyncio
 import os
 import uuid

@@ -1,5 +1,3 @@
-"""Billing Agent DSPy module for policy information and updates."""
-import json
 import os
 from pathlib import Path
 
@@ -38,59 +36,72 @@ class BillingSignature(dspy.Signature):
       - Use YYYY-MM-DD date format
       - Match response format to query type
     """
-
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
 
 
-def load_optimized_signature():
-    """Load the optimized signature from JSON file."""
-    json_path = Path(__file__).resolve().parent / "optimized_billing.json"
-    
-    if not os.path.exists(json_path):
-        logger.warning(f"No optimized signature file found at {json_path}")
-        return None
-    
-    try:
-        with open(str(json_path), 'r') as f:
-            signature_data = json.load(f)
-        
-        if "instructions" in signature_data:
-            from dataclasses import dataclass
-            
-            @dataclass
-            class OptimizedBillingSignature(BillingSignature):
-                """Optimized signature for the billing agent."""
-                pass
-            
-            OptimizedBillingSignature.__doc__ = signature_data["instructions"]
-            
-            logger.info("Successfully loaded optimized billing signature")
-            return OptimizedBillingSignature
-            
-        return None
-    
-    except Exception as e:
-        logger.error(f"Error loading optimized signature: {e}")
-        return None
-
-
-# Create the DSPy model
+# Initialize tracer
 tracer = create_tracer("billing_agent")
-signature_class = load_optimized_signature() or BillingSignature
+
+# Path to the SIMBA optimized JSON file
+optimized_model_path = Path(__file__).resolve().parent / "optimized_billing_simba.json"
+
+# Create base model with tracing that we'll use
 billing_model = TracedReAct(
-    signature_class,
+    BillingSignature,
     tools=[get_billing_info, update_billing_info],
     name="billing_react",
     tracer=tracer,
     max_iters=5,
 )
 
+# Flag to indicate if we're using optimized prompts (from JSON)
+using_optimized_prompts = False
+
+# Try to load prompts from the optimized JSON file directly
+if optimized_model_path.exists():
+    try:
+        import json
+
+        logger.info(f"Loading optimized prompts from {optimized_model_path}")
+        with open(optimized_model_path, 'r') as f:
+            optimized_data = json.load(f)
+
+            # Check if the JSON has the expected structure
+            if 'react' in optimized_data and 'signature' in optimized_data['react']:
+                # Extract the optimized instructions
+                optimized_instructions = optimized_data['react']['signature'].get('instructions')
+                if optimized_instructions:
+                    logger.info("Successfully loaded optimized instructions")
+                    # Update the instructions in our signature class
+                    BillingSignature.__doc__ = optimized_instructions
+                    using_optimized_prompts = True
+
+            if not using_optimized_prompts:
+                logger.warning("Optimized JSON file exists but doesn't have expected structure")
+    except Exception as e:
+        logger.error(f"Error loading optimized JSON: {e}")
+else:
+    logger.info(f"Optimized model file not found at {optimized_model_path}")
+
+# Log which prompts we're using
+logger.info(f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer")
+
 
 @traced_dspy_function(name="billing_dspy")
 def billing_optimized_dspy(chat_history: str) -> str:
     """Process a billing inquiry and generate a response."""
-    lm = dspy_set_language_model(settings)
+    # Initialize language model
+    dspy_set_language_model(settings)
+
+    # Validate input
+    if not chat_history or len(chat_history.strip()) < 5:
+        logger.warning("Empty or too short chat history")
+        raise ValueError("Chat history is too short")
+
+    # Process with model (uses the optimized prompts if available)
+    logger.info(f"Processing with {'optimized' if using_optimized_prompts else 'standard'} prompts")
     prediction = billing_model(chat_history=chat_history)
-    
+
+    # Return final response
     return prediction.final_response

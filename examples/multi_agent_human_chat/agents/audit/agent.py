@@ -1,4 +1,3 @@
-"""Audit Agent module for recording and categorizing system messages."""
 from datetime import datetime
 from typing import Dict, Optional, Union
 from uuid import uuid4

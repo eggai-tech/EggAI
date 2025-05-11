@@ -1,4 +1,3 @@
-"""Claims agent for handling insurance claims requests."""
 import asyncio
 import time
 from typing import List

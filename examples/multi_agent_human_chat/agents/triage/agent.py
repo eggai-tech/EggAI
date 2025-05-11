@@ -78,9 +78,6 @@ async def handle_user_message(msg: TracedMessage):
             }
         ]
 
-        current_span = trace.get_current_span()
-        traceparent, tracestate = format_span_as_traceparent(current_span)
-
         if target_agent != TargetAgent.ChattyAgent:
             logger.info(f"Routing message to {target_agent}")
 

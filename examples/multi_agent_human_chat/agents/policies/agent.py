@@ -1,4 +1,3 @@
-"""Policies agent for handling policy information requests."""
 import asyncio
 import time
 from typing import List

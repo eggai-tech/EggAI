@@ -110,8 +110,8 @@ def init_telemetry(
     try:
         # Try to find the span implementation being used
         logger.info("Attempting to patch span attribute setter for safer attribute handling")
-        from opentelemetry.trace import Span
         from opentelemetry.sdk.trace import Span as SDKSpan
+        from opentelemetry.trace import Span
         
         # Get actual implementation class - this will depend on the OpenTelemetry setup
         span_classes = []
@@ -126,36 +126,38 @@ def init_telemetry(
                 logger.info(f"Patching {span_class.__name__}.set_attribute for safe attribute handling")
                 original_set_attribute = span_class.set_attribute
                 
-                # Define a safer attribute setter
-                def safe_set_attribute_middleware(self, key: str, value: Any):
-                    # Skip None values entirely
-                    if value is None:
-                        return self
-                    
-                    # For gen_ai attributes specifically, ensure we have string values
-                    if key.startswith("gen_ai."):
-                        if isinstance(value, (bool, int, float)):
-                            value = str(value)
-                        elif not isinstance(value, (str, bytes)):
-                            try:
-                                value = str(value)
-                            except Exception:
-                                # If conversion fails, just skip it
-                                return self
-                    
-                    # For other attribute types, follow normal OTel rules but with added safety
-                    try:
-                        return original_set_attribute(self, key, value)
-                    except Exception:
-                        # Try to convert to string as a last resort
-                        try:
-                            return original_set_attribute(self, key, str(value))
-                        except Exception:
-                            # If all else fails, just skip this attribute
+                # Create a closure to properly capture original_set_attribute
+                def create_safe_middleware(original_method):
+                    def safe_set_attribute_middleware(self, key: str, value: Any):
+                        # Skip None values entirely
+                        if value is None:
                             return self
+                        
+                        # For gen_ai attributes specifically, ensure we have string values
+                        if key.startswith("gen_ai."):
+                            if isinstance(value, (bool, int, float)):
+                                value = str(value)
+                            elif not isinstance(value, (str, bytes)):
+                                try:
+                                    value = str(value)
+                                except Exception:
+                                    # If conversion fails, just skip it
+                                    return self
+                        
+                        # For other attribute types, follow normal OTel rules but with added safety
+                        try:
+                            return original_method(self, key, value)
+                        except Exception:
+                            # Try to convert to string as a last resort
+                            try:
+                                return original_method(self, key, str(value))
+                            except Exception:
+                                # If all else fails, just skip this attribute
+                                return self
+                    return safe_set_attribute_middleware
                 
-                # Apply the patch
-                span_class.set_attribute = safe_set_attribute_middleware
+                # Apply the patch with proper binding
+                span_class.set_attribute = create_safe_middleware(original_set_attribute)
                 logger.info(f"Successfully patched {span_class.__name__}.set_attribute")
     except Exception as e:
         # If patching fails, log but continue - we'll rely on safe_set_attribute instead

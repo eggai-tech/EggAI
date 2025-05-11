@@ -1,9 +1,3 @@
-"""
-Escalation Agent module.
-
-This module implements the escalation agent for EggAI, which handles
-ticket creation and management for user issues that require escalation.
-"""
 import asyncio
 import logging
 from typing import Dict

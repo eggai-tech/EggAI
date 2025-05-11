@@ -7,8 +7,7 @@ ReAct, and other DSPy components.
 
 import asyncio
 import functools
-import uuid
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 
 import dspy
 from opentelemetry import trace

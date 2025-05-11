@@ -1,6 +1,5 @@
 """Policies Agent optimized DSPy module for production use."""
 import json
-import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -148,45 +147,47 @@ from agents.policies.dspy_modules.policies_data import (
     take_policy_by_number_from_database,
 )
 
+# Path to the SIMBA optimized JSON file
+optimized_model_path = Path(__file__).resolve().parent / "optimized_policies_simba.json"
 
-def load_optimized_signature() -> Optional[type]:
-    """Load the optimized signature from JSON file if available."""
-    json_path = Path(__file__).resolve().parent / "optimized_policies.json"
-    
-    if not os.path.exists(json_path):
-        logger.warning(f"No optimized signature file found at {json_path}")
-        return None
-    
-    try:
-        with open(str(json_path), 'r') as f:
-            data = json.load(f)
-        
-        if "instructions" in data:
-            # Create optimized signature subclass
-            class OptimizedPolicySignature(PolicyAgentSignature):
-                """Optimized signature based on PolicyAgentSignature."""
-                pass
-            
-            OptimizedPolicySignature.__doc__ = data["instructions"]
-            logger.info("Successfully loaded optimized policy signature")
-            return OptimizedPolicySignature
-            
-        return None
-    
-    except Exception as e:
-        logger.error(f"Error loading optimized signature: {e}")
-        return None
-
-
-# Create the policies model
-signature_class = load_optimized_signature() or PolicyAgentSignature
+# Create base model with tracing
 policies_model = TracedReAct(
-    signature_class,
+    PolicyAgentSignature,
     tools=[take_policy_by_number_from_database, query_policy_documentation],
-    name="policies_react_optimized",
+    name="policies_react",
     tracer=policies_tracer,
     max_iters=5,
 )
+
+# Flag to indicate if we're using optimized prompts (from JSON)
+using_optimized_prompts = False
+
+# Try to load prompts from the optimized JSON file directly
+if optimized_model_path.exists():
+    try:
+        logger.info(f"Loading optimized prompts from {optimized_model_path}")
+        with open(optimized_model_path, 'r') as f:
+            optimized_data = json.load(f)
+
+            # Check if the JSON has the expected structure
+            if 'react' in optimized_data and 'signature' in optimized_data['react']:
+                # Extract the optimized instructions
+                optimized_instructions = optimized_data['react']['signature'].get('instructions')
+                if optimized_instructions:
+                    logger.info("Successfully loaded optimized instructions")
+                    # Update the instructions in our signature class
+                    PolicyAgentSignature.__doc__ = optimized_instructions
+                    using_optimized_prompts = True
+
+            if not using_optimized_prompts:
+                logger.warning("Optimized JSON file exists but doesn't have expected structure")
+    except Exception as e:
+        logger.error(f"Error loading optimized JSON: {e}")
+else:
+    logger.info(f"Optimized model file not found at {optimized_model_path}")
+
+# Log which prompts we're using
+logger.info(f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts for policies agent")
 
 
 def truncate_long_history(chat_history: str, config: Optional[ModelConfig] = None) -> Dict[str, Any]:

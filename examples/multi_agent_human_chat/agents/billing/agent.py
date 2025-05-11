@@ -65,12 +65,25 @@ async def handle_billing_message(msg: TracedMessage):
     conversation_string = get_conversation_string(chat_messages)
     logger.info("Processing billing request")
     
-    response = billing_optimized_dspy(chat_history=conversation_string)
-    
-    logger.info("Sending response to user")
-    logger.info(f"Response: {response[:100]}...")
+    try:
+        # Get response from DSPy model
+        response = billing_optimized_dspy(chat_history=conversation_string)
+        
+        # Log response details
+        logger.info("Sending response to user")
+        logger.info(f"Response: {response[:100]}..." if len(response) > 100 else response)
 
-    await publish_agent_response(connection_id, response)
+        # Send response to user
+        await publish_agent_response(connection_id, response)
+    except Exception as e:
+        # Log error details
+        logger.error(f"Error in agent handler: {str(e)}", exc_info=True)
+        
+        # Simple error message
+        await publish_agent_response(
+            connection_id,
+            "I apologize, but I'm unable to process your billing request at this time. Please try again later."
+        )
 
 
 @billing_agent.subscribe(channel=agents_channel)
