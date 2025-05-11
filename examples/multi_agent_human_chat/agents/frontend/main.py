@@ -1,3 +1,4 @@
+"""Main module for the Frontend Agent."""
 import asyncio
 import os
 from contextlib import asynccontextmanager
@@ -12,10 +13,7 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
-from .agent import (
-    add_websocket_gateway,
-    frontend_agent,
-)
+from .agent import add_websocket_gateway, frontend_agent
 from .config import settings
 
 logger = get_console_logger("frontend_agent")
@@ -24,10 +22,7 @@ logger = get_console_logger("frontend_agent")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        # Configure Kafka transport
         logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-        
-        # Use the shared utility function with certificate from settings
         eggai_set_default_transport(
             lambda: create_kafka_transport(
                 bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -60,7 +55,6 @@ async def read_root():
         with open(html_file_path, "r", encoding="utf-8") as file:
             file_content = file.read()
             
-        logger.debug("HTML file read successfully")
         return HTMLResponse(content=file_content, status_code=200)
 
     except FileNotFoundError as fnf_error:

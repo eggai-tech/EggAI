@@ -1,3 +1,8 @@
+"""
+Configuration settings for the Escalation Agent.
+
+This module contains settings and configuration parameters for the escalation agent.
+"""
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -9,6 +14,7 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
+    """Settings for the escalation agent."""
     app_name: str = Field(default="escalation_agent")
     
     # Language model settings
@@ -29,6 +35,9 @@ class Settings(BaseSettings):
     # Ticketing specific settings
     ticket_database_path: str = Field(default="")
     default_departments: list[str] = Field(default=["Technical Support", "Billing", "Sales"])
+    
+    # Timeout settings
+    timeout_seconds: float = Field(default=30.0, description="Timeout for model inference in seconds")
     
     model_config = SettingsConfigDict(
         env_prefix="ESCALATION_", env_file=".env", env_ignore_empty=True, extra="ignore"

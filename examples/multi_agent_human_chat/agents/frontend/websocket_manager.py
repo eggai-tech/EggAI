@@ -1,3 +1,4 @@
+"""WebSocket connection manager for the frontend agent."""
 from collections import defaultdict
 from typing import Dict
 
@@ -33,9 +34,7 @@ class WebSocketManager:
             if not connection.state.closed:
                 connection.state.closed = True
                 if connection.client_state is not WebSocketState.DISCONNECTED:
-                    await connection.close(
-                        code=1001, reason="Connection closed by server"
-                    )
+                    await connection.close(code=1001, reason="Connection closed by server")
         self.active_connections.pop(connection_id, None)
 
     async def send_message_to_connection(self, connection_id: str, message_data: dict):

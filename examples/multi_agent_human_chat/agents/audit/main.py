@@ -1,4 +1,6 @@
+"""Main module for the Audit Agent."""
 import asyncio
+import logging
 
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport
@@ -11,6 +13,8 @@ from .agent import audit_agent
 from .config import settings
 
 logger = get_console_logger("audit_agent")
+logger.setLevel(logging.INFO)
+
 
 @eggai_main
 async def main():
@@ -20,7 +24,6 @@ async def main():
     logger.info(f"Telemetry initialized for {settings.app_name}")
     
     logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-    
     eggai_set_default_transport(
         lambda: create_kafka_transport(
             bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -30,8 +33,11 @@ async def main():
     
     await audit_agent.start()
     logger.info(f"{settings.app_name} started successfully")
-
-    await asyncio.Future()
+    
+    try:
+        await asyncio.Future()
+    except asyncio.CancelledError:
+        logger.info("Audit agent task cancelled")
 
 
 if __name__ == "__main__":

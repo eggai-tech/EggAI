@@ -1,218 +1,283 @@
-import json
-from typing import Dict, Literal
+"""
+Escalation Agent module.
+
+This module implements the escalation agent for EggAI, which handles
+ticket creation and management for user issues that require escalation.
+"""
+import asyncio
+import logging
+from typing import Dict
 from uuid import uuid4
 
-import dspy
 from eggai import Agent, Channel
-from eggai.transport import eggai_set_default_transport
 from opentelemetry import trace
 
-from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
-from libraries.tracing import (
-    TracedChainOfThought,
-    TracedMessage,
-    TracedReAct,
-    traced_handler,
-)
+from libraries.tracing import TracedMessage, traced_handler
 
 from .config import settings
-
-logger = get_console_logger("escalation_agent")
-
-eggai_set_default_transport(
-    lambda: create_kafka_transport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
-    )
+from .dspy_modules.escalation import (
+    create_ticket_from_session,
+    process_confirmation,
+    process_ticket_info,
 )
+from .types import ChatMessage, SessionData
+
+# Configure logger
+logger = get_console_logger("escalation_agent")
+logger.setLevel(logging.INFO)
 
 # Channels and Agent setup
 ticketing_agent = Agent(name="TicketingAgent")
 agents_channel = Channel("agents")
 human_channel = Channel("human")
-pending_tickets = {}
 tracer = trace.get_tracer("ticketing_agent")
 
-# In-memory ticket database
-ticket_database = [{
-    "id": "TICKET-001",
-    "department": "Technical Support",
-    "title": "Billing issue",
-    "contact_info": "john@example.com"
-}]
+# In-memory session storage
+pending_tickets: Dict[str, SessionData] = {}
 
-# DSPy Signature Definitions
-class RetrieveTicketInfoSignature(dspy.Signature):
-    chat_history: str = dspy.InputField(desc="Full conversation context.")
-    department: Literal["Technical Support", "Billing", "Sales"] = dspy.OutputField(desc="Department of destination of ticket.")
-    title: str = dspy.OutputField(desc="Title of the ticket.")
-    contact_info: str = dspy.OutputField(desc="Contact information of the user.")
-    info_complete: bool = dspy.OutputField(desc="Whether all required information is present in the chat history or not.")
-    message: str = dspy.OutputField(desc="Message to the user, asking for missing information or confirmation.")
 
-class ClassifyConfirmationSignature(dspy.Signature):
-    chat_history: str = dspy.InputField(desc="Full conversation context.")
-    confirmation: Literal["yes", "no"] = dspy.OutputField(desc="User confirmation retrieved from chat history.")
-    message: str = dspy.OutputField(desc="Message to the user, asking for confirmation.")
-
-class CreateTicketSignature(dspy.Signature):
-    ticket_details: dict = dspy.InputField(desc="Session details.")
-    ticket_message: str = dspy.OutputField(desc="Ticket creation message confirmation, with summary of ticket details.")
-
-# Tool function
-@tracer.start_as_current_span("create_ticket")
-def create_ticket(dept, title, contact):
-    logger.info("Creating ticket in database...")
-    ticket = {
-        "id": f"TICKET-{len(ticket_database) + 1:03}",
-        "department": dept,
-        "title": title,
-        "contact_info": contact
-    }
-    ticket_database.append(ticket)
-    return json.dumps(ticket)
-
-# DSPy modules setup
-retrieve_ticket_info_module = dspy.asyncify(
-    TracedChainOfThought(
-        RetrieveTicketInfoSignature, 
-        name="retrieve_ticket_info",
-        tracer=tracer
-    )
-)
-
-classify_confirmation = dspy.asyncify(
-    TracedChainOfThought(
-        ClassifyConfirmationSignature, 
-        name="classify_confirmation",
-        tracer=tracer
-    )
-)
-
-create_ticket_module = dspy.asyncify(
-    TracedReAct(
-        CreateTicketSignature, 
-        tools=[create_ticket], 
-        name="create_ticket",
-        tracer=tracer,
-        max_iters=5
-    )
-)
-
-# Session management
-def get_session_data(session: str) -> Dict:
+def get_session_data(session: str) -> SessionData:
+    """Get session data for a given session ID, creating it if it doesn't exist."""
     if session not in pending_tickets:
-        pending_tickets[session] = {"step": "ask_additional_data"}
+        pending_tickets[session] = SessionData()
     return pending_tickets[session]
 
-@tracer.start_as_current_span("update_session_data")
-def update_session_data(session: str, data: dict):
-    session_data = get_session_data(session)
-    session_data.update(data)
 
-def get_conversation_string(chat_messages):
+@tracer.start_as_current_span("update_session_data")
+def update_session_data(session: str, session_data: SessionData) -> None:
+    """Update session data for a given session ID."""
+    pending_tickets[session] = session_data
+
+
+def get_conversation_string(chat_messages: list[ChatMessage]) -> str:
+    """Convert a list of chat messages to a conversation string."""
     conversation = ""
     for chat in chat_messages:
         role = chat.get("role", "User")
         conversation += f"{role}: {chat['content']}\n"
     return conversation
 
-async def send_message_to_user(message, meta):
-    await human_channel.publish(
-        TracedMessage(
-            type="agent_message",
-            source="TicketingAgent",
-            data={
-                "message": message,
-                "connection_id": meta.get("connection_id"),
-                "message_id": meta.get("message_id", ""),
-                "agent": "TicketingAgent",
-                "session": meta.get("session", "")
-            }
-        )
-    )
 
+@tracer.start_as_current_span("publish_agent_response")
+async def publish_agent_response(message: str, meta: Dict) -> None:
+    """Publish a response from the agent to the human channel."""
+    with tracer.start_as_current_span("send_message") as span:
+        span.set_attribute("message.length", len(message))
+        span.set_attribute("connection_id", meta.get("connection_id", "unknown"))
+
+        try:
+            await human_channel.publish(
+                TracedMessage(
+                    type="agent_message",
+                    source="TicketingAgent",
+                    data={
+                        "message": message,
+                        "connection_id": meta.get("connection_id"),
+                        "message_id": meta.get("message_id", ""),
+                        "agent": "TicketingAgent",
+                        "session": meta.get("session", "")
+                    }
+                )
+            )
+            span.set_attribute("message.sent", True)
+            logger.debug(f"Published message to human channel: {message[:50]}...")
+        except Exception as e:
+            span.set_attribute("message.sent", False)
+            span.set_attribute("error", str(e))
+            logger.error(f"Failed to publish message: {str(e)}", exc_info=True)
+            raise
+
+
+@tracer.start_as_current_span("handle_data_collection")
 async def handle_data_collection(session: str, chat_history: str, meta: Dict) -> None:
+    """Handle the data collection step of the ticket creation workflow."""
     logger.info("Processing step: Data collection")
-    response = await retrieve_ticket_info_module(chat_history=chat_history)
     
-    # Update session with collected information
-    for field in ["title", "contact_info", "department"]:
-        if getattr(response, field):
-            value = getattr(response, field)
-            update_session_data(session, {field: value})
-            logger.info(f"Updated {field} in session: {value}")
+    session_data = get_session_data(session)
     
-    if response.info_complete:
-        logger.info("Information complete. Moving to confirmation step")
-        update_session_data(session, {"step": "ask_confirmation"})
+    try:
+        result, updated_session = await asyncio.wait_for(
+            process_ticket_info(chat_history, session_data),
+            timeout=settings.timeout_seconds
+        )
         
-        conf_message = (await classify_confirmation(chat_history=chat_history)).message
-        logger.info(f"Sending confirmation message: {conf_message}")
-        await send_message_to_user(conf_message, meta)
-    else:
-        logger.info(f"Information incomplete. Requesting more details: {response.message}")
-        await send_message_to_user(response.message, meta)
+        # Update session with collected information
+        update_session_data(session, updated_session)
+        
+        # Send response to user
+        await publish_agent_response(result.message, meta)
+        
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout while processing ticket info for session: {session}")
+        error_message = (
+            "I'm sorry, but it's taking longer than expected to process your request. "
+            "Let me try again. Could you please provide details about your issue?"
+        )
+        await publish_agent_response(error_message, meta)
+    except Exception as e:
+        logger.error(f"Error handling data collection: {str(e)}", exc_info=True)
+        error_message = (
+            "I apologize, but I encountered an error while processing your request. "
+            "Let's try again. Could you please provide details about your issue?"
+        )
+        await publish_agent_response(error_message, meta)
 
+
+@tracer.start_as_current_span("handle_confirmation")
 async def handle_confirmation(session: str, chat_history: str, meta: Dict) -> None:
+    """Handle the confirmation step of the ticket creation workflow."""
     logger.info("Processing step: Confirmation")
-    response = await classify_confirmation(chat_history=chat_history)
     
-    if response.confirmation == "yes":
-        logger.info("User confirmed. Moving to ticket creation step")
-        update_session_data(session, {"step": "create_ticket"})
-        await send_message_to_user("Creating ticket...", meta)
-        await agentic_workflow(session, chat_history, meta)
-    else:
-        logger.info("User declined. Returning to data collection step")
-        update_session_data(session, {"step": "ask_additional_data"})
-        await send_message_to_user(response.message, meta)
+    session_data = get_session_data(session)
+    
+    try:
+        result, updated_session, confirmed = await asyncio.wait_for(
+            process_confirmation(chat_history, session_data),
+            timeout=settings.timeout_seconds
+        )
+        
+        # Update session with confirmation result
+        update_session_data(session, updated_session)
+        
+        # Send confirmation message to user
+        await publish_agent_response(result.message, meta)
+        
+        # If confirmed, move to ticket creation
+        if confirmed:
+            await handle_ticket_creation(session, chat_history, meta)
+            
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout while processing confirmation for session: {session}")
+        error_message = (
+            "I'm sorry, but it's taking longer than expected to process your confirmation. "
+            "Could you please confirm if you'd like to create a ticket with the information provided?"
+        )
+        await publish_agent_response(error_message, meta)
+    except Exception as e:
+        logger.error(f"Error handling confirmation: {str(e)}", exc_info=True)
+        error_message = (
+            "I apologize, but I encountered an error processing your confirmation. "
+            "Could you please confirm if the information I collected is correct?"
+        )
+        await publish_agent_response(error_message, meta)
 
+
+@tracer.start_as_current_span("handle_ticket_creation")
 async def handle_ticket_creation(session: str, chat_history: str, meta: Dict) -> None:
+    """Handle the ticket creation step of the workflow."""
     logger.info("Processing step: Ticket creation")
-    session_data = pending_tickets[session]
-    response = (await create_ticket_module(ticket_details=session_data)).ticket_message
     
-    await send_message_to_user(response, meta)
-    logger.info("Ticket created. Cleaning up session data")
-    pending_tickets.pop(session, None)
+    session_data = get_session_data(session)
+    
+    try:
+        result = await asyncio.wait_for(
+            create_ticket_from_session(session_data),
+            timeout=settings.timeout_seconds
+        )
+        
+        # Send ticket creation confirmation to user
+        await publish_agent_response(result.message, meta)
+        
+        # Clean up session data
+        logger.info(f"Ticket created for session {session}. Cleaning up session data.")
+        pending_tickets.pop(session, None)
+        
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout while creating ticket for session: {session}")
+        error_message = (
+            "I'm sorry, but it's taking longer than expected to create your ticket. "
+            "Please try again in a moment."
+        )
+        await publish_agent_response(error_message, meta)
+    except Exception as e:
+        logger.error(f"Error creating ticket: {str(e)}", exc_info=True)
+        error_message = (
+            "I apologize, but I encountered an error while creating your ticket. "
+            "Please try again later or contact our support team directly."
+        )
+        await publish_agent_response(error_message, meta)
+
 
 @tracer.start_as_current_span("agentic_workflow")
 async def agentic_workflow(session: str, chat_history: str, meta: Dict) -> None:
+    """Process a ticket request through the appropriate workflow step."""
     session_data = get_session_data(session)
-    step = session_data.get("step", "ask_additional_data")
+    step = session_data.step
+    
+    logger.info(f"Processing ticket for session: {session}, step: {step}")
 
-    if step == "ask_additional_data":
-        await handle_data_collection(session, chat_history, meta)
-    elif step == "ask_confirmation":
-        await handle_confirmation(session, chat_history, meta) 
-    elif step == "create_ticket":
-        await handle_ticket_creation(session, chat_history, meta)
-    else:
-        raise ValueError(f"Invalid workflow step: {step}")
+    try:
+        if step == "ask_additional_data":
+            await handle_data_collection(session, chat_history, meta)
+        elif step == "ask_confirmation":
+            await handle_confirmation(session, chat_history, meta) 
+        elif step == "create_ticket":
+            await handle_ticket_creation(session, chat_history, meta)
+        else:
+            logger.error(f"Invalid workflow step: {step}")
+            error_message = "I apologize, but I encountered an error. Let's start over."
+            await publish_agent_response(error_message, meta)
+            # Reset session to beginning
+            update_session_data(session, SessionData())
+    except Exception as e:
+        logger.error(f"Error in agentic_workflow: {str(e)}", exc_info=True)
+        error_message = "I apologize, but I encountered an error. Let's try again."
+        await publish_agent_response(error_message, meta)
+
 
 @ticketing_agent.subscribe(
-    channel=agents_channel, filter_by_message=lambda msg: msg["type"] == "ticketing_request"
+    channel=agents_channel, filter_by_message=lambda msg: msg.get("type") == "ticketing_request"
 )
 @traced_handler("handle_ticketing_request")
-async def handle_ticketing_request(msg_dict):
-    logger.info("Handling ticketing request")
-    msg = TracedMessage(**msg_dict)
+async def handle_ticketing_request(msg: TracedMessage) -> None:
+    """Handle incoming ticketing request messages from the agents channel."""
+    logger.info(f"Received ticketing request: {msg.id}")
     
-    session = msg.data.get("session", f"session_{uuid4()}")
-    chat_messages = msg.data.get("chat_messages", [])
-    conversation_string = get_conversation_string(chat_messages)
-    
-    meta = {
-        "session": session,
-        "message_id": msg.id,
-        "connection_id": msg.data.get("connection_id", ""),
-        "agent": "TicketingAgent"
-    }
-    
-    await agentic_workflow(session, conversation_string, meta)
+    try:
+        # Extract message data with appropriate type checking
+        session = msg.data.get("session", f"session_{uuid4()}")
+        chat_messages = msg.data.get("chat_messages", [])
+        connection_id = msg.data.get("connection_id", "unknown")
+        
+        logger.info(f"Processing for connection_id: {connection_id}, session: {session}")
+        
+        # Convert chat messages to conversation string
+        conversation_string = get_conversation_string(chat_messages)
+        
+        # Prepare metadata for response messages
+        meta = {
+            "session": session,
+            "message_id": msg.id,
+            "connection_id": connection_id,
+            "agent": "TicketingAgent"
+        }
+        
+        # Process the request through the workflow
+        await agentic_workflow(session, conversation_string, meta)
+        
+    except Exception as e:
+        logger.error(f"Error handling ticketing request: {str(e)}", exc_info=True)
+        # Attempt to send error message if we have connection_id
+        try:
+            if msg.data.get("connection_id"):
+                error_message = (
+                    "I apologize, but I encountered an unexpected error. "
+                    "Please try again or contact our support team."
+                )
+                await publish_agent_response(
+                    error_message,
+                    {
+                        "connection_id": msg.data.get("connection_id"),
+                        "message_id": msg.id,
+                        "agent": "TicketingAgent"
+                    }
+                )
+        except Exception:
+            logger.error("Failed to send error message", exc_info=True)
+
 
 @ticketing_agent.subscribe(channel=agents_channel)
-async def handle_others(msg: TracedMessage):
-    logger.debug("Received message: %s", msg)
+async def handle_others(msg: TracedMessage) -> None:
+    """Handle other messages from the agents channel for debugging."""
+    logger.debug(f"Received non-ticketing message: {msg.type}")

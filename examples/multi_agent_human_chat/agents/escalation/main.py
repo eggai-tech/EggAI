@@ -1,4 +1,11 @@
+"""
+Main module for the Escalation Agent.
+
+This module contains the main entry point for the escalation agent.
+It sets up the language model, transport, telemetry, and starts the agent.
+"""
 import asyncio
+import logging
 
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport
@@ -11,22 +18,26 @@ from libraries.tracing import init_telemetry
 from .agent import ticketing_agent
 from .config import settings
 
+# Configure logger
 logger = get_console_logger("escalation_agent")
+logger.setLevel(logging.INFO)
 
 
 @eggai_main
 async def main():
+    """Main entry point for the escalation agent."""
     logger.info(f"Starting {settings.app_name}")
     
+    # Initialize OpenTelemetry
     init_telemetry(app_name=settings.app_name)
     logger.info(f"Telemetry initialized for {settings.app_name}")
     
+    # Configure language model
     dspy_set_language_model(settings)
+    logger.info(f"Using language model: {settings.language_model}")
     
     # Configure Kafka transport
     logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-    
-    # Use the shared utility function with certificate from settings
     eggai_set_default_transport(
         lambda: create_kafka_transport(
             bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -34,10 +45,15 @@ async def main():
         )
     )
     
+    # Start the agent
     await ticketing_agent.start()
     logger.info(f"{settings.app_name} started successfully")
-
-    await asyncio.Future()
+    
+    # Keep the agent running
+    try:
+        await asyncio.Future()
+    except asyncio.CancelledError:
+        logger.info("Escalation agent task cancelled")
 
 
 if __name__ == "__main__":

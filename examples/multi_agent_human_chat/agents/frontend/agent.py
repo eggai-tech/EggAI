@@ -1,3 +1,4 @@
+"""Frontend Agent module for handling WebSocket connections."""
 import asyncio
 import os
 import uuid
@@ -22,15 +23,15 @@ logger = get_console_logger("frontend_agent")
 # Load environment variable
 GUARDRAILS_ENABLED = os.getenv("GUARDRAILS_TOKEN") is not None
 
-# Conditionally import guardrails
 if GUARDRAILS_ENABLED:
     try:
         from .guardrails import toxic_language_guard
     except ImportError as e:
-        raise ImportError("Guardrails is enabled but cannot be imported.") from e
+        logger.error(f"Failed to import guardrails: {e}")
+        toxic_language_guard = None
 else:
-    toxic_language_guard = None  # Assign a no-op function
-
+    logger.info("Guardrails disabled (no GUARDRAILS_TOKEN)")
+    toxic_language_guard = None
 
 # Set up Kafka transport
 eggai_set_default_transport(
@@ -41,11 +42,8 @@ eggai_set_default_transport(
 )
 
 frontend_agent = Agent("FrontendAgent")
-
 human_channel = Channel("human")
-
 websocket_manager = WebSocketManager()
-
 messages_cache = {}
 tracer = trace.get_tracer("frontend_agent")
 
@@ -54,17 +52,20 @@ tracer = trace.get_tracer("frontend_agent")
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     @app.websocket(route)
     async def websocket_handler(
-            websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
+            websocket: WebSocket, 
+            connection_id: str = Query(None, alias="connection_id")
     ):
         if server.should_exit:
             websocket.state.closed = True
             return
+            
         if connection_id is None:
             connection_id = str(uuid.uuid4())
 
         if connection_id not in messages_cache:
             messages_cache[connection_id] = []
 
+        # Create root span for the connection
         with tracer.start_as_current_span("frontend_chat", context=None) as root_span:
             root_span_ctx = root_span.get_span_context()
             trace_parent = (
@@ -75,27 +76,28 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
             root_span.set_attribute('connection.id', str(connection_id))
             trace_state = str(root_span_ctx.trace_state) if root_span_ctx.trace_state else ""
 
+        # Extract span context for child spans
         root_span_ctx = extract_span_context(trace_parent, trace_state)
-
         parent_context = trace.set_span_in_context(trace.NonRecordingSpan(root_span_ctx))
+        
         with tracer.start_as_current_span(
                 "websocket_connection",
                 context=parent_context,
                 kind=trace.SpanKind.SERVER
         ) as span:
-            span.set_attribute('connection.id', str(connection_id))
-            await websocket_manager.connect(websocket, connection_id)
-            await websocket_manager.send_message_to_connection(
-                connection_id, {"connection_id": connection_id}
-            )
             try:
+                span.set_attribute('connection.id', str(connection_id))
+                await websocket_manager.connect(websocket, connection_id)
+                await websocket_manager.send_message_to_connection(
+                    connection_id, {"connection_id": connection_id}
+                )
+                
                 while True:
                     try:
                         data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
                     except asyncio.TimeoutError:
                         if server.should_exit:
                             await websocket_manager.disconnect(connection_id)
-                            # TEMPORARY FIX FOR Bug on asyncio.base_events.Server.wait_closed (see
                             # Close all connections when server is shutting down
                             conns = server.server_state.connections or []
                             for conn in conns:
@@ -103,10 +105,11 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                                     conn.shutdown()
                             break
                         continue
+                        
                     message_id = str(uuid.uuid4())
                     content = data.get("payload")
 
-                    # Validate content with guardrails if enabled
+                    # Apply content moderation if enabled
                     if GUARDRAILS_ENABLED and toxic_language_guard:
                         valid_content = await toxic_language_guard(content)
                         if valid_content is None:
@@ -126,9 +129,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             )
                             continue
                     else:
-                        valid_content = (
-                            content  # Pass content through if guardrails is disabled
-                        )
+                        valid_content = content
 
                     await websocket_manager.attach_message_id(message_id, connection_id)
                     messages_cache[connection_id].append(
@@ -139,6 +140,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             "agent": "User",
                         }
                     )
+                    
                     await human_channel.publish(
                         TracedMessage(
                             id=message_id,
@@ -152,13 +154,14 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             tracestate=trace_state,
                         )
                     )
+                    
             except WebSocketDisconnect:
-                pass
+                logger.info(f"WebSocket disconnected: {connection_id}")
             except Exception as e:
-                logger.error(f"[WEBSOCKET GATEWAY]: Error with WebSocket {connection_id}: {e}")
+                logger.error(f"Error with WebSocket {connection_id}: {e}", exc_info=True)
             finally:
                 await websocket_manager.disconnect(connection_id)
-                logger.info(f"[WEBSOCKET GATEWAY]: WebSocket connection {connection_id} closed.")
+                logger.info(f"WebSocket connection {connection_id} closed.")
 
 
 @frontend_agent.subscribe(
@@ -182,6 +185,7 @@ async def handle_human_messages(message: TracedMessage):
             "id": message.id,
         }
     )
+    
     await websocket_manager.send_message_to_connection(
         connection_id, {"sender": agent, "content": content}
     )
@@ -189,4 +193,4 @@ async def handle_human_messages(message: TracedMessage):
 
 @frontend_agent.subscribe(channel=human_channel)
 async def handle_others(msg: TracedMessage):
-    logger.debug("Received message: %s", msg)
+    logger.debug(f"Received message type: {msg.type}")
