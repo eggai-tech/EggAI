@@ -49,7 +49,7 @@ class ClaimsSignature(dspy.Signature):
     - Respond in a clear, courteous, and professional tone.
     - Summarize the key information or confirm the action taken.
     - Example for status inquiry:
-        "Your claim #123456 is currently 'In Review'. We estimate a payout of $2,300 by 2025-05-15. We're still awaiting your repair estimates—please submit them at your earliest convenience."
+        "Your claim #123456 is currently 'In Review'. We estimate a payout of $2,300 by 2026-05-15. We're still awaiting your repair estimates—please submit them at your earliest convenience."
     - Example for filing a claim:
         "I've filed a new claim #789012 under policy ABC-123. Please email photos of the damage and any police report to claims@example.com within 5 business days to expedite processing."
 

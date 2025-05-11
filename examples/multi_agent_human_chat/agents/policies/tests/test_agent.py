@@ -47,7 +47,7 @@ def get_test_cases():
                 "User: B67890.\n"
             ),
             "expected_response": (
-                "Your next premium payment for policy B67890 is due on 2025-03-15. The amount due is $300.00."
+                "Your next premium payment for policy B67890 is due on 2026-03-15. The amount due is $300.00."
             ),
             "chat_messages": [
                 {"role": "User", "content": "When is my next premium payment due?"},
@@ -180,7 +180,7 @@ def validate_response_for_test_case(case_id: str, response: str) -> Dict[str, bo
     
     if case_id == "premium_due":
         # Essential: Date must be present (more flexible pattern matching)
-        date_pattern = r"2025-03-15|March 15(th|,)?( 2025)?|(03|3)[-/\.](15|15th)[-/\.]2025|15(th)? (of )?March( 2025)?"
+        date_pattern = r"2026-03-15|March 15(th|,)?( 2026)?|(03|3)[-/\.](15|15th)[-/\.]2026|15(th)? (of )?March( 2026)?"
         results["has_date"] = bool(re.search(date_pattern, response, re.IGNORECASE))
         if not results["has_date"]:
             results["notes"].append("Missing payment date")
@@ -199,7 +199,7 @@ def validate_response_for_test_case(case_id: str, response: str) -> Dict[str, bo
         
         # Set as valid if it has at least the amount and some date reference
         # This is a more customer-focused approach - does it answer the core question?
-        results["valid"] = results["has_amount"] and (results["has_date"] or "March" in response or "2025" in response)
+        results["valid"] = results["has_amount"] and (results["has_date"] or "March" in response or "2026" in response)
         
     elif case_id == "auto_policy_coverage":
         # Essential: Mentions auto/car insurance (expanded pattern)

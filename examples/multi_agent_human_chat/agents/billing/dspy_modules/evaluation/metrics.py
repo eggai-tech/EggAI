@@ -36,7 +36,7 @@ def get_amount_score(expected: str, actual: str) -> Tuple[float, bool]:
 
 def get_date_score(expected: str, actual: str) -> Tuple[float, bool]:
     """Evaluate date matching between expected and actual responses."""
-    date_formats = ["2025-02-01", "2025-03-15", "2025-12-01"]
+    date_formats = ["2026-02-01", "2026-03-15", "2026-12-01"]
     
     for date in date_formats:
         if date not in expected:
@@ -51,12 +51,12 @@ def get_date_score(expected: str, actual: str) -> Tuple[float, bool]:
         
         # Various date formats
         date_patterns = [
-            f"{month}/{day}/{year}",  # 03/15/2025
-            f"{month}-{day}-{year}",  # 03-15-2025
-            f"{month}.{day}.{year}",  # 03.15.2025
-            f"{year}-{month}",        # 2025-03 (partial)
-            f"{month}/{year}",        # 03/2025 (partial)
-            f"{month} {year}",        # March 2025
+            f"{month}/{day}/{year}",  # 03/15/2026
+            f"{month}-{day}-{year}",  # 03-15-2026
+            f"{month}.{day}.{year}",  # 03.15.2026
+            f"{year}-{month}",        # 2026-03 (partial)
+            f"{month}/{year}",        # 03/2026 (partial)
+            f"{month} {year}",        # March 2026
         ]
         
         # Check for any date pattern
@@ -175,7 +175,7 @@ def get_format_score(expected: str, actual: str) -> Tuple[float, bool]:
     format_checks = 0
     
     # Date format consistency
-    if "2025" in expected and "2025" in actual:
+    if "2026" in expected and "2026" in actual:
         format_checks += 1
         # Check if using YYYY-MM-DD format consistently
         if re.search(r'20\d\d-\d\d-\d\d', expected) and re.search(r'20\d\d-\d\d-\d\d', actual):

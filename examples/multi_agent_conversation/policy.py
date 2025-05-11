@@ -27,9 +27,9 @@ policy_agent = LiteLlmAgent(
 )
 
 policies_database = [
-    {"policy_number": "A12345", "name": "John Doe", "coverage_details": "Comprehensive", "premium_amount": 500, "due_date": "2025-01-01"},
-    {"policy_number": "B67890", "name": "Jane Smith", "coverage_details": "Liability", "premium_amount": 300, "due_date": "2025-02-01"},
-    {"policy_number": "C24680", "name": "Alice Johnson", "coverage_details": "Collision", "premium_amount": 400, "due_date": "2025-03-01"},
+    {"policy_number": "A12345", "name": "John Doe", "coverage_details": "Comprehensive", "premium_amount": 500, "due_date": "2026-01-01"},
+    {"policy_number": "B67890", "name": "Jane Smith", "coverage_details": "Liability", "premium_amount": 300, "due_date": "2026-02-01"},
+    {"policy_number": "C24680", "name": "Alice Johnson", "coverage_details": "Collision", "premium_amount": 400, "due_date": "2026-03-01"},
 ]
 
 @policy_agent.tool()
@@ -56,7 +56,7 @@ async def get_policy_details(policy_number: str) -> str:
         "name": "John Doe",
         "coverage_details": "Comprehensive",
         "premium_amount": 500,
-        "due_date": "2025-01-01"
+        "due_date": "2026-01-01"
     }
     ```
 

@@ -89,7 +89,7 @@ Thank you for providing your policy number. Here are the details:
 - **Policyholder Name:** John Doe
 - **Coverage Details:** Comprehensive
 - **Premium Amount:** $500
-- **Due Date:** January 1, 2025
+- **Due Date:** January 1, 2026
 
 If you have any more questions or need further assistance, feel free to ask!
 

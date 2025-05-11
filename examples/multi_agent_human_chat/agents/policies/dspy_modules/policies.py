@@ -46,7 +46,7 @@ class PolicyAgentSignature(dspy.Signature):
     - Always mention the policy number when providing specific policy information
     - For premium inquiries: ALWAYS include ALL THREE of the following:
         1. The policy number (e.g., "B67890")
-        2. The exact due date in YYYY-MM-DD format (e.g., "2025-03-15")
+        2. The exact due date in YYYY-MM-DD format (e.g., "2026-03-15")
         3. The premium amount with dollar sign (e.g., "$300.00")
     - For policy coverage inquiries: ALWAYS include ALL THREE of the following:
         1. The policy number (e.g., "A12345")
@@ -59,7 +59,7 @@ class PolicyAgentSignature(dspy.Signature):
     - Maintain a polite, professional tone.
     - Only use tools when necessary (e.g., if user provides a policy number).
     - If policy number is missing or unclear, politely ask for it.
-    - Dates MUST be in the format YYYY-MM-DD (e.g., use "2025-03-15" instead of "March 15th, 2025").
+    - Dates MUST be in the format YYYY-MM-DD (e.g., use "2026-03-15" instead of "March 15th, 2026").
     - Avoid speculation or divulging irrelevant details.
     - Include documentation references when providing specific policy details.
     - Never omit key information such as policy numbers, amounts, or dates from your responses.
@@ -87,11 +87,11 @@ class PolicyAgentSignature(dspy.Signature):
       6. Once (and ONLY if) a valid, explicitly provided policy number exists in the current message, call take_policy_by_number_from_database 
       7. From the JSON response, extract THREE pieces of information:
          a. policy_number (e.g., "B67890")
-         b. due_date or payment_due_date (e.g., "2025-03-15") 
+         b. due_date or payment_due_date (e.g., "2026-03-15") 
          c. premium_amount_usd (e.g., "$300.00")
       8. Construct your response in this EXACT template format:
          "Your next premium payment for policy [policy_number] is due on [due_date]. The amount due is [premium_amount_usd]."
-      9. Example: "Your next premium payment for policy B67890 is due on 2025-03-15. The amount due is $300.00."
+      9. Example: "Your next premium payment for policy B67890 is due on 2026-03-15. The amount due is $300.00."
       10. VERIFY your response contains ALL THREE required elements BEFORE sending it.
     
     CRITICAL COVERAGE INQUIRIES WORKFLOW:

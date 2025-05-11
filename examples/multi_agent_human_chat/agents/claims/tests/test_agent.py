@@ -44,7 +44,7 @@ def get_test_cases():
             ),
             "expected_response": (
                 "Your claim #1001 is currently 'In Review'. "
-                "We estimate a payout of $2300.00 by 2025-05-15. "
+                "We estimate a payout of $2300.00 by 2026-05-15. "
                 "We're still awaiting your repair estimates—please submit them at your earliest convenience."
             ),
             "chat_messages": [
@@ -107,7 +107,7 @@ class ClaimsEvaluationSignature(dspy.Signature):
        - MUST include the exact claim number from the conversation (e.g., "#1001")
        - MUST include the current status (e.g., "In Review", "Approved", "Pending")
        - MUST include the exact payout amount if available (e.g., "$2300" or "$2,300")
-       - MUST include the exact date format YYYY-MM-DD if provided (e.g., "2025-05-15")
+       - MUST include the exact date format YYYY-MM-DD if provided (e.g., "2026-05-15")
        - MUST mention any outstanding items if applicable
     
     2. For FILING NEW CLAIMS:

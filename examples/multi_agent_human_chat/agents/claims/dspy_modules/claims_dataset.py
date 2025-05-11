@@ -33,7 +33,7 @@ def create_claims_dataset() -> List[ClaimsExample]:
             "policy_number": "A12345",
             "status": "In Review",
             "estimate": 2300.0,
-            "estimate_date": "2025-05-15",
+            "estimate_date": "2026-05-15",
             "next_steps": "Submit repair estimates",
             "outstanding_items": ["Repair estimates"]
         },
@@ -42,7 +42,7 @@ def create_claims_dataset() -> List[ClaimsExample]:
             "policy_number": "B67890",
             "status": "Approved",
             "estimate": 1500.0,
-            "estimate_date": "2025-04-20",
+            "estimate_date": "2026-04-20",
             "next_steps": "Processing payment",
             "outstanding_items": []
         },
@@ -114,7 +114,7 @@ User: My policy number is {policy}, and I had a {incident} yesterday."""
         "address": "123 Main St, Anytown, USA",
         "phone": "555-123-4567",
         "damage_description": "more extensive than initially reported",
-        "incident date": "January 15, 2025"
+        "incident date": "January 15, 2026"
     }
     
     for claim in claims_data:

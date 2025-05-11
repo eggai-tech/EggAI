@@ -51,7 +51,7 @@ def get_test_cases():
     test_cases = [
         {
             "policy_number": "B67890",
-            "expected_response": "Your next payment of $300.00 is due on 2025-03-15.",
+            "expected_response": "Your next payment of $300.00 is due on 2026-03-15.",
             "user_messages": [
                 "Hi, I'd like to know my next billing date.",
                 "It's B67890."
@@ -62,7 +62,7 @@ def get_test_cases():
         },
         {
             "policy_number": "A12345",
-            "expected_response": "Your current amount due is $120.00 with a due date of 2025-02-01.",
+            "expected_response": "Your current amount due is $120.00 with a due date of 2026-02-01.",
             "user_messages": [
                 "How much do I owe on my policy?",
                 "A12345"

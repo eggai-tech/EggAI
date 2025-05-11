@@ -105,11 +105,11 @@ from libraries.tracing import TracedReAct
 # Mock tools for optimization (these won't actually be called during optimization)
 def mock_get_billing_info(policy_number: str):
     """Mock implementation of get_billing_info for optimization."""
-    return '{"policy_number": "A12345", "billing_cycle": "Monthly", "amount_due": 120.0, "due_date": "2025-02-01", "status": "Paid"}'
+    return '{"policy_number": "A12345", "billing_cycle": "Monthly", "amount_due": 120.0, "due_date": "2026-02-01", "status": "Paid"}'
 
 def mock_update_billing_info(policy_number: str, field: str, new_value: str):
     """Mock implementation of update_billing_info for optimization."""
-    return '{"policy_number": "A12345", "billing_cycle": "Monthly", "amount_due": 120.0, "due_date": "2025-02-01", "status": "Updated"}'
+    return '{"policy_number": "A12345", "billing_cycle": "Monthly", "amount_due": 120.0, "due_date": "2026-02-01", "status": "Updated"}'
 
 # Create TracedReAct program for optimization
 billing_program = TracedReAct(

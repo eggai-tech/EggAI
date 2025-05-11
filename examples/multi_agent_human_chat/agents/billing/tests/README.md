@@ -46,7 +46,7 @@ Test cases are defined in `utils.py` and follow this structure:
 ```python
 {
     "policy_number": "B67890",
-    "expected_response": "Your next payment of $300.00 is due on 2025-03-15.",
+    "expected_response": "Your next payment of $300.00 is due on 2026-03-15.",
     "user_messages": [
         "Hi, I'd like to know my next billing date.",
         "It's B67890."

@@ -24,7 +24,7 @@ POLICIES_DATABASE = [
         "name": "John Doe",
         "policy_category": "auto",
         "premium_amount": 500,
-        "due_date": "2025-03-01",
+        "due_date": "2026-03-01",
         "coverage_details": "collision, comprehensive, liability, and uninsured motorist protection",
     },
     {
@@ -32,7 +32,7 @@ POLICIES_DATABASE = [
         "name": "Jane Smith",
         "policy_category": "life",
         "premium_amount": 300,
-        "due_date": "2025-03-15",
+        "due_date": "2026-03-15",
         "coverage_details": "term life insurance with $500,000 death benefit",
     },
     {
@@ -40,7 +40,7 @@ POLICIES_DATABASE = [
         "name": "Alice Johnson",
         "policy_category": "home",
         "premium_amount": 400,
-        "due_date": "2025-03-01",
+        "due_date": "2026-03-01",
         "coverage_details": "dwelling coverage, personal property, liability, and water damage from burst pipes",
     },
 ]

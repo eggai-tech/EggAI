@@ -105,7 +105,7 @@ from libraries.tracing import TracedReAct
 # Mock tools for optimization (these won't actually be called during optimization)
 def get_claim_status(claim_number: str):
     """Retrieve claim status and details for a given claim_number."""
-    return '{"claim_number": "1001", "policy_number": "A12345", "status": "In Review", "estimate": 2300.0, "estimate_date": "2025-05-15", "next_steps": "Submit repair estimates"}'
+    return '{"claim_number": "1001", "policy_number": "A12345", "status": "In Review", "estimate": 2300.0, "estimate_date": "2026-05-15", "next_steps": "Submit repair estimates"}'
 
 def file_claim(policy_number: str, claim_details: str):
     """File a new claim under the given policy with provided details."""

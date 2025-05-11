@@ -107,7 +107,7 @@ The agent sends responses to the `human` channel with:
   "type": "agent_message",
   "source": "ClaimsAgent",
   "data": {
-    "message": "Your claim #1001 is currently 'In Review'. We estimate a payout of $2300 by 2025-05-15. We're still awaiting your repair estimates—please submit them at your earliest convenience.",
+    "message": "Your claim #1001 is currently 'In Review'. We estimate a payout of $2300 by 2026-05-15. We're still awaiting your repair estimates—please submit them at your earliest convenience.",
     "connection_id": "user-session-123",
     "agent": "ClaimsAgent"
   }

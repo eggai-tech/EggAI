@@ -71,7 +71,7 @@ class ModelConfig(BaseModel):
 class PolicyResponseData(BaseModel):
     """Result from a policy inquiry."""
     final_response: str = Field(
-        "Your next premium payment for policy B67890 is due on 2025-03-15. The amount due is $300.00.", 
+        "Your next premium payment for policy B67890 is due on 2026-03-15. The amount due is $300.00.", 
         description="Main response to the user"
     )
     policy_category: Optional[PolicyCategory] = Field(None, description="Category of the policy")

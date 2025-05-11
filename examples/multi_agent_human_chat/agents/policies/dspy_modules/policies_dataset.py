@@ -31,21 +31,21 @@ def create_policies_dataset() -> List[PoliciesExample]:
             "name": "John Doe",
             "policy_category": "auto",
             "premium_amount": 500,
-            "due_date": "2025-03-01",
+            "due_date": "2026-03-01",
         },
         {
             "policy_number": "B67890",
             "name": "Jane Smith",
             "policy_category": "life",
             "premium_amount": 300,
-            "due_date": "2025-03-01",
+            "due_date": "2026-03-01",
         },
         {
             "policy_number": "C24680",
             "name": "Alice Johnson",
             "policy_category": "home",
             "premium_amount": 400,
-            "due_date": "2025-03-01",
+            "due_date": "2026-03-01",
         },
     ]
     
