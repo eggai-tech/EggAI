@@ -119,7 +119,7 @@ class ClassifyConfirmationSignature(dspy.Signature):
 
 class CreateTicketSignature(dspy.Signature):
     """DSPy signature for creating a ticket based on session details."""
-    ticket_details: Dict = dspy.InputField(desc="Session details.")
+    ticket_details: str = dspy.InputField(desc="Session details as JSON string.")
     ticket_message: str = dspy.OutputField(desc="Ticket creation message confirmation, with summary of ticket details.")
 
 
@@ -271,23 +271,25 @@ async def create_ticket_from_session(
 ) -> ModelResult:
     """Create a ticket using the information in the session data."""
     start_time = time.perf_counter()
-    
+
     try:
         _, _, create_ticket_module = get_dspy_modules()
-        response = await create_ticket_module(ticket_details=session_data.model_dump())
-        
+        # Convert to JSON string instead of passing dict directly
+        ticket_details_json = json.dumps(session_data.model_dump())
+        response = await create_ticket_module(ticket_details=ticket_details_json)
+
         processing_time = (time.perf_counter() - start_time) * 1000
-        
+
         return ModelResult(
             message=response.ticket_message,
             processing_time_ms=processing_time,
             success=True
         )
-        
+
     except Exception as e:
         logger.error(f"Error creating ticket: {str(e)}", exc_info=True)
         processing_time = (time.perf_counter() - start_time) * 1000
-        
+
         return ModelResult(
             message="I apologize, but I encountered an error while creating your ticket. "
                    "Please try again later or contact our support team directly.",
