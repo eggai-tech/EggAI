@@ -35,6 +35,5 @@ class ChattySignature(dspy.Signature):
 chatty = dspy.ChainOfThought(ChattySignature)
 
 if __name__ == "__main__":
-    user_message = "What is the weather like today?"
-    response = chatty(user_message=user_message)
+    response = chatty(chat_history="User: Hello.")
     print(response.response)
