@@ -171,7 +171,7 @@ This command starts the following services:
 - OTEL Collector, Tempo, Prometheus - Telemetry and tracing infrastructure
 - Grafana - Visualization dashboards for observability
 - MinIO - S3-compatible object storage for MLflow artifacts
-- MLflow - Tracking and registry for machine learning experiments
+- MLflow - Experiment tracking and model registry
 - PostgreSQL - Database for MLflow
 
 You can access:
