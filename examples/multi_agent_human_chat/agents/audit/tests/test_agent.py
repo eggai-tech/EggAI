@@ -21,18 +21,18 @@ eggai_set_default_transport(
     )
 )
 
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage
-
 from agents.audit.agent import MESSAGE_CATEGORIES, audit_agent, audit_message
 from agents.audit.types import AuditCategory
+from libraries.channels import channels
+from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage
 
 logger = get_console_logger("audit_agent.tests")
 
 test_agent = Agent("TestAuditAgent")
-human_channel = Channel("human")
-agents_channel = Channel("agents") 
-audit_logs_channel = Channel("audit_logs")
+human_channel = Channel(channels.human)
+agents_channel = Channel(channels.agents)
+audit_logs_channel = Channel(channels.audit_logs)
 response_queue = asyncio.Queue()
 
 

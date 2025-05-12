@@ -17,6 +17,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from agents.triage.agent import handle_user_message
 from agents.triage.config import Settings
+from libraries.channels import channels
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
@@ -165,8 +166,9 @@ def write_html_report(test_results: List[Dict[str, Any]], summary: Dict[str, Any
 # ---------------------------------------------------------------------------
 
 test_agent = Agent("TestTriageAgent")
-test_channel = Channel("human")
-agents_channel = Channel("agents")
+# Use channels from central configuration
+test_channel = Channel(channels.human)
+agents_channel = Channel(channels.agents)
 
 _response_queue: asyncio.Queue[TracedMessage] = asyncio.Queue()
 
@@ -311,9 +313,14 @@ async def test_triage_agent():
             })
 
         # Calculate overall metrics
-        classification_accuracy = sum(1.0 if r['expected'] == r['routed'] else 0.0 for r in judge_results) / len(judge_results)
-        avg_precision = np.mean([float(r["precision_value"]) for r in judge_results])
-        avg_latency = np.mean([float(r["latency_value"]) for r in judge_results])
+        classification_accuracy = 0 if len(judge_results) == 0 else sum(1.0 if r['expected'] == r['routed'] else 0.0 for r in judge_results) / len(judge_results)
+
+        # Handle empty lists to avoid numpy warnings and errors
+        precision_values = [float(r["precision_value"]) for r in judge_results]
+        latency_values = [float(r["latency_value"]) for r in judge_results]
+
+        avg_precision = 0.0 if len(precision_values) == 0 else np.mean(precision_values)
+        avg_latency = 0.0 if len(latency_values) == 0 else np.mean(latency_values)
         
         # Log overall metrics to MLflow
         mlflow.log_metric("overall_classification_accuracy", classification_accuracy)
@@ -349,7 +356,7 @@ async def test_triage_agent():
             "total": len(report_data),
             "success": sum(1 for r in report_data if r["status"] == "PASS"),
             "failure": sum(1 for r in report_data if r["status"] == "FAIL"),
-            "success_percentage": f"{sum(1 for r in report_data if r['status'] == 'PASS') / len(report_data) * 100:.2f}"
+            "success_percentage": "0.00" if len(report_data) == 0 else f"{sum(1 for r in report_data if r['status'] == 'PASS') / len(report_data) * 100:.2f}"
         }
 
         report_path = write_html_report(report_data, summary, "classifier_" + settings.classifier_version)

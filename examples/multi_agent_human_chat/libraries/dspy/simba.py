@@ -95,7 +95,7 @@ def load_optimized_model(path: str) -> Optional[dspy.Module]:
     except Exception as e:
         # Try alternative loading method if the first one fails
         try:
-            logger.info(f"Trying alternative loading method for optimized model")
+            logger.info("Trying alternative loading method for optimized model")
             # Import json and load directly
             import json
             with open(path, 'r') as f:

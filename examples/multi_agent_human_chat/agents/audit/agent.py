@@ -6,6 +6,7 @@ from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 from faststream.kafka import KafkaMessage
 
+from libraries.channels import channels
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, traced_handler
@@ -39,10 +40,15 @@ audit_config = AuditConfig(
     message_categories=MESSAGE_CATEGORIES,
     default_category="Other",
     enable_debug_logging=settings.debug_logging_enabled,
-    audit_channel_name="audit_logs"
+    audit_channel_name=channels.audit_logs
 )
 
 audit_agent = Agent("AuditAgent")
+logger = get_console_logger("audit_agent")
+
+agents_channel = Channel(channels.agents)
+human_channel = Channel(channels.human)
+audit_logs_channel = Channel(channels.audit_logs)
 
 
 async def get_channel(msg: Optional[KafkaMessage]) -> str:

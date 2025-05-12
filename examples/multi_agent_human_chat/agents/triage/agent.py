@@ -6,6 +6,7 @@ from opentelemetry import trace
 from agents.triage.config import settings
 from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import AGENT_REGISTRY, TargetAgent
+from libraries.channels import channels
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
@@ -18,8 +19,8 @@ eggai_set_default_transport(
 )
 
 triage_agent = Agent(name="TriageAgent")
-human_channel = Channel("human")
-agents_channel = Channel("agents")
+human_channel = Channel(channels.human)
+agents_channel = Channel(channels.agents)
 
 tracer = trace.get_tracer("triage_agent")
 logger = get_console_logger("triage_agent.handler")

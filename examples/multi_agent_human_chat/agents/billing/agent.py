@@ -1,5 +1,6 @@
 from eggai import Agent, Channel
 
+from libraries.channels import channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedMessage,
@@ -13,8 +14,8 @@ from .dspy_modules.billing import billing_optimized_dspy
 billing_agent = Agent(name="BillingAgent")
 logger = get_console_logger("billing_agent.handler")
 
-agents_channel = Channel("agents")
-human_channel = Channel("human")
+agents_channel = Channel(channels.agents)
+human_channel = Channel(channels.human)
 
 tracer = create_tracer("billing_agent")
 
