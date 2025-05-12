@@ -83,13 +83,11 @@ def traced_handler(span_name: str = None):
         @functools.wraps(handler_func)
         async def wrapper(*args, **kwargs):
             from libraries.tracing.schemas import TracedMessage
-            from libraries.logger import get_console_logger
 
             splitted = handler_func.__module__.split('.')
             module_name = splitted[-2] if len(splitted) > 1 else splitted[0]
             tracer_name = f"{module_name}_agent"
             tracer = get_tracer(tracer_name)
-            logger = get_console_logger(f"{tracer_name}.handler")
 
             msg = next((arg for arg in args if isinstance(arg, TracedMessage)), None)
             if not msg:

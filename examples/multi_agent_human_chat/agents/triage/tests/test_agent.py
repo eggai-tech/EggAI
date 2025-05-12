@@ -4,7 +4,6 @@ import dspy
 from uuid import uuid4
 from eggai import Agent, Channel
 from ..agent import triage_agent
-from ..config import settings
 from dotenv import load_dotenv
 
 from agents.triage.config import Settings

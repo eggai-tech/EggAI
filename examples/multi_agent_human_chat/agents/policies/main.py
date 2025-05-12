@@ -1,5 +1,4 @@
 import asyncio
-import dspy
 from eggai import eggai_main
 
 from libraries.dspy_set_language_model import dspy_set_language_model
