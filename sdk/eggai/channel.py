@@ -27,10 +27,7 @@ class Channel:
             transport (Optional[Transport]): A concrete transport instance. If None, a default transport is used.
         """
         self._name = name
-        if transport is None:
-            self._transport = get_default_transport()
-        else:
-            self._transport = transport
+        self._transport = transport
         self._connected = False
         self._stop_registered = False
 
@@ -45,6 +42,8 @@ class Channel:
 
     async def _ensure_connected(self):
         if not self._connected:
+            if self._transport is None:
+                self._transport = get_default_transport()
             await self._transport.connect()
             self._connected = True
             if not self._stop_registered:
@@ -68,11 +67,11 @@ class Channel:
         Args:
             callback (Callable[[Dict[str, Any]], "asyncio.Future"]): The callback to invoke on new messages.
         """
+        await self._ensure_connected()
         handler_name = self._name + "-" + (callback.__name__ or "handler").replace("<", "").replace(">", "")
         HANDLERS_IDS[handler_name] += 1
         kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
         await self._transport.subscribe(self._name, callback, **kwargs)
-        await self._ensure_connected()
 
     async def stop(self):
         """
