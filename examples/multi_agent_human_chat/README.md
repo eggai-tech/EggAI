@@ -166,7 +166,7 @@ make docker-up
 ```
 
 This command starts the following services:
-- [Redpanda](https://github.com/redpanda-data/redpanda) - Messaging platform for inter-agent communication
+- Redpanda - Kafka compatible messaging platform for inter-agent communication
 - Redpanda Console - Web UI for inspecting topics and messages
 - OTEL Collector, Tempo, Prometheus - Telemetry and tracing infrastructure
 - Grafana - Visualization dashboards for observability
