@@ -40,11 +40,14 @@ class Channel:
         """
         return self._name
 
+    def _get_transport(self):
+        if self._transport is None:
+            self._transport = get_default_transport()
+        return self._transport
+
     async def _ensure_connected(self):
         if not self._connected:
-            if self._transport is None:
-                self._transport = get_default_transport()
-            await self._transport.connect()
+            await self._get_transport().connect()
             self._connected = True
             if not self._stop_registered:
                 await eggai_register_stop(self.stop)
@@ -58,7 +61,7 @@ class Channel:
             message (Dict[str, Any]): The message payload to publish.
         """
         await self._ensure_connected()
-        await self._transport.publish(self._name, message)
+        await self._get_transport().publish(self._name, message)
 
     async def subscribe(self, callback: Callable[[Dict[str, Any]], "asyncio.Future"], **kwargs):
         """
@@ -67,16 +70,16 @@ class Channel:
         Args:
             callback (Callable[[Dict[str, Any]], "asyncio.Future"]): The callback to invoke on new messages.
         """
-        await self._ensure_connected()
         handler_name = self._name + "-" + (callback.__name__ or "handler").replace("<", "").replace(">", "")
         HANDLERS_IDS[handler_name] += 1
         kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
-        await self._transport.subscribe(self._name, callback, **kwargs)
+        await self._get_transport().subscribe(self._name, callback, **kwargs)
+        await self._ensure_connected()
 
     async def stop(self):
         """
         Disconnects the channel's transport if connected.
         """
         if self._connected:
-            await self._transport.disconnect()
+            await self._get_transport().disconnect()
             self._connected = False

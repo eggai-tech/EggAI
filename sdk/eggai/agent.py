@@ -32,6 +32,11 @@ class Agent:
         self._started = False
         self._stop_registered = False
 
+    def _get_transport(self):
+        if self._transport is None:
+            self._transport = get_default_transport()
+        return self._transport
+
     def subscribe(self, channel: Optional[Channel] = None, **kwargs):
         """
         Decorator for adding a subscription.
@@ -59,16 +64,13 @@ class Agent:
         if self._started:
             return
 
-        if self._transport is None:
-            self._transport = get_default_transport()
-
         for (channel, handler, kwargs) in self._subscriptions:
             handler_name = self._name + "-" + handler.__name__
             HANDLERS_IDS[handler_name] += 1
             kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
-            await self._transport.subscribe(channel, handler, **kwargs)
+            await self._get_transport().subscribe(channel, handler, **kwargs)
 
-        await self._transport.connect()
+        await self._get_transport().connect()
         self._started = True
 
         if not self._stop_registered:
@@ -82,5 +84,5 @@ class Agent:
         Stops the agent by disconnecting the transport.
         """
         if self._started:
-            await self._transport.disconnect()
+            await self._get_transport().disconnect()
             self._started = False
