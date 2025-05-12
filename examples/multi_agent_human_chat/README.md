@@ -1,5 +1,7 @@
 # Multi-Agent Insurance Support System
 
+> **Note:** This example runs completely locally on your machine, including the language models via LM Studio. No cloud services or API keys are required to run the basic demo.
+
 AI agents collaborate in a multi-agent system to provide effective and personalized insurance support.
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/multi_agent_human_chat).
@@ -157,11 +159,25 @@ guardrails configure --token $GUARDRAILS_TOKEN
 guardrails hub install hub://guardrails/toxic_language
 ```
 
-Start [Redpanda](https://github.com/redpanda-data/redpanda) using Docker Compose:
+Start the infrastructure components using Docker Compose:
 
 ```bash
 make docker-up
 ```
+
+This command starts the following services:
+- [Redpanda](https://github.com/redpanda-data/redpanda) - Messaging platform for inter-agent communication
+- Redpanda Console - Web UI for inspecting topics and messages
+- OTEL Collector, Tempo, Prometheus - Telemetry and tracing infrastructure
+- Grafana - Visualization dashboards for observability
+- MinIO - S3-compatible object storage for MLflow artifacts
+- MLflow - Tracking and registry for machine learning experiments
+- PostgreSQL - Database for MLflow
+
+You can access:
+- Redpanda Console at http://localhost:8080
+- Grafana at http://localhost:3000
+- MLflow UI at http://localhost:5001
 ### Model Configuration
 
 The system supports both cloud and local language models:
