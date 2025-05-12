@@ -28,7 +28,7 @@ Agents collaborate with clear defined roles, objectives, and skills.
 
 ### **TriageAgent**
 
-   <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-2.jpeg" width="40"/>
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-5.jpeg" width="40"/>
 
 **Role**: Classify incoming messages and route them to the appropriate agent based on content.  
 **Objective**: Ensure that user inquiries are efficiently assigned to the right agent.  
@@ -42,9 +42,17 @@ Agents collaborate with clear defined roles, objectives, and skills.
 **Objective**: Provide accurate and detailed information about user policies.  
 **Skill**: Policy management expertise.
 
-### **BillingAgent**
+### **ClaimsAgent**
 
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-4.jpeg" width="40"/>
+
+**Role**: Handle insurance claims inquiries and processing for customers.  
+**Objective**: Retrieve claim status, file new claims, update existing claims, and answer claims-related questions.  
+**Skill**: Claims processing, claim information management, and status reporting.
+
+### **BillingAgent**
+
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-2.jpeg" width="40"/>
 
 **Role**: Assist customers with billing-related inquiries such as due amounts, billing cycles, and payment statuses.  
 **Objective**: Resolve billing-related questions efficiently and provide updates to billing records as needed.  
@@ -52,7 +60,7 @@ Agents collaborate with clear defined roles, objectives, and skills.
 
 ### **EscalationAgent**
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-5.jpeg" width="40"/>
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-3.jpeg" width="40"/>
 
 **Role**: Manage support ticket creation and retrieval for escalated issues that other agents cannot resolve.  
 **Objective**: Ensure unresolved issues are properly documented and assigned to the correct human support teams.  
