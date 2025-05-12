@@ -1,10 +1,10 @@
 # Multi-Agent Insurance Support System
 
-> **Note:** This example runs completely locally on your machine, including the language models via LM Studio. No cloud services or API keys are required to run the basic demo.
-
 AI agents collaborate in a multi-agent system to provide effective and personalized insurance support.
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/multi_agent_human_chat).
+
+> **Note:** This example runs completely locally on your machine, including the language models via LM Studio. No cloud services or API keys are required to run the basic demo.
 
 ## User Interaction
 
