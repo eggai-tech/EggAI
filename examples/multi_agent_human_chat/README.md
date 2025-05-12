@@ -129,13 +129,6 @@ Ensure you have the following dependencies installed:
 - **Python** 3.11
 - **Docker** and **Docker Compose**
 
-Ensure you have a valid OpenAI API key set in your environment:
-
-```bash
-export OPENAI_API_KEY="your-api-key"
-export GUARDRAILS_TOKEN="your-guardrails-ai-token" # Optional
-```
-
 ### Setup Instructions
 
 Clone the EggAI repository:
