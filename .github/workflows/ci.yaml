@@ -1,15 +1,32 @@
-name: Build docker images
+name: Python code validation and build
 
 on:
   push:
 
 jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    name: Lint python code
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run python linter
+        uses: astral-sh/ruff-action@v3
+        with:
+          src: "examples/multi_agent_human_chat"
+
   docker-build:
     runs-on: ubuntu-latest
     name: Build and push docker image
     permissions:
       contents: read
       packages: write
+    needs: python-lint
     steps:
       - uses: actions/checkout@v4
 
