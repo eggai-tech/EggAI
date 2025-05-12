@@ -157,12 +157,6 @@ make setup
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-**Note for Mac users**: You may need to install torch compatibility package separately:
-
-```bash
-pip install "transformers[torch]<=4.49.0"
-```
-
 Configure Guardrails (Optional):
 
 ```bash
@@ -179,27 +173,61 @@ make docker-up
 
 The system supports both cloud and local language models:
 
-#### Using OpenAI (Default)
-By default, the system uses OpenAI models via the API key specified above.
+#### Using Local Models (Default)
+By default, the system uses LM Studio as the local model server.
 
-#### Using Local Models 
-You can run the system with local language models (via LiteLLM):
+##### Setup Instructions:
 
-1. Start a local model server (e.g., Ollama):
+1. Start a local model server with LM Studio:
    ```bash
-   # Install Ollama first, then pull a model
-   ollama pull gemma3
+   # Download and install LM Studio from https://lmstudio.ai/
+   # Launch LM Studio and load the gemma-3-4b-it-qat model (or another compatible model)
+   # Click "Local Server" in the sidebar and start the server
+   # Ensure it's running on http://localhost:1234
    ```
 
-2. Create a `.env` file in the project root with your model configuration:
+2. Copy the `.env.example` file to create your `.env` file:
+   ```bash
+   cp .env.example .env
    ```
-   TRIAGE_LANGUAGE_MODEL=ollama_chat/gemma3
-   POLICIES_LANGUAGE_MODEL=ollama_chat/gemma3
-   BILLING_LANGUAGE_MODEL=ollama_chat/gemma3
-   ESCALATION_LANGUAGE_MODEL=ollama_chat/gemma3
+
+   The example configuration is already set up for LM Studio with the following settings:
+   ```
+   TRIAGE_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
+   TRIAGE_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+
+   POLICIES_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
+   POLICIES_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+
+   CLAIMS_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
+   CLAIMS_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+
+   BILLING_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
+   BILLING_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+
+   ESCALATION_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
+   ESCALATION_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+
+   LM_STUDIO_API_BASE=http://localhost:1234/v1/
+   LM_STUDIO_API_KEY=lm-studio
    ```
 
 Each agent can use a different model. All LiteLLM providers are supported, allowing you to mix local and cloud models as needed.
+
+#### Using OpenAI (Alternative)
+You can also use OpenAI models by uncommenting the relevant lines in your `.env` file:
+```
+# TRIAGE_LANGUAGE_MODEL=openai/gpt-4o-mini
+# POLICIES_LANGUAGE_MODEL=openai/gpt-4o-mini
+# CLAIMS_LANGUAGE_MODEL=openai/gpt-4o-mini
+# BILLING_LANGUAGE_MODEL=openai/gpt-4o-mini
+# ESCALATION_LANGUAGE_MODEL=openai/gpt-4o-mini
+```
+
+Don't forget to also set your OpenAI API key:
+```
+OPENAI_API_KEY=your-api-key-here
+```
 
 
 ### Run the Example
