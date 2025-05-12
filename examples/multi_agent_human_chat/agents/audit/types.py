@@ -68,11 +68,12 @@ class AuditEvent(BaseModel):
     channel: str = Field(...)
     category: AuditCategory = Field(...)
     audit_timestamp: datetime = Field(default_factory=datetime.now)
+    content: Optional[str] = Field(default=None)
     error: Optional[Dict[str, str]] = Field(default=None)
 
     def to_dict(self) -> Dict[str, Any]:
         result = self.model_dump()
         result["audit_timestamp"] = self.audit_timestamp.isoformat()
         return result
-    
+
     model_config = {"validate_assignment": True}
