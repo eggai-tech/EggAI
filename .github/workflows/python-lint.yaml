@@ -1,0 +1,21 @@
+name: Lint python code
+
+on:
+  push:
+
+jobs:
+  python-lint:
+    runs-on: ubuntu-latest
+    name: Lint python code
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run python linter
+        uses: astral-sh/ruff-action@v3
+        with:
+          src: "examples/multi_agent_human_chat"
