@@ -178,6 +178,8 @@ You can access:
 - Redpanda Console at http://localhost:8080
 - Grafana at http://localhost:3000
 - MLflow UI at http://localhost:5001
+- MinIO at http://localhost:9001/
+
 ### Model Configuration
 
 The system supports both cloud and local language models:
