@@ -24,8 +24,8 @@ eggai_set_default_transport(
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
 
-from ..agent import MESSAGE_CATEGORIES, audit_agent, audit_message
-from ..types import AuditCategory
+from agents.audit.agent import MESSAGE_CATEGORIES, audit_agent, audit_message
+from agents.audit.types import AuditCategory
 
 logger = get_console_logger("audit_agent.tests")
 
