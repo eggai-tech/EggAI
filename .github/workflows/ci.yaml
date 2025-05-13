@@ -47,9 +47,9 @@ jobs:
           '
 
       - name: Run integration tests
+        working-directory: examples/multi_agent_human_chat
         run: |
-          echo "Running integration tests..."
-          sleep 120
+          make test-frontend-agent
 
       - name: Dump logs on failure
         if: failure()
