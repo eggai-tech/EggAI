@@ -11,7 +11,7 @@ from agents.triage.models import TargetAgent
 @dataclass
 class DatasetRow:
     conversation: str
-    target_agent: str
+    target_agent: TargetAgent
     turns: int
     temperature: float
     index_batch: int
@@ -36,8 +36,23 @@ def load_dataset(file_path: Path):
             data = json.loads(line)
             if data.get("target_agent") is None:
                 continue
+            data["target_agent"] = translate_agent_str_to_enum(data["target_agent"])
             dataset.append(DatasetRow(**data))
     return dataset
+
+def translate_agent_str_to_enum(agent_str: str) -> TargetAgent:
+    if agent_str == "BillingAgent":
+        return TargetAgent.BillingAgent
+    elif agent_str == "PolicyAgent":
+        return TargetAgent.PolicyAgent
+    elif agent_str == "ClaimsAgent":
+        return TargetAgent.ClaimsAgent
+    elif agent_str == "EscalationAgent":
+        return TargetAgent.EscalationAgent
+    elif agent_str == "ChattyAgent":
+        return TargetAgent.ChattyAgent
+    else:
+        raise ValueError(f"Unknown agent string: {agent_str}")
 
 
 def load_dataset_triage_testing():

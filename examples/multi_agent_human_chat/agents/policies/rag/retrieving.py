@@ -1,8 +1,10 @@
 import os
+
 from ragatouille import RAGPretrainedModel
-from libraries.tracing import create_tracer
-from libraries.logger import get_console_logger
+
 from agents.policies.rag.indexing import ensure_index_built
+from libraries.logger import get_console_logger
+from libraries.tracing import create_tracer
 
 tracer = create_tracer("policies_agent", "rag")
 logger = get_console_logger("policies_agent.rag")

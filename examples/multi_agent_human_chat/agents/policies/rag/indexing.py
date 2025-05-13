@@ -1,6 +1,7 @@
 import os
 
 from ragatouille import RAGPretrainedModel
+
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.rag")

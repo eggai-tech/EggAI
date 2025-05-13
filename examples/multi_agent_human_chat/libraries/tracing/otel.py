@@ -6,15 +6,78 @@ This module provides centralized configuration and tracer creation for OpenTelem
 
 import asyncio
 import functools
+import json
 import os
 import random
 import uuid
-import json
 from asyncio import iscoroutine
-from typing import Optional, Dict, Callable, Awaitable
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from opentelemetry import trace
-from opentelemetry.trace import Tracer, SpanContext, TraceFlags, TraceState
+from opentelemetry.trace import SpanContext, TraceFlags, Tracer, TraceState
+
+from libraries.logger import get_console_logger
+
+logger = get_console_logger("tracing.dspy")
+
+def safe_set_attribute(span, key: str, value: Any) -> None:
+    """
+    Safely set a span attribute, handling None values and unsupported types.
+    
+    Args:
+        span: The OpenTelemetry span to set the attribute on
+        key: The attribute key
+        value: The attribute value
+    """
+    if value is None:
+        # Skip None values entirely
+        return
+    
+    # For gen_ai attributes specifically, ensure we have string values
+    if key.startswith("gen_ai."):
+        if isinstance(value, (bool, int, float)):
+            value = str(value)
+        elif not isinstance(value, (str, bytes)) and not isinstance(value, list):
+            try:
+                value = str(value)
+            except Exception:
+                # If conversion fails, just skip it
+                logger.debug(f"Skipping gen_ai attribute {key} with unconvertible type: {type(value)}")
+                return
+    
+    # Handle basic types
+    if isinstance(value, (bool, int, float, str, bytes)):
+        try:
+            span.set_attribute(key, value)
+        except Exception as e:
+            # If setting fails, try string conversion
+            logger.debug(f"Error setting span attribute {key}: {e}")
+            try:
+                span.set_attribute(key, str(value))
+            except Exception:
+                logger.debug(f"Failed to set attribute {key} even after string conversion")
+                pass
+    
+    # Handle lists of basic types
+    elif isinstance(value, list) and all(isinstance(item, (bool, int, float, str, bytes)) for item in value):
+        try:
+            span.set_attribute(key, value)
+        except Exception:
+            # List might be invalid - try converting the whole list to a string
+            try:
+                span.set_attribute(key, str(value))
+            except Exception:
+                logger.debug(f"Failed to set list attribute {key}")
+                pass
+    
+    # Convert other types to string representation
+    else:
+        try:
+            span.set_attribute(key, str(value))
+        except Exception:
+            # If all else fails, we just skip the attribute
+            logger.debug(f"Skipping attribute {key} with invalid value type: {type(value)}")
+            pass
 
 
 def init_telemetry(
@@ -22,7 +85,17 @@ def init_telemetry(
     endpoint: Optional[str] = None,
     **kwargs
 ) -> None:
+    """
+    Initialize OpenTelemetry.
+    
+    Args:
+        app_name: The name of the application for OpenTelemetry
+        endpoint: Optional OTLP endpoint URL (defaults to env OTEL_ENDPOINT or localhost)
+        **kwargs: Additional configuration parameters for openlit.init
+    """
     import openlit
+    
+    # Initialize OpenTelemetry with openlit
     otlp_endpoint = endpoint or os.getenv("OTEL_ENDPOINT", "http://localhost:4318")
     config = {
         "application_name": app_name,
@@ -31,6 +104,64 @@ def init_telemetry(
     }
     config.update(kwargs)
     openlit.init(**config)
+    
+    # After initialization, get the actual Span class to patch
+    # We need to do this after OpenTelemetry is initialized
+    try:
+        # Try to find the span implementation being used
+        logger.info("Attempting to patch span attribute setter for safer attribute handling")
+        from opentelemetry.sdk.trace import Span as SDKSpan
+        from opentelemetry.trace import Span
+        
+        # Get actual implementation class - this will depend on the OpenTelemetry setup
+        span_classes = []
+        if hasattr(Span, "set_attribute"):
+            span_classes.append(Span)
+        if hasattr(SDKSpan, "set_attribute"):
+            span_classes.append(SDKSpan)
+            
+        # Patch any classes we found
+        for span_class in span_classes:
+            if hasattr(span_class, "set_attribute"):
+                logger.info(f"Patching {span_class.__name__}.set_attribute for safe attribute handling")
+                original_set_attribute = span_class.set_attribute
+                
+                # Create a closure to properly capture original_set_attribute
+                def create_safe_middleware(original_method):
+                    def safe_set_attribute_middleware(self, key: str, value: Any):
+                        # Skip None values entirely
+                        if value is None:
+                            return self
+                        
+                        # For gen_ai attributes specifically, ensure we have string values
+                        if key.startswith("gen_ai."):
+                            if isinstance(value, (bool, int, float)):
+                                value = str(value)
+                            elif not isinstance(value, (str, bytes)):
+                                try:
+                                    value = str(value)
+                                except Exception:
+                                    # If conversion fails, just skip it
+                                    return self
+                        
+                        # For other attribute types, follow normal OTel rules but with added safety
+                        try:
+                            return original_method(self, key, value)
+                        except Exception:
+                            # Try to convert to string as a last resort
+                            try:
+                                return original_method(self, key, str(value))
+                            except Exception:
+                                # If all else fails, just skip this attribute
+                                return self
+                    return safe_set_attribute_middleware
+                
+                # Apply the patch with proper binding
+                span_class.set_attribute = create_safe_middleware(original_set_attribute)
+                logger.info(f"Successfully patched {span_class.__name__}.set_attribute")
+    except Exception as e:
+        # If patching fails, log but continue - we'll rely on safe_set_attribute instead
+        logger.warning(f"Unable to patch span attribute setter: {e}. Using manual safe_set_attribute instead.")
 
 
 _TRACERS: Dict[str, Tracer] = {}
@@ -82,6 +213,7 @@ def traced_handler(span_name: str = None):
     def decorator(handler_func: Callable[[Dict], Awaitable[None]]):
         @functools.wraps(handler_func)
         async def wrapper(*args, **kwargs):
+            from libraries.logger import get_console_logger
             from libraries.tracing.schemas import TracedMessage
 
             splitted = handler_func.__module__.split('.')
@@ -116,9 +248,9 @@ def traced_handler(span_name: str = None):
                 context=parent_context,
                 kind=trace.SpanKind.SERVER
             ) as span:
-                span.set_attribute("agent.name", module_name)
-                span.set_attribute("agent.handler", handler_func.__name__)
-                span.set_attribute("message.id", str(getattr(msg, 'id', 'unknown')))
+                safe_set_attribute(span, "agent.name", module_name)
+                safe_set_attribute(span, "agent.handler", handler_func.__name__)
+                safe_set_attribute(span, "message.id", str(getattr(msg, 'id', 'unknown')))
 
                 if iscoroutine(handler_func) or asyncio.iscoroutinefunction(handler_func):
                     return await handler_func(*args, **kwargs)

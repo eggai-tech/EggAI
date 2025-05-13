@@ -1,5 +1,3 @@
-import json
-import os
 from unittest.mock import AsyncMock
 
 import pytest
@@ -9,9 +7,6 @@ from eggai import Channel
 
 from src.loader import load_dataset
 from ..src.agents.triage import handle_user_message
-
-
-
 
 @pytest.mark.asyncio
 async def test_triage_agent(monkeypatch):

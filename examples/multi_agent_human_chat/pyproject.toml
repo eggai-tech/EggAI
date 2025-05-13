@@ -1,0 +1,53 @@
+[tool.ruff]
+# Same as Black.
+line-length = 88
+# Assume Python 3.11
+target-version = "py311"
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".github",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.ruff.lint]
+# Enable flake8-bugbear (`B`) rules.
+select = ["E", "F", "B", "I"]
+
+# Ignore specific errors that are hard to fix in an existing codebase
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "B904",  # Within an `except` clause, raise exceptions with `raise ... from err`
+    "F841",  # Local variable is assigned to but never used
+    "B008",  # Do not perform function call in argument defaults (FastAPI pattern)
+    "E402",  # Module level import not at top of file (common in DSPy modules)
+]
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-third-party = ["dspy", "ragatouille", "mlflow", "eggai", "pytest", "opentelemetry"]

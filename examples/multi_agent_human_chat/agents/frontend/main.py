@@ -1,37 +1,38 @@
+"""Main module for the Frontend Agent."""
 import asyncio
 import os
 from contextlib import asynccontextmanager
 
 import uvicorn
 from eggai import eggai_cleanup
+from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
-from eggai.transport import eggai_set_default_transport, KafkaTransport
-from libraries.tracing import init_telemetry
-from libraries.logger import get_console_logger
 
-from .agent import (
-    add_websocket_gateway,
-    frontend_agent,
-)
+from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import init_telemetry
+
+# Import settings first
 from .config import settings
+
+# Configure transport with heartbeat and session timeout
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content
+    )
+)
+
+# Import agent after transport is configured
+from .agent import add_websocket_gateway, frontend_agent
 
 logger = get_console_logger("frontend_agent")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        # Configure Kafka transport
-        logger.info(f"Using Kafka transport with servers: {settings.kafka_bootstrap_servers}")
-        
-        def create_kafka_transport():
-            return KafkaTransport(
-                bootstrap_servers=settings.kafka_bootstrap_servers,
-            )
-        
-        eggai_set_default_transport(create_kafka_transport)
-        
+    try:        
         await frontend_agent.start()
         logger.info(f"{settings.app_name} started successfully")
         
@@ -57,7 +58,6 @@ async def read_root():
         with open(html_file_path, "r", encoding="utf-8") as file:
             file_content = file.read()
             
-        logger.debug("HTML file read successfully")
         return HTMLResponse(content=file_content, status_code=200)
 
     except FileNotFoundError as fnf_error:
@@ -83,7 +83,6 @@ add_websocket_gateway(settings.websocket_path, api, frontend_server)
 if __name__ == "__main__":
     try:
         logger.info(f"Starting {settings.app_name}")
-        
         init_telemetry(app_name=settings.app_name)
         logger.info(f"Telemetry initialized for {settings.app_name}")
         

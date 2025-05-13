@@ -1,11 +1,15 @@
+"""WebSocket connection manager for the frontend agent."""
+from collections import defaultdict
 from typing import Dict
-from starlette.websockets import WebSocketState, WebSocket
+
+from starlette.websockets import WebSocket, WebSocketState
+
 
 class WebSocketManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
-        self.message_buffers: Dict[str, list] = {}
-        self.message_ids: Dict[str, str] = {}
+        self.message_buffers: Dict[str, list] = defaultdict(list)
+        self.message_ids: Dict[str, str] = defaultdict(str)
 
     async def connect(self, websocket: WebSocket, connection_id: str):
         await websocket.accept()
@@ -30,9 +34,7 @@ class WebSocketManager:
             if not connection.state.closed:
                 connection.state.closed = True
                 if connection.client_state is not WebSocketState.DISCONNECTED:
-                    await connection.close(
-                        code=1001, reason="Connection closed by server"
-                    )
+                    await connection.close(code=1001, reason="Connection closed by server")
         self.active_connections.pop(connection_id, None)
 
     async def send_message_to_connection(self, connection_id: str, message_data: dict):
@@ -54,7 +56,7 @@ class WebSocketManager:
         return self.message_ids.get(message_id)
 
     async def broadcast_message(self, message_data: dict):
-        for connection_id, connection in self.active_connections.items():
+        for _, connection in self.active_connections.items():
             await connection.send_json(message_data)
 
     async def disconnect_all(self):

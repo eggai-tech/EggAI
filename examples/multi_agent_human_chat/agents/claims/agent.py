@@ -1,250 +1,163 @@
-import json
-import dspy
-from eggai import Channel, Agent
-from eggai.transport import eggai_set_default_transport, KafkaTransport
+import asyncio
+import time
+from typing import List
 
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.tracing import TracedReAct, create_tracer, TracedMessage, traced_handler, format_span_as_traceparent
+from eggai import Agent, Channel
+
+from agents.claims.config import settings
+from agents.claims.dspy_modules.claims import claims_optimized_dspy
+from agents.claims.types import ChatMessage
 from libraries.logger import get_console_logger
-from .config import settings
-
-eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers=settings.kafka_bootstrap_servers))
+from libraries.tracing import (
+    TracedMessage,
+    create_tracer,
+    format_span_as_traceparent,
+    traced_handler,
+)
+from libraries.tracing.otel import safe_set_attribute
 
 claims_agent = Agent(name="ClaimsAgent")
 logger = get_console_logger("claims_agent.handler")
-
 agents_channel = Channel("agents")
 human_channel = Channel("human")
-
 tracer = create_tracer("claims_agent")
 
 
-class ClaimsAgentSignature(dspy.Signature):
-    """
-    You are the Claims Agent for an insurance company.
-
-    ROLE:
-    - Help customers with all claims-related questions and actions, including:
-      • Filing a new claim
-      • Checking the status of an existing claim
-      • Explaining required documentation
-      • Estimating payouts and timelines
-      • Updating claim details (e.g. contact info, incident description)
-
-    TOOLS:
-    - get_claim_status(claim_number: str) -> str:
-        Retrieves the current status, payment estimate, next steps, and any outstanding items for a given claim. Returns JSON string.
-    - file_claim(policy_number: str, claim_details: str) -> str:
-        Creates a new claim under the customer’s policy with the provided incident details. Returns JSON string of new claim.
-    - update_claim_info(claim_number: str, field: str, new_value: str) -> str:
-        Modifies a specified field (e.g., "address", "phone", "damage_description") on an existing claim. Returns JSON string of updated claim.
-
-    RESPONSE FORMAT:
-    - Respond in a clear, courteous, and professional tone.
-    - Summarize the key information or confirm the action taken.
-    - Example for status inquiry:
-        “Your claim #123456 is currently ‘In Review’. We estimate a payout of $2,300 by 2025-05-15. We’re still awaiting your repair estimates—please submit them at your earliest convenience.”
-    - Example for filing a claim:
-        “I’ve filed a new claim #789012 under policy ABC-123. Please upload photos of the damage and any police report within 5 business days to expedite processing.”
-
-    GUIDELINES:
-    - Only invoke a tool when the user provides or requests information that requires it (a claim number for status, policy number and details to file, etc.).
-    - If the user hasn’t specified a claim or policy number when needed, politely request it:
-        “Could you please provide your claim number so I can check its status?”
-    - Do not disclose internal processes or irrelevant details.
-    - Keep answers concise—focus only on what the customer needs to know or do next.
-    - Always confirm changes you make:
-        “I’ve updated your mailing address on claim #123456 as requested.”
-
-    Input Fields:
-    - chat_history: str — Full conversation context.
-
-    Output Fields:
-    - final_response: str — Claims response to the user.
-    """
-
-    chat_history: str = dspy.InputField(desc="Full conversation context.")
-    final_response: str = dspy.OutputField(desc="Claims response to the user.")
+def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
+    """Format chat messages into a conversation string."""
+    with tracer.start_as_current_span("get_conversation_string") as span:
+        safe_set_attribute(span, "chat_messages_count", len(chat_messages) if chat_messages else 0)
+        
+        if not chat_messages:
+            safe_set_attribute(span, "empty_messages", True)
+            return ""
+        
+        conversation_parts = []
+        for chat in chat_messages:
+            if "content" not in chat:
+                safe_set_attribute(span, "invalid_message", True)
+                continue
+                
+            role = chat.get("role", "User")
+            conversation_parts.append(f"{role}: {chat['content']}")
+            
+        conversation = "\n".join(conversation_parts) + "\n"
+        safe_set_attribute(span, "conversation_length", len(conversation))
+        return conversation
 
 
-# Sample in-memory claims database
-claims_database = [
-    {
-        "claim_number": "1001",
-        "policy_number": "A12345",
-        "status": "In Review",
-        "estimate": 2300.0,
-        "estimate_date": "2025-05-15",
-        "next_steps": "Submit repair estimates",
-        "outstanding_items": ["Repair estimates"]
-    },
-    {
-        "claim_number": "1002",
-        "policy_number": "B67890",
-        "status": "Approved",
-        "estimate": 1500.0,
-        "estimate_date": "2025-04-20",
-        "next_steps": "Processing payment",
-        "outstanding_items": []
-    },
-    {
-        "claim_number": "1003",
-        "policy_number": "C24680",
-        "status": "Pending Documentation",
-        "estimate": None,
-        "estimate_date": None,
-        "next_steps": "Upload photos and police report",
-        "outstanding_items": ["Photos", "Police report"]
-    },
-]
+async def publish_agent_response(connection_id: str, message: str) -> None:
+    """Publish agent response to the human channel."""
+    with tracer.start_as_current_span("publish_to_human") as publish_span:
+        child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
+        
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="ClaimsAgent",
+                data={
+                    "message": message,
+                    "connection_id": connection_id,
+                    "agent": "ClaimsAgent",
+                },
+                traceparent=child_traceparent,
+                tracestate=child_tracestate,
+            )
+        )
 
 
-@tracer.start_as_current_span("get_claim_status")
-def get_claim_status(claim_number: str) -> str:
-    """
-    Retrieve claim status and details for a given claim_number.
-
-    Args:
-        claim_number (str): The unique identifier of the claim to retrieve.
-
-    Returns:
-        str: JSON string containing claim data or an error message.
-    """
-    logger.info(f"Retrieving claim status for claim number: {claim_number}")
-    for record in claims_database:
-        if record["claim_number"] == claim_number.strip():
-            logger.info(f"Found claim record {claim_number}")
-            return json.dumps(record)
-    logger.warning(f"Claim not found: {claim_number}")
-    return json.dumps({"error": "Claim not found."})
-
-
-@tracer.start_as_current_span("file_claim")
-def file_claim(policy_number: str, claim_details: str) -> str:
-    """
-    File a new claim under the given policy with provided details.
-
-    Args:
-        policy_number (str): The policy number under which to file the claim.
-        claim_details (str): Description of the incident or damage.
-
-    Returns:
-        str: JSON string of the newly created claim record.
-    """
-    logger.info(f"Filing new claim for policy: {policy_number}")
-    existing = [int(r["claim_number"]) for r in claims_database]
-    new_number = str(max(existing) + 1 if existing else 1001)
-    new_claim = {
-        "claim_number": new_number,
-        "policy_number": policy_number.strip(),
-        "status": "Filed",
-        "estimate": None,
-        "estimate_date": None,
-        "next_steps": "Provide documentation",
-        "outstanding_items": ["Photos", "Police report"],
-        "details": claim_details
-    }
-    claims_database.append(new_claim)
-    logger.info(f"New claim filed: {new_number}")
-    return json.dumps(new_claim)
-
-
-@tracer.start_as_current_span("update_claim_info")
-def update_claim_info(claim_number: str, field: str, new_value: str) -> str:
-    """
-    Update a given field in the claim record for the specified claim_number.
-
-    Args:
-        claim_number (str): The unique identifier of the claim to update.
-        field (str): The field name to modify in the claim record.
-        new_value (str): The new value to set for the specified field.
-
-    Returns:
-        str: JSON string of the updated claim record or an error message.
-    """
-    logger.info(f"Updating claim {claim_number}: {field} -> {new_value}")
-    for record in claims_database:
-        if record["claim_number"] == claim_number.strip():
-            if field in record:
-                try:
-                    if field == "estimate":
-                        record[field] = float(new_value)
-                    elif field == "outstanding_items":
-                        record[field] = [item.strip() for item in new_value.split(",")]
-                    else:
-                        record[field] = new_value
-                except ValueError:
-                    error_msg = f"Invalid value for {field}: {new_value}"
-                    logger.error(error_msg)
-                    return json.dumps({"error": error_msg})
-                logger.info(f"Successfully updated {field} for claim {claim_number}")
-                return json.dumps(record)
-            logger.warning(f"Field '{field}' not in claim record.")
-            return json.dumps({"error": f"Field '{field}' not in claim record."})
-
-    logger.warning(f"Cannot update claim {claim_number}: not found")
-    return json.dumps({"error": "Claim not found."})
-
-
-claims_react = TracedReAct(
-    ClaimsAgentSignature,
-    tools=[get_claim_status, file_claim, update_claim_info],
-    name="claims_react",
-    tracer=tracer,
-    max_iters=5,
-)
+async def process_claims_request(
+    conversation_string: str, 
+    connection_id: str,
+    timeout_seconds: float = 30.0
+) -> str:
+    """Generate a response to a claims request with timeout protection."""
+    with tracer.start_as_current_span("process_claims_request") as span:
+        safe_set_attribute(span, "connection_id", connection_id)
+        safe_set_attribute(span, "conversation_length", len(conversation_string))
+        safe_set_attribute(span, "timeout_seconds", timeout_seconds)
+        
+        start_time = time.perf_counter()
+        
+        # Validate input
+        if not conversation_string or len(conversation_string.strip()) < 5:
+            safe_set_attribute(span, "error", "Empty or too short conversation")
+            span.set_status(1, "Invalid input")
+            raise ValueError("Conversation history is too short to process")
+            
+        # Call the model
+        logger.info("Calling claims model")
+        result = claims_optimized_dspy(chat_history=conversation_string)
+        
+        # Record metrics
+        processing_time = time.perf_counter() - start_time
+        safe_set_attribute(span, "processing_time_ms", processing_time * 1000)
+        safe_set_attribute(span, "response_length", len(result))
+        
+        # Validate response
+        if not result or len(result.strip()) < 10:
+            safe_set_attribute(span, "error", "Empty or too short response")
+            safe_set_attribute(span, "error_details", "Invalid response")
+            return "I apologize, but I couldn't generate a proper response. Please try asking again."
+        
+        return result
 
 
 @claims_agent.subscribe(
-    channel=agents_channel, filter_by_message=lambda msg: msg["type"] == "claims_request"
+    channel=agents_channel, filter_by_message=lambda msg: msg.get("type") == "claim_request"
 )
 @traced_handler("handle_claims_message")
-async def handle_claims_message(msg_dict):
+async def handle_claims_message(msg: TracedMessage) -> None:
+    """Handle incoming claims message from agents channel."""
     try:
-        msg = TracedMessage(**msg_dict)
-        chat_messages = msg.data.get("chat_messages")
-        connection_id = msg.data.get("connection_id", "unknown")
+        chat_messages: List[ChatMessage] = msg.data.get("chat_messages", [])
+        connection_id: str = msg.data.get("connection_id", "unknown")
 
-        conversation_string = ""
-        for chat in chat_messages:
-            role = chat.get("role", "User")
-            conversation_string += f"{role}: {chat['content']}\n"
-
-        logger.info("Processing claims request")
-        logger.debug(f"Conversation context: {conversation_string[:100]}...")
-
-        response = claims_react(chat_history=conversation_string)
-        final_text = response.final_response
-
-        logger.info("Sending response to user")
-        logger.debug(f"Response: {final_text[:100]}...")
-
-        with tracer.start_as_current_span("publish_to_human") as publish_span:
-            child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
-            await human_channel.publish(
-                TracedMessage(
-                    type="agent_message",
-                    source="ClaimsAgent",
-                    data={
-                        "message": final_text,
-                        "connection_id": connection_id,
-                        "agent": "ClaimsAgent",
-                    },
-                    traceparent=child_traceparent,
-                    tracestate=child_tracestate,
-                )
+        if not chat_messages:
+            logger.warning(f"Empty chat history for connection: {connection_id}")
+            await publish_agent_response(
+                connection_id,
+                "I apologize, but I didn't receive any message content to process."
             )
+            return
+            
+        conversation_string = get_conversation_string(chat_messages)
+        logger.info("Processing claims request")
+        logger.debug(f"Conversation context: {conversation_string[:100]}..." if conversation_string else "Empty conversation")
+
+        try:
+            final_text = await process_claims_request(conversation_string, connection_id)
+            
+            logger.info("Sending response to user")
+            logger.debug(f"Response: {final_text[:100]}...")
+            await publish_agent_response(connection_id, final_text)
+            
+        except ValueError:
+            logger.warning("Invalid input for claims request")
+            await publish_agent_response(
+                connection_id,
+                "Please provide valid information for your claim request."
+            )
+            
+        except asyncio.TimeoutError:
+            logger.error("Timeout processing claims request")
+            await publish_agent_response(
+                connection_id,
+                "I'm taking longer than expected to process your request. Please try again in a moment."
+            )
+            
     except Exception as e:
         logger.error(f"Error in ClaimsAgent: {e}", exc_info=True)
-
-
-@claims_agent.subscribe(channel=agents_channel)
-async def handle_others(msg: TracedMessage):
-    logger.debug("Received message: %s", msg)
+        await publish_agent_response(
+            connection_id if 'connection_id' in locals() else "unknown",
+            "An unexpected error occurred while processing your request. Please try again."
+        )
 
 
 if __name__ == "__main__":
-    language_model = dspy_set_language_model(settings)
+    from libraries.dspy_set_language_model import dspy_set_language_model
+    
+    dspy_set_language_model(settings)
     test_conversation = (
         "User: Hi, I'd like to file a new claim.\n"
         "ClaimsAgent: Certainly! Could you provide your policy number and incident details?\n"
@@ -252,5 +165,5 @@ if __name__ == "__main__":
     )
 
     logger.info("Running test query for claims agent")
-    result = claims_react(chat_history=test_conversation)
-    logger.info(f"Test response: {result.final_response}")
+    result = claims_optimized_dspy(chat_history=test_conversation)
+    logger.info(f"Test response: {result}")

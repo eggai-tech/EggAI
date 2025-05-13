@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EggAI Triage Dataset Manager{% endblock %}</title>
+    <!-- Inter font -->
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'egg-blue': '#00b4d8',
+                        'egg-purple': '#6a4c93',
+                        'egg-pink': '#f72585',
+                    },
+                    fontFamily: {
+                        sans: ['Inter var', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <!-- Custom styles -->
+    <style type="text/tailwind">
+        @layer components {
+            .btn-primary {
+                @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
+            }
+
+            .btn-secondary {
+                @apply inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
+            }
+
+            .btn-danger {
+                @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500;
+            }
+
+            .card {
+                @apply bg-white overflow-hidden shadow rounded-lg;
+            }
+
+            .card-header {
+                @apply px-4 py-5 sm:px-6 border-b border-gray-200;
+            }
+
+            .card-body {
+                @apply px-4 py-5 sm:p-6;
+            }
+
+            .card-footer {
+                @apply px-4 py-4 sm:px-6 bg-gray-50 border-t border-gray-200;
+            }
+
+            .form-input {
+                @apply shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md;
+            }
+
+            .form-textarea {
+                @apply shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md;
+            }
+
+            .form-select {
+                @apply shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md;
+            }
+
+            .form-checkbox {
+                @apply focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded;
+            }
+
+            .form-label {
+                @apply block text-sm font-medium text-gray-700;
+            }
+
+            .data-table {
+                @apply min-w-full divide-y divide-gray-200;
+            }
+
+            .data-table thead {
+                @apply bg-gray-50;
+            }
+
+            .data-table th {
+                @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+            }
+
+            .data-table tbody {
+                @apply bg-white divide-y divide-gray-200;
+            }
+
+            .data-table td {
+                @apply px-6 py-4 whitespace-nowrap text-sm text-gray-500;
+            }
+
+            .breadcrumbs {
+                @apply flex items-center space-x-2 text-sm text-gray-500;
+            }
+
+            .breadcrumb-item {
+                @apply hover:text-gray-700;
+            }
+
+            .breadcrumb-separator {
+                @apply text-gray-400;
+            }
+
+            .pagination {
+                @apply inline-flex items-center mt-4 space-x-3;
+            }
+
+            .page-item {
+                @apply relative inline-flex items-center justify-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 min-w-[2.5rem] rounded-md mx-1;
+            }
+
+            .page-item.active {
+                @apply z-10 bg-indigo-50 border-indigo-500 text-indigo-600;
+            }
+
+            .page-item.disabled {
+                @apply bg-gray-100 text-gray-400 cursor-not-allowed;
+            }
+
+            .conversation-box {
+                @apply bg-gray-50 rounded-md p-4 whitespace-pre-line text-sm space-y-3;
+            }
+
+            .conversation-message {
+                @apply;
+            }
+
+            .user-message {
+                @apply text-gray-800 font-medium py-1;
+            }
+
+            .agent-message {
+                @apply text-gray-700 bg-white py-2 px-3 rounded-lg shadow-sm border border-gray-200;
+            }
+
+            .modal-overlay {
+                @apply fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity;
+            }
+
+            .modal-container {
+                @apply fixed inset-0 z-20 overflow-y-auto;
+            }
+
+            .modal-content {
+                @apply flex min-h-full items-center justify-center p-4 text-center sm:p-0;
+            }
+
+            .modal-panel {
+                @apply relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6 z-30;
+            }
+        }
+    </style>
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.0/dist/cdn.min.js" defer></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full">
+    <div class="min-h-full">
+        <!-- Header -->
+        <header class="bg-white shadow">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="flex h-16 items-center justify-between">
+                    <!-- Logo -->
+                    <div class="flex-shrink-0">
+                        <a href="/" class="flex items-center">
+                            <img class="h-8 w-auto" src="{{ url_for('static', path='/img/eggai-logo.svg') }}" alt="EggAI">
+                            <span class="ml-3 text-lg font-semibold text-gray-900">Triage Dataset Manager</span>
+                        </a>
+                    </div>
+                    
+                    <!-- Right side actions -->
+                    <div class="flex items-center">
+                        <a href="{{ url_for('docs_redirect') }}" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                            API Docs
+                        </a>
+                        <a href="https://github.com/eggai-tech/triage-agent-dataset" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                            GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Breadcrumbs -->
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+            <nav class="breadcrumbs" aria-label="Breadcrumbs">
+                {% block breadcrumbs %}
+                <a href="/" class="breadcrumb-item">Home</a>
+                {% endblock %}
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 border-t border-gray-200">
+                <div class="flex justify-between text-sm text-gray-500">
+                    <div>&copy; 2025 EggAI. All rights reserved.</div>
+                    <div>Triage Dataset Manager v1.0.0</div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,5 +1,7 @@
 from enum import Enum
 
+from pydantic import BaseModel
+
 
 class TargetAgent(str, Enum):
     BillingAgent = "BillingAgent"
@@ -7,6 +9,12 @@ class TargetAgent(str, Enum):
     ClaimsAgent = "ClaimsAgent"
     EscalationAgent = "EscalationAgent"
     ChattyAgent = "ChattyAgent"
+
+class ClassifierMetrics(BaseModel):
+    total_tokens: int
+    prompt_tokens: int
+    completion_tokens: int
+    latency_ms: float
 
 AGENT_REGISTRY = {
     TargetAgent.BillingAgent: {

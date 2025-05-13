@@ -1,0 +1,499 @@
+{% extends "layout.html" %}
+
+{% block title %}Create Dataset - EggAI Triage Dataset Manager{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/" class="breadcrumb-item">Home</a>
+<span class="breadcrumb-separator mx-2">/</span>
+<span class="breadcrumb-item">Create Dataset</span>
+{% endblock %}
+
+{% block content %}
+<div x-data="createDataset()">
+    <!-- Page Header -->
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="min-w-0 flex-1">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Create New Dataset</h2>
+            <p class="mt-1 text-sm text-gray-500">Create a new triage agent training dataset with custom parameters</p>
+        </div>
+    </div>
+
+    <!-- Create Dataset Form -->
+    <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Dataset Parameters</h3>
+            <p class="mt-1 text-sm text-gray-500">Configure the parameters for your new dataset</p>
+        </div>
+
+        <form class="px-4 py-5 sm:p-6 space-y-6" @submit.prevent="createDataset">
+            <!-- Basic Information Section -->
+            <div>
+                <h4 class="text-base font-medium text-gray-900 mb-4">Basic Information</h4>
+                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-4">
+                        <label for="name" class="block text-sm font-medium text-gray-700">Dataset Name</label>
+                        <div class="mt-1">
+                            <input 
+                                id="name" 
+                                name="name" 
+                                type="text" 
+                                x-model="dataset.name" 
+                                required 
+                                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" 
+                                placeholder="Enter a name for your dataset"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="sm:col-span-6">
+                        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                        <div class="mt-1">
+                            <textarea 
+                                id="description" 
+                                name="description" 
+                                rows="3" 
+                                x-model="dataset.description" 
+                                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" 
+                                placeholder="Enter a description for your dataset (optional)"
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Generation Parameters Section -->
+            <div>
+                <h4 class="text-base font-medium text-gray-900 mb-4">Generation Parameters</h4>
+                <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-3">
+                        <label for="total_target" class="block text-sm font-medium text-gray-700">Total Examples</label>
+                        <div class="mt-1">
+                            <input 
+                                id="total_target" 
+                                name="total_target" 
+                                type="number" 
+                                min="1" 
+                                max="1000" 
+                                x-model.number="dataset.total_target" 
+                                required 
+                                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                            >
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">Number of examples to generate</p>
+                    </div>
+                    
+                    <div class="sm:col-span-3">
+                        <label for="model" class="block text-sm font-medium text-gray-700">Model</label>
+                        <div class="mt-1 relative">
+                            <div class="relative">
+                                <input 
+                                    id="model" 
+                                    name="model" 
+                                    type="text"
+                                    list="model-suggestions"
+                                    x-model="dataset.model" 
+                                    required 
+                                    class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                    placeholder="Provider/model-name (e.g., openai/gpt-4o)"
+                                />
+                                <datalist id="model-suggestions">
+                                    <!-- OpenAI Models -->
+                                    <option value="openai/gpt-4o-mini">OpenAI GPT-4o Mini</option>
+                                    <option value="openai/gpt-4o">OpenAI GPT-4o</option>
+                                    <option value="openai/gpt-4-0125-preview">OpenAI GPT-4 Turbo</option>
+                                    <option value="openai/gpt-3.5-turbo-0125">OpenAI GPT-3.5 Turbo</option>
+                                    
+                                    <!-- Anthropic Models -->
+                                    <option value="anthropic/claude-3-opus-20240229">Anthropic Claude 3 Opus</option>
+                                    <option value="anthropic/claude-3-sonnet-20240229">Anthropic Claude 3 Sonnet</option>
+                                    <option value="anthropic/claude-3-haiku-20240307">Anthropic Claude 3 Haiku</option>
+                                    <option value="anthropic/claude-2.1">Anthropic Claude 2.1</option>
+                                    
+                                    <!-- Google Models -->
+                                    <option value="google/gemini-1.5-pro">Google Gemini 1.5 Pro</option>
+                                    <option value="google/gemini-1.0-pro">Google Gemini 1.0 Pro</option>
+                                    
+                                    <!-- Other Models -->
+                                    <option value="meta/llama-3-70b-instruct">Meta Llama 3 70B Instruct</option>
+                                    <option value="mistral/mistral-large">Mistral Large</option>
+                                    <option value="mistral/mistral-medium">Mistral Medium</option>
+                                    <option value="mistral/mistral-small">Mistral Small</option>
+                                    <option value="cohere/command-r-plus">Cohere Command R+</option>
+                                </datalist>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">
+                            Model to use for generation in <span class="font-mono">provider/model-name</span> format. You can enter custom models supported by LiteLLM.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Temperature Selection -->
+            <div>
+                <fieldset>
+                    <legend class="text-base font-medium text-gray-900">Temperatures</legend>
+                    <p class="text-sm text-gray-500 mb-4">Select one or more temperature values to use for generation</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                        <template x-for="temp in [0.7, 0.8, 0.9, 1.0, 1.1, 1.2]" :key="temp">
+                            <div class="relative flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input 
+                                        :id="`temp-${temp}`" 
+                                        :name="`temp-${temp}`" 
+                                        type="checkbox" 
+                                        :value="temp" 
+                                        x-model="dataset.temperatures" 
+                                        class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                                    >
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label :for="`temp-${temp}`" class="font-medium text-gray-700" x-text="temp"></label>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="dataset.temperatures.length === 0" class="mt-2 text-sm text-red-600">
+                        Please select at least one temperature value
+                    </div>
+                </fieldset>
+            </div>
+            
+            <!-- Turns Selection -->
+            <div>
+                <fieldset>
+                    <legend class="text-base font-medium text-gray-900">Conversation Turns</legend>
+                    <p class="text-sm text-gray-500 mb-4">Select one or more turn counts to use for generation</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                        <template x-for="turn in [1, 3, 5, 7, 9]" :key="turn">
+                            <div class="relative flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input 
+                                        :id="`turn-${turn}`" 
+                                        :name="`turn-${turn}`" 
+                                        type="checkbox" 
+                                        :value="turn" 
+                                        x-model="dataset.turns" 
+                                        class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                                    >
+                                </div>
+                                <div class="ml-3 text-sm">
+                                    <label :for="`turn-${turn}`" class="font-medium text-gray-700" x-text="`${turn} turn${turn > 1 ? 's' : ''}`"></label>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="dataset.turns.length === 0" class="mt-2 text-sm text-red-600">
+                        Please select at least one turn count
+                    </div>
+                </fieldset>
+            </div>
+            
+            <!-- Advanced Options (collapsed by default) -->
+            <div>
+                <div x-data="{ open: false }">
+                    <button 
+                        type="button" 
+                        class="flex items-center text-indigo-600 hover:text-indigo-900"
+                        @click="open = !open"
+                    >
+                        <svg 
+                            :class="{'rotate-90': open}" 
+                            class="h-5 w-5 mr-2 transform transition-transform duration-200" 
+                            viewBox="0 0 20 20" 
+                            fill="currentColor"
+                        >
+                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-sm font-medium">Advanced Distribution Options</span>
+                    </button>
+                    
+                    <div x-show="open" class="mt-4 space-y-6" x-transition>
+                        <!-- Agent Distribution -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-900 mb-2">Agent Distribution (optional)</h4>
+                            <p class="text-xs text-gray-500 mb-4">Specify the relative distribution of agent types (leave empty for uniform distribution)</p>
+                            
+                            <div class="space-y-4">
+                                <template x-for="(agent, index) in ['BillingAgent', 'PolicyAgent', 'ClaimsAgent', 'EscalationAgent', 'ChattyAgent']" :key="index">
+                                    <div class="grid grid-cols-6 gap-4 items-center">
+                                        <div class="col-span-3 sm:col-span-2">
+                                            <label :for="`agent-${index}`" class="block text-sm font-medium text-gray-700" x-text="agent"></label>
+                                        </div>
+                                        <div class="col-span-3 sm:col-span-2">
+                                            <input 
+                                                :id="`agent-${index}`" 
+                                                type="number" 
+                                                min="0" 
+                                                max="1" 
+                                                step="0.1" 
+                                                x-model.number="agentDistribution[agent]" 
+                                                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                                placeholder="0.2"
+                                            >
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Special Case Distribution -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-900 mb-2">Special Case Distribution (optional)</h4>
+                            <p class="text-xs text-gray-500 mb-4">Specify the relative distribution of special cases (leave empty for default distribution)</p>
+                            
+                            <div class="space-y-4">
+                                <template x-for="(specialCase, index) in ['edge_case', 'cross_domain', 'language_switch', 'short_query', 'complex_query', 'small_talk', 'angry_customer', 'technical_error']" :key="index">
+                                    <div class="grid grid-cols-6 gap-4 items-center">
+                                        <div class="col-span-3 sm:col-span-2">
+                                            <label :for="`special-case-${index}`" class="block text-sm font-medium text-gray-700" x-text="formatSpecialCase(specialCase)"></label>
+                                        </div>
+                                        <div class="col-span-3 sm:col-span-2">
+                                            <input 
+                                                :id="`special-case-${index}`" 
+                                                type="number" 
+                                                min="0" 
+                                                max="1" 
+                                                step="0.1" 
+                                                x-model.number="specialCaseDistribution[specialCase]" 
+                                                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                                placeholder="0.1"
+                                            >
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-3 pt-5 border-t border-gray-200">
+                <a 
+                    href="/" 
+                    class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                    Cancel
+                </a>
+                <button 
+                    type="submit" 
+                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    :disabled="creating || dataset.temperatures.length === 0 || dataset.turns.length === 0"
+                >
+                    <span x-show="!creating">Create Dataset</span>
+                    <span x-show="creating" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creating...
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Notification Toast -->
+    <div 
+        x-show="notification.show" 
+        x-transition:enter="transform ease-out duration-300 transition"
+        x-transition:enter-start="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+        x-transition:enter-end="translate-y-0 opacity-100 sm:translate-x-0"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed bottom-0 right-0 mb-4 mr-4 flex max-w-sm w-full shadow-lg rounded-lg overflow-hidden pointer-events-auto z-50"
+        :class="notification.type === 'success' ? 'bg-green-50' : 'bg-red-50'"
+    >
+        <div class="p-4 flex-1">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg x-show="notification.type === 'success'" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <svg x-show="notification.type === 'error'" class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="ml-3 w-0 flex-1">
+                    <p 
+                        class="text-sm font-medium"
+                        :class="notification.type === 'success' ? 'text-green-800' : 'text-red-800'"
+                        x-text="notification.title"
+                    ></p>
+                    <p 
+                        class="mt-1 text-sm"
+                        :class="notification.type === 'success' ? 'text-green-700' : 'text-red-700'"
+                        x-text="notification.message"
+                    ></p>
+                </div>
+                <div class="ml-4 flex-shrink-0 flex">
+                    <button
+                        class="inline-flex text-gray-400 focus:outline-none focus:text-gray-500 transition ease-in-out duration-150"
+                        @click="notification.show = false"
+                    >
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function createDataset() {
+        return {
+            // Main dataset object
+            dataset: {
+                name: '',
+                description: '',
+                total_target: 100,
+                model: 'openai/gpt-4o-mini',
+                temperatures: [0.7, 0.8, 0.9],
+                turns: [1, 3, 5]
+            },
+            
+            // Distribution objects
+            agentDistribution: {
+                BillingAgent: null,
+                PolicyAgent: null,
+                ClaimsAgent: null,
+                EscalationAgent: null,
+                ChattyAgent: null
+            },
+            
+            specialCaseDistribution: {
+                edge_case: null,
+                cross_domain: null,
+                language_switch: null,
+                short_query: null,
+                complex_query: null,
+                small_talk: null,
+                angry_customer: null,
+                technical_error: null
+            },
+            
+            // State variables
+            creating: false,
+            
+            // Notification
+            notification: {
+                show: false,
+                type: 'success',
+                title: '',
+                message: '',
+                timeout: null
+            },
+            
+            // Methods
+            formatSpecialCase(specialCase) {
+                if (!specialCase) return '';
+                
+                return specialCase
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+            },
+            
+            createDataset() {
+                if (this.creating) return;
+                
+                // Basic validation
+                if (!this.dataset.name.trim()) {
+                    this.showNotification('error', 'Validation Error', 'Please enter a dataset name.');
+                    return;
+                }
+                
+                if (!this.dataset.model.trim()) {
+                    this.showNotification('error', 'Validation Error', 'Please select or enter a model name.');
+                    return;
+                }
+                
+                // Validate model format
+                if (!this.dataset.model.includes('/')) {
+                    this.showNotification('error', 'Validation Error', 'Model must be in provider/model-name format (e.g., "openai/gpt-4o").');
+                    return;
+                }
+                
+                if (this.dataset.temperatures.length === 0) {
+                    this.showNotification('error', 'Validation Error', 'Please select at least one temperature value.');
+                    return;
+                }
+                
+                if (this.dataset.turns.length === 0) {
+                    this.showNotification('error', 'Validation Error', 'Please select at least one turn count value.');
+                    return;
+                }
+                
+                // Prepare payload
+                const payload = { ...this.dataset };
+                
+                // Add agent distribution if any values are set
+                const agents = Object.entries(this.agentDistribution).filter(([_, value]) => value !== null && value !== '');
+                if (agents.length > 0) {
+                    payload.agent_distribution = Object.fromEntries(agents);
+                }
+                
+                // Add special case distribution if any values are set
+                const specialCases = Object.entries(this.specialCaseDistribution).filter(([_, value]) => value !== null && value !== '');
+                if (specialCases.length > 0) {
+                    payload.special_case_distribution = Object.fromEntries(specialCases);
+                }
+                
+                this.creating = true;
+                
+                // Send API request
+                fetch('/api/datasets', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    this.showNotification('success', 'Success', `Dataset "${this.dataset.name}" creation started.`);
+                    
+                    // Redirect to datasets list after a delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                })
+                .catch(error => {
+                    console.error('Error creating dataset:', error);
+                    this.showNotification('error', 'Error', 'Failed to create dataset. Please try again later.');
+                    this.creating = false;
+                });
+            },
+            
+            showNotification(type, title, message) {
+                // Clear any existing timeout
+                if (this.notification.timeout) {
+                    clearTimeout(this.notification.timeout);
+                }
+                
+                // Set notification data
+                this.notification.type = type;
+                this.notification.title = title;
+                this.notification.message = message;
+                this.notification.show = true;
+                
+                // Auto-hide after 5 seconds
+                this.notification.timeout = setTimeout(() => {
+                    this.notification.show = false;
+                }, 5000);
+            }
+        };
+    }
+</script>
+{% endblock %}
