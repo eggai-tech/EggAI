@@ -28,6 +28,8 @@ jobs:
       packages: write
     needs: python-lint
     steps:
+      - uses: actions/checkout@v4
+
       - name: Start services with Docker Compose
         uses: hoverkraft-tech/compose-action@v2.2.0
         with:
@@ -52,6 +54,7 @@ jobs:
       - name: Dump logs on failure
         if: failure()
         run: docker compose logs
+
 
   docker-build:
     runs-on: ubuntu-latest
