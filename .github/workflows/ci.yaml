@@ -46,6 +46,11 @@ jobs:
             done
           '
 
+      - uses: actions/setup-python@v5.6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
       - name: Set up test environment
         working-directory: examples/multi_agent_human_chat
         run: |
