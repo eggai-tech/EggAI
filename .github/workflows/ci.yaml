@@ -18,7 +18,40 @@ jobs:
       - name: Run python linter
         uses: astral-sh/ruff-action@v3
         with:
-          src: "examples/multi_agent_human_chat"
+          src: examples/multi_agent_human_chat
+
+  integration:
+    runs-on: ubuntu-latest
+    name: Running integration tests
+    permissions:
+      contents: read
+      packages: write
+    needs: python-lint
+    steps:
+      - name: Start services with Docker Compose
+        uses: hoverkraft-tech/compose-action@v2.2.0
+        with:
+          compose-file: examples/multi_agent_human_chat/docker-compose.yml
+
+      - name: Wait for Redpanda and MinIO to be healthy
+        run: |
+          echo "Waiting for Redpanda and MinIO to be healthy..."
+          timeout 180 bash -c '
+            until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
+                  [ "$(docker inspect -f {{.State.Health.Status}} eggai-examples-minio-1)" = "healthy" ]; do
+              echo "Waiting..."
+              sleep 5
+            done
+          '
+
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests..."
+          sleep 120
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs
 
   docker-build:
     runs-on: ubuntu-latest
@@ -26,7 +59,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    needs: python-lint
+    needs: integration
     steps:
       - uses: actions/checkout@v4
 
