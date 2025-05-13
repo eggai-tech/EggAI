@@ -213,7 +213,6 @@ def traced_handler(span_name: str = None):
     def decorator(handler_func: Callable[[Dict], Awaitable[None]]):
         @functools.wraps(handler_func)
         async def wrapper(*args, **kwargs):
-            from libraries.logger import get_console_logger
             from libraries.tracing.schemas import TracedMessage
 
             splitted = handler_func.__module__.split('.')
