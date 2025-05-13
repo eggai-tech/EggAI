@@ -22,7 +22,7 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
-    name: Running integration tests
+    name: Run integration tests
     permissions:
       contents: read
       packages: write
@@ -45,6 +45,11 @@ jobs:
               sleep 5
             done
           '
+
+      - name: Set up test environment
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          make setup
 
       - name: Run integration tests
         working-directory: examples/multi_agent_human_chat
