@@ -21,7 +21,7 @@ jobs:
           src: examples/multi_agent_human_chat
 
   integration:
-    runs-on: ubuntu-latest
+    runs-on: gpu-runner-github-hosted
     name: Run integration tests
     permissions:
       contents: read
