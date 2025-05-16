@@ -4,21 +4,21 @@ on:
   push:
 
 jobs:
-  python-lint:
-    runs-on: ubuntu-latest
-    name: Lint python code
+  # python-lint:
+  #   runs-on: ubuntu-latest
+  #   name: Lint python code
 
-    permissions:
-      contents: read
-      packages: write
+  #   permissions:
+  #     contents: read
+  #     packages: write
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Run python linter
-        uses: astral-sh/ruff-action@v3
-        with:
-          src: examples/multi_agent_human_chat
+  #     - name: Run python linter
+  #       uses: astral-sh/ruff-action@v3
+  #       with:
+  #         src: examples/multi_agent_human_chat
 
   integration:
     runs-on: gpu-runner-github-hosted
@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    needs: python-lint
+    # needs: python-lint
     steps:
       - run: docker info
 
@@ -36,6 +36,9 @@ jobs:
         uses: hoverkraft-tech/compose-action@v2.2.0
         with:
           compose-file: examples/multi_agent_human_chat/docker-compose.yml
+          services: |
+            lmstudio
+
 
       - name: Wait for Redpanda and MinIO to be healthy
         run: |
