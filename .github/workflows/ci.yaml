@@ -28,9 +28,9 @@ jobs:
       packages: write
     # needs: python-lint
     env:
-      CLAIMS_LANGUAGE_MODEL_API_BASE: http://lmstudio:1234/v1/
+      CLAIMS_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
       CLAIMS_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
-      LM_STUDIO_API_BASE: http://lmstudio:1234/v1/
+      LM_STUDIO_API_BASE: http://localhost:1234/v1/
       LM_STUDIO_API_KEY: lm-studio
     steps:
       - run: docker info
