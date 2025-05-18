@@ -28,9 +28,9 @@ jobs:
       packages: write
     # needs: python-lint
     env:
-      CLAIMS_LANGUAGE_MODEL_API_BASE: http://lmstudio:1234/v1/
+      CLAIMS_LANGUAGE_MODEL_API_BASE: http://eggai-examples-lmstudio-1:1234/v1/
       CLAIMS_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
-      LM_STUDIO_API_BASE: http://lmstudio:1234/v1/
+      LM_STUDIO_API_BASE: http://eggai-examples-lmstudio-1:1234/v1/
       LM_STUDIO_API_KEY: lm-studio
     steps:
       - run: docker info
@@ -44,7 +44,8 @@ jobs:
 
       - run: |
           docker ps -q | xargs -n1 docker inspect --format '{{.Name}} {{.HostConfig.Runtime}}'
-          curl -v http://lmstudio:1234/v1/models
+          curl -v 
+          http://eggai-examples-lmstudio-1:1234/v1/models
 
 
       - name: Wait for Redpanda and MinIO to be healthy
