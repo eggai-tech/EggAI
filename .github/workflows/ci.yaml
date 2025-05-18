@@ -42,7 +42,10 @@ jobs:
         with:
           compose-file: examples/multi_agent_human_chat/docker-compose.yml
 
-      - run: docker ps -q | xargs -n1 docker inspect --format '{{.Name}} {{.HostConfig.Runtime}}'
+      - run: |
+          docker ps -q | xargs -n1 docker inspect --format '{{.Name}} {{.HostConfig.Runtime}}'
+          curl -v http://lmstudio:1234/v1/models
+
 
       - name: Wait for Redpanda and MinIO to be healthy
         run: |
