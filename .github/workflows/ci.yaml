@@ -44,17 +44,18 @@ jobs:
           services: |
             lmstudio
 
+      - run: docker ps -q | xargs -n1 docker inspect --format '{{.Name}} {{.HostConfig.Runtime}}'
 
-      - name: Wait for Redpanda and MinIO to be healthy
-        run: |
-          echo "Waiting for Redpanda and MinIO to be healthy..."
-          timeout 180 bash -c '
-            until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
-                  [ "$(docker inspect -f {{.State.Health.Status}} eggai-examples-minio-1)" = "healthy" ]; do
-              echo "Waiting..."
-              sleep 5
-            done
-          '
+      # - name: Wait for Redpanda and MinIO to be healthy
+      #   run: |
+      #     echo "Waiting for Redpanda and MinIO to be healthy..."
+      #     timeout 180 bash -c '
+      #       until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
+      #             [ "$(docker inspect -f {{.State.Health.Status}} eggai-examples-minio-1)" = "healthy" ]; do
+      #         echo "Waiting..."
+      #         sleep 5
+      #       done
+      #     '
 
       - uses: actions/setup-python@v5
         with:
