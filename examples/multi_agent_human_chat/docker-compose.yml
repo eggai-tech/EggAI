@@ -217,8 +217,9 @@ services:
       - eggai-example-network
   lmstudio:
     runtime: nvidia
-    image: vorobiev/lmstudio:4
+    image: vorobiev/lmstudio:8
     environment:
+      MODEL_NAME: gemma-3-4b-it-qat
       MODEL_PATH: /gemma-3-4B-it-QAT-Q4_0.gguf
       CONTEXT_LENGTH: 32768
     ports:

@@ -97,7 +97,13 @@ jobs:
       - name: Run integration tests
         working-directory: examples/multi_agent_human_chat
         run: |
-          make test
+          make test-billing-agent
+          make test-claims-agent
+          make test-escalation-agent
+          make test-frontend-agent
+          make test-policies-agent
+          make test-triage-agent
+          make test-audit-agent
 
       - name: Dump logs on failure
         if: failure()
