@@ -28,10 +28,43 @@ jobs:
       packages: write
     needs: python-lint
     env:
+      # Triage agent settings
+      TRIAGE_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      TRIAGE_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      TRIAGE_CLASSIFIER_VERSION: v4
+      TRIAGE_CLASSIFIER_V3_MODEL_NAME: fewshot_classifier_n_all
+      TRIAGE_CLASSIFIER_V3_MODEL_VERSION: 1
+      TRIAGE_COPRO_DATASET_SIZE: 30
+      TRIAGE_COPRO_BREADTH: 5
+      TRIAGE_COPRO_DEPTH: 2
+      TRIAGE_TEST_DATASET_SIZE: 50
+
+      # Policies agent settings
+      POLICIES_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      POLICIES_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+
+      # Claims agent settings
       CLAIMS_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
       CLAIMS_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+
+      # Billing agent settings
+      BILLING_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      BILLING_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+
+      # Escalation agent settings
+      ESCALATION_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      ESCALATION_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+
+      # Shared settings
       LM_STUDIO_API_BASE: http://localhost:1234/v1/
       LM_STUDIO_API_KEY: lm-studio
+
+      # MLFlow settings
+      AWS_ACCESS_KEY_ID: user
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.MINIO_PASSWORD }}
+      MLFLOW_TRACKING_URI: http://localhost:5001
+      MLFLOW_S3_ENDPOINT_URL: http://localhost:9000
+
     steps:
       - uses: actions/checkout@v4
 
