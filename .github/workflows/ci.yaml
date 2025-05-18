@@ -41,8 +41,6 @@ jobs:
         uses: hoverkraft-tech/compose-action@v2.2.0
         with:
           compose-file: examples/multi_agent_human_chat/docker-compose.yml
-          services: |
-            lmstudio
 
       - run: docker ps -q | xargs -n1 docker inspect --format '{{.Name}} {{.HostConfig.Runtime}}'
 
