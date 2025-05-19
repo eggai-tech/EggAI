@@ -10,7 +10,7 @@ import mlflow
 import numpy as np
 import pytest
 
-from agents.triage.baseline_model.classifier_v3 import classifier_v3
+from agents.triage.baseline_model.classifier_v3 import classifier_v3, settings
 from agents.triage.data_sets.loader import load_dataset_triage_testing
 from libraries.logger import get_console_logger
 
@@ -24,10 +24,16 @@ async def test_classifier_v3():
     load_dotenv()
 
     mlflow.set_experiment("triage_classifier")
-    with mlflow.start_run(
-        run_name="test_classifier_v3_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    ):
-        mlflow.log_param("model_name", "classifier_v3")
+
+    classifier_version = "classifier_v3"
+    model = f"{settings.classifier_v3_model_name}_{settings.classifier_v3_model_version}"
+    model_name = f"{classifier_version}_{model}"
+    run_name = f"test_{model_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+
+    with mlflow.start_run(run_name=run_name):
+        mlflow.log_param("model_name", model_name)
+        mlflow.log_param("classifier_version", classifier_version)
+        mlflow.log_param("language_model", model)
 
         random.seed(42)
         test_dataset = random.sample(load_dataset_triage_testing(), 1000)
