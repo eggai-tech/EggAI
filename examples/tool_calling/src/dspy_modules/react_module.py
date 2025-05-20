@@ -39,9 +39,8 @@ react_module = dspy.ReAct(
 )
 
 if __name__ == "__main__":
-    # Example using both tools together
     res = react_module(
-        question="Give me the year of construction of the Eiffel Tower summed with the year of construction of the Empire State Building."
+        question="what's the result of 12345 multiplied by 54321?"
     )
     print(res.answer)
     print(f"Numeric answer: {res.numeric_answer}")
