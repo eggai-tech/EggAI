@@ -39,8 +39,9 @@ react_module = dspy.ReAct(
 )
 
 if __name__ == "__main__":
-    res = react_module(
+    prediction = react_module(
         question="what's the result of 12345 multiplied by 54321?"
     )
-    print(res.answer)
-    print(f"Numeric answer: {res.numeric_answer}")
+    print(f"Answer: {prediction.answer}")
+    print(f"Reasoning: {prediction.reasoning}")
+    print(f"Numeric answer: {prediction.numeric_answer}")
