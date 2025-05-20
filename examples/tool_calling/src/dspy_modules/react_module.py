@@ -24,7 +24,7 @@ react_module = dspy.ReAct(
 
 if __name__ == "__main__":
     prediction = react_module(
-        question="what's the result of 12345 multiplied by 54321?"
+        question="An ICE train of Deutsche Bahn travels from Cologne to Berlin at a speed of 200 km/h. A second ICE departs one hour later on the same route, but at a speed of 250 km/h. When will the second train catch up with the first train?"
     )
     print(f"Answer: {prediction.answer}")
     print(f"Reasoning: {prediction.reasoning}")
