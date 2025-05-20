@@ -15,12 +15,7 @@ def execute_python_code(code: str) -> float:
     """
     Evaluates a python code and returns the result.
     """
-    try:
-        result = dspy.PythonInterpreter({}, import_white_list=["sympy"]).execute(code)
-    except Exception as e:
-        print(f"Error evaluating code: {e}")
-        return None
-    return result
+    return dspy.PythonInterpreter({}, import_white_list=["sympy"]).execute(code)
 
 
 react_module = dspy.ReAct(
