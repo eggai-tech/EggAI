@@ -43,3 +43,9 @@ clean:
 	@echo "Cleaning up the environment..."
 	@rm -rf $(VENV_DIR)
 	@echo "Environment cleaned."
+
+.PHONY: run-react-module
+run-react-module:
+	@echo "Running React module..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python src/dspy_modules/react_module.py
+	@echo "React module execution completed."
