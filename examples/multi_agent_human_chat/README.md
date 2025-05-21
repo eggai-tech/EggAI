@@ -322,7 +322,7 @@ Here are two plots showing the t-SNE projection of the message embeddings and th
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/train_tsne.png" width="600"/>
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/test_tsne.png" width="600"/>
 
-#### Model Architecture, Training and Evaluation
+#### Baseline Model Architecture, Training and Evaluation
 
 Specifically, our custom model is a simple few-shot logistic regression model trained on the message embeddings. The embeddings
 were computed using the `sentence-transformers/all-MiniLM-L6-v2` model. See [Sentence Transformers](https://www.sbert.net/) for more details.
@@ -356,6 +356,37 @@ Ideally run this command several times with different `FEWSHOT_N_EXAMPLES` value
 Here's a screenshot from the MLFlow UI comparing 3 models trained with `n=10`, `n=100` and `n=all` examples per class:
 
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-custom-classifier-training.png" width="1600"/>
+
+### Attention-based Classifier Training and Evaluation
+The attention-based classifier is a more complex version of the triage message classifier developed to tackle
+the "intent change" use-case that the baseline model struggles with. The problem with the baseline model is that
+the input embedding is compute on the whole chat history, which means that if the chat is dominated by a single topic,
+e.g. "billing", the model will classify the whole chat as "billing" even if the user is asking about a different topic
+in the las message. 
+To tackle this problem we compute the embeddings for each message in the chat history and then use an attention 
+pooling layer to combine the embeddings into a single embedding. 
+The attention pooling layer should be able to figure out which messages are important for the final classification
+and should be able to easily tackle the "intent change" use-case.
+Additionally, we gain an extra benefit of being able to use the attention weights to explain the model's predictions.
+
+In order to train the attention-based classifier with the default parameters, run the following:
+
+1. Create the `.env` file containing the following variables:
+
+```
+AWS_ACCESS_KEY_ID=user
+AWS_SECRET_ACCESS_KEY=password
+MLFLOW_TRACKING_URI=http://localhost:5001
+MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
+```
+
+2. Run the training script:
+
+```bash
+make train-triage-classifier-v5
+```
+
+and watch the training process in the MLFlow UI at [http://localhost:5001](http://localhost:5001).
 
 ### Cleaning Up
 
