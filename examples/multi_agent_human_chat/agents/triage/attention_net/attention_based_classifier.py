@@ -201,29 +201,30 @@ class AttentionBasedClassifierWrapper(nn.Module):
         # pass the embeddings through the attention network
         return self.attention_net(x, return_attention_weights)
 
-    def predict_probab(self, chat_history: list[str], return_attention_weights: bool = False) -> Any:
+    def predict_probab(self, chat_history: list[str], return_logits: bool = False) -> Any:
         """
         Predict the class probabilities for the given chat history.
 
         Args:
             chat_history: List of chat messages. Each message is a string.
-            return_attention_weights: If True, return the attention weights and attention pooled representation.
+            return_logits: If True, return logits, the attention weights and attention pooled representation.
 
         Returns:
             Class probabilities tensor of shape (1, n_classes)
-            If return_attention_weights is True, returns a tuple of:
+            If return_logits is True, returns a tuple of:
                 probs (1, n_classes),
+                logits (1, n_classes),
                 attention_weights (attention_heads x N),
                 attention_pooled_representation (attention_heads x hidden_dim)
         """
         with torch.no_grad():
-            outputs = self.forward(chat_history, return_attention_weights)
-            if return_attention_weights:
+            outputs = self.forward(chat_history, return_attention_weights=return_logits)
+            if return_logits:
                 logits, attention_weights, attention_pooled_representation = outputs
             else:
                 logits = outputs
             probs = nn.functional.softmax(logits, dim=1)
 
-        if return_attention_weights:
-            return probs, attention_weights, attention_pooled_representation
+        if return_logits:
+            return probs, logits, attention_weights, attention_pooled_representation
         return probs
