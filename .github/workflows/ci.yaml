@@ -116,6 +116,16 @@ jobs:
           name: pytest-results.xml
           path: examples/multi_agent_human_chat/reports/pytest-results.xml
 
+      - name: Summarize test results
+        if: always()
+        uses: pmeier/pytest-results-action@main
+        with:
+          path: examples/multi_agent_human_chat/reports/pytest-results.xml
+          summary: true
+          display-options: fEX
+          fail-on-empty: true
+          title: Test results
+
   docker-build:
     runs-on: ubuntu-latest
     name: Build and push docker image
