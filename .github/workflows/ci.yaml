@@ -109,6 +109,12 @@ jobs:
         if: failure()
         run: docker compose logs
 
+      - name: Archive test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: examples/multi_agent_human_chat/reports/pytest-results.xml
+
   docker-build:
     runs-on: ubuntu-latest
     name: Build and push docker image
