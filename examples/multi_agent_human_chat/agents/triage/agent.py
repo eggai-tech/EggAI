@@ -95,14 +95,12 @@ async def handle_user_message(msg: TracedMessage):
                             "chat_messages": triage_to_agent_messages,
                             "message_id": msg.id,
                             "connection_id": connection_id,
-                            "metrics": response.metrics,
                         },
                         traceparent=child_traceparent,
                         tracestate=child_tracestate,
                     )
                 )
         else:
-            # Use streaming implementation for chatty responses
             with tracer.start_as_current_span("chatty_stream_response") as stream_span:
                 child_traceparent, child_tracestate = format_span_as_traceparent(stream_span)
 
@@ -152,7 +150,6 @@ async def handle_user_message(msg: TracedMessage):
                                     "message_id": stream_message_id,
                                     "agent": "TriageAgent",
                                     "connection_id": connection_id,
-                                    "metrics": response.metrics,
                                     "message": chunk.response,
                                 },
                                 traceparent=child_traceparent,

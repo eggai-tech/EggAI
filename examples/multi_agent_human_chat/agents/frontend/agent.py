@@ -172,8 +172,8 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
 )
 async def handle_human_stream_messages(message: TracedMessage):
     message_type = message.type
-    message_id = message.data.get("message_id")
     agent = message.source
+    message_id = message.data.get("message_id")
     connection_id = message.data.get("connection_id")
 
     if message_type == "agent_message_stream_start":

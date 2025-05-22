@@ -54,36 +54,6 @@ class WebSocketManager:
             logger.warning(f"Connection {connection_id} not found, buffering message")
             self.message_buffers[connection_id].append(message_data)
 
-    async def start_stream_message(self, connection_id: str, agent: str, message_id: str):
-        """Initialize a new streaming message"""
-        from libraries.logger import get_console_logger
-        logger = get_console_logger("websocket_manager")
-        
-        logger.info(f"Starting stream message {message_id} for agent {agent}")
-        
-        # Clear any existing streaming message with the same ID
-        if message_id in self.streaming_messages:
-            logger.warning(f"Overwriting existing stream with ID {message_id}")
-        
-        self.streaming_messages[message_id] = []
-        
-    async def send_stream_chunk(self, connection_id: str, agent: str, message_id: str, chunk: str, chunk_index: int = 0):
-        await self.send_message_to_connection(connection_id, {
-            "streaming": True,
-            "message_id": message_id,
-            "chunk": chunk,
-            "chunk_index": chunk_index,
-            "sender": agent
-        })
-        
-    async def end_stream_message(self, connection_id: str, agent: str, message_id: str, final_content: str):
-        await self.send_message_to_connection(connection_id, {
-            "sender": agent,
-            "streaming": False,
-            "message_id": message_id,
-            "stream_end": True
-        })
-
     async def attach_message_id(self, message_id: str, connection_id: str):
         self.message_ids[message_id] = connection_id
 

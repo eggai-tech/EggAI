@@ -122,88 +122,96 @@
               }
               
               // Handle streaming messages
-              if (data.streaming === true) {
-                // This is a streaming message
+              if (data.type === "assistant_message_stream_start") {
+                // Start of a streaming message
                 const sender = data.sender || "TriageAgent";
-                const messageId = data.message_id;
+                const messageId = data.message_id || `stream-${Date.now()}`;
                 
-                if (data.chunk) {
-                  // This is a chunk message
-                  const chunkIndex = data.chunk_index || 0;
-                  const totalChunks = data.total_chunks || 0;
+                console.log("Starting new message stream from", sender);
+                
+                setStreamingMessages(prev => ({
+                  ...prev,
+                  [messageId]: { 
+                    sender, 
+                    text: "",
+                    messageId
+                  }
+                }));
+                
+                setLoading(true);
+              } else if (data.type === "assistant_message_stream_chunk") {
+                // Chunk of a streaming message
+                const sender = data.sender || "TriageAgent";
+                const chunk = data.content || "";
+                const chunkIndex = data.chunk_index || 0;
+                const messageId = data.message_id || Object.keys(streamingMessages)[0];
+                
+                console.log(`Received chunk ${chunkIndex}:`, chunk);
+                
+                // Update the same message each time by appending the chunk
+                setStreamingMessages(prev => {
+                  // Find the most recent message if messageId not provided
+                  const targetId = messageId || Object.keys(prev)[Object.keys(prev).length - 1];
+                  if (!targetId) return prev; // No message to update
                   
-                  console.log(`Received chunk ${chunkIndex}/${totalChunks}:`, data.chunk, "for message:", messageId);
+                  // Get existing message or create new one
+                  const currentMessage = prev[targetId] || { 
+                    sender, 
+                    text: "",
+                    messageId: targetId,
+                    chunkIndex: 0
+                  };
                   
-                  // Update the same message each time by appending the chunk
-                  setStreamingMessages(prev => {
-                    // Get existing message or create new one
-                    const currentMessage = prev[messageId] || { 
-                      sender, 
-                      text: "",
-                      messageId,
-                      chunkIndex: 0,
-                      totalChunks
-                    };
-                    
-                    // Create updated message with new chunk
-                    const updatedMessage = {
-                      ...currentMessage,
-                      sender, // Ensure sender is set
-                      text: currentMessage.text + data.chunk,
-                      chunkIndex: chunkIndex,
-                      totalChunks: totalChunks
-                    };
-                    
-                    // Return updated state with the same message ID
-                    return {
-                      ...prev,
-                      [messageId]: updatedMessage
-                    };
-                  });
+                  // Create updated message with new chunk
+                  const updatedMessage = {
+                    ...currentMessage,
+                    sender, // Ensure sender is set
+                    text: currentMessage.text + chunk,
+                    chunkIndex: chunkIndex
+                  };
                   
-                  // Keep loading indicator active while streaming
-                  setLoading(true);
-                } else if (data.stream_end) {
-                  // This is the end of a stream
-                  console.log("Stream end received for message:", messageId);
-                  
-                  // Get the accumulated content from streaming state
-                  setStreamingMessages(prev => {
-                    if (prev[messageId]) {
-                      // Move the complete message to regular messages
-                      const finalText = prev[messageId].text;
-                      console.log("Final content from stream:", finalText);
-                      
-                      // Add to regular messages
-                      setMessages(existing => [...existing, { 
-                        sender, 
-                        text: finalText,
-                        id: messageId  // Keep the same ID
-                      }]);
-                      
-                      // Remove from streaming
-                      const newState = { ...prev };
-                      delete newState[messageId];
-                      return newState;
-                    }
-                    return prev;
-                  });
-                  
-                  // Turn off loading indicator
-                  setLoading(false);
-                } else {
-                  // This is the start of a stream
-                  console.log("Starting new stream for message:", messageId);
-                  setStreamingMessages(prev => ({
+                  // Return updated state with the same message ID
+                  return {
                     ...prev,
-                    [messageId]: { 
-                      sender, 
-                      text: "",
-                      messageId  // Store message ID for reference
-                    }
-                  }));
-                }
-              } else {
+                    [targetId]: updatedMessage
+                  };
+                });
+                
+                // Keep loading indicator active while streaming
+                setLoading(true);
+              } else if (data.type === "assistant_message_stream_end") {
+                // End of a streaming message
+                const sender = data.sender || "TriageAgent";
+                const finalContent = data.content || "";
+                const messageId = data.message_id || Object.keys(streamingMessages)[0];
+                
+                console.log("Stream end received, final content:", finalContent);
+                
+                // Get the accumulated content from streaming state or use the final content
+                setStreamingMessages(prev => {
+                  const targetId = messageId || Object.keys(prev)[0];
+                  if (!targetId) return prev; // No message to update
+                  
+                  // Move the complete message to regular messages
+                  const streamText = prev[targetId]?.text || "";
+                  const finalText = finalContent || streamText;
+                  
+                  // Add to regular messages
+                  setMessages(existing => [...existing, { 
+                    sender, 
+                    text: finalText,
+                    id: targetId  // Keep the same ID
+                  }]);
+                  
+                  // Remove from streaming
+                  const newState = { ...prev };
+                  delete newState[targetId];
+                  return newState;
+                });
+                
+                // Turn off loading indicator
+                setLoading(false);
+              } else if (data.type === "assistant_message") {
                 // Regular non-streaming message
                 const sender = data.sender || "TriageAgent";
                 const content = data.content || "";

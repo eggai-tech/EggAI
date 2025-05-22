@@ -38,18 +38,16 @@ class ChattySignature(dspy.Signature):
         desc="A friendly response redirecting the user to ask about their insurance needs."
     )
 
-chatty_program = dspy.streamify(
-    dspy.Predict(ChattySignature),
-    stream_listeners=[
-        dspy.streaming.StreamListener(signature_field_name="response"),
-    ],
-    include_final_prediction_in_output_stream=True,
-    is_async_program=False,
-    async_streaming=True
-)
-
 def chatty(chat_history: str) -> AsyncIterable[Union[StreamResponse, Prediction]]:
-    return chatty_program(chat_history=chat_history)
+    return dspy.streamify(
+        dspy.Predict(ChattySignature),
+        stream_listeners=[
+            dspy.streaming.StreamListener(signature_field_name="response"),
+        ],
+        include_final_prediction_in_output_stream=True,
+        is_async_program=False,
+        async_streaming=True
+    )(chat_history=chat_history)
 
 if __name__ == "__main__":
     async def openlit_async_stream_bug():
