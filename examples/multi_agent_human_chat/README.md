@@ -357,6 +357,12 @@ Here's a screenshot from the MLFlow UI comparing 3 models trained with `n=10`, `
 
 <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-custom-classifier-training.png" width="1600"/>
 
+3. Test the baseline model:
+
+```bash
+make test-triage-classifier-v3
+```
+
 ### Attention-based Classifier Training and Evaluation
 The attention-based classifier is a more complex version of the triage message classifier developed to tackle
 the "intent change" use-case that the baseline model struggles with. The problem with the baseline model is that
@@ -387,6 +393,12 @@ make train-triage-classifier-v5
 ```
 
 and watch the training process in the MLFlow UI at [http://localhost:5001](http://localhost:5001).
+
+3. Test the attention-based model:
+
+```bash 
+make test-triage-classifier-v5
+```
 
 ### Cleaning Up
 

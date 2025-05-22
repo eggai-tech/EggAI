@@ -111,6 +111,12 @@ test-triage-classifier-v4:
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 
+test-triage-classifier-v5:
+	@echo "Running tests classifier v5 for triage agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v5.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
+
 test-triage-agent:
 	@echo "Running tests for triage agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_agent.py -s \
