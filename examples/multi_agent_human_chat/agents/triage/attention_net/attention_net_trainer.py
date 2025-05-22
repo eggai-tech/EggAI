@@ -180,7 +180,7 @@ def main() -> int:
         embedding_dim=settings.embedding_dim,
         hidden_dims=settings.hidden_dims,
         n_classes=settings.n_classes,
-        dropout=settings.dropout
+        dropout=settings.dropout_rate
     )
     # print the model
     logger.info(f"Attention-based model architecture: {model}")
@@ -234,7 +234,7 @@ def main() -> int:
         embedding_dim=settings.embedding_dim,
         hidden_dims=settings.hidden_dims,
         n_classes=settings.n_classes,
-        dropout=settings.dropout
+        dropout=settings.dropout_rate
     )
     best_model.load_state_dict(best_model_state)
     # save the model in the model registry
@@ -242,7 +242,10 @@ def main() -> int:
     mlflow.pytorch.log_model(
         pytorch_model=best_model,
         artifact_path="model",
-        registered_model_name=cfg.model.name,
+        registered_model_name=settings.model_name_template.format(
+            dropout_rate=settings.dropout_rate,
+            learning_rate=settings.learning_rate
+        ),
     )
     return 0
 
