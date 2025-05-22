@@ -33,7 +33,6 @@ class AttentionNetSettings(BaseSettings):
     )
 
     # Training configuration
-    device: str = Field(default="")
     max_num_epochs: int = Field(default=250)
     # number of warmup epochs for the learning rate scheduler
     num_warmup_steps: int = Field(default=5)

@@ -19,11 +19,8 @@ nn_settings = AttentionNetSettings()
 checkpoint_path = find_model(settings.classifier_v5_model_name, version=settings.classifier_v5_model_version)
 attention_net = torch.load(checkpoint_path, weights_only=False)
 attention_net.eval()
-device = settings.classifier_v5_device
-if not device:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
 # create wrapper
-model = AttentionBasedClassifierWrapper(attention_net, device=device)
+model = AttentionBasedClassifierWrapper(attention_net)
 
 
 @dataclass

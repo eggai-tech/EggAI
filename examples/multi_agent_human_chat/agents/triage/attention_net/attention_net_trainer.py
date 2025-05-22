@@ -14,6 +14,7 @@ from agents.triage.attention_net.attention_based_classifier import AttentionBase
     AttentionBasedClassifierWrapper
 from agents.triage.attention_net.config import settings
 from agents.triage.baseline_model.utils import init_mlflow, load_dataset, unroll_dataset, setup_logging
+from libraries.device_utils import get_device
 
 logger = logging.getLogger("attention_net_trainer")
 
@@ -33,8 +34,7 @@ class Trainer:
             patience: int,
             checkpoint_dir: str,
             train_dataset: dict[str, int],
-            val_dataset: dict[str, int],
-            device: str
+            val_dataset: dict[str, int]
     ):
         self.optimizer = optimizer
         self.loss = loss
@@ -44,12 +44,11 @@ class Trainer:
         self.checkpoint_dir = Path(checkpoint_dir)
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
-        self.device = device
         self.num_iterations = 0
         self.current_patience = 0
         self.best_loss = float("inf")
         # create model wrapper
-        self.model_wrapper = AttentionBasedClassifierWrapper(attention_net=model, device=device)
+        self.model_wrapper = AttentionBasedClassifierWrapper(attention_net=model)
         # create random state for shuffling
         self.rs = np.random.RandomState(47)
 
@@ -69,7 +68,7 @@ class Trainer:
             chat_history = chat.split("\n")
             label = self.train_dataset[chat]
             # convert label to tensor
-            target = torch.LongTensor([label]).to(self.device)
+            target = torch.LongTensor([label]).to(get_device())
 
             # Forward pass
             output = self.model_wrapper(chat_history)
@@ -141,7 +140,7 @@ class Trainer:
                 chat_history = chat.split("\n")
                 label = self.val_dataset[chat]
                 # convert label to tensor
-                target = torch.LongTensor([label]).to(self.device)
+                target = torch.LongTensor([label]).to(get_device())
 
                 # Forward pass
                 probs, logits, _, _ = self.model_wrapper.predict_probab(chat_history, return_logits=True)
@@ -174,10 +173,7 @@ def main() -> int:
     # unroll train dataset
     train_dataset = unroll_dataset(train_dataset)
 
-    device = settings.device
-    if not device:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-    logger.info(f"Using device: {device}")
+    logger.info(f"Using device: {get_device()}")
     # create attention based classifier
     model = AttentionBasedClassifier(
         embedding_dim=settings.embedding_dim,
@@ -191,7 +187,7 @@ def main() -> int:
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     logger.info(f"Number of trainable parameters in the model: {num_params}")
 
-    model = model.to(device)
+    model = model.to(get_device())
     # create optimizer
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -221,7 +217,6 @@ def main() -> int:
         checkpoint_dir=settings.checkpoint_dir,
         train_dataset=train_dataset,
         val_dataset=test_dataset,
-        device=device,
     )
 
     logger.info("Starting training...")
@@ -241,7 +236,7 @@ def main() -> int:
     )
     best_model.load_state_dict(best_model_state)
     # save the model in the model registry
-    logger.info(f"Saving model to MLflow model registry")
+    logger.info("Saving model to MLflow model registry")
     mlflow.pytorch.log_model(
         pytorch_model=best_model,
         artifact_path="model",

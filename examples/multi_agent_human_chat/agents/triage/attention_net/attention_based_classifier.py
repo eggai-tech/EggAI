@@ -4,6 +4,8 @@ import torch
 from sentence_transformers import SentenceTransformer
 from torch import nn
 
+from libraries.device_utils import get_device
+
 
 class GatedAttentionPooling(nn.Module):
     """
@@ -162,19 +164,16 @@ class AttentionBasedClassifierWrapper(nn.Module):
     Args:
         attention_net: AttentionBasedClassifier model.
         st_model_name: Name of the SentenceTransformer model to use.
-        device: Device to use for the SentenceTransformer model. If None, it will use "cuda" if available, else "cpu".
 
     """
 
     def __init__(
             self,
             attention_net: AttentionBasedClassifier,
-            st_model_name: str = "all-MiniLM-L12-v2",
-            device: Optional[str] = None
+            st_model_name: str = "all-MiniLM-L12-v2"
     ):
         super(AttentionBasedClassifierWrapper, self).__init__()
-        if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = get_device()
         self.attention_net = attention_net.to(device)
         self.sentence_transformer = SentenceTransformer(st_model_name, device=device)
         # freeze the SentenceTransformer model, so that it does not get updated during training
