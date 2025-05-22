@@ -173,9 +173,9 @@ class AttentionBasedClassifierWrapper(nn.Module):
             device: Optional[str] = None
     ):
         super(AttentionBasedClassifierWrapper, self).__init__()
-        self.attention_net = attention_net
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.attention_net = attention_net.to(device)
         self.sentence_transformer = SentenceTransformer(st_model_name, device=device)
         # freeze the SentenceTransformer model, so that it does not get updated during training
         for param in self.sentence_transformer.parameters():
