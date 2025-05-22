@@ -1,13 +1,19 @@
+from typing import Callable, Any, AsyncGenerator, AsyncIterable, Union
+
 import dspy
 from dotenv import load_dotenv
+from dspy import Prediction
+from dspy.streaming import StreamResponse
 
 from agents.triage.config import Settings
 from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.tracing import init_telemetry
 
 settings = Settings()
 
 load_dotenv()
 lm = dspy_set_language_model(settings)
+
 
 class ChattySignature(dspy.Signature):
     """
@@ -32,8 +38,48 @@ class ChattySignature(dspy.Signature):
         desc="A friendly response redirecting the user to ask about their insurance needs."
     )
 
-chatty = dspy.ChainOfThought(ChattySignature)
+chatty_program = dspy.streamify(
+    dspy.Predict(ChattySignature),
+    stream_listeners=[
+        dspy.streaming.StreamListener(signature_field_name="response"),
+    ],
+    include_final_prediction_in_output_stream=True,
+    is_async_program=False,
+    async_streaming=True
+)
+
+def chatty(chat_history: str) -> AsyncIterable[Union[StreamResponse, Prediction]]:
+    return chatty_program(chat_history=chat_history)
 
 if __name__ == "__main__":
-    response = chatty(chat_history="User: Hello.")
-    print(response.response)
+    async def openlit_async_stream_bug():
+        init_telemetry(app_name=settings.app_name)
+        import litellm
+
+        chunks = await litellm.acompletion(
+            model="openai/gpt-4o",
+            messages=[{"content": "Hello, what is the meaning of life. Tell me.", "role": "user"}],
+            stream=True,
+        )
+
+        async for chunk in chunks:
+            content = chunk.choices[0].delta.content
+            if content:
+                print(content, end='')
+            else:
+                print("")
+                print(chunk)
+
+    async def run():
+        output = chatty(chat_history="User: Hello.")
+        async for msg in output:
+            if isinstance(msg, StreamResponse):
+                print(msg.chunk, end='')
+            if isinstance(msg, Prediction):
+                print("")
+                print("")
+                print(msg.get_lm_usage())
+
+
+    import asyncio
+    asyncio.run(run())

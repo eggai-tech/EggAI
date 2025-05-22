@@ -79,12 +79,13 @@
         const [inputValue, setInputValue] = useState("");
         const [connectionId, setConnectionId] = useState(null);
         const [loading, setLoading] = useState(false);
+        const [streamingMessages, setStreamingMessages] = useState({});
         const wsRef = useRef(null);
         const messagesEndRef = useRef(null);
 
         useEffect(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, [messages]);
+        }, [messages, streamingMessages]);
 
         useEffect(() => {
           const stored = localStorage.getItem("darkMode") === "enabled";
@@ -105,6 +106,8 @@
           socket.onmessage = (event) => {
             try {
               const data = JSON.parse(event.data);
+              
+              // Handle connection establishment
               if (!connectionId && data.connection_id) {
                 setConnectionId(data.connection_id);
                 localStorage.setItem("connection_id", data.connection_id);
@@ -117,10 +120,98 @@
                 ]);
                 return;
               }
-              const sender = data.sender || "TriageAgent";
-              const content = data.content || "";
-              setMessages((prev) => [...prev, { sender, text: content }]);
-            } catch {
+              
+              // Handle streaming messages
+              if (data.streaming === true) {
+                // This is a streaming message
+                const sender = data.sender || "TriageAgent";
+                const messageId = data.message_id;
+                
+                if (data.chunk) {
+                  // This is a chunk message
+                  const chunkIndex = data.chunk_index || 0;
+                  const totalChunks = data.total_chunks || 0;
+                  
+                  console.log(`Received chunk ${chunkIndex}/${totalChunks}:`, data.chunk, "for message:", messageId);
+                  
+                  // Update the same message each time by appending the chunk
+                  setStreamingMessages(prev => {
+                    // Get existing message or create new one
+                    const currentMessage = prev[messageId] || { 
+                      sender, 
+                      text: "",
+                      messageId,
+                      chunkIndex: 0,
+                      totalChunks
+                    };
+                    
+                    // Create updated message with new chunk
+                    const updatedMessage = {
+                      ...currentMessage,
+                      sender, // Ensure sender is set
+                      text: currentMessage.text + data.chunk,
+                      chunkIndex: chunkIndex,
+                      totalChunks: totalChunks
+                    };
+                    
+                    // Return updated state with the same message ID
+                    return {
+                      ...prev,
+                      [messageId]: updatedMessage
+                    };
+                  });
+                  
+                  // Keep loading indicator active while streaming
+                  setLoading(true);
+                } else if (data.stream_end) {
+                  // This is the end of a stream
+                  console.log("Stream end received for message:", messageId);
+                  
+                  // Get the accumulated content from streaming state
+                  setStreamingMessages(prev => {
+                    if (prev[messageId]) {
+                      // Move the complete message to regular messages
+                      const finalText = prev[messageId].text;
+                      console.log("Final content from stream:", finalText);
+                      
+                      // Add to regular messages
+                      setMessages(existing => [...existing, { 
+                        sender, 
+                        text: finalText,
+                        id: messageId  // Keep the same ID
+                      }]);
+                      
+                      // Remove from streaming
+                      const newState = { ...prev };
+                      delete newState[messageId];
+                      return newState;
+                    }
+                    return prev;
+                  });
+                  
+                  // Turn off loading indicator
+                  setLoading(false);
+                } else {
+                  // This is the start of a stream
+                  console.log("Starting new stream for message:", messageId);
+                  setStreamingMessages(prev => ({
+                    ...prev,
+                    [messageId]: { 
+                      sender, 
+                      text: "",
+                      messageId  // Store message ID for reference
+                    }
+                  }));
+                }
+              } else {
+                // Regular non-streaming message
+                const sender = data.sender || "TriageAgent";
+                const content = data.content || "";
+                setMessages((prev) => [...prev, { sender, text: content }]);
+                setLoading(false);
+              }
+            } catch (error) {
+              console.error("Error processing message:", error);
               setMessages((prev) => [
                 ...prev,
                 {
@@ -128,11 +219,12 @@
                   text: "An error occurred while processing a message.",
                 },
               ]);
-            } finally {
               setLoading(false);
             }
           };
-          socket.onerror = () => {};
+          socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+          };
           socket.onclose = () => {
             setConnectionStatus("Disconnected. Reconnecting...");
             setTimeout(initWebSocket, 3000);
@@ -227,7 +319,7 @@
                         className={`ml-3 p-2 rounded-lg max-w-2xl
                         ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
                       >
-                        <p className="text-sm">{msg.text}</p>
+                        <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {msg.sender}
                         </span>
@@ -236,11 +328,50 @@
                   );
                 })}
 
-                {loading && (
+                {/* Display streaming messages - these should be displayed before regular messages */}
+                {Object.entries(streamingMessages).map(([msgId, msg]) => {
+                  const agent = AGENTS[msg.sender] || {
+                    emoji: "💬",
+                    bgColor: "bg-gray-200",
+                    darkBgColor: "dark:bg-gray-600",
+                    textColor: "text-gray-800",
+                    darkTextColor: "dark:text-gray-200",
+                  };
+                  return (
+                    <div key={`stream-${msgId}`} className="flex mb-4">
+                      <div className="flex-shrink-0">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl
+                          ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
+                        >
+                          {agent.emoji}
+                        </div>
+                      </div>
+                      <div
+                        className={`ml-3 p-2 rounded-lg max-w-2xl
+                        ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">
+                          {msg.text}
+                          {/* Add blinking cursor at the end of streaming text */}
+                          <span className="animate-pulse ml-0.5 inline-block h-4 w-2 bg-current"></span>
+                        </p>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {msg.sender} {msg.totalChunks > 0 ? 
+                            `(typing... ${msg.chunkIndex}/${msg.totalChunks})` : 
+                            '(typing...)'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {loading && Object.keys(streamingMessages).length === 0 && (
                   <div className="flex mb-4">
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-2xl">
-                        {/* Tailwind’s animate-spin will rotate the spinner */}
+                        {/* Tailwind's animate-spin will rotate the spinner */}
                         <span className="animate-spin">⏳</span>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 """WebSocket connection manager for the frontend agent."""
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, Optional
 
 from starlette.websockets import WebSocket, WebSocketState
 
@@ -10,6 +10,7 @@ class WebSocketManager:
         self.active_connections: Dict[str, WebSocket] = {}
         self.message_buffers: Dict[str, list] = defaultdict(list)
         self.message_ids: Dict[str, str] = defaultdict(str)
+        self.streaming_messages: Dict[str, list] = defaultdict(list)
 
     async def connect(self, websocket: WebSocket, connection_id: str):
         await websocket.accept()
@@ -38,11 +39,50 @@ class WebSocketManager:
         self.active_connections.pop(connection_id, None)
 
     async def send_message_to_connection(self, connection_id: str, message_data: dict):
+        from libraries.logger import get_console_logger
+        logger = get_console_logger("websocket_manager")
+        
+        logger.info(f"Sending message to connection {connection_id}: {message_data}")
         connection = self.active_connections.get(connection_id)
         if connection:
-            await connection.send_json(message_data)
+            try:
+                await connection.send_json(message_data)
+                logger.info(f"Message sent successfully to connection {connection_id}")
+            except Exception as e:
+                logger.error(f"Error sending message to connection {connection_id}: {e}", exc_info=True)
         else:
+            logger.warning(f"Connection {connection_id} not found, buffering message")
             self.message_buffers[connection_id].append(message_data)
+
+    async def start_stream_message(self, connection_id: str, agent: str, message_id: str):
+        """Initialize a new streaming message"""
+        from libraries.logger import get_console_logger
+        logger = get_console_logger("websocket_manager")
+        
+        logger.info(f"Starting stream message {message_id} for agent {agent}")
+        
+        # Clear any existing streaming message with the same ID
+        if message_id in self.streaming_messages:
+            logger.warning(f"Overwriting existing stream with ID {message_id}")
+        
+        self.streaming_messages[message_id] = []
+        
+    async def send_stream_chunk(self, connection_id: str, agent: str, message_id: str, chunk: str, chunk_index: int = 0):
+        await self.send_message_to_connection(connection_id, {
+            "streaming": True,
+            "message_id": message_id,
+            "chunk": chunk,
+            "chunk_index": chunk_index,
+            "sender": agent
+        })
+        
+    async def end_stream_message(self, connection_id: str, agent: str, message_id: str, final_content: str):
+        await self.send_message_to_connection(connection_id, {
+            "sender": agent,
+            "streaming": False,
+            "message_id": message_id,
+            "stream_end": True
+        })
 
     async def attach_message_id(self, message_id: str, connection_id: str):
         self.message_ids[message_id] = connection_id

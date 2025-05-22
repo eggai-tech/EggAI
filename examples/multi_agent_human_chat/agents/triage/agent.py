@@ -1,4 +1,6 @@
+import asyncio
 
+import dspy.streaming
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 from opentelemetry import trace
@@ -20,6 +22,7 @@ eggai_set_default_transport(
 
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel(channels.human)
+human_stream_channel = Channel(channels.human + "_stream")
 agents_channel = Channel(channels.agents)
 
 tracer = trace.get_tracer("triage_agent")
@@ -99,27 +102,65 @@ async def handle_user_message(msg: TracedMessage):
                     )
                 )
         else:
-            message_to_send = chatty(
-                chat_history=conversation_string,
-            ).response
+            # Use streaming implementation for chatty responses
+            with tracer.start_as_current_span("chatty_stream_response") as stream_span:
+                child_traceparent, child_tracestate = format_span_as_traceparent(stream_span)
 
-            with tracer.start_as_current_span("publish_to_human") as publish_span:
-                child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
-                await human_channel.publish(
+                stream_message_id = str(msg.id) # Use the same message ID for the stream
+
+                await human_stream_channel.publish(
                     TracedMessage(
-                        type="agent_message",
+                        type="agent_message_stream_start",
                         source="TriageAgent",
                         data={
-                            "message": message_to_send,
-                            "message_id": msg.id,
-                            "agent": "TriageAgent",
+                            "message_id": stream_message_id,
                             "connection_id": connection_id,
-                            "metrics": response.metrics,
                         },
                         traceparent=child_traceparent,
                         tracestate=child_tracestate,
                     )
                 )
+
+                chunks = chatty(chat_history=conversation_string)
+                chunk_count = 0
+
+                async for chunk in chunks:
+                    if isinstance(chunk, dspy.streaming.StreamResponse):
+                        chunk_count += 1
+                        await human_stream_channel.publish(TracedMessage(
+                            type="agent_message_stream_chunk",
+                            source="TriageAgent",
+                            data={
+                                "message_chunk": chunk.chunk,
+                                "message_id": stream_message_id,
+                                "chunk_index": chunk_count,
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        ))
+                        logger.info(f"Chunk {chunk_count} sent: {chunk.chunk}")
+                    elif isinstance(chunk, dspy.Prediction):
+                        # FIXME: with short prompts, sometime dspy is not trimming off the " [[ ## completed ## ]]", we will do it manually there
+                        chunk.response = chunk.response.replace(" [[ ## completed ## ]]", "")
+
+                        await human_stream_channel.publish(
+                            TracedMessage(
+                                type="agent_message_stream_end",
+                                source="TriageAgent",
+                                data={
+                                    "message_id": stream_message_id,
+                                    "agent": "TriageAgent",
+                                    "connection_id": connection_id,
+                                    "metrics": response.metrics,
+                                    "message": chunk.response,
+                                },
+                                traceparent=child_traceparent,
+                                tracestate=child_tracestate,
+                            )
+                        )
+                        logger.info(f"Stream ended for message {stream_message_id}: {chunk.response}")
+
     except Exception as e:
         logger.error(f"Error processing message: {e}", exc_info=True)
 
@@ -130,21 +171,13 @@ async def handle_others(msg: TracedMessage):
 
 
 if __name__ == "__main__":
-    async def run_triage():
-        await handle_user_message(
-            TracedMessage(
-                type="user_message",
-                source="TriageAgent",
-                data={
-                    "chat_messages": [
-                        {"role": "user", "content": "I need to know what's the weather in New York."}
-                    ],
-                    "connection_id": "test_connection",
-                },
-            )
-        )
-
-
-    import asyncio
-
-    asyncio.run(run_triage())
+    async def run():
+        print("Testing chunked chatty:")
+        chunks = chatty(chat_history="User: Hello!")
+        async for chunk in chunks:
+            if isinstance(chunk, dspy.streaming.StreamResponse):
+                print(chunk.chunk, end='')
+            elif isinstance(chunk, dspy.Prediction):
+                print("")
+                print(chunk.get_lm_usage())
+    asyncio.run(run())
