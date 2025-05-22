@@ -17,14 +17,7 @@ settings = Settings()
 nn_settings = AttentionNetSettings()
 
 checkpoint_path = find_model(settings.classifier_v5_model_name, version=settings.classifier_v5_model_version)
-state_dict = torch.load(checkpoint_path, map_location="cpu")
-attention_net = AttentionBasedClassifier(
-    embedding_dim=nn_settings.embedding_dim,
-    hidden_dims=nn_settings.hidden_dims,
-    n_classes=nn_settings.n_classes,
-    dropout=nn_settings.dropout_rate
-)
-attention_net.load_state_dict(state_dict)
+attention_net = torch.load(checkpoint_path, weights_only=False)
 attention_net.eval()
 device = settings.classifier_v5_device
 if not device:
@@ -50,7 +43,7 @@ def classifier_v5(chat_history: str) -> ClassificationResult:
 
     time_start = perf_counter()
     prediction_matrix = model.predict_probab([chat_history], return_logits=False)[0]
-    best_label = np.argmax(prediction_matrix)
+    best_label = torch.argmax(prediction_matrix).item()
     best_target_agent = [k for k, v in labels.items() if v == best_label][0]
     latency_ms = (perf_counter() - time_start) * 1000
 

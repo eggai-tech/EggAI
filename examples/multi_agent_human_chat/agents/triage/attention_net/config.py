@@ -42,7 +42,7 @@ class AttentionNetSettings(BaseSettings):
     weight_decay: float = Field(default=1e-2)
     learning_rate: float = Field(default=2e-4)
     # number of epochs with no improvement after which training will be stopped
-    patience: int = Field(default=25)
+    patience: int = Field(default=5)
     checkpoint_dir: str = Field(default="checkpoints")
 
     # MLflow configuration
