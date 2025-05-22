@@ -174,7 +174,10 @@ def main() -> int:
     # unroll train dataset
     train_dataset = unroll_dataset(train_dataset)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = settings.device
+    if not device:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    logger.info(f"Using device: {device}")
     # create attention based classifier
     model = AttentionBasedClassifier(
         embedding_dim=settings.embedding_dim,
