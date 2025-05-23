@@ -217,12 +217,7 @@ services:
       - eggai-example-network
   lmstudio:
     runtime: nvidia
-    image: vorobiev/gemma-3-4b-it:1
-    # image: vorobiev/vllm:2
-    # image: vorobiev/llama-cpp:3
-    # environment:
-    #   LLAMA_ARG_CTX_SIZE: 32768
-    #   LLAMA_ARG_N_GPU_LAYERS: 999
+    image: vorobiev/gemma-3-4b-it:4
     ports:
       - "1234:1234"
     networks:

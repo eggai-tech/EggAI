@@ -84,6 +84,11 @@ jobs:
             done
           '
 
+      - run: |
+          docker ps
+          curl http://localhost:1234/v1/models
+        continue-on-error: true
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -94,7 +99,9 @@ jobs:
         run: |
           make setup
 
-      - run: curl http://localhost:1234/v1/models
+      - run: |
+          docker ps
+          curl http://localhost:1234/v1/models
         continue-on-error: true
 
       - name: Run integration tests
