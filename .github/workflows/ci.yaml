@@ -41,19 +41,19 @@ jobs:
 
       # Policies agent settings
       POLICIES_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      POLICIES_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      POLICIES_LANGUAGE_MODEL: lm_studio/google_gemma-3-4b-it-Q6_K.gguf
 
       # Claims agent settings
       CLAIMS_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      CLAIMS_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      CLAIMS_LANGUAGE_MODEL: lm_studio/google_gemma-3-4b-it-Q6_K.gguf
 
       # Billing agent settings
       BILLING_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      BILLING_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      BILLING_LANGUAGE_MODEL: lm_studio/google_gemma-3-4b-it-Q6_K.gguf
 
       # Escalation agent settings
       ESCALATION_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      ESCALATION_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      ESCALATION_LANGUAGE_MODEL: lm_studio/google_gemma-3-4b-it-Q6_K.gguf
 
       # Shared settings
       LM_STUDIO_API_BASE: http://localhost:1234/v1/
