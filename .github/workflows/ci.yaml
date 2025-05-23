@@ -83,7 +83,6 @@ jobs:
               sleep 5
             done
           '
-      - run: curl http://127.0.0.1:1234/v1/models
 
       - uses: actions/setup-python@v5
         with:
@@ -94,6 +93,9 @@ jobs:
         working-directory: examples/multi_agent_human_chat
         run: |
           make setup
+
+      - run: curl http://localhost:1234/v1/models
+        continue-on-error: true
 
       - name: Run integration tests
         working-directory: examples/multi_agent_human_chat
