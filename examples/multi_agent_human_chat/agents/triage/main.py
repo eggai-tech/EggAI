@@ -9,24 +9,20 @@ from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
 # Import settings first
-from .config import settings
-
-# Configure transport
-eggai_set_default_transport(
-    lambda: create_kafka_transport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
-    )
-)
-
-# Import agent after transport is configured
-from .agent import triage_agent
+from agents.triage.config import settings
+from agents.triage.agent import triage_agent
 
 logger = get_console_logger("triage_agent")
 
-
 @eggai_main
 async def main():
+    eggai_set_default_transport(
+        lambda: create_kafka_transport(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            ssl_cert=settings.kafka_ca_content
+        )
+    )
+
     logger.info(f"Starting {settings.app_name}")
     
     init_telemetry(app_name=settings.app_name)
