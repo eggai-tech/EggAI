@@ -179,6 +179,46 @@
                 
                 // Keep loading indicator active while streaming
                 setLoading(true);
+              } else if (data.type === "assistant_message_stream_waiting_message") {
+                // Waiting message to show while agent is processing
+                const sender = data.sender || "TriageAgent";
+                const waitingMessage = data.content || "I'm thinking about this...";
+                const messageId = `waiting-${Date.now()}`;
+                
+                console.log("Received waiting message:", waitingMessage);
+                
+                // Create or update a waiting message in the streaming messages
+                setStreamingMessages(prev => {
+                  // Check if we already have a waiting message for this sender
+                  const existingWaitingKey = Object.keys(prev).find(key => 
+                    prev[key].sender === sender && prev[key].isWaiting);
+                    
+                  if (existingWaitingKey) {
+                    // Update existing waiting message
+                    return {
+                      ...prev,
+                      [existingWaitingKey]: {
+                        ...prev[existingWaitingKey],
+                        text: waitingMessage,
+                      }
+                    };
+                  } else {
+                    // Create new waiting message
+                    return {
+                      ...prev,
+                      [messageId]: {
+                        sender,
+                        text: waitingMessage,
+                        messageId,
+                        isWaiting: true,
+                        toolUsage: true,
+                      }
+                    };
+                  }
+                });
+                
+                // Keep loading indicator active
+                setLoading(true);
               } else if (data.type === "assistant_message_stream_end") {
                 // End of a streaming message
                 const sender = data.sender || "TriageAgent";
@@ -189,7 +229,13 @@
                 
                 // Get the accumulated content from streaming state or use the final content
                 setStreamingMessages(prev => {
-                  const targetId = messageId || Object.keys(prev)[0];
+                  // Find all waiting messages from this sender to remove
+                  const waitingKeys = Object.keys(prev).filter(key => 
+                    prev[key].sender === sender && prev[key].isWaiting);
+                  
+                  const targetId = messageId || Object.keys(prev)
+                    .filter(k => !waitingKeys.includes(k))[0];
+                    
                   if (!targetId) return prev; // No message to update
                   
                   // Move the complete message to regular messages
@@ -203,9 +249,13 @@
                     id: targetId  // Keep the same ID
                   }]);
                   
-                  // Remove from streaming
-                  const newState = { ...prev };
-                  delete newState[targetId];
+                  // Remove all streaming messages from this sender
+                  const newState = {};
+                  Object.keys(prev).forEach(key => {
+                    if (prev[key].sender !== sender) {
+                      newState[key] = prev[key];
+                    }
+                  });
                   return newState;
                 });
                 
@@ -365,9 +415,11 @@
                           <span className="animate-pulse ml-0.5 inline-block h-4 w-2 bg-current"></span>
                         </p>
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {msg.sender} {msg.totalChunks > 0 ? 
-                            `(typing... ${msg.chunkIndex}/${msg.totalChunks})` : 
-                            '(typing...)'
+                          {msg.sender} {msg.isWaiting ? 
+                            (msg.toolUsage ? '(using tools...)' : '(thinking...)') : 
+                            (msg.totalChunks > 0 ? 
+                              `(typing... ${msg.chunkIndex}/${msg.totalChunks})` : 
+                              '(typing...)')
                           }
                         </span>
                       </div>

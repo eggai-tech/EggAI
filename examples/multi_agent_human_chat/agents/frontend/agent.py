@@ -182,6 +182,12 @@ async def handle_human_stream_messages(message: TracedMessage):
             connection_id, {"sender": agent, "content": "", "type": "assistant_message_stream_start"}
         )
 
+    elif message_type == "agent_message_stream_waiting_message":
+        message = message.data.get("message")
+        await websocket_manager.send_message_to_connection(
+            connection_id, {"sender": agent, "content": message, "type": "assistant_message_stream_waiting_message"}
+        )
+
     elif message_type == "agent_message_stream_chunk":
         chunk = message.data.get("message_chunk", "")
         chunk_index = message.data.get("chunk_index")
