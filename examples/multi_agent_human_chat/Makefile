@@ -14,6 +14,10 @@ train-triage-classifier-v3:
 	@echo "Training triage classifier v3..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/baseline_model/fewshot_trainer.py
 
+train-triage-classifier-v5:
+	@echo "Training triage classifier v5..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/attention_net/attention_net_trainer.py
+
 start-eda-notebook:
 	@echo "Start Exploratory Data Analysis Notebook..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/jupyter-notebook agents/triage/notebooks/exploratory_data_analysis.ipynb --port=8888
@@ -104,6 +108,12 @@ test-triage-classifier-v3:
 test-triage-classifier-v4:
 	@echo "Running tests classifier v4 for triage agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v4.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
+
+test-triage-classifier-v5:
+	@echo "Running tests classifier v5 for triage agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v5.py -s \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 

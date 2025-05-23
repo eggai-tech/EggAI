@@ -42,6 +42,9 @@ def get_current_classifier():
     elif settings.classifier_version == "v4":
         from agents.triage.dspy_modules.classifier_v4 import classifier_v4
         return classifier_v4
+    elif settings.classifier_version == "v5":
+        from agents.triage.attention_net.classifier_v5 import classifier_v5
+        return classifier_v5
     else:
         raise ValueError(f"Unknown classifier version: {settings.classifier_version}")
 
