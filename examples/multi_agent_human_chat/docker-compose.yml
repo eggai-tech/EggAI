@@ -217,7 +217,7 @@ services:
       - eggai-example-network
   lmstudio:
     runtime: nvidia
-    image: vorobiev/vllm:1
+    image: vorobiev/vllm:2
     # image: vorobiev/llama-cpp:3
     # environment:
     #   LLAMA_ARG_CTX_SIZE: 32768
