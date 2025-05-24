@@ -217,7 +217,18 @@ services:
       - eggai-example-network
   lmstudio:
     runtime: nvidia
-    image: vorobiev/gemma-3-4b-it:5
+    image: vorobiev/gemma-3-4b-it:6
+    command:
+      - "--server"
+      - "--nobrowser"
+      - "-ngl"
+      - "9999"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "1234"
+      - "--gpu-layers"
+      - "30"
     ports:
       - "1234:1234"
     networks:
