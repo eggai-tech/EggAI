@@ -41,19 +41,19 @@ jobs:
 
       # Policies agent settings
       POLICIES_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      POLICIES_LANGUAGE_MODEL: lm_studio/google_gemma-3-4b-it-Q6_K.gguf
+      POLICIES_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
 
       # Claims agent settings
       CLAIMS_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      CLAIMS_LANGUAGE_MODEL: lm_studio/google_gemma-3-4b-it-Q6_K.gguf
+      CLAIMS_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
 
       # Billing agent settings
       BILLING_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      BILLING_LANGUAGE_MODEL: lm_studio/google_gemma-3-4b-it-Q6_K.gguf
+      BILLING_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
 
       # Escalation agent settings
       ESCALATION_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      ESCALATION_LANGUAGE_MODEL: lm_studio/google_gemma-3-4b-it-Q6_K.gguf
+      ESCALATION_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
 
       # Shared settings
       LM_STUDIO_API_BASE: http://localhost:1234/v1/
@@ -117,6 +117,7 @@ jobs:
 
       - name: Dump logs on failure
         if: ${{ failure() }}
+        working-directory: examples/multi_agent_human_chat
         run: docker compose logs
 
       - name: Archive test results
