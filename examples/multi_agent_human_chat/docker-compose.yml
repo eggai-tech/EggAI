@@ -217,7 +217,7 @@ services:
       - eggai-example-network
   lmstudio:
     runtime: nvidia
-    image: vorobiev/gemma-3-4b-it:6
+    image: vorobiev/gemma-3-4b-it:5
     command:
       - "--server"
       - "--nobrowser"
