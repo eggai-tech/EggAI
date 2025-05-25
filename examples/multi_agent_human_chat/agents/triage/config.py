@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     # attention-net model settings
     classifier_v5_model_name: str = Field(default="attention_net_0.25_0.0002")
     classifier_v5_model_version: str = Field(default="1")
+    classifier_v5_device: str = Field(default="cuda")
     
     # Optimizer settings
     copro_dataset_size: int = Field(default=50)  # Dataset size for v4 COPRO optimizer

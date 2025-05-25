@@ -37,10 +37,12 @@ def classifier_v5(chat_history: str) -> ClassificationResult:
         TargetAgent.EscalationAgent: 3,
         TargetAgent.ChattyAgent: 4
     }
-
     time_start = perf_counter()
-    prediction_matrix = model.predict_probab([chat_history], return_logits=False)[0]
-    best_label = torch.argmax(prediction_matrix).item()
+    # IMPORTANT: the model expects the chat history to be a list of strings, each string being a message in the chat
+    chat_history = chat_history.split("\n")
+    probs, _, attention_weights, attention_pooled_repr = model.predict_probab(chat_history, return_logits=True)
+    probs = probs[0]
+    best_label = torch.argmax(probs).item()
     best_target_agent = [k for k, v in labels.items() if v == best_label][0]
     latency_ms = (perf_counter() - time_start) * 1000
 
@@ -56,6 +58,7 @@ def classifier_v5(chat_history: str) -> ClassificationResult:
 
 
 if __name__ == "__main__":
-    result = classifier_v5(chat_history="User: I want to know my policy due date.")
+    chat_history = "User: hi how are you?\nChattyAgent: Hey, I'm good! How can I help you?\nUser: could you please give me my policy details?"
+    result = classifier_v5(chat_history=chat_history)
     print(result.target_agent)
     print(result.metrics)

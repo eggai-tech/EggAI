@@ -64,7 +64,7 @@ class Trainer:
         self.rs.shuffle(keys)
         # iterate over training dataset
         for chat in tqdm(keys):
-            # split chat by new line
+            # IMPORTANT: the model expects the chat history to be a list of strings, each string being a message in the chat
             chat_history = chat.split("\n")
             label = self.train_dataset[chat]
             # convert label to tensor
@@ -170,8 +170,17 @@ def main() -> int:
     # load test dataset
     logger.info(f"Loading test dataset from {settings.test_dataset_path}")
     test_dataset = load_dataset(settings.test_dataset_path)
-    # unroll train dataset
+    # unroll datasets
     train_dataset = unroll_dataset(train_dataset)
+    test_dataset = unroll_dataset(test_dataset)
+
+    # sample test data
+    if settings.n_test_samples > 0:
+        logger.info(f"Sampling {settings.n_test_samples} out of {len(test_dataset)} test samples for validation")
+        keys = list(test_dataset.keys())
+        rs = np.random.RandomState(47)
+        keys = rs.choice(keys, size=settings.n_test_samples, replace=False)
+        test_dataset = {k: test_dataset[k] for k in keys}
 
     logger.info(f"Using device: {get_device()}")
     # create attention based classifier
