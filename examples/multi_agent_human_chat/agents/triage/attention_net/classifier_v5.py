@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from time import perf_counter
 
-import numpy as np
 import torch
 from dotenv import load_dotenv
 
-from agents.triage.attention_net.attention_based_classifier import AttentionBasedClassifier, \
-    AttentionBasedClassifierWrapper
+from agents.triage.attention_net.attention_based_classifier import (
+    AttentionBasedClassifierWrapper,
+)
 from agents.triage.attention_net.config import AttentionNetSettings
 from agents.triage.config import Settings
 from agents.triage.models import ClassifierMetrics, TargetAgent

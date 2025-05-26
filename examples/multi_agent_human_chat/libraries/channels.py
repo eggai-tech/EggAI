@@ -30,8 +30,9 @@ channels = ChannelConfig()
 
 # using FastStream empty topics
 async def clear_channels():
-    from agents.triage.config import Settings
     from aiokafka.admin import AIOKafkaAdminClient
+
+    from agents.triage.config import Settings
 
     settings = Settings()
     admin = AIOKafkaAdminClient(bootstrap_servers=settings.kafka_bootstrap_servers)

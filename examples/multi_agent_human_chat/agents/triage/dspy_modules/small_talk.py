@@ -1,4 +1,4 @@
-from typing import Callable, Any, AsyncGenerator, AsyncIterable, Union
+from typing import AsyncIterable, Union
 
 import dspy
 from dotenv import load_dotenv

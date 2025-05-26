@@ -10,10 +10,17 @@ from torch.optim.lr_scheduler import LambdaLR
 from tqdm import tqdm
 from transformers import get_cosine_schedule_with_warmup
 
-from agents.triage.attention_net.attention_based_classifier import AttentionBasedClassifier, \
-    AttentionBasedClassifierWrapper
+from agents.triage.attention_net.attention_based_classifier import (
+    AttentionBasedClassifier,
+    AttentionBasedClassifierWrapper,
+)
 from agents.triage.attention_net.config import settings
-from agents.triage.baseline_model.utils import init_mlflow, load_dataset, unroll_dataset, setup_logging
+from agents.triage.baseline_model.utils import (
+    init_mlflow,
+    load_dataset,
+    setup_logging,
+    unroll_dataset,
+)
 from libraries.device_utils import get_device
 
 logger = logging.getLogger("attention_net_trainer")
