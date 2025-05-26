@@ -27,7 +27,7 @@ jobs:
         with:
           src: examples/multi_agent_human_chat
 
-      - name: Run SunarQube scan
+      - name: Run SonarQube scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
