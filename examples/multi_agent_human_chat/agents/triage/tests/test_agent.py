@@ -17,7 +17,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from agents.triage.agent import handle_user_message
 from agents.triage.config import Settings
-from libraries.channels import channels
+from libraries.channels import channels, clear_channels
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
@@ -210,7 +210,7 @@ async def _handle_test_message(event: TracedMessage):
 async def test_triage_agent():
     """Send all test conversations, validate classifier, then use LLM judge with controlled concurrency, then generate report."""
 
-    # await clear_channels()
+    await clear_channels()
 
     # Configure MLflow tracking
     mlflow.dspy.autolog(
@@ -419,7 +419,8 @@ async def test_triage_agent_simple(monkeypatch):
         
         # Get response and verify
         args, _ = mock_publish.call_args_list[0]
-        agent = args[0].data.get("agent")
+        agent = args[0].source
+        print(args)
         
         # Log result
         mlflow.log_metric("is_correct", 1.0 if agent == "TriageAgent" else 0.0)
