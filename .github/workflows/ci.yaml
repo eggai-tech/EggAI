@@ -2,11 +2,15 @@ name: Python code validation and build
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
+      types: [opened, synchronize, reopened]
 
 jobs:
-  python-lint:
+  static-analysis:
     runs-on: ubuntu-latest
-    name: Lint python code
+    name: Static analysis
 
     permissions:
       contents: read
@@ -14,11 +18,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Disabling shallow clones is recommended for improving SonarQube relevancy of reporting
+          fetch-depth: 0
 
       - name: Run python linter
         uses: astral-sh/ruff-action@v3
         with:
           src: examples/multi_agent_human_chat
+
+      - name: Run SunarQube scan
+        uses: sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: examples/multi_agent_human_chat
 
   integration:
     runs-on: gpu-runner-github-hosted
