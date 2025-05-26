@@ -22,7 +22,7 @@ eggai_set_default_transport(
 
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel(channels.human)
-human_stream_channel = Channel(channels.human + "_stream")
+human_stream_channel = Channel(channels.human_stream)
 agents_channel = Channel(channels.agents)
 
 tracer = trace.get_tracer("triage_agent")

@@ -17,7 +17,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from agents.triage.agent import handle_user_message
 from agents.triage.config import Settings
-from libraries.channels import channels
+from libraries.channels import channels, clear_channels
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
@@ -33,7 +33,6 @@ load_dotenv()
 settings = Settings()
 logger = get_console_logger("triage_test")
 dspy_set_language_model(settings)
-
 
 # ---------------------------------------------------------------------------
 # Utility for formatting console tables
@@ -169,6 +168,7 @@ test_agent = Agent("TestTriageAgent")
 # Use channels from central configuration
 test_channel = Channel(channels.human)
 agents_channel = Channel(channels.agents)
+test_stream_channel = Channel(channels.human_stream)
 
 _response_queue: asyncio.Queue[TracedMessage] = asyncio.Queue()
 
@@ -193,12 +193,24 @@ async def _handle_test_message(event: TracedMessage):
     await _response_queue.put(event)
 
 
+@test_agent.subscribe(
+    channel=test_stream_channel,
+    filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
+    auto_offset_reset="latest",
+    group_id="test_agent_group-human"
+)
+async def _handle_test_message(event: TracedMessage):
+    await _response_queue.put(event)
+
+
 # ---------------------------------------------------------------------------
 # Main refactored test with report integration
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_triage_agent():
     """Send all test conversations, validate classifier, then use LLM judge with controlled concurrency, then generate report."""
+
+    # await clear_channels()
 
     # Configure MLflow tracking
     mlflow.dspy.autolog(
@@ -255,7 +267,9 @@ async def test_triage_agent():
                 (k for k, v in AGENT_REGISTRY.items() if v.get("message_type", "agent_message") == event.type),
                 "UnknownAgent"
             )
-            if routed == "UnknownAgent" and event["type"] == "agent_message":
+            if routed == "UnknownAgent" and event.type == "agent_message":
+                routed = "ChattyAgent"
+            if event.type == "agent_message_stream_end":
                 routed = "ChattyAgent"
             classification_results.append({
                 "id": mid,
