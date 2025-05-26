@@ -46,6 +46,7 @@ eggai_set_default_transport(
 
 frontend_agent = Agent("FrontendAgent")
 human_channel = Channel("human")
+human_stream_channel = Channel("human_stream")
 websocket_manager = WebSocketManager()
 messages_cache = {}
 tracer = trace.get_tracer("frontend_agent")
@@ -166,34 +167,70 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 await websocket_manager.disconnect(connection_id)
                 logger.info(f"WebSocket connection {connection_id} closed.")
 
-
 @frontend_agent.subscribe(
-    channel=human_channel,
-    filter_by_message=lambda message: message.get("type") == "agent_message",
+    channel=human_stream_channel
 )
+async def handle_human_stream_messages(message: TracedMessage):
+    message_type = message.type
+    agent = message.source
+    message_id = message.data.get("message_id")
+    connection_id = message.data.get("connection_id")
+
+    if message_type == "agent_message_stream_start":
+        logger.info(f"Starting stream for message {message_id} from {agent}")
+        await websocket_manager.send_message_to_connection(
+            connection_id, {"sender": agent, "content": "", "type": "assistant_message_stream_start"}
+        )
+
+    elif message_type == "agent_message_stream_waiting_message":
+        message = message.data.get("message")
+        await websocket_manager.send_message_to_connection(
+            connection_id, {"sender": agent, "content": message, "type": "assistant_message_stream_waiting_message"}
+        )
+
+    elif message_type == "agent_message_stream_chunk":
+        chunk = message.data.get("message_chunk", "")
+        chunk_index = message.data.get("chunk_index")
+        await websocket_manager.send_message_to_connection(
+            connection_id, {"sender": agent, "content": chunk, "chunk_index": chunk_index, "type": "assistant_message_stream_chunk"}
+        )
+    elif message_type == "agent_message_stream_end":
+        final_content = message.data.get("message", "")
+        messages_cache[connection_id].append(
+            {
+                "role": "assistant",
+                "content": final_content,
+                "agent": agent,
+                "id": str(message_id),
+            }
+        )
+        await websocket_manager.send_message_to_connection(
+            connection_id, {"sender": agent, "content": final_content, "type": "assistant_message_stream_end"}
+        )
+
+
+@frontend_agent.subscribe(channel=human_channel)
 @traced_handler("handle_human_messages")
 async def handle_human_messages(message: TracedMessage):
+    message_type = message.type
     agent = message.data.get("agent")
-    content = message.data.get("message")
     connection_id = message.data.get("connection_id")
+    message_id = message.id
 
     if connection_id not in messages_cache:
         messages_cache[connection_id] = []
 
-    messages_cache[connection_id].append(
-        {
-            "role": "assistant",
-            "content": content,
-            "agent": agent,
-            "id": message.id,
-        }
-    )
-    
-    await websocket_manager.send_message_to_connection(
-        connection_id, {"sender": agent, "content": content}
-    )
-
-
-@frontend_agent.subscribe(channel=human_channel)
-async def handle_others(msg: TracedMessage):
-    logger.debug(f"Received message type: {msg.type}")
+    if message_type == "agent_message":
+        content = message.data.get("message")
+        messages_cache[connection_id].append(
+            {
+                "role": "assistant",
+                "content": content,
+                "agent": agent,
+                "id": message_id,
+            }
+        )
+        
+        await websocket_manager.send_message_to_connection(
+            connection_id, {"sender": agent, "content": content, "type": "assistant_message"}
+        )

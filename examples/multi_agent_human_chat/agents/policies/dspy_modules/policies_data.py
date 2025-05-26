@@ -4,12 +4,14 @@ Shared policies data and tools to prevent circular imports.
 This module contains the shared database and tools used by both the main agent
 and the optimized DSPy version, preventing circular dependencies.
 """
+import asyncio
 import json
 import threading
 from typing import Literal
 
 from opentelemetry import trace
 
+from agents.policies.tool_notification import send_tool_usage_notification
 from libraries.logger import get_console_logger
 
 PolicyCategory = Literal["auto", "life", "home", "health"]
@@ -68,6 +70,8 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
     """
     try:
         from agents.policies.rag.retrieving import retrieve_policies
+
+        asyncio.run(send_tool_usage_notification("Querying documentation..."))
         
         logger.info(
             f"Retrieving policy information for query: '{query}', category: '{policy_category}'"
@@ -100,6 +104,8 @@ def take_policy_by_number_from_database(policy_number: str) -> str:
     Returns a JSON-formatted string if the policy is found, or "Policy not found." otherwise.
     """
     logger.info(f"Retrieving policy details for policy number: '{policy_number}'")
+
+    asyncio.run(send_tool_usage_notification("Retrieving policy details from database..."))
 
     if not policy_number:
         logger.warning("Empty policy number provided")
