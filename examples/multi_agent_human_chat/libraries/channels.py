@@ -14,6 +14,7 @@ class ChannelConfig(BaseSettings):
     # Main agent communication channels
     agents: str = Field(default="agents", description="Channel for inter-agent communication")
     human: str = Field(default="human", description="Channel for human-agent communication")
+    human_stream: str = Field(default="human_stream", description="Channel for streaming human-agent communication")
     audit_logs: str = Field(default="audit_logs", description="Channel for audit logging")
     
     # For potential future use
@@ -25,5 +26,25 @@ class ChannelConfig(BaseSettings):
     )
 
 
-# Create a singleton instance to be imported by other modules
 channels = ChannelConfig()
+
+# using FastStream empty topics
+async def clear_channels():
+    from agents.triage.config import Settings
+    from aiokafka.admin import AIOKafkaAdminClient
+
+    settings = Settings()
+    admin = AIOKafkaAdminClient(bootstrap_servers=settings.kafka_bootstrap_servers)
+
+    await admin.start()
+
+    try:
+        await admin.delete_topics([channels.human, channels.human_stream, channels.agents, channels.audit_logs])
+    except Exception as e:
+        print(f"Error deleting topics: {e}")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(clear_channels())

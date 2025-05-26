@@ -1,16 +1,16 @@
 """Policies Agent optimized DSPy module for production use."""
 import json
-import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, AsyncIterable, Union
 
 import dspy
+from dspy import Prediction
+from dspy.streaming import StreamResponse
 
 from agents.policies.config import settings
 from agents.policies.types import (
     ModelConfig,
     PolicyCategory,
-    PolicyResponseData,
 )
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
@@ -219,72 +219,28 @@ def truncate_long_history(chat_history: str, config: Optional[ModelConfig] = Non
     return result
 
 
-def get_prediction_from_model(model, chat_history: str) -> Any:
-    """Get prediction from a DSPy model."""
-    with policies_tracer.start_as_current_span("get_prediction_from_model") as span:
-        safe_set_attribute(span, "chat_history_length", len(chat_history) if chat_history else 0)
-        
-        if not chat_history:
-            raise ValueError("Empty chat history provided to prediction model")
-        
-        model_type = type(model).__name__
-        safe_set_attribute(span, "model_type", model_type)
-        
-        start_time = time.perf_counter()
-        
-        logger.info(f"Using {model_type} for prediction")
-        prediction = model(chat_history=chat_history)
-        
-        elapsed = time.perf_counter() - start_time
-        safe_set_attribute(span, "prediction_time_ms", elapsed * 1000)
-        
-        # Validate response
-        if hasattr(prediction, "final_response"):
-            safe_set_attribute(span, "response_length", len(prediction.final_response))
-        
-        return prediction
-
-
 @traced_dspy_function(name="policies_dspy")
-def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = None) -> PolicyResponseData:
-    """Process a policies inquiry using the DSPy model."""
+def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = None) -> AsyncIterable[Union[StreamResponse, Prediction]]:
+    """Process a policies inquiry using the DSPy model with streaming output."""
     config = config or DEFAULT_CONFIG
     
-    with policies_tracer.start_as_current_span("policies_optimized_dspy") as span:
-        safe_set_attribute(span, "input_length", len(chat_history))
-        start_time = time.perf_counter()
-        
-        # Initialize language model
-        dspy_set_language_model(settings, overwrite_cache_enabled=config.cache_enabled)
-        
-        # Handle long conversations
-        truncation_result = truncate_long_history(chat_history, config)
-        chat_history = truncation_result["history"]
-        
-        # Record truncation if needed
-        if truncation_result["truncated"]:
-            safe_set_attribute(span, "truncated", True)
-            safe_set_attribute(span, "original_length", truncation_result["original_length"])
-            safe_set_attribute(span, "truncated_length", truncation_result["truncated_length"])
-        
-        # Get prediction from model
-        prediction = policies_model(chat_history=chat_history)
-        
-        # Create response with extracted data
-        response_data = PolicyResponseData(
-            final_response=prediction.final_response,
-            policy_category=prediction.policy_category if hasattr(prediction, "policy_category") else None,
-            policy_number=prediction.policy_number if hasattr(prediction, "policy_number") else None,
-            documentation_reference=prediction.documentation_reference if hasattr(prediction, "documentation_reference") else None,
-            truncated=truncation_result["truncated"]
-        )
-        
-        # Record metrics
-        elapsed = time.perf_counter() - start_time
-        safe_set_attribute(span, "processing_time_ms", elapsed * 1000)
-        safe_set_attribute(span, "response_length", len(response_data.final_response))
-        
-        return response_data
+    # Initialize language model
+    dspy_set_language_model(settings, overwrite_cache_enabled=config.cache_enabled)
+    
+    # Handle long conversations
+    truncation_result = truncate_long_history(chat_history, config)
+    chat_history = truncation_result["history"]
+    
+    # Create a streaming version of the policies model
+    return dspy.streamify(
+        policies_model,
+        stream_listeners=[
+            dspy.streaming.StreamListener(signature_field_name="final_response"),
+        ],
+        include_final_prediction_in_output_stream=True,
+        is_async_program=False,
+        async_streaming=True
+    )(chat_history=chat_history)
 
 
 if __name__ == "__main__":

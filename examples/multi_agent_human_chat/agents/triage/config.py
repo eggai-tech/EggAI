@@ -25,10 +25,15 @@ class Settings(BaseSettings):
     otel_endpoint: str = Field(default="http://localhost:4318") 
     tracing_enabled: bool = Field(default=True)
 
-    # Classifier settings
+    # baseline model settings
     classifier_version: str = Field(default="v2")
     classifier_v3_model_name: str = Field(default="fewshot_classifier_n_200")
     classifier_v3_model_version: str = Field(default="1")
+
+    # attention-net model settings
+    classifier_v5_model_name: str = Field(default="attention_net_0.25_0.0002")
+    classifier_v5_model_version: str = Field(default="1")
+    classifier_v5_device: str = Field(default="cuda")
     
     # Optimizer settings
     copro_dataset_size: int = Field(default=50)  # Dataset size for v4 COPRO optimizer

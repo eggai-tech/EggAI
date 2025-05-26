@@ -3,6 +3,9 @@ import random
 import statistics
 from datetime import datetime
 
+from agents.triage.attention_net.classifier_v5 import classifier_v5
+from agents.triage.config import settings
+
 # Set tokenizers parallelism to avoid warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -10,7 +13,6 @@ import mlflow
 import numpy as np
 import pytest
 
-from agents.triage.baseline_model.classifier_v3 import classifier_v3, settings
 from agents.triage.data_sets.loader import load_dataset_triage_testing
 from libraries.logger import get_console_logger
 
@@ -26,7 +28,7 @@ async def test_classifier_v3():
     mlflow.set_experiment("triage_classifier")
 
     classifier_version = "classifier_v3"
-    model = f"{settings.classifier_v3_model_name}_{settings.classifier_v3_model_version}"
+    model = f"{settings.classifier_v5_model_name}_{settings.classifier_v5_model_version}"
     model_name = f"{classifier_version}_{model}"
     run_name = f"test_{model_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 
@@ -41,7 +43,7 @@ async def test_classifier_v3():
         results = []
 
         for case in test_dataset:
-            res = classifier_v3(chat_history=case.conversation)
+            res = classifier_v5(chat_history=case.conversation)
             all_scores.append(res.target_agent == case.target_agent)
             results.append(
                 {

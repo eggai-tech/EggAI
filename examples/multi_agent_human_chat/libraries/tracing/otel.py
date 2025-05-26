@@ -102,6 +102,10 @@ def init_telemetry(
         "otlp_endpoint": otlp_endpoint,
         "disabled_instrumentors": ["langchain"],
     }
+
+    # FIXME we need to disable temporarily auto-instrumentation for openai because async streaming it's bugged in openlit
+    config["disabled_instrumentors"].append("openai")
+
     config.update(kwargs)
     openlit.init(**config)
     

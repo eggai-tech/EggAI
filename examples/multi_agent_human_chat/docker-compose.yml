@@ -155,9 +155,7 @@ services:
     networks:
       - eggai-example-network
   mlflow-artifacts-server:
-    build:
-      context: .
-      dockerfile: "mlflow.Dockerfile"
+    image: ghcr.io/mlflow/mlflow:v3.0.0rc2
     depends_on:
       - minio
       - minio-setup
@@ -188,9 +186,7 @@ services:
     networks:
       - eggai-example-network
   mlflow-tracking-server:
-    build:
-      context: .
-      dockerfile: "mlflow.Dockerfile"
+    image: ghcr.io/mlflow/mlflow:v3.0.0rc2
     depends_on:
       - postgres
       - mlflow-artifacts-server
@@ -207,12 +203,12 @@ services:
       AWS_ACCESS_KEY_ID: "user"
       AWS_SECRET_ACCESS_KEY: "password"
     command: >
-      mlflow server
+      bash -c "pip install psycopg2-binary boto3 && mlflow server
       --host 0.0.0.0
       --port 5001
       --backend-store-uri postgresql://user:password@postgres:5432/db
       --default-artifact-root s3://mlflow
-      --gunicorn-opts "--log-level debug"
+      --gunicorn-opts '--log-level debug'"
     networks:
       - eggai-example-network
   lmstudio:

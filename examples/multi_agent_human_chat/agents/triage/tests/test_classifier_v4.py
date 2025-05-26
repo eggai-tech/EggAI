@@ -35,11 +35,18 @@ async def test_dspy_modules():
     )
 
     mlflow.set_experiment("triage_classifier")
-    with mlflow.start_run(run_name="test_classifier_v4_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")):
-        mlflow.log_param("model_name", "classifier_v4")
 
-        accuracy, results, all_scores, metrics = run_evaluation(classifier_v4, "classifier_v4", lm)
-        
+    classifier_version = "classifier_v4"
+    model_name = f"{classifier_version}_{settings.language_model}"
+    run_name = f"test_{model_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+
+    with mlflow.start_run(run_name=run_name):
+        mlflow.log_param("model_name", model_name)
+        mlflow.log_param("classifier_version", classifier_version)
+        mlflow.log_param("language_model", settings.language_model)
+
+        accuracy, results, all_scores, metrics = run_evaluation(classifier_v4, classifier_version, lm)
+
         failing_indices = [i for i, is_correct in enumerate(all_scores) if not is_correct]
         if failing_indices:
             logger.error(f"Accuracy: '{accuracy}'; Metrics: '{metrics}'")
