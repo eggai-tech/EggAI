@@ -60,7 +60,7 @@ async def test_frontend_agent():
     # Verify the message was sent to the WebSocket
     websocket_manager.send_message_to_connection.assert_called_with(
         connection_id,
-        {"sender": "TriageAgent", "content": "Hello, how can I help you?"},
+        {"sender": "TriageAgent", "content": "Hello, how can I help you?", "type": "assistant_message"},
     )
     
     # Reset mock for future tests
