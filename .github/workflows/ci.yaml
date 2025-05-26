@@ -40,7 +40,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    needs: python-lint
+    needs: static-analysis
     env:
       # Triage agent settings
       TRIAGE_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
