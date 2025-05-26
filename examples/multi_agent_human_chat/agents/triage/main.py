@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa: I001 - agents import should be in specific order
 
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport

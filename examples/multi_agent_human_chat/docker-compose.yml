@@ -211,3 +211,14 @@ services:
       --gunicorn-opts '--log-level debug'"
     networks:
       - eggai-example-network
+  lmstudio:
+    runtime: nvidia
+    image: vorobiev/lmstudio:8
+    environment:
+      MODEL_NAME: gemma-3-4b-it-qat
+      MODEL_PATH: /gemma-3-4B-it-QAT-Q4_0.gguf
+      CONTEXT_LENGTH: 32768
+    ports:
+      - "1234:1234"
+    networks:
+      - eggai-example-network

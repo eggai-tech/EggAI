@@ -17,7 +17,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from agents.triage.agent import handle_user_message
 from agents.triage.config import Settings
-from libraries.channels import channels, clear_channels
+from libraries.channels import channels
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage

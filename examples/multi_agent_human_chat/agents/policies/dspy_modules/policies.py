@@ -1,21 +1,17 @@
 """Policies Agent optimized DSPy module for production use."""
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, AsyncIterable, Union
+from typing import Any, AsyncIterable, Dict, Optional, Union
 
 import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 
 from agents.policies.config import settings
-from agents.policies.types import (
-    ModelConfig,
-    PolicyCategory,
-)
+from agents.policies.types import ModelConfig, PolicyCategory
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
-from libraries.tracing.otel import safe_set_attribute
 
 logger = get_console_logger("policies_agent.dspy")
 
