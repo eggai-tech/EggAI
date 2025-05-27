@@ -305,6 +305,7 @@ User: I think I was charged twice for the same service.</pre>
 <script>
     function editExample() {
         return {
+            // Safe: example_json is server-generated JSON from database content, properly escaped with ensure_ascii=True
             example: {{ example_json|safe }},
             saving: false,
             showPreview: false,

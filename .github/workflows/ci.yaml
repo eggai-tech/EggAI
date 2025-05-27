@@ -27,12 +27,16 @@ jobs:
         with:
           src: examples/multi_agent_human_chat
 
-      - name: Run SunarQube scan
+      - name: Run SonarQube scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           projectBaseDir: examples/multi_agent_human_chat
+          args: >
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
 
   integration:
     runs-on: gpu-runner-github-hosted

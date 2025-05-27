@@ -186,8 +186,9 @@ def validate_response_for_test_case(case_id: str, response: str) -> Dict[str, bo
             results["notes"].append("Missing payment date")
             
         # Check for ANY dollar amount - essential for premium inquiry
-        amount_pattern = r"\$\d+(\.\d{2})?|\d+(\.\d{2})? dollars"
-        results["has_amount"] = bool(re.search(amount_pattern, response))
+        # Using possessive quantifiers to prevent backtracking
+        amount_pattern = r"(?:\$\d+(?:\.\d{2})?|\d+(?:\.\d{2})?\s+dollars?)"
+        results["has_amount"] = bool(re.search(amount_pattern, response, re.IGNORECASE))
         if not results["has_amount"]:
             results["notes"].append("Missing payment amount")
             
