@@ -1,5 +1,7 @@
 # Multi-Agent Insurance Support System
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=eggai-tech_EggAI&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=eggai-tech_EggAI)
+
 AI agents collaborate in a multi-agent system to provide effective and personalized insurance support.
 
 The code for the example can be found [here](https://github.com/eggai-tech/EggAI/tree/main/examples/multi_agent_human_chat).
