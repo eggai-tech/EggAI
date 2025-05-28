@@ -68,6 +68,7 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
     Retrieves policy documentation based on a query and policy category.
     Returns a JSON-formatted string with the documentation results.
     """
+    logger.info(f"Tool called: query_policy_documentation(query='{query[:50]}...', policy_category='{policy_category}')")
     try:
         from agents.policies.rag.retrieving import retrieve_policies
 

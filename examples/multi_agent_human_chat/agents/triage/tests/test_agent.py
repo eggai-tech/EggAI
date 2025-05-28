@@ -420,7 +420,6 @@ async def test_triage_agent_simple(monkeypatch):
         # Get response and verify
         args, _ = mock_publish.call_args_list[0]
         agent = args[0].source
-        print(args)
         
         # Log result
         mlflow.log_metric("is_correct", 1.0 if agent == "TriageAgent" else 0.0)

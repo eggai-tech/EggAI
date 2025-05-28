@@ -240,21 +240,28 @@ def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = N
 
 
 if __name__ == "__main__":
-    # Test the policies DSPy module
-    test_conversation = (
-        "User: I need information about my policy.\n"
-        "PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?\n"
-        "User: My policy number is A12345\n"
-    )
-    
-    result = policies_optimized_dspy(test_conversation)
-    print(f"Response: {result.final_response}")
-    
-    if result.policy_category:
-        print(f"Policy category: {result.policy_category}")
-    
-    if result.policy_number:
-        print(f"Policy number: {result.policy_number}")
-    
-    if result.documentation_reference:
-        print(f"Documentation reference: {result.documentation_reference}")
+    async def run():
+        # Test the policies DSPy module
+        test_conversation = (
+            "User: I need information about my policy.\n"
+            "PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?\n"
+            "User: My policy number is A12345\n"
+        )
+
+        chunks = policies_optimized_dspy(test_conversation)
+
+        async for chunk in chunks:
+            if isinstance(chunk, StreamResponse):
+                print(f"Stream chunk: {chunk.chunk}")
+            elif isinstance(chunk, Prediction):
+                result = chunk
+                print(f"Final response: {result.final_response}")
+                if result.policy_category:
+                    print(f"Policy category: {result.policy_category}")
+                if result.policy_number:
+                    print(f"Policy number: {result.policy_number}")
+                if result.documentation_reference:
+                    print(f"Documentation reference: {result.documentation_reference}")
+
+    import asyncio
+    asyncio.run(run())

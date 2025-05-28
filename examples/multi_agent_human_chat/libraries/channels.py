@@ -43,6 +43,8 @@ async def clear_channels():
         await admin.delete_topics([channels.human, channels.human_stream, channels.agents, channels.audit_logs])
     except Exception as e:
         print(f"Error deleting topics: {e}")
+    finally:
+        await admin.close()
 
 
 if __name__ == "__main__":

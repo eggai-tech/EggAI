@@ -9,7 +9,7 @@ from agents.policies.config import settings
 from agents.policies.dspy_modules.current_state import set_current_connection_id
 from agents.policies.dspy_modules.policies import policies_optimized_dspy
 from agents.policies.types import ChatMessage, ModelConfig
-from libraries.channels import channels
+from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedMessage,
@@ -109,17 +109,13 @@ async def process_policy_request(
                         traceparent=child_traceparent,
                         tracestate=child_tracestate,
                     ))
-                    logger.debug(f"Chunk {chunk_count} sent: {chunk.chunk}")
-
                 elif isinstance(chunk, Prediction):
                     # Get the complete response
                     response = chunk.final_response
-                    # Remove any completion markers
                     if response:
                         response = response.replace(" [[ ## completed ## ]]", "")
-                        final_response = response
 
-                    # Send the end stream message
+                    logger.info(f"Sending stream end with response: {response[:100] if response else 'EMPTY'}")
                     await human_stream_channel.publish(TracedMessage(
                         type="agent_message_stream_end",
                         source="PoliciesAgent",
@@ -151,7 +147,10 @@ async def process_policy_request(
 
 
 @policies_agent.subscribe(
-    channel=agents_channel, filter_by_message=lambda msg: msg.get("type") == "policy_request"
+    channel=agents_channel, 
+    filter_by_message=lambda msg: msg.get("type") == "policy_request",
+    auto_offset_reset="latest",
+    group_id="policies_agent_group"
 )
 @traced_handler("handle_policy_request")
 async def handle_policy_request(msg: TracedMessage) -> None:
@@ -212,6 +211,9 @@ if __name__ == "__main__":
         from libraries.dspy_set_language_model import dspy_set_language_model
 
         dspy_set_language_model(settings)
+
+        await clear_channels()
+
         test_conversation = (
             "User: I need information about my policy.\n"
             "PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?\n"
@@ -225,7 +227,6 @@ if __name__ == "__main__":
                 logger.info(f"Chunk: {chunk.chunk}")
             elif isinstance(chunk, Prediction):
                 logger.info(f"Final response: {chunk.final_response}")
-                logger.info(chunk.get_lm_usage())
 
 
     asyncio.run(run())
