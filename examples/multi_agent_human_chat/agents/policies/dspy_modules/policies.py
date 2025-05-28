@@ -153,6 +153,7 @@ policies_model = TracedReAct(
     name="policies_react",
     tracer=policies_tracer,
     max_iters=5,
+    model_name=settings.language_model,
 )
 
 # Flag to indicate if we're using optimized prompts (from JSON)

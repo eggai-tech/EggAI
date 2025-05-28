@@ -201,6 +201,7 @@ class TracedReAct(dspy.ReAct):
         max_iters: Optional[int] = 5,
         name: Optional[str] = None,
         tracer: Optional[trace.Tracer] = None,
+        model_name: str = "claude",
     ):
         super().__init__(signature, tools=tools, max_iters=max_iters)
         self.trace_name = name or self.__class__.__name__.lower()
