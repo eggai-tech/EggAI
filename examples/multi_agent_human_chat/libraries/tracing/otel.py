@@ -89,7 +89,7 @@ def safe_set_attribute(span, key: str, value: Any) -> None:
             pass
 
 
-def init_telemetry(app_name: str, endpoint: Optional[str] = None, **kwargs) -> None:
+def init_telemetry(app_name: str, endpoint: Optional[str] = None) -> None:
     """
     Initialize OpenTelemetry.
 

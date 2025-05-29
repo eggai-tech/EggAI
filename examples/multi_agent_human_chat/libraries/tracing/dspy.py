@@ -67,20 +67,24 @@ class TracedChainOfThought(dspy.ChainOfThought):
     def __call__(self, *args, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_call") as span:
             add_gen_ai_attributes_to_span(span)
+            span.set_attribute("dspy.call_args", str(args))
+            span.set_attribute("dspy.call_kwargs", str(kwargs))
             return super().__call__(*args, **kwargs)
 
     def forward(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_forward") as span:
             add_gen_ai_attributes_to_span(span)
+            span.set_attribute("dspy.forward_args", str(kwargs))
             return super().forward(**kwargs)
 
     def predict(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_predict") as span:
             add_gen_ai_attributes_to_span(span)
+            span.set_attribute("dspy.predict_args", str(kwargs))
             return super().predict(**kwargs)
 
 
-def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
+def traced_dspy_function(name=None, span_namer=None):
     """
     Decorator to add tracing to DSPy functions.
 
@@ -90,7 +94,6 @@ def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
     Args:
         name: Optional name for the span (defaults to function name)
         span_namer: Optional function to derive span name from arguments
-        model_name: Optional model name for gen_ai attributes
 
     Returns:
         Decorated function with tracing
@@ -110,7 +113,7 @@ def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
 
             # Use the common helper function for attribute setting
             add_gen_ai_attributes_to_span(
-                span, model_name=model_name, **extracted_attrs
+                span, **extracted_attrs
             )
 
         @functools.wraps(fn)
@@ -211,17 +214,22 @@ class TracedReAct(dspy.ReAct):
     def __call__(self, *args, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_call") as span:
             add_gen_ai_attributes_to_span(span, model_name=self.model_name)
-            return super().__call__(*args, **kwargs)
+            span.set_attribute("dspy.call_args", str(args))
+            span.set_attribute("dspy.call_kwargs", str(kwargs))
+            res = super().__call__(*args, **kwargs)
+            logger.info("ReAct call completed, result: %s", res)
+            logger.info("lm usage: %s", res._lm_usage)
+            return res
+
 
     def forward(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_forward") as span:
             add_gen_ai_attributes_to_span(span, model_name=self.model_name)
-            return super().forward(**kwargs)
-
-    def predict(self, **kwargs):
-        with self.tracer.start_as_current_span(f"{self.trace_name}_predict") as span:
-            add_gen_ai_attributes_to_span(span, model_name=self.model_name)
-            return super().predict(**kwargs)
+            span.set_attribute("dspy.forward_args", str(kwargs))
+            res = super().forward(**kwargs)
+            logger.info("ReAct forward completed, result: %s", res)
+            logger.info("lm usage: %s", res._lm_usage)
+            return res
 
     @staticmethod
     def load_signature(path):
