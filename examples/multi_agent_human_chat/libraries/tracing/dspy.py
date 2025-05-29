@@ -12,6 +12,7 @@ from typing import Callable, List, Optional
 import dspy
 from opentelemetry import trace
 
+from libraries.dspy_set_language_model import TrackingLM
 from libraries.logger import get_console_logger
 from libraries.tracing.otel import safe_set_attribute
 from libraries.tracing.schemas import GenAIAttributes
@@ -67,20 +68,24 @@ class TracedChainOfThought(dspy.ChainOfThought):
     def __call__(self, *args, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_call") as span:
             add_gen_ai_attributes_to_span(span)
+            span.set_attribute("dspy.call_args", str(args))
+            span.set_attribute("dspy.call_kwargs", str(kwargs))
             return super().__call__(*args, **kwargs)
 
     def forward(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_forward") as span:
             add_gen_ai_attributes_to_span(span)
+            span.set_attribute("dspy.forward_args", str(kwargs))
             return super().forward(**kwargs)
 
     def predict(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_predict") as span:
             add_gen_ai_attributes_to_span(span)
+            span.set_attribute("dspy.predict_args", str(kwargs))
             return super().predict(**kwargs)
 
 
-def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
+def traced_dspy_function(name=None, span_namer=None):
     """
     Decorator to add tracing to DSPy functions.
 
@@ -90,7 +95,6 @@ def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
     Args:
         name: Optional name for the span (defaults to function name)
         span_namer: Optional function to derive span name from arguments
-        model_name: Optional model name for gen_ai attributes
 
     Returns:
         Decorated function with tracing
@@ -109,9 +113,7 @@ def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
                 extracted_attrs["service_tier"] = kwargs.get("service_tier")
 
             # Use the common helper function for attribute setting
-            add_gen_ai_attributes_to_span(
-                span, model_name=model_name, **extracted_attrs
-            )
+            add_gen_ai_attributes_to_span(span, **extracted_attrs)
 
         @functools.wraps(fn)
         def sync_wrapper(*args, **kwargs):
@@ -201,7 +203,6 @@ class TracedReAct(dspy.ReAct):
         max_iters: Optional[int] = 5,
         name: Optional[str] = None,
         tracer: Optional[trace.Tracer] = None,
-        model_name: str = "claude",
     ):
         super().__init__(signature, tools=tools, max_iters=max_iters)
         self.trace_name = name or self.__class__.__name__.lower()
@@ -209,36 +210,32 @@ class TracedReAct(dspy.ReAct):
 
     def __call__(self, *args, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_call") as span:
-            add_gen_ai_attributes_to_span(span)
-            return super().__call__(*args, **kwargs)
+            span.set_attribute("dspy.call_args", str(args))
+            span.set_attribute("dspy.call_kwargs", str(kwargs))
+            res = super().__call__(*args, **kwargs)
+            usage = res.get_lm_usage()
+            if usage:
+                model_name = list(usage.keys())[0] if usage else "unknown_model"
+                add_gen_ai_attributes_to_span(span, model_name=model_name)
+                for k, v in usage[model_name].items():
+                    if v is not None and not isinstance(v, dict):
+                        span.set_attribute(k, v)
+
+            return res
 
     def forward(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_forward") as span:
             add_gen_ai_attributes_to_span(span)
-            return super().forward(**kwargs)
-
-    def predict(self, **kwargs):
-        with self.tracer.start_as_current_span(f"{self.trace_name}_predict") as span:
-            add_gen_ai_attributes_to_span(span)
-            return super().predict(**kwargs)
-
-    @staticmethod
-    def load_signature(path):
-        """
-        Load a signature from a JSON file saved by an optimizer.
-        """
-        logger.info(f"Loading signature from {path}")
-        try:
-            # First try to load it as a signature
-            signature = dspy.Signature.load(path)
-            return signature
-        except Exception as e:
-            # If that fails, try to load as a Predict and extract the signature
-            logger.warning(f"Failed to load as signature directly: {e}")
-            try:
-                predict = dspy.Predict.load(path)
-                if hasattr(predict, "signature"):
-                    return predict.signature
-            except Exception as e2:
-                logger.error(f"Failed to load signature: {e2}")
-                raise ValueError(f"Could not load signature from {path}")
+            span.set_attribute("dspy.forward_args", str(kwargs))
+            res = super().forward(**kwargs)
+            lm: TrackingLM = dspy.settings.get("lm")
+            prompt = lm.history[-1].get("prompt", "")
+            if prompt:
+                span.set_attribute("dspy.prompt", prompt)
+            messages = lm.history[-1].get("messages", [])
+            if messages:
+                concatenated_contents = "\n".join(
+                    msg.get("content", "") for msg in messages if isinstance(msg, dict)
+                )
+                span.set_attribute("dspy.messages", concatenated_contents)
+            return res
