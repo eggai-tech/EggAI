@@ -205,21 +205,22 @@ class TracedReAct(dspy.ReAct):
     ):
         super().__init__(signature, tools=tools, max_iters=max_iters)
         self.trace_name = name or self.__class__.__name__.lower()
+        self.model_name = model_name
         self.tracer = tracer or trace.get_tracer(f"dspy.{self.trace_name}")
 
     def __call__(self, *args, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_call") as span:
-            add_gen_ai_attributes_to_span(span)
+            add_gen_ai_attributes_to_span(span, model_name=self.model_name)
             return super().__call__(*args, **kwargs)
 
     def forward(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_forward") as span:
-            add_gen_ai_attributes_to_span(span)
+            add_gen_ai_attributes_to_span(span, model_name=self.model_name)
             return super().forward(**kwargs)
 
     def predict(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_predict") as span:
-            add_gen_ai_attributes_to_span(span)
+            add_gen_ai_attributes_to_span(span, model_name=self.model_name)
             return super().predict(**kwargs)
 
     @staticmethod

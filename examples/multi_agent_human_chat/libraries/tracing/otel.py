@@ -91,23 +91,29 @@ def init_telemetry(
     Args:
         app_name: The name of the application for OpenTelemetry
         endpoint: Optional OTLP endpoint URL (defaults to env OTEL_ENDPOINT or localhost)
-        **kwargs: Additional configuration parameters for openlit.init
+        **kwargs: Additional configuration parameters (unused after openlit removal)
     """
-    import openlit
+    # Initialize OpenTelemetry directly
+    from opentelemetry import trace
+    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
     
-    # Initialize OpenTelemetry with openlit
     otlp_endpoint = endpoint or os.getenv("OTEL_ENDPOINT", "http://localhost:4318")
-    config = {
-        "application_name": app_name,
-        "otlp_endpoint": otlp_endpoint,
-        "disabled_instrumentors": ["langchain"],
-    }
-
-    # FIXME we need to disable temporarily auto-instrumentation for openai because async streaming it's bugged in openlit
-    config["disabled_instrumentors"].append("openai")
-
-    config.update(kwargs)
-    openlit.init(**config)
+    
+    # Set up resource
+    resource = Resource.create({"service.name": app_name})
+    
+    # Set up tracer provider
+    trace.set_tracer_provider(TracerProvider(resource=resource))
+    
+    # Set up OTLP exporter
+    otlp_exporter = OTLPSpanExporter(endpoint=f"{otlp_endpoint}/v1/traces")
+    
+    # Add span processor
+    span_processor = BatchSpanProcessor(otlp_exporter)
+    trace.get_tracer_provider().add_span_processor(span_processor)
     
     # After initialization, get the actual Span class to patch
     # We need to do this after OpenTelemetry is initialized
