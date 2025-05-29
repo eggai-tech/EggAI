@@ -13,6 +13,7 @@ from triage_agent_dataset.models import Agents, ConversationExample, SpecialCase
 
 config = AppConfig()
 
+
 def deserialize_response(response: str):
     """
     Deserialize a conversation string into a dictionary.
@@ -28,17 +29,15 @@ def deserialize_response(response: str):
         if line.startswith("#conversation#"):
             continue
         elif line.startswith("#target_agent#"):
-            target_agent = line[len("#target_agent#"):].strip()
+            target_agent = line[len("#target_agent#") :].strip()
         else:
             parts = line.split(":", 1)
             if len(parts) != 2:
                 continue
             role, content = parts[0].strip(), parts[1].strip()
             conversation += f"{role}: {content}\n"
-    return {
-        "conversation": conversation,
-        "target_agent": target_agent
-    }
+    return {"conversation": conversation, "target_agent": target_agent}
+
 
 async def generate_examples(
     target_agent: Agents,
@@ -52,6 +51,7 @@ async def generate_examples(
     Asynchronously generate a batch of examples for the given target agent and combination.
     Updates the provided tqdm progress bar after each example.
     """
+
     def add_metadata(example, index_batch):
         return ConversationExample(
             conversation=example["conversation"],
@@ -61,14 +61,19 @@ async def generate_examples(
             index_batch=index_batch,
             total_batch=num_examples,
             special_case=special_case.value if special_case else None,
-            model=config.MODEL
+            model=config.MODEL,
         )
 
     local_batch = []
     messages = [
         {
             "role": "system",
-            "content": SYSTEM_PROMPT + (SPECIAL_CASE_ADDITIONAL_INSTRUCTIONS.get(special_case.value, "") if special_case else ""),
+            "content": SYSTEM_PROMPT
+            + (
+                SPECIAL_CASE_ADDITIONAL_INSTRUCTIONS.get(special_case.value, "")
+                if special_case
+                else ""
+            ),
         },
         {
             "role": "user",
@@ -85,15 +90,19 @@ async def generate_examples(
             )
             parsed = deserialize_response(response.choices[0].message.content)
             local_batch.append(add_metadata(parsed, idx))
-            messages.append({
-                "role": "assistant",
-                "content": response.choices[0].message.content,
-            })
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": response.choices[0].message.content,
+                }
+            )
         else:
-            messages.append({
-                "role": "user",
-                "content": f"Generate another example for the dataset. The #target_agent# should be {target_agent.value}. The number of messages in the conversation should be {turns}. Remember the first and the latest turn are from the user.",
-            })
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"Generate another example for the dataset. The #target_agent# should be {target_agent.value}. The number of messages in the conversation should be {turns}. Remember the first and the latest turn are from the user.",
+                }
+            )
             response = await litellm.acompletion(
                 model=config.MODEL,
                 messages=messages,
@@ -101,15 +110,20 @@ async def generate_examples(
             )
             parsed = deserialize_response(response.choices[0].message.content)
             local_batch.append(add_metadata(parsed, idx))
-            messages.append({
-                "role": "assistant",
-                "content": response.choices[0].message.content,
-            })
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": response.choices[0].message.content,
+                }
+            )
         if progress is not None:
             progress.update(1)
     return local_batch
 
-async def generate_conversation_per_agent(agent: Agents, turns: list, temperatures: list, progress: tqdm) -> list:
+
+async def generate_conversation_per_agent(
+    agent: Agents, turns: list, temperatures: list, progress: tqdm
+) -> list:
     tasks = []
     agent_frac = config.AGENT_DISTRIBUTION.get(agent.value, 0)
     agent_target = max(round(config.TOTAL_TARGET * agent_frac), 1)
@@ -121,15 +135,19 @@ async def generate_conversation_per_agent(agent: Agents, turns: list, temperatur
             for special_key, frac in config.SPECIAL_CASE_DISTRIBUTION.items():
                 count = round(ideal_per_combo * frac)
                 count = max(count, 1)
-                special = None if special_key == "none" else SpecialCaseType(special_key)
+                special = (
+                    None if special_key == "none" else SpecialCaseType(special_key)
+                )
 
-                tasks.append(generate_examples(
-                    agent,
-                    count,
-                    temperature,
-                    turn,
-                    special_case=special,
-                    progress=progress
-                ))
+                tasks.append(
+                    generate_examples(
+                        agent,
+                        count,
+                        temperature,
+                        turn,
+                        special_case=special,
+                        progress=progress,
+                    )
+                )
     results = await asyncio.gather(*tasks)
     return [example for sublist in results for example in sublist]

@@ -3,6 +3,7 @@
 This module contains all type definitions used throughout the escalation agent code,
 providing consistent typing and improving code maintainability.
 """
+
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from pydantic import BaseModel, Field
@@ -22,12 +23,14 @@ TicketingAgentSignature = Any  # Will be imported from dspy modules when created
 
 class ChatMessage(TypedDict, total=False):
     """Type definition for a chat message."""
+
     content: str  # Required message content
     role: str  # Typically "User" or "TicketingAgent", optional with default "User"
 
 
 class MessageData(TypedDict, total=False):
     """Type definition for message data in ticketing requests."""
+
     chat_messages: List[ChatMessage]  # The conversation history
     connection_id: str  # Unique identifier for the conversation
     message_id: str  # Unique identifier for the message
@@ -36,6 +39,7 @@ class MessageData(TypedDict, total=False):
 
 class TicketingRequestMessage(TypedDict):
     """Type definition for a ticketing request message."""
+
     id: str  # Unique message identifier
     type: Literal["ticketing_request"]  # Message type
     source: str  # Source of the message
@@ -46,6 +50,7 @@ class TicketingRequestMessage(TypedDict):
 
 class TracedMessageDict(TypedDict, total=False):
     """Type definition for traced message dictionary."""
+
     id: str  # Message ID
     type: str  # Message type
     source: str  # Message source
@@ -56,39 +61,57 @@ class TracedMessageDict(TypedDict, total=False):
 
 class ModelConfig(BaseModel):
     """Configuration for the ticketing DSPy model."""
+
     name: str = Field("ticketing_agent", description="Name of the model")
-    max_iterations: int = Field(5, description="Maximum iterations for the model", ge=1, le=10)
+    max_iterations: int = Field(
+        5, description="Maximum iterations for the model", ge=1, le=10
+    )
     use_tracing: bool = Field(True, description="Whether to trace model execution")
     cache_enabled: bool = Field(False, description="Whether to enable model caching")
-    timeout_seconds: float = Field(30.0, description="Timeout for model inference in seconds", ge=1.0)
+    timeout_seconds: float = Field(
+        30.0, description="Timeout for model inference in seconds", ge=1.0
+    )
 
 
 class SessionData(BaseModel):
     """Data structure for session data with validation."""
-    step: WorkflowStep = Field("ask_additional_data", description="Current workflow step")
-    department: Optional[TicketDepartment] = Field(None, description="Department for the ticket")
+
+    step: WorkflowStep = Field(
+        "ask_additional_data", description="Current workflow step"
+    )
+    department: Optional[TicketDepartment] = Field(
+        None, description="Department for the ticket"
+    )
     title: Optional[str] = Field(None, description="Title of the ticket")
-    contact_info: Optional[str] = Field(None, description="Contact information of the user")
-    
+    contact_info: Optional[str] = Field(
+        None, description="Contact information of the user"
+    )
+
     model_config = {"validate_assignment": True}
 
 
 class TicketInfo(BaseModel):
     """Data structure for ticket information with validation."""
+
     id: str = Field(..., description="Unique identifier for the ticket")
     department: TicketDepartment = Field(..., description="Department for the ticket")
     title: str = Field(..., description="Title of the ticket")
     contact_info: str = Field(..., description="Contact information of the user")
     created_at: str = Field(..., description="Creation timestamp")
-    
+
     model_config = {"extra": "forbid"}  # Prevent extra fields for security
 
 
 class ModelResult(BaseModel):
     """Result of a model prediction."""
+
     message: str = Field(..., description="The generated message to the user")
-    processing_time_ms: float = Field(..., description="Processing time in milliseconds", ge=0)
-    success: bool = Field(True, description="Whether the model execution was successful")
+    processing_time_ms: float = Field(
+        ..., description="Processing time in milliseconds", ge=0
+    )
+    success: bool = Field(
+        True, description="Whether the model execution was successful"
+    )
     error: Optional[str] = Field(None, description="Error message if execution failed")
-    
+
     model_config = {"validate_assignment": True}

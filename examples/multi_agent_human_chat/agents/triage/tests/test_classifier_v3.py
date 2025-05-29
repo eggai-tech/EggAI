@@ -26,7 +26,9 @@ async def test_classifier_v3():
     mlflow.set_experiment("triage_classifier")
 
     classifier_version = "classifier_v3"
-    model = f"{settings.classifier_v3_model_name}_{settings.classifier_v3_model_version}"
+    model = (
+        f"{settings.classifier_v3_model_name}_{settings.classifier_v3_model_version}"
+    )
     model_name = f"{classifier_version}_{model}"
     run_name = f"test_{model_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 
@@ -48,11 +50,11 @@ async def test_classifier_v3():
                     "conversation": case.conversation,
                     "expected_agent": case.target_agent,
                     "predicted_agent": res.target_agent,
-                    "metrics": res.metrics
+                    "metrics": res.metrics,
                 }
             )
 
-        #log the metrics on mlflow
+        # log the metrics on mlflow
         def ms(vals):
             return statistics.mean(vals) * 1_000
 
@@ -69,7 +71,8 @@ async def test_classifier_v3():
             "accuracy": accuracy * 100,
             # latency
             "latency_mean_ms": ms(latencies_sec),
-            "latency_p95_ms": ms(latencies_sec) * 0 + p95(latencies_sec) * 1_000,  # p95 in ms
+            "latency_p95_ms": ms(latencies_sec) * 0
+            + p95(latencies_sec) * 1_000,  # p95 in ms
             "latency_max_ms": max(latencies_sec) * 1_000,
             # tokens
             "tokens_total": sum(total_tok_counts),

@@ -13,7 +13,9 @@ def find_model(model_name: str, version: str, artifact_path: str = "model") -> s
     pickle_path = cache_path / model_name / version / artifact_path / "model.pkl"
     if pickle_path.exists():
         return str(pickle_path)
-    pytorch_path = cache_path / model_name / version / artifact_path / "data" / "model.pth"
+    pytorch_path = (
+        cache_path / model_name / version / artifact_path / "data" / "model.pth"
+    )
     if pytorch_path.exists():
         return str(pytorch_path)
 

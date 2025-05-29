@@ -11,7 +11,9 @@ load_dotenv()
 class AttentionNetSettings(BaseSettings):
     # Model configuration
     n_classes: int = Field(default=5)
-    model_name_template: str = Field(default="attention_net_{dropout_rate}_{learning_rate}")
+    model_name_template: str = Field(
+        default="attention_net_{dropout_rate}_{learning_rate}"
+    )
     embedding_dim: int = Field(default=384)
     hidden_dims: tuple[int, int] = Field(default=(256, 128))
     dropout_rate: float = Field(default=0.25)
@@ -81,7 +83,7 @@ class AttentionNetSettings(BaseSettings):
         env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
-        protected_namespaces=('settings_',)  # Fix for model_name_template warning
+        protected_namespaces=("settings_",),  # Fix for model_name_template warning
     )
 
 

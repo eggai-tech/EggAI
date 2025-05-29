@@ -7,17 +7,18 @@ from libraries.logger import get_console_logger
 
 logger = get_console_logger("triage.dspy_modules")
 
+
 def generate_report(results, report_name):
     test_results = []
     token_counts = {"prompt": [], "completion": [], "total": []}
-    
+
     for example, pred, score in results:
         # Extract token count metrics if available
         if hasattr(pred, "metrics") and pred.metrics:
             token_counts["prompt"].append(pred.metrics.prompt_tokens)
             token_counts["completion"].append(pred.metrics.completion_tokens)
             token_counts["total"].append(pred.metrics.total_tokens)
-            
+
         test_results.append(
             {
                 "conversation": example.chat_history,
@@ -25,24 +26,35 @@ def generate_report(results, report_name):
                 "actual_target": pred.target_agent,
                 "status": "PASS" if score else "FAIL",
                 "token_stats": {
-                    "prompt": getattr(pred.metrics, "prompt_tokens", 0) if hasattr(pred, "metrics") else 0,
-                    "completion": getattr(pred.metrics, "completion_tokens", 0) if hasattr(pred, "metrics") else 0,
-                    "total": getattr(pred.metrics, "total_tokens", 0) if hasattr(pred, "metrics") else 0,
-                } if hasattr(pred, "metrics") else None
+                    "prompt": getattr(pred.metrics, "prompt_tokens", 0)
+                    if hasattr(pred, "metrics")
+                    else 0,
+                    "completion": getattr(pred.metrics, "completion_tokens", 0)
+                    if hasattr(pred, "metrics")
+                    else 0,
+                    "total": getattr(pred.metrics, "total_tokens", 0)
+                    if hasattr(pred, "metrics")
+                    else 0,
+                }
+                if hasattr(pred, "metrics")
+                else None,
             }
         )
 
-    success_percentage = (len([r for r in test_results if r["status"] == "PASS"]) / len(test_results)) * 100
+    success_percentage = (
+        len([r for r in test_results if r["status"] == "PASS"]) / len(test_results)
+    ) * 100
     summary = {
         "total": len(test_results),
         "success": len([r for r in test_results if r["status"] == "PASS"]),
         "failure": len([r for r in test_results if r["status"] == "FAIL"]),
         "success_percentage": f"{success_percentage:.2f}",
     }
-    
+
     # Add token usage statistics to summary if available
     if token_counts["total"]:
         import statistics
+
         summary["token_usage"] = {
             "prompt_avg": statistics.mean(token_counts["prompt"]),
             "completion_avg": statistics.mean(token_counts["completion"]),
@@ -175,7 +187,7 @@ def write_html_report(test_results, summary, report_name):
         current_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         test_results=test_results,
         summary=summary,
-        report_name=report_name
+        report_name=report_name,
     )
 
     # Define the filename
@@ -189,10 +201,26 @@ def write_html_report(test_results, summary, report_name):
 
     return filepath
 
+
 if __name__ == "__main__":
     import dspy
-    logger.info(generate_report([(
-        dspy.Example(chat_history="Hello, I have a problem with my billing", target_agent="billing"),
-        dspy.Prediction(target_agent="billing", confidence=0.98, reasoning="High confidence"),
-        True
-    )], "test-report"))
+
+    logger.info(
+        generate_report(
+            [
+                (
+                    dspy.Example(
+                        chat_history="Hello, I have a problem with my billing",
+                        target_agent="billing",
+                    ),
+                    dspy.Prediction(
+                        target_agent="billing",
+                        confidence=0.98,
+                        reasoning="High confidence",
+                    ),
+                    True,
+                )
+            ],
+            "test-report",
+        )
+    )

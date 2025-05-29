@@ -13,7 +13,7 @@ from .config import settings
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
+        ssl_cert=settings.kafka_ca_content,
     )
 )
 
@@ -26,15 +26,15 @@ logger = get_console_logger("claims_agent")
 @eggai_main
 async def main():
     logger.info(f"Starting {settings.app_name}")
-    
+
     # Initialize telemetry and language model
     init_telemetry(app_name=settings.app_name)
     dspy_set_language_model(settings)
-    
+
     # Start the agent
     await claims_agent.start()
     logger.info(f"{settings.app_name} started successfully")
-    
+
     # Wait indefinitely
     await asyncio.Future()
 

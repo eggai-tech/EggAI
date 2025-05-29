@@ -40,7 +40,7 @@ else:
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
+        ssl_cert=settings.kafka_ca_content,
     )
 )
 
@@ -56,13 +56,12 @@ tracer = trace.get_tracer("frontend_agent")
 def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
     @app.websocket(route)
     async def websocket_handler(
-            websocket: WebSocket, 
-            connection_id: str = Query(None, alias="connection_id")
+        websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
     ):
         if server.should_exit:
             websocket.state.closed = True
             return
-            
+
         if connection_id is None:
             connection_id = str(uuid.uuid4())
 
@@ -77,28 +76,32 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                 f"{root_span_ctx.span_id:016x}-"
                 f"{root_span_ctx.trace_flags:02x}"
             )
-            safe_set_attribute(root_span, 'connection.id', str(connection_id))
-            trace_state = str(root_span_ctx.trace_state) if root_span_ctx.trace_state else ""
+            safe_set_attribute(root_span, "connection.id", str(connection_id))
+            trace_state = (
+                str(root_span_ctx.trace_state) if root_span_ctx.trace_state else ""
+            )
 
         # Extract span context for child spans
         root_span_ctx = extract_span_context(trace_parent, trace_state)
-        parent_context = trace.set_span_in_context(trace.NonRecordingSpan(root_span_ctx))
-        
+        parent_context = trace.set_span_in_context(
+            trace.NonRecordingSpan(root_span_ctx)
+        )
+
         with tracer.start_as_current_span(
-                "websocket_connection",
-                context=parent_context,
-                kind=trace.SpanKind.SERVER
+            "websocket_connection", context=parent_context, kind=trace.SpanKind.SERVER
         ) as span:
             try:
-                safe_set_attribute(span, 'connection.id', str(connection_id))
+                safe_set_attribute(span, "connection.id", str(connection_id))
                 await websocket_manager.connect(websocket, connection_id)
                 await websocket_manager.send_message_to_connection(
                     connection_id, {"connection_id": connection_id}
                 )
-                
+
                 while True:
                     try:
-                        data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
+                        data = await asyncio.wait_for(
+                            websocket.receive_json(), timeout=1
+                        )
                     except asyncio.TimeoutError:
                         if server.should_exit:
                             await websocket_manager.disconnect(connection_id)
@@ -109,7 +112,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                                     conn.shutdown()
                             break
                         continue
-                        
+
                     message_id = str(uuid.uuid4())
                     content = data.get("payload")
 
@@ -144,7 +147,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             "agent": "User",
                         }
                     )
-                    
+
                     await human_channel.publish(
                         TracedMessage(
                             id=message_id,
@@ -158,18 +161,19 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             tracestate=trace_state,
                         )
                     )
-                    
+
             except WebSocketDisconnect:
                 logger.info(f"WebSocket disconnected: {connection_id}")
             except Exception as e:
-                logger.error(f"Error with WebSocket {connection_id}: {e}", exc_info=True)
+                logger.error(
+                    f"Error with WebSocket {connection_id}: {e}", exc_info=True
+                )
             finally:
                 await websocket_manager.disconnect(connection_id)
                 logger.info(f"WebSocket connection {connection_id} closed.")
 
-@frontend_agent.subscribe(
-    channel=human_stream_channel
-)
+
+@frontend_agent.subscribe(channel=human_stream_channel)
 async def handle_human_stream_messages(message: TracedMessage):
     message_type = message.type
     agent = message.source
@@ -179,20 +183,32 @@ async def handle_human_stream_messages(message: TracedMessage):
     if message_type == "agent_message_stream_start":
         logger.info(f"Starting stream for message {message_id} from {agent}")
         await websocket_manager.send_message_to_connection(
-            connection_id, {"sender": agent, "content": "", "type": "assistant_message_stream_start"}
+            connection_id,
+            {"sender": agent, "content": "", "type": "assistant_message_stream_start"},
         )
 
     elif message_type == "agent_message_stream_waiting_message":
         message = message.data.get("message")
         await websocket_manager.send_message_to_connection(
-            connection_id, {"sender": agent, "content": message, "type": "assistant_message_stream_waiting_message"}
+            connection_id,
+            {
+                "sender": agent,
+                "content": message,
+                "type": "assistant_message_stream_waiting_message",
+            },
         )
 
     elif message_type == "agent_message_stream_chunk":
         chunk = message.data.get("message_chunk", "")
         chunk_index = message.data.get("chunk_index")
         await websocket_manager.send_message_to_connection(
-            connection_id, {"sender": agent, "content": chunk, "chunk_index": chunk_index, "type": "assistant_message_stream_chunk"}
+            connection_id,
+            {
+                "sender": agent,
+                "content": chunk,
+                "chunk_index": chunk_index,
+                "type": "assistant_message_stream_chunk",
+            },
         )
     elif message_type == "agent_message_stream_end":
         final_content = message.data.get("message", "")
@@ -205,7 +221,12 @@ async def handle_human_stream_messages(message: TracedMessage):
             }
         )
         await websocket_manager.send_message_to_connection(
-            connection_id, {"sender": agent, "content": final_content, "type": "assistant_message_stream_end"}
+            connection_id,
+            {
+                "sender": agent,
+                "content": final_content,
+                "type": "assistant_message_stream_end",
+            },
         )
 
 
@@ -230,7 +251,8 @@ async def handle_human_messages(message: TracedMessage):
                 "id": message_id,
             }
         )
-        
+
         await websocket_manager.send_message_to_connection(
-            connection_id, {"sender": agent, "content": content, "type": "assistant_message"}
+            connection_id,
+            {"sender": agent, "content": content, "type": "assistant_message"},
         )

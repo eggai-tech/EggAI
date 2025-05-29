@@ -29,11 +29,14 @@ AGENT_REGISTRY = {
             "their insurance needs. When User asks about an off topic question, you will kindly redirect the user to ask "
             "about their insurance needs, specifying that you are not a human and cannot answer those questions."
         )
-    }
+    },
 }
 
 formatted_registry = "\n".join(
-    [f"- {agent.value}: {details['description']}" for agent, details in AGENT_REGISTRY.items()]
+    [
+        f"- {agent.value}: {details['description']}"
+        for agent, details in AGENT_REGISTRY.items()
+    ]
 )
 
 SYSTEM_PROMPT = f"""
@@ -87,5 +90,5 @@ SPECIAL_CASE_ADDITIONAL_INSTRUCTIONS = {
         "Create a conversation where the user is angry or frustrated, and the #target_agent# needs to handle the situation delicately.\n"
         "The customer will even use profanity and insults."
     ),
-    "technical_error": "Create a conversation that presents a technical error scenario requiring the #target_agent# to manage system issues."
+    "technical_error": "Create a conversation that presents a technical error scenario requiring the #target_agent# to manage system issues.",
 }

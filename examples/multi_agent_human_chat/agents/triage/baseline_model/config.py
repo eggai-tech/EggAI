@@ -85,11 +85,11 @@ class FewshotSettings(BaseSettings):
         }
 
     model_config = SettingsConfigDict(
-        env_prefix="FEWSHOT_", 
-        env_file=".env", 
-        env_ignore_empty=True, 
+        env_prefix="FEWSHOT_",
+        env_file=".env",
+        env_ignore_empty=True,
         extra="ignore",
-        protected_namespaces=('settings_',)  # Fix for model_name_template warning
+        protected_namespaces=("settings_",),  # Fix for model_name_template warning
     )
 
 

@@ -32,16 +32,16 @@ class Trainer:
     """
 
     def __init__(
-            self,
-            model: AttentionBasedClassifier,
-            optimizer: torch.optim.Optimizer,
-            loss: nn.Module,
-            scheduler: LambdaLR,
-            max_num_epochs: int,
-            patience: int,
-            checkpoint_dir: str,
-            train_dataset: dict[str, int],
-            val_dataset: dict[str, int]
+        self,
+        model: AttentionBasedClassifier,
+        optimizer: torch.optim.Optimizer,
+        loss: nn.Module,
+        scheduler: LambdaLR,
+        max_num_epochs: int,
+        patience: int,
+        checkpoint_dir: str,
+        train_dataset: dict[str, int],
+        val_dataset: dict[str, int],
     ):
         self.optimizer = optimizer
         self.loss = loss
@@ -109,10 +109,15 @@ class Trainer:
             logger.info(f"Validation loss: {loss:.4f}, accuracy: {acc:.4f}")
             model = self.model_wrapper.attention_net
             # Save checkpoint
-            torch.save(model.state_dict(), self.checkpoint_dir / f"checkpoint_{self.num_iterations}.pth")
+            torch.save(
+                model.state_dict(),
+                self.checkpoint_dir / f"checkpoint_{self.num_iterations}.pth",
+            )
             # Save best model if loss is lower than previous best
             if loss < self.best_loss:
-                logger.info(f"Saving new best model with loss: {loss:.4f}, accuracy: {acc:.4f}")
+                logger.info(
+                    f"Saving new best model with loss: {loss:.4f}, accuracy: {acc:.4f}"
+                )
                 # Save best model
                 torch.save(model.state_dict(), self.checkpoint_dir / "best_model.pth")
                 self.best_loss = loss
@@ -125,7 +130,11 @@ class Trainer:
                     break
 
             # log current learning rate to mlflow
-            mlflow.log_metric("learning_rate", self.optimizer.param_groups[0]["lr"], step=self.num_iterations)
+            mlflow.log_metric(
+                "learning_rate",
+                self.optimizer.param_groups[0]["lr"],
+                step=self.num_iterations,
+            )
             self.scheduler.step()
 
     def validate(self) -> tuple[float, float]:
@@ -150,7 +159,9 @@ class Trainer:
                 target = torch.LongTensor([label]).to(get_device())
 
                 # Forward pass
-                probs, logits, _, _ = self.model_wrapper.predict_probab(chat_history, return_logits=True)
+                probs, logits, _, _ = self.model_wrapper.predict_probab(
+                    chat_history, return_logits=True
+                )
                 loss = self.loss(logits, target)
                 val_losses.append(loss.item())
 
@@ -183,7 +194,9 @@ def main() -> int:
 
     # sample test data
     if settings.n_test_samples > 0:
-        logger.info(f"Sampling {settings.n_test_samples} out of {len(test_dataset)} test samples for validation")
+        logger.info(
+            f"Sampling {settings.n_test_samples} out of {len(test_dataset)} test samples for validation"
+        )
         keys = list(test_dataset.keys())
         rs = np.random.RandomState(47)
         keys = rs.choice(keys, size=settings.n_test_samples, replace=False)
@@ -195,7 +208,7 @@ def main() -> int:
         embedding_dim=settings.embedding_dim,
         hidden_dims=settings.hidden_dims,
         n_classes=settings.n_classes,
-        dropout=settings.dropout_rate
+        dropout=settings.dropout_rate,
     )
     # print the model
     logger.info(f"Attention-based model architecture: {model}")
@@ -209,7 +222,7 @@ def main() -> int:
         model.parameters(),
         lr=settings.learning_rate,
         betas=settings.betas,
-        weight_decay=settings.weight_decay
+        weight_decay=settings.weight_decay,
     )
 
     # create loss function
@@ -248,7 +261,7 @@ def main() -> int:
         embedding_dim=settings.embedding_dim,
         hidden_dims=settings.hidden_dims,
         n_classes=settings.n_classes,
-        dropout=settings.dropout_rate
+        dropout=settings.dropout_rate,
     )
     best_model.load_state_dict(best_model_state)
     # save the model in the model registry
@@ -257,8 +270,7 @@ def main() -> int:
         pytorch_model=best_model,
         artifact_path="model",
         registered_model_name=settings.model_name_template.format(
-            dropout_rate=settings.dropout_rate,
-            learning_rate=settings.learning_rate
+            dropout_rate=settings.dropout_rate, learning_rate=settings.learning_rate
         ),
     )
     return 0

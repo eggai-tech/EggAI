@@ -16,7 +16,7 @@ from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
+        ssl_cert=settings.kafka_ca_content,
     )
 )
 
@@ -32,21 +32,27 @@ logger = get_console_logger("triage_agent.handler")
 def get_current_classifier():
     if settings.classifier_version == "v0":
         from agents.triage.dspy_modules.classifier_v0 import classifier_v0
+
         return classifier_v0
     if settings.classifier_version == "v1":
         from agents.triage.dspy_modules.classifier_v1 import classifier_v1
+
         return classifier_v1
     elif settings.classifier_version == "v2":
         from agents.triage.dspy_modules.classifier_v2.classifier_v2 import classifier_v2
+
         return classifier_v2
     elif settings.classifier_version == "v3":
         from agents.triage.baseline_model.classifier_v3 import classifier_v3
+
         return classifier_v3
     elif settings.classifier_version == "v4":
         from agents.triage.dspy_modules.classifier_v4 import classifier_v4
+
         return classifier_v4
     elif settings.classifier_version == "v5":
         from agents.triage.attention_net.classifier_v5 import classifier_v5
+
         return classifier_v5
     else:
         raise ValueError(f"Unknown classifier version: {settings.classifier_version}")
@@ -59,7 +65,7 @@ current_classifier = get_current_classifier()
     channel=human_channel,
     filter_by_message=lambda msg: msg.get("type") == "user_message",
     auto_offset_reset="latest",
-    group_id="triage_agent_group"
+    group_id="triage_agent_group",
 )
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage):
@@ -77,7 +83,8 @@ async def handle_user_message(msg: TracedMessage):
         target_agent = response.target_agent
 
         logger.info(
-            f"Classification completed in {response.metrics.latency_ms:.2f} ms, target agent: {target_agent}, classifier version: {settings.classifier_version}")
+            f"Classification completed in {response.metrics.latency_ms:.2f} ms, target agent: {target_agent}, classifier version: {settings.classifier_version}"
+        )
         triage_to_agent_messages = [
             {
                 "role": "user",
@@ -89,7 +96,9 @@ async def handle_user_message(msg: TracedMessage):
             logger.info(f"Routing message to {target_agent}")
 
             with tracer.start_as_current_span("publish_to_agent") as publish_span:
-                child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
+                child_traceparent, child_tracestate = format_span_as_traceparent(
+                    publish_span
+                )
                 await agents_channel.publish(
                     TracedMessage(
                         type=AGENT_REGISTRY[target_agent]["message_type"],
@@ -105,9 +114,13 @@ async def handle_user_message(msg: TracedMessage):
                 )
         else:
             with tracer.start_as_current_span("chatty_stream_response") as stream_span:
-                child_traceparent, child_tracestate = format_span_as_traceparent(stream_span)
+                child_traceparent, child_tracestate = format_span_as_traceparent(
+                    stream_span
+                )
 
-                stream_message_id = str(msg.id) # Use the same message ID for the stream
+                stream_message_id = str(
+                    msg.id
+                )  # Use the same message ID for the stream
 
                 await human_stream_channel.publish(
                     TracedMessage(
@@ -128,22 +141,26 @@ async def handle_user_message(msg: TracedMessage):
                 async for chunk in chunks:
                     if isinstance(chunk, dspy.streaming.StreamResponse):
                         chunk_count += 1
-                        await human_stream_channel.publish(TracedMessage(
-                            type="agent_message_stream_chunk",
-                            source="TriageAgent",
-                            data={
-                                "message_chunk": chunk.chunk,
-                                "message_id": stream_message_id,
-                                "chunk_index": chunk_count,
-                                "connection_id": connection_id,
-                            },
-                            traceparent=child_traceparent,
-                            tracestate=child_tracestate,
-                        ))
+                        await human_stream_channel.publish(
+                            TracedMessage(
+                                type="agent_message_stream_chunk",
+                                source="TriageAgent",
+                                data={
+                                    "message_chunk": chunk.chunk,
+                                    "message_id": stream_message_id,
+                                    "chunk_index": chunk_count,
+                                    "connection_id": connection_id,
+                                },
+                                traceparent=child_traceparent,
+                                tracestate=child_tracestate,
+                            )
+                        )
                         logger.info(f"Chunk {chunk_count} sent: {chunk.chunk}")
                     elif isinstance(chunk, dspy.Prediction):
                         # FIXME: with short prompts, sometime dspy is not trimming off the " [[ ## completed ## ]]", we will do it manually there
-                        chunk.response = chunk.response.replace(" [[ ## completed ## ]]", "")
+                        chunk.response = chunk.response.replace(
+                            " [[ ## completed ## ]]", ""
+                        )
 
                         await human_stream_channel.publish(
                             TracedMessage(
@@ -159,7 +176,9 @@ async def handle_user_message(msg: TracedMessage):
                                 tracestate=child_tracestate,
                             )
                         )
-                        logger.info(f"Stream ended for message {stream_message_id}: {chunk.response}")
+                        logger.info(
+                            f"Stream ended for message {stream_message_id}: {chunk.response}"
+                        )
 
     except Exception as e:
         logger.error(f"Error processing message: {e}", exc_info=True)
@@ -171,13 +190,15 @@ async def handle_others(msg: TracedMessage):
 
 
 if __name__ == "__main__":
+
     async def run():
         print("Testing chunked chatty:")
         chunks = chatty(chat_history="User: Hello!")
         async for chunk in chunks:
             if isinstance(chunk, dspy.streaming.StreamResponse):
-                print(chunk.chunk, end='')
+                print(chunk.chunk, end="")
             elif isinstance(chunk, dspy.Prediction):
                 print("")
                 print(chunk.get_lm_usage())
+
     asyncio.run(run())

@@ -44,5 +44,5 @@ def compute_roc_auc(y_true: np.array, y_pred: np.array) -> float:
         auc: AUC score.
     """
     # Compute AUC
-    auc = roc_auc_score(y_true, y_pred, average='macro', multi_class='ovr')
+    auc = roc_auc_score(y_true, y_pred, average="macro", multi_class="ovr")
     return auc

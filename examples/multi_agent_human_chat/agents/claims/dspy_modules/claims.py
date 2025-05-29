@@ -1,4 +1,5 @@
 """Claims Agent optimized DSPy module for production use."""
+
 import json
 import time
 from pathlib import Path
@@ -18,14 +19,19 @@ logger = get_console_logger("claims_agent.dspy")
 
 class ModelConfig(BaseModel):
     """Configuration for the claims DSPy model."""
+
     name: str = Field("claims_react", description="Name of the model")
-    max_iterations: int = Field(5, description="Maximum iterations for the model", ge=1, le=10)
+    max_iterations: int = Field(
+        5, description="Maximum iterations for the model", ge=1, le=10
+    )
     use_tracing: bool = Field(True, description="Whether to trace model execution")
     cache_enabled: bool = Field(False, description="Whether to enable model caching")
-    truncation_length: int = Field(15000, description="Maximum length for conversation history", ge=1000)
+    truncation_length: int = Field(
+        15000, description="Maximum length for conversation history", ge=1000
+    )
+
 
 DEFAULT_CONFIG = ModelConfig()
-
 
 
 class ClaimsSignature(dspy.Signature):
@@ -143,13 +149,15 @@ using_optimized_prompts = False
 if optimized_model_path.exists():
     try:
         logger.info(f"Loading optimized prompts from {optimized_model_path}")
-        with open(optimized_model_path, 'r') as f:
+        with open(optimized_model_path, "r") as f:
             optimized_data = json.load(f)
 
             # Check if the JSON has the expected structure
-            if 'react' in optimized_data and 'signature' in optimized_data['react']:
+            if "react" in optimized_data and "signature" in optimized_data["react"]:
                 # Extract the optimized instructions
-                optimized_instructions = optimized_data['react']['signature'].get('instructions')
+                optimized_instructions = optimized_data["react"]["signature"].get(
+                    "instructions"
+                )
                 if optimized_instructions:
                     logger.info("Successfully loaded optimized instructions")
                     # Update the instructions in our signature class
@@ -157,102 +165,116 @@ if optimized_model_path.exists():
                     using_optimized_prompts = True
 
             if not using_optimized_prompts:
-                logger.warning("Optimized JSON file exists but doesn't have expected structure")
+                logger.warning(
+                    "Optimized JSON file exists but doesn't have expected structure"
+                )
     except Exception as e:
         logger.error(f"Error loading optimized JSON: {e}")
 else:
     logger.info(f"Optimized model file not found at {optimized_model_path}")
 
 # Log which prompts we're using
-logger.info(f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer")
+logger.info(
+    f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
+)
 
 
 def get_prediction_from_model(model, chat_history: str):
     """Get prediction from a DSPy model."""
     with claims_tracer.start_as_current_span("get_prediction_from_model") as span:
-        safe_set_attribute(span, "chat_history_length", len(chat_history) if chat_history else 0)
-        
+        safe_set_attribute(
+            span, "chat_history_length", len(chat_history) if chat_history else 0
+        )
+
         if not chat_history:
             raise ValueError("Empty chat history provided to prediction model")
-        
+
         model_type = type(model).__name__
         safe_set_attribute(span, "model_type", model_type)
-        
+
         start_time = time.perf_counter()
-        
+
         logger.info(f"Using {model_type} for prediction")
         prediction = model(chat_history=chat_history)
-        
+
         elapsed = time.perf_counter() - start_time
         safe_set_attribute(span, "prediction_time_ms", elapsed * 1000)
         safe_set_attribute(span, "response_length", len(prediction.final_response))
-        
+
         return prediction
 
 
-def truncate_long_history(chat_history: str, config: Optional[ModelConfig] = None) -> Dict[str, Any]:
+def truncate_long_history(
+    chat_history: str, config: Optional[ModelConfig] = None
+) -> Dict[str, Any]:
     """Truncate conversation history if it exceeds maximum length."""
     config = config or DEFAULT_CONFIG
     max_length = config.truncation_length
-    
+
     result = {
         "history": chat_history,
         "truncated": False,
         "original_length": len(chat_history),
-        "truncated_length": len(chat_history)
+        "truncated_length": len(chat_history),
     }
-    
+
     # Check if truncation needed
     if len(chat_history) <= max_length:
         return result
-    
+
     # Perform truncation
-    lines = chat_history.split('\n')
+    lines = chat_history.split("\n")
     truncated_lines = lines[-30:]  # Keep last 30 lines
-    truncated_history = '\n'.join(truncated_lines)
-    
+    truncated_history = "\n".join(truncated_lines)
+
     # Update result
     result["history"] = truncated_history
     result["truncated"] = True
     result["truncated_length"] = len(truncated_history)
-    
+
     return result
 
 
 @traced_dspy_function(name="claims_dspy")
-def claims_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = None) -> str:
+def claims_optimized_dspy(
+    chat_history: str, config: Optional[ModelConfig] = None
+) -> str:
     """Process a claims inquiry using the DSPy model."""
     config = config or DEFAULT_CONFIG
-        
+
     with claims_tracer.start_as_current_span("claims_optimized_dspy") as span:
         safe_set_attribute(span, "input_length", len(chat_history))
         start_time = time.perf_counter()
-        
+
         # Initialize language model
         dspy_set_language_model(settings, overwrite_cache_enabled=config.cache_enabled)
-        
+
         # Handle long conversations
         truncation_result = truncate_long_history(chat_history, config)
         chat_history = truncation_result["history"]
-        
+
         # Record truncation if needed
         if truncation_result["truncated"]:
             safe_set_attribute(span, "truncated", True)
-            safe_set_attribute(span, "original_length", truncation_result["original_length"])
-            safe_set_attribute(span, "truncated_length", truncation_result["truncated_length"])
-        
+            safe_set_attribute(
+                span, "original_length", truncation_result["original_length"]
+            )
+            safe_set_attribute(
+                span, "truncated_length", truncation_result["truncated_length"]
+            )
+
         # Get prediction directly from model
         prediction = claims_optimized(chat_history=chat_history)
         response = prediction.final_response
-        
+
         if not response or len(response) < 10:
             raise ValueError("Model returned an empty or too short response")
-            
+
         # Record metrics
-        elapsed = time.perf_counter() - start_time    
+        elapsed = time.perf_counter() - start_time
         safe_set_attribute(span, "processing_time_ms", elapsed * 1000)
         safe_set_attribute(span, "response_length", len(response))
-        
+
         return response
 
 
@@ -263,6 +285,6 @@ if __name__ == "__main__":
         "ClaimsAgent: Sure! Could you please provide your claim number?\n"
         "User: It's 1001.\n"
     )
-    
+
     result = claims_optimized_dspy(test_conversation)
     print(f"Response: {result}")

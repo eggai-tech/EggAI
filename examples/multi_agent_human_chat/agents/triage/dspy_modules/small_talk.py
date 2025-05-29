@@ -38,6 +38,7 @@ class ChattySignature(dspy.Signature):
         desc="A friendly response redirecting the user to ask about their insurance needs."
     )
 
+
 def chatty(chat_history: str) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     return dspy.streamify(
         dspy.Predict(ChattySignature),
@@ -46,24 +47,31 @@ def chatty(chat_history: str) -> AsyncIterable[Union[StreamResponse, Prediction]
         ],
         include_final_prediction_in_output_stream=True,
         is_async_program=False,
-        async_streaming=True
+        async_streaming=True,
     )(chat_history=chat_history)
 
+
 if __name__ == "__main__":
+
     async def openlit_async_stream_bug():
         init_telemetry(app_name=settings.app_name)
         import litellm
 
         chunks = await litellm.acompletion(
             model="openai/gpt-4o",
-            messages=[{"content": "Hello, what is the meaning of life. Tell me.", "role": "user"}],
+            messages=[
+                {
+                    "content": "Hello, what is the meaning of life. Tell me.",
+                    "role": "user",
+                }
+            ],
             stream=True,
         )
 
         async for chunk in chunks:
             content = chunk.choices[0].delta.content
             if content:
-                print(content, end='')
+                print(content, end="")
             else:
                 print("")
                 print(chunk)
@@ -72,12 +80,12 @@ if __name__ == "__main__":
         output = chatty(chat_history="User: Hello.")
         async for msg in output:
             if isinstance(msg, StreamResponse):
-                print(msg.chunk, end='')
+                print(msg.chunk, end="")
             if isinstance(msg, Prediction):
                 print("")
                 print("")
                 print(msg.get_lm_usage())
 
-
     import asyncio
+
     asyncio.run(run())

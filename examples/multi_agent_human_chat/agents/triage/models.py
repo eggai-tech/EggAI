@@ -10,33 +10,36 @@ class TargetAgent(str, Enum):
     EscalationAgent = "EscalationAgent"
     ChattyAgent = "ChattyAgent"
 
+
 class ClassifierMetrics(BaseModel):
     total_tokens: int
     prompt_tokens: int
     completion_tokens: int
     latency_ms: float
 
+
 AGENT_REGISTRY = {
     TargetAgent.BillingAgent: {
         "description": "Handling invoices, bills, payments, payment methods, receipts, refunds, and all financial transactions",
-        "message_type": "billing_request"
+        "message_type": "billing_request",
     },
     TargetAgent.PolicyAgent: {
         "description": "Explaining policy coverage, terms, conditions, policy changes, renewals, and policy documents. You will always ask the user for their policy number first.",
-        "message_type": "policy_request"
+        "message_type": "policy_request",
     },
     TargetAgent.ClaimsAgent: {
         "description": "Processing new claims, claim status inquiries, incident reports, claim documentation, and claim history. You will always ask the user for their claim number first.",
-        "message_type": "claim_request"
+        "message_type": "claim_request",
     },
     TargetAgent.EscalationAgent: {
         "description": "Handling escalations and requests to speak with managers, or technical issues not solvable from the other agents, e.g. login problems, and system errors. His context is to create a Ticket about the problem. If the user asks about previous ticket, you always ask for ticket number.",
-        "message_type": "ticketing_request"
+        "message_type": "ticketing_request",
     },
     TargetAgent.ChattyAgent: {
         "description": "The fallback agent, engaging in friendly conversation, responding to greetings and guiding users to ask about their insurance needs. When User asks about an off topic question, you will kindly redirect the user to ask about their insurance needs, specifying that you are not a human and cannot answer those questions."
-    }
+    },
 }
+
 
 def formatted_agent_registry():
     """

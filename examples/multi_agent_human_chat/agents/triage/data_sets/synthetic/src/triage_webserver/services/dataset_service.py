@@ -12,6 +12,7 @@ from triage_webserver.models.data_models import Dataset, Example
 
 config = WebServerConfig()
 
+
 async def create_dataset(
     db: Session,
     name: str,
@@ -21,7 +22,7 @@ async def create_dataset(
     special_case_distribution: Optional[Dict[str, float]] = None,
     temperatures: Optional[List[float]] = None,
     turns: Optional[List[int]] = None,
-    model: Optional[str] = None
+    model: Optional[str] = None,
 ) -> Dataset:
     """
     Create a new dataset with generated examples using the dataset generator
@@ -34,7 +35,7 @@ async def create_dataset(
             "EscalationAgent": 0.15,
             "ChattyAgent": 0.1,
         }
-    
+
     if special_case_distribution is None:
         special_case_distribution = {
             "none": 0.5,
@@ -47,28 +48,28 @@ async def create_dataset(
             "angry_customer": 0.025,
             "technical_error": 0.025,
         }
-    
+
     if temperatures is None:
         temperatures = [0.7, 0.8, 0.9]
-    
+
     if turns is None:
         turns = [1, 3, 5]
-        
+
     if model is None:
         model = config.MODEL
-    
+
     # Create the dataset in the database
     dataset = Dataset(
         name=name,
         description=description,
         model=model,
         created_at=datetime.datetime.utcnow(),
-        updated_at=datetime.datetime.utcnow()
+        updated_at=datetime.datetime.utcnow(),
     )
     db.add(dataset)
     db.commit()
     db.refresh(dataset)
-    
+
     # Calculate total examples for progress tracking
     total_examples = 0
     for agent in Agents:
@@ -80,10 +81,10 @@ async def create_dataset(
             for frac in special_case_distribution.values():
                 count = round(ideal_per_combo * frac)
                 total_examples += max(count, 1)
-    
+
     # Set up progress tracking
     progress = tqdm(total=total_examples, desc=f"Generating Dataset: {name}")
-    
+
     # Generate examples for each agent
     agent_tasks = [
         generate_conversation_per_agent(agent, turns, temperatures, progress)
@@ -91,12 +92,12 @@ async def create_dataset(
     ]
     results = await asyncio.gather(*agent_tasks)
     progress.close()
-    
+
     # Flatten results
     examples = []
     for agent_result in results:
         examples.extend(agent_result)
-    
+
     # Save examples to database
     for example_data in examples:
         example = Example(
@@ -109,16 +110,17 @@ async def create_dataset(
             total_batch=example_data.total_batch,
             special_case=example_data.special_case,
             created_at=datetime.datetime.utcnow(),
-            updated_at=datetime.datetime.utcnow()
+            updated_at=datetime.datetime.utcnow(),
         )
         db.add(example)
-    
+
     # Update dataset with final count
     dataset.total_examples = len(examples)
     db.commit()
     db.refresh(dataset)
-    
+
     return dataset
+
 
 def get_dataset(db: Session, dataset_id: int) -> Optional[Dataset]:
     """
@@ -126,11 +128,13 @@ def get_dataset(db: Session, dataset_id: int) -> Optional[Dataset]:
     """
     return db.query(Dataset).filter(Dataset.id == dataset_id).first()
 
+
 def get_datasets(db: Session, skip: int = 0, limit: int = 100) -> List[Dataset]:
     """
     Get all datasets
     """
     return db.query(Dataset).offset(skip).limit(limit).all()
+
 
 def delete_dataset(db: Session, dataset_id: int) -> bool:
     """

@@ -11,10 +11,12 @@ class ExampleBase(BaseModel):
     temperature: float
     special_case: Optional[str] = None
 
+
 class ExampleCreate(ExampleBase):
     dataset_id: int
     index_batch: Optional[int] = None
     total_batch: Optional[int] = None
+
 
 class ExampleUpdate(BaseModel):
     conversation: Optional[str] = None
@@ -23,6 +25,7 @@ class ExampleUpdate(BaseModel):
     temperature: Optional[float] = None
     special_case: Optional[str] = None
 
+
 class ExampleResponse(ExampleBase):
     id: int
     dataset_id: int
@@ -30,10 +33,9 @@ class ExampleResponse(ExampleBase):
     total_batch: Optional[int]
     created_at: datetime
     updated_at: datetime
-    
-    model_config = {
-        "from_attributes": True
-    }
+
+    model_config = {"from_attributes": True}
+
 
 class ExampleList(BaseModel):
     examples: List[ExampleResponse]

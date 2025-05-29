@@ -40,7 +40,7 @@ def main() -> int:
     keys = list(unrolled_train_dataset.keys())
     random.shuffle(keys)
     shuffled_unrolled_train_dataset = {k: unrolled_train_dataset[k] for k in keys}
-    
+
     if isinstance(settings.seed, int):
         seeds = [settings.seed]
     else:
@@ -55,7 +55,9 @@ def main() -> int:
     )
 
     # Train the classifier
-    logger.info(f"Training few-shot classifier with {settings.n_examples} examples per class")
+    logger.info(
+        f"Training few-shot classifier with {settings.n_examples} examples per class"
+    )
     fewshot_classifier.fit(shuffled_unrolled_train_dataset)
 
     # Evaluate on the test set
@@ -73,7 +75,9 @@ def main() -> int:
     acc = accuracy_score(y_test, y_pred.argmax(axis=1))
 
     # Compute per-class accuracy
-    cm = confusion_matrix(y_test, y_pred.argmax(axis=1), labels=list(range(settings.n_classes)))
+    cm = confusion_matrix(
+        y_test, y_pred.argmax(axis=1), labels=list(range(settings.n_classes))
+    )
     per_class_acc = cm.diagonal() / cm.sum(axis=1)
 
     # Log results
