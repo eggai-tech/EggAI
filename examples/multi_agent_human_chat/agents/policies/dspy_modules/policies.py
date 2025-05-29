@@ -12,7 +12,12 @@ from agents.policies.config import settings
 from agents.policies.types import ModelConfig, PolicyCategory
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
-from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function, init_telemetry
+from libraries.tracing import (
+    TracedReAct,
+    create_tracer,
+    init_telemetry,
+    traced_dspy_function,
+)
 
 logger = get_console_logger("policies_agent.dspy")
 

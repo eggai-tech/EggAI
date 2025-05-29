@@ -113,9 +113,7 @@ def traced_dspy_function(name=None, span_namer=None):
                 extracted_attrs["service_tier"] = kwargs.get("service_tier")
 
             # Use the common helper function for attribute setting
-            add_gen_ai_attributes_to_span(
-                span, **extracted_attrs
-            )
+            add_gen_ai_attributes_to_span(span, **extracted_attrs)
 
         @functools.wraps(fn)
         def sync_wrapper(*args, **kwargs):
@@ -216,14 +214,12 @@ class TracedReAct(dspy.ReAct):
             span.set_attribute("dspy.call_kwargs", str(kwargs))
             res = super().__call__(*args, **kwargs)
             usage = res.get_lm_usage()
-            model_name = list(usage.keys())[0] if usage else "unknown_model"
-            add_gen_ai_attributes_to_span(span, model_name=model_name)
             if usage:
-                # Set tokens as attributes
-                for lm, usage_data in usage.items():
-                    for k, v in usage_data.items():
-                        if v is not None and not isinstance(v, dict):
-                            span.set_attribute(k, v)
+                model_name = list(usage.keys())[0] if usage else "unknown_model"
+                add_gen_ai_attributes_to_span(span, model_name=model_name)
+                for k, v in usage[model_name].items():
+                    if v is not None and not isinstance(v, dict):
+                        span.set_attribute(k, v)
 
             return res
 

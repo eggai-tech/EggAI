@@ -36,5 +36,6 @@ def patch_usage_tracker():
 
     # Apply the patch
     from dspy.utils.usage_tracker import UsageTracker
+
     UsageTracker._merge_usage_entries = _merge_usage_entries
     logger.info("DSPY UsageTracker patched successfully")

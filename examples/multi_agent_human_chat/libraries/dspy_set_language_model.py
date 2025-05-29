@@ -115,6 +115,7 @@ class TrackingLM(dspy.LM):
         self.total_tokens += forward_result.usage.get("total_tokens", 0)
         return forward_result
 
+
 def dspy_set_language_model(settings, overwrite_cache_enabled: Optional[bool] = None):
     load_dotenv()
 
@@ -149,6 +150,7 @@ def dspy_set_language_model(settings, overwrite_cache_enabled: Optional[bool] = 
 
 
 if __name__ == "__main__":
+
     class Settings:
         language_model = "lm_studio/gemma-3-4b-it-qat"
         cache_enabled = False
