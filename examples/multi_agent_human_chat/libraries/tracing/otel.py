@@ -14,6 +14,7 @@ from asyncio import iscoroutine
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from opentelemetry import trace
+from opentelemetry.sdk.trace import SpanLimits
 from opentelemetry.trace import SpanContext, TraceFlags, Tracer, TraceState
 
 from libraries.logger import get_console_logger
@@ -110,8 +111,10 @@ def init_telemetry(app_name: str, endpoint: Optional[str] = None) -> None:
     # Set up resource
     resource = Resource.create({"service.name": app_name})
 
+    limits = SpanLimits(max_span_attribute_length=32768)
+
     # Set up tracer provider
-    trace.set_tracer_provider(TracerProvider(resource=resource))
+    trace.set_tracer_provider(TracerProvider(resource=resource, span_limits=limits))
 
     # Set up OTLP exporter
     otlp_exporter = OTLPSpanExporter(endpoint=f"{otlp_endpoint}/v1/traces")

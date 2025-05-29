@@ -12,6 +12,7 @@ from typing import Callable, List, Optional
 import dspy
 from opentelemetry import trace
 
+from libraries.dspy_set_language_model import TrackingLM
 from libraries.logger import get_console_logger
 from libraries.tracing.otel import safe_set_attribute
 from libraries.tracing.schemas import GenAIAttributes
@@ -204,50 +205,41 @@ class TracedReAct(dspy.ReAct):
         max_iters: Optional[int] = 5,
         name: Optional[str] = None,
         tracer: Optional[trace.Tracer] = None,
-        model_name: str = "claude",
     ):
         super().__init__(signature, tools=tools, max_iters=max_iters)
         self.trace_name = name or self.__class__.__name__.lower()
-        self.model_name = model_name
         self.tracer = tracer or trace.get_tracer(f"dspy.{self.trace_name}")
 
     def __call__(self, *args, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_call") as span:
-            add_gen_ai_attributes_to_span(span, model_name=self.model_name)
             span.set_attribute("dspy.call_args", str(args))
             span.set_attribute("dspy.call_kwargs", str(kwargs))
             res = super().__call__(*args, **kwargs)
-            logger.info("ReAct call completed, result: %s", res)
-            logger.info("lm usage: %s", res._lm_usage)
-            return res
+            usage = res.get_lm_usage()
+            model_name = list(usage.keys())[0] if usage else "unknown_model"
+            add_gen_ai_attributes_to_span(span, model_name=model_name)
+            if usage:
+                # Set tokens as attributes
+                for lm, usage_data in usage.items():
+                    for k, v in usage_data.items():
+                        if v is not None and not isinstance(v, dict):
+                            span.set_attribute(k, v)
 
+            return res
 
     def forward(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_forward") as span:
-            add_gen_ai_attributes_to_span(span, model_name=self.model_name)
+            add_gen_ai_attributes_to_span(span)
             span.set_attribute("dspy.forward_args", str(kwargs))
             res = super().forward(**kwargs)
-            logger.info("ReAct forward completed, result: %s", res)
-            logger.info("lm usage: %s", res._lm_usage)
+            lm: TrackingLM = dspy.settings.get("lm")
+            prompt = lm.history[-1].get("prompt", "")
+            if prompt:
+                span.set_attribute("dspy.prompt", prompt)
+            messages = lm.history[-1].get("messages", [])
+            if messages:
+                concatenated_contents = "\n".join(
+                    msg.get("content", "") for msg in messages if isinstance(msg, dict)
+                )
+                span.set_attribute("dspy.messages", concatenated_contents)
             return res
-
-    @staticmethod
-    def load_signature(path):
-        """
-        Load a signature from a JSON file saved by an optimizer.
-        """
-        logger.info(f"Loading signature from {path}")
-        try:
-            # First try to load it as a signature
-            signature = dspy.Signature.load(path)
-            return signature
-        except Exception as e:
-            # If that fails, try to load as a Predict and extract the signature
-            logger.warning(f"Failed to load as signature directly: {e}")
-            try:
-                predict = dspy.Predict.load(path)
-                if hasattr(predict, "signature"):
-                    return predict.signature
-            except Exception as e2:
-                logger.error(f"Failed to load signature: {e2}")
-                raise ValueError(f"Could not load signature from {path}")

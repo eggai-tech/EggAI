@@ -54,10 +54,7 @@ class TrackingLM(dspy.LM):
         available_tokens = int(max_tokens * 0.8)
 
         if estimated_tokens > available_tokens:
-            # Simple truncation strategy - keep the most recent parts
-            # More sophisticated methods could preserve the system prompt
             truncation_ratio = available_tokens / estimated_tokens
-            # Keep the last part of the conversation
             keep_chars = int(len(prompt) * truncation_ratio)
             return "..." + prompt[-keep_chars:]
         return prompt
@@ -118,7 +115,6 @@ class TrackingLM(dspy.LM):
         self.total_tokens += forward_result.usage.get("total_tokens", 0)
         return forward_result
 
-
 def dspy_set_language_model(settings, overwrite_cache_enabled: Optional[bool] = None):
     load_dotenv()
 
@@ -147,21 +143,20 @@ def dspy_set_language_model(settings, overwrite_cache_enabled: Optional[bool] = 
     logger.info(f"LM Studio model: {language_model.is_lm_studio}")
 
     dspy.configure(lm=language_model)
+    dspy.settings.configure(track_usage=True)
 
     return language_model
 
 
 if __name__ == "__main__":
-    # Example usage
     class Settings:
-        language_model = "openai/gpt-4o-mini"
+        language_model = "lm_studio/gemma-3-4b-it-qat"
         cache_enabled = False
-        language_model_api_base = None
+        language_model_api_base = "http://localhost:1234/v1"
+        max_context_window = 128000
 
-    settings = Settings()
-    lm = dspy_set_language_model(settings)
+    lm = dspy_set_language_model(Settings())
 
-    # Test
     class ExtractInfo(dspy.Signature):
         """Extract structured information from text."""
 
@@ -181,6 +176,7 @@ if __name__ == "__main__":
     response = module(text=text)
 
     print("Tokens printed: ", lm.total_tokens, lm.prompt_tokens, lm.completion_tokens)
+    print("lm_usage: ", response.get_lm_usage())
 
     text = (
         "Microsoft Corporation is a technology company based in Redmond, Washington."
@@ -189,3 +185,4 @@ if __name__ == "__main__":
     r = module(text=text)
 
     print("Tokens printed: ", lm.total_tokens, lm.prompt_tokens, lm.completion_tokens)
+    print("lm_usage: ", r.get_lm_usage())
