@@ -12,7 +12,12 @@ from agents.policies.config import settings
 from agents.policies.types import ModelConfig, PolicyCategory
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
-from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
+from libraries.tracing import (
+    TracedReAct,
+    create_tracer,
+    init_telemetry,
+    traced_dspy_function,
+)
 
 logger = get_console_logger("policies_agent.dspy")
 
@@ -20,7 +25,7 @@ logger = get_console_logger("policies_agent.dspy")
 policies_tracer = create_tracer("policies_agent")
 
 # Default configuration
-DEFAULT_CONFIG = ModelConfig()
+language_model = dspy_set_language_model(settings)
 
 
 class PolicyAgentSignature(dspy.Signature):
@@ -154,7 +159,6 @@ policies_model = TracedReAct(
     name="policies_react",
     tracer=policies_tracer,
     max_iters=5,
-    model_name=settings.language_model,
 )
 
 # Flag to indicate if we're using optimized prompts (from JSON)
@@ -198,7 +202,7 @@ def truncate_long_history(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> Dict[str, Any]:
     """Truncate conversation history if it exceeds maximum length."""
-    config = config or DEFAULT_CONFIG
+    config = config or ModelConfig()
     max_length = config.truncation_length
 
     result = {
@@ -230,10 +234,7 @@ def policies_optimized_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process a policies inquiry using the DSPy model with streaming output."""
-    config = config or DEFAULT_CONFIG
-
-    # Initialize language model
-    dspy_set_language_model(settings, overwrite_cache_enabled=config.cache_enabled)
+    config = config or ModelConfig()
 
     # Handle long conversations
     truncation_result = truncate_long_history(chat_history, config)
@@ -254,6 +255,8 @@ def policies_optimized_dspy(
 if __name__ == "__main__":
 
     async def run():
+        init_telemetry(settings.app_name)
+
         # Test the policies DSPy module
         test_conversation = (
             "User: I need information about my policy.\n"

@@ -12,7 +12,7 @@ import mlflow
 
 from libraries.logger import get_console_logger
 
-logger = get_console_logger("dspy.simba")
+logger = get_console_logger("dspy_utils.simba")
 
 
 def optimize_with_simba(

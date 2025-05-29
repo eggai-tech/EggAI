@@ -211,3 +211,4 @@ services:
       --gunicorn-opts '--log-level debug'"
     networks:
       - eggai-example-network
+
