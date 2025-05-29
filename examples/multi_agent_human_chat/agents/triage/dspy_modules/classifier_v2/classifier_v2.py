@@ -30,12 +30,15 @@ class AgentClassificationSignature(dspy.Signature):
     )
 
 
-classifier_v2_program = dspy.Predict(signature=AgentClassificationSignature.with_instructions(
-    """
+classifier_v2_program = dspy.Predict(
+    signature=AgentClassificationSignature.with_instructions(
+        """
     As a classifier, you have to classify and route messages to appropriate target agents based on context in a multi-agent insurance support system.
     
     Available Target Agents: 
-    """ + formatted_agent_registry() + """
+    """
+        + formatted_agent_registry()
+        + """
     
     Classification Rules:
     1. If the query is about bills, payments, invoices, payment methods, refunds, or billing settings → BillingAgent
@@ -52,9 +55,12 @@ classifier_v2_program = dspy.Predict(signature=AgentClassificationSignature.with
     
     Fallback Rules: Route to ChattyAgent if the query is not insurance-related.
     """
-))
+    )
+)
 
-optimizations_json = os.path.abspath(os.path.join(os.path.dirname(__file__), "optimizations_v2.json"))
+optimizations_json = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "optimizations_v2.json")
+)
 if os.path.exists(optimizations_json):
     print(f"Loading optimizations from {optimizations_json}")
     classifier_v2_program.load(optimizations_json)

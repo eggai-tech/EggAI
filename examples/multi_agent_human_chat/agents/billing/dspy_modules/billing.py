@@ -35,6 +35,7 @@ class BillingSignature(dspy.Signature):
       - Use YYYY-MM-DD date format
       - Match response format to query type
     """
+
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
 
@@ -63,13 +64,15 @@ if optimized_model_path.exists():
         import json
 
         logger.info(f"Loading optimized prompts from {optimized_model_path}")
-        with open(optimized_model_path, 'r') as f:
+        with open(optimized_model_path, "r") as f:
             optimized_data = json.load(f)
 
             # Check if the JSON has the expected structure
-            if 'react' in optimized_data and 'signature' in optimized_data['react']:
+            if "react" in optimized_data and "signature" in optimized_data["react"]:
                 # Extract the optimized instructions
-                optimized_instructions = optimized_data['react']['signature'].get('instructions')
+                optimized_instructions = optimized_data["react"]["signature"].get(
+                    "instructions"
+                )
                 if optimized_instructions:
                     logger.info("Successfully loaded optimized instructions")
                     # Update the instructions in our signature class
@@ -77,14 +80,18 @@ if optimized_model_path.exists():
                     using_optimized_prompts = True
 
             if not using_optimized_prompts:
-                logger.warning("Optimized JSON file exists but doesn't have expected structure")
+                logger.warning(
+                    "Optimized JSON file exists but doesn't have expected structure"
+                )
     except Exception as e:
         logger.error(f"Error loading optimized JSON: {e}")
 else:
     logger.info(f"Optimized model file not found at {optimized_model_path}")
 
 # Log which prompts we're using
-logger.info(f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer")
+logger.info(
+    f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
+)
 
 
 @traced_dspy_function(name="billing_dspy")
@@ -99,7 +106,9 @@ def billing_optimized_dspy(chat_history: str) -> str:
         raise ValueError("Chat history is too short")
 
     # Process with model (uses the optimized prompts if available)
-    logger.info(f"Processing with {'optimized' if using_optimized_prompts else 'standard'} prompts")
+    logger.info(
+        f"Processing with {'optimized' if using_optimized_prompts else 'standard'} prompts"
+    )
     prediction = billing_model(chat_history=chat_history)
 
     # Return final response

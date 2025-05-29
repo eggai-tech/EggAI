@@ -1,4 +1,5 @@
 """Policies Agent optimized DSPy module for production use."""
+
 import json
 from pathlib import Path
 from typing import Any, AsyncIterable, Dict, Optional, Union
@@ -25,7 +26,7 @@ DEFAULT_CONFIG = ModelConfig()
 class PolicyAgentSignature(dspy.Signature):
     """
     You are the Policy Agent for an insurance company.
-    
+
     ROLE:
     - You are an assistant who helps with policy information ONLY when given explicit policy numbers.
     - Your #1 responsibility is data privacy. You must NEVER reveal ANY policy details without EXPLICIT policy number.
@@ -36,7 +37,7 @@ class PolicyAgentSignature(dspy.Signature):
       "To provide information about your policy, I need your policy number. Could you please share it with me?"
     - REFUSE to acknowledge or use policy numbers from previous messages. Each request must include its own policy number.
     - NEVER use or recognize examples like "B67890" unless the user explicitly provides this number in their current request.
-    
+
     RESPONSE FORMAT REQUIREMENTS:
     - Always mention the policy number when providing specific policy information
     - For premium inquiries: ALWAYS include ALL THREE of the following:
@@ -49,7 +50,7 @@ class PolicyAgentSignature(dspy.Signature):
         3. Specific coverage details from the "coverage_details" field (e.g., "collision, comprehensive, liability")
     - When referencing documentation, include citation in format: (see category#section).
     - Example: "According to your home insurance policy C24680, water damage from burst pipes is covered (see home#3.1)."
-    
+
     GUIDELINES:
     - Maintain a polite, professional tone.
     - Only use tools when necessary (e.g., if user provides a policy number).
@@ -58,7 +59,7 @@ class PolicyAgentSignature(dspy.Signature):
     - Avoid speculation or divulging irrelevant details.
     - Include documentation references when providing specific policy details.
     - Never omit key information such as policy numbers, amounts, or dates from your responses.
-    
+
     CRITICAL POLICY NUMBER WORKFLOW:
     - For ANY request about policy information, including messages like "I need to know my policy details":
       1. FIRST STEP: Check the user's CURRENT message for a pattern that matches a policy number (letter+numbers)
@@ -70,7 +71,7 @@ class PolicyAgentSignature(dspy.Signature):
       6. NEVER guess, assume, or infer policy numbers under ANY circumstances
       7. For messages like "I need to know my policy details" with NO policy number, ALWAYS respond with the request for a policy number
       8. IGNORE any example policy numbers in your instructions (like B67890) - ONLY use numbers the user explicitly provides
-    
+
     CRITICAL PREMIUM INQUIRIES WORKFLOW:
     - When a user asks about premium payments:
       1. FIRST STEP: Check their CURRENT message for a policy number that matches the pattern of a letter followed by numbers (e.g., B67890)
@@ -79,16 +80,16 @@ class PolicyAgentSignature(dspy.Signature):
       3. DO NOT PROCEED BEYOND THIS POINT if there is no policy number in the current message
       4. DO NOT LOOK AT previous messages for policy numbers
       5. DO NOT GUESS or INFER policy numbers - they must be explicitly provided in the CURRENT message
-      6. Once (and ONLY if) a valid, explicitly provided policy number exists in the current message, call take_policy_by_number_from_database 
+      6. Once (and ONLY if) a valid, explicitly provided policy number exists in the current message, call take_policy_by_number_from_database
       7. From the JSON response, extract THREE pieces of information:
          a. policy_number (e.g., "B67890")
-         b. due_date or payment_due_date (e.g., "2026-03-15") 
+         b. due_date or payment_due_date (e.g., "2026-03-15")
          c. premium_amount_usd (e.g., "$300.00")
       8. Construct your response in this EXACT template format:
          "Your next premium payment for policy [policy_number] is due on [due_date]. The amount due is [premium_amount_usd]."
       9. Example: "Your next premium payment for policy B67890 is due on 2026-03-15. The amount due is $300.00."
       10. VERIFY your response contains ALL THREE required elements BEFORE sending it.
-    
+
     CRITICAL COVERAGE INQUIRIES WORKFLOW:
     - When a user asks about what their policy covers:
       1. FIRST STEP: Check their CURRENT message for a policy number that matches the pattern of a letter followed by numbers (e.g., A12345)
@@ -106,7 +107,7 @@ class PolicyAgentSignature(dspy.Signature):
          "Based on your [policy_category] policy [policy_number], your coverage includes [coverage_details]."
       9. Example: "Based on your auto policy A12345, your coverage includes collision, comprehensive, liability, and uninsured motorist protection."
       10. VERIFY your response contains ALL THREE required elements BEFORE sending it.
-    
+
     CRITICAL DOCUMENTATION WORKFLOW:
     - When a user asks about coverage or policy rules:
       1. FIRST STEP: Check their CURRENT message for BOTH:
@@ -163,13 +164,15 @@ using_optimized_prompts = False
 if optimized_model_path.exists():
     try:
         logger.info(f"Loading optimized prompts from {optimized_model_path}")
-        with open(optimized_model_path, 'r') as f:
+        with open(optimized_model_path, "r") as f:
             optimized_data = json.load(f)
 
             # Check if the JSON has the expected structure
-            if 'react' in optimized_data and 'signature' in optimized_data['react']:
+            if "react" in optimized_data and "signature" in optimized_data["react"]:
                 # Extract the optimized instructions
-                optimized_instructions = optimized_data['react']['signature'].get('instructions')
+                optimized_instructions = optimized_data["react"]["signature"].get(
+                    "instructions"
+                )
                 if optimized_instructions:
                     logger.info("Successfully loaded optimized instructions")
                     # Update the instructions in our signature class
@@ -177,57 +180,65 @@ if optimized_model_path.exists():
                     using_optimized_prompts = True
 
             if not using_optimized_prompts:
-                logger.warning("Optimized JSON file exists but doesn't have expected structure")
+                logger.warning(
+                    "Optimized JSON file exists but doesn't have expected structure"
+                )
     except Exception as e:
         logger.error(f"Error loading optimized JSON: {e}")
 else:
     logger.info(f"Optimized model file not found at {optimized_model_path}")
 
 # Log which prompts we're using
-logger.info(f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts for policies agent")
+logger.info(
+    f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts for policies agent"
+)
 
 
-def truncate_long_history(chat_history: str, config: Optional[ModelConfig] = None) -> Dict[str, Any]:
+def truncate_long_history(
+    chat_history: str, config: Optional[ModelConfig] = None
+) -> Dict[str, Any]:
     """Truncate conversation history if it exceeds maximum length."""
     config = config or DEFAULT_CONFIG
     max_length = config.truncation_length
-    
+
     result = {
         "history": chat_history,
         "truncated": False,
         "original_length": len(chat_history),
-        "truncated_length": len(chat_history)
+        "truncated_length": len(chat_history),
     }
-    
+
     # Check if truncation needed
     if len(chat_history) <= max_length:
         return result
-    
+
     # Perform truncation - keep the last 30 lines like the claims agent
-    lines = chat_history.split('\n')
+    lines = chat_history.split("\n")
     truncated_lines = lines[-30:]  # Keep last 30 lines
-    truncated_history = '\n'.join(truncated_lines)
-    
+    truncated_history = "\n".join(truncated_lines)
+
     # Update result
     result["history"] = truncated_history
     result["truncated"] = True
     result["truncated_length"] = len(truncated_history)
-    
+
     return result
 
 
 @traced_dspy_function(name="policies_dspy")
-def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = None) -> AsyncIterable[Union[StreamResponse, Prediction]]:
+def policies_optimized_dspy(
+    chat_history: str, config: Optional[ModelConfig] = None
+) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process a policies inquiry using the DSPy model with streaming output."""
     config = config or DEFAULT_CONFIG
-    
+
     # Initialize language model
     dspy_set_language_model(settings, overwrite_cache_enabled=config.cache_enabled)
-    
+
     # Handle long conversations
     truncation_result = truncate_long_history(chat_history, config)
     chat_history = truncation_result["history"]
-    
+
     # Create a streaming version of the policies model
     return dspy.streamify(
         policies_model,
@@ -236,11 +247,12 @@ def policies_optimized_dspy(chat_history: str, config: Optional[ModelConfig] = N
         ],
         include_final_prediction_in_output_stream=True,
         is_async_program=False,
-        async_streaming=True
+        async_streaming=True,
     )(chat_history=chat_history)
 
 
 if __name__ == "__main__":
+
     async def run():
         # Test the policies DSPy module
         test_conversation = (
@@ -265,4 +277,5 @@ if __name__ == "__main__":
                     print(f"Documentation reference: {result.documentation_reference}")
 
     import asyncio
+
     asyncio.run(run())

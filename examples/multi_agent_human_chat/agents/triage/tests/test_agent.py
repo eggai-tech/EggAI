@@ -34,6 +34,7 @@ settings = Settings()
 logger = get_console_logger("triage_test")
 dspy_set_language_model(settings)
 
+
 # ---------------------------------------------------------------------------
 # Utility for formatting console tables
 # ---------------------------------------------------------------------------
@@ -44,7 +45,11 @@ def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
             widths[i] = max(widths[i], len(cell))
 
     def _fmt_row(cells):
-        return "| " + " | ".join(cell.ljust(widths[i]) for i, cell in enumerate(cells)) + " |"
+        return (
+            "| "
+            + " | ".join(cell.ljust(widths[i]) for i, cell in enumerate(cells))
+            + " |"
+        )
 
     sep = "| " + " | ".join("-" * widths[i] for i in range(len(headers))) + " |"
     lines = [_fmt_row(headers), sep] + [_fmt_row(r) for r in rows]
@@ -57,7 +62,9 @@ def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
 class TriageEvaluationSignature(dspy.Signature):
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     agent_response: TargetAgent = dspy.InputField(desc="Agent selected by triage.")
-    expected_target_agent: TargetAgent = dspy.InputField(desc="Ground-truth agent label.")
+    expected_target_agent: TargetAgent = dspy.InputField(
+        desc="Ground-truth agent label."
+    )
 
     judgment: bool = dspy.OutputField(desc="Pass (True) or Fail (False).")
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
@@ -67,7 +74,9 @@ class TriageEvaluationSignature(dspy.Signature):
 # ---------------------------------------------------------------------------
 # Report generation functions (embedded)
 # ---------------------------------------------------------------------------
-def write_html_report(test_results: List[Dict[str, Any]], summary: Dict[str, Any], report_name: str) -> str:
+def write_html_report(
+    test_results: List[Dict[str, Any]], summary: Dict[str, Any], report_name: str
+) -> str:
     abs_output_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "reports"))
     os.makedirs(abs_output_dir, exist_ok=True)
 
@@ -149,7 +158,7 @@ def write_html_report(test_results: List[Dict[str, Any]], summary: Dict[str, Any
         current_date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         test_results=test_results,
         summary=summary,
-        report_name=report_name
+        report_name=report_name,
     )
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -177,7 +186,7 @@ _response_queue: asyncio.Queue[TracedMessage] = asyncio.Queue()
     channel=agents_channel,
     filter_by_message=lambda event: event.get("type") != "user_message",
     auto_offset_reset="latest",
-    group_id="test_agent_group-agents"
+    group_id="test_agent_group-agents",
 )
 async def _handle_response(event: TracedMessage):
     await _response_queue.put(event)
@@ -187,7 +196,7 @@ async def _handle_response(event: TracedMessage):
     channel=test_channel,
     filter_by_message=lambda event: event.get("type") == "agent_message",
     auto_offset_reset="latest",
-    group_id="test_agent_group-human"
+    group_id="test_agent_group-human",
 )
 async def _handle_test_message(event: TracedMessage):
     await _response_queue.put(event)
@@ -197,7 +206,7 @@ async def _handle_test_message(event: TracedMessage):
     channel=test_stream_channel,
     filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
     auto_offset_reset="latest",
-    group_id="test_agent_group-human"
+    group_id="test_agent_group-human",
 )
 async def _handle_test_message(event: TracedMessage):
     await _response_queue.put(event)
@@ -218,15 +227,17 @@ async def test_triage_agent():
         log_traces=True,
         log_evals=True,
         log_traces_from_compile=True,
-        log_traces_from_eval=True
+        log_traces_from_eval=True,
     )
 
     mlflow.set_experiment("triage_agent_tests")
-    with mlflow.start_run(run_name=f"triage_agent_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"):
+    with mlflow.start_run(
+        run_name=f"triage_agent_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    ):
         # Log parameters
         mlflow.log_param("classifier_version", settings.classifier_version)
         mlflow.log_param("language_model", settings.language_model)
-        
+
         # Start agents
         await triage_agent.start()
         await test_agent.start()
@@ -235,23 +246,27 @@ async def test_triage_agent():
         random.seed(1989)
         test_dataset = random.sample(load_dataset_triage_testing(), 10)
         mlflow.log_param("test_count", len(test_dataset))
-        
+
         pending: Dict[str, Any] = {}
         classification_results: List[Dict[str, Any]] = []
 
         for case in test_dataset:
             msg_id = str(uuid4())
             pending[msg_id] = case
-            await test_channel.publish({
-                "id": msg_id,
-                "type": "user_message",
-                "source": "TestTriageAgent",
-                "data": {
-                    "chat_messages": [{"role": "User", "content": case.conversation}],
-                    "connection_id": str(uuid4()),
-                    "message_id": msg_id
-                },
-            })
+            await test_channel.publish(
+                {
+                    "id": msg_id,
+                    "type": "user_message",
+                    "source": "TestTriageAgent",
+                    "data": {
+                        "chat_messages": [
+                            {"role": "User", "content": case.conversation}
+                        ],
+                        "connection_id": str(uuid4()),
+                        "message_id": msg_id,
+                    },
+                }
+            )
 
         # Phase 2: Collect classifications
         classification_errors: List[str] = []
@@ -264,33 +279,42 @@ async def test_triage_agent():
             case = pending.pop(mid)
             latency_ms = float(event.data.get("metrics", {}).get("latency_ms", 0.0))
             routed = next(
-                (k for k, v in AGENT_REGISTRY.items() if v.get("message_type", "agent_message") == event.type),
-                "UnknownAgent"
+                (
+                    k
+                    for k, v in AGENT_REGISTRY.items()
+                    if v.get("message_type", "agent_message") == event.type
+                ),
+                "UnknownAgent",
             )
             if routed == "UnknownAgent" and event.type == "agent_message":
                 routed = "ChattyAgent"
             if event.type == "agent_message_stream_end":
                 routed = "ChattyAgent"
-            classification_results.append({
-                "id": mid,
-                "expected": translate_agent_str_to_enum(case.target_agent),
-                "routed": routed,
-                "latency": f"{latency_ms:.1f} ms",
-                "latency_value": latency_ms,
-                "conversation": case.conversation,
-                "expected_target_agent": case.target_agent
-            })
-            
+            classification_results.append(
+                {
+                    "id": mid,
+                    "expected": translate_agent_str_to_enum(case.target_agent),
+                    "routed": routed,
+                    "latency": f"{latency_ms:.1f} ms",
+                    "latency_value": latency_ms,
+                    "conversation": case.conversation,
+                    "expected_target_agent": case.target_agent,
+                }
+            )
+
             # Log metrics for each classification to MLflow
-            mlflow.log_metric(f"latency_case_{i+1}", latency_ms)
-            
+            mlflow.log_metric(f"latency_case_{i + 1}", latency_ms)
+
             # Record if classification was correct or not
             is_correct = routed == translate_agent_str_to_enum(case.target_agent)
-            mlflow.log_metric(f"classification_correct_{i+1}", 1.0 if is_correct else 0.0)
-            
+            mlflow.log_metric(
+                f"classification_correct_{i + 1}", 1.0 if is_correct else 0.0
+            )
+
             if not is_correct:
                 classification_errors.append(
-                    f"Expected {translate_agent_str_to_enum(case.target_agent)}, got {routed} (ID {mid[:8]})")
+                    f"Expected {translate_agent_str_to_enum(case.target_agent)}, got {routed} (ID {mid[:8]})"
+                )
 
         # Phase 3: LLM judging
         eval_fn = dspy.asyncify(dspy.Predict(TriageEvaluationSignature))
@@ -299,35 +323,49 @@ async def test_triage_agent():
         async def limited_eval(res, case_idx):
             async with semaphore:
                 ev = await eval_fn(
-                    chat_history=res['conversation'],
-                    agent_response=res['routed'],
-                    expected_target_agent=res['expected_target_agent']
+                    chat_history=res["conversation"],
+                    agent_response=res["routed"],
+                    expected_target_agent=res["expected_target_agent"],
                 )
                 return res, ev, case_idx
 
-        tasks = [asyncio.create_task(limited_eval(r, i)) for i, r in enumerate(classification_results)]
+        tasks = [
+            asyncio.create_task(limited_eval(r, i))
+            for i, r in enumerate(classification_results)
+        ]
         judge_results: List[Dict[str, Any]] = []
         for coro in asyncio.as_completed(tasks):
             res, ev, case_idx = await coro
             passed = ev.judgment
             prec = ev.precision_score
             reason = ev.reasoning or ""
-            logger.info(f"ID {res['id']}: judgment={passed}, precision={prec:.2f}, reason={reason[:40]}...")
-            
+            logger.info(
+                f"ID {res['id']}: judgment={passed}, precision={prec:.2f}, reason={reason[:40]}..."
+            )
+
             # Log LLM evaluation metrics to MLflow
-            mlflow.log_metric(f"llm_judgment_{case_idx+1}", 1.0 if passed else 0.0)
-            mlflow.log_metric(f"precision_case_{case_idx+1}", float(prec))
-            
-            judge_results.append({
-                **res,
-                "judgment": "✔" if passed else "✘",
-                "precision": f"{prec:.2f}",
-                "precision_value": float(prec),
-                "reason": reason
-            })
+            mlflow.log_metric(f"llm_judgment_{case_idx + 1}", 1.0 if passed else 0.0)
+            mlflow.log_metric(f"precision_case_{case_idx + 1}", float(prec))
+
+            judge_results.append(
+                {
+                    **res,
+                    "judgment": "✔" if passed else "✘",
+                    "precision": f"{prec:.2f}",
+                    "precision_value": float(prec),
+                    "reason": reason,
+                }
+            )
 
         # Calculate overall metrics
-        classification_accuracy = 0 if len(judge_results) == 0 else sum(1.0 if r['expected'] == r['routed'] else 0.0 for r in judge_results) / len(judge_results)
+        classification_accuracy = (
+            0
+            if len(judge_results) == 0
+            else sum(
+                1.0 if r["expected"] == r["routed"] else 0.0 for r in judge_results
+            )
+            / len(judge_results)
+        )
 
         # Handle empty lists to avoid numpy warnings and errors
         precision_values = [float(r["precision_value"]) for r in judge_results]
@@ -335,47 +373,63 @@ async def test_triage_agent():
 
         avg_precision = 0.0 if len(precision_values) == 0 else np.mean(precision_values)
         avg_latency = 0.0 if len(latency_values) == 0 else np.mean(latency_values)
-        
+
         # Log overall metrics to MLflow
         mlflow.log_metric("overall_classification_accuracy", classification_accuracy)
         mlflow.log_metric("overall_precision", avg_precision)
         mlflow.log_metric("overall_latency", avg_latency)
-        
+
         # Phase 4: Console report
         headers = ["ID", "Expected", "Routed", "Latency", "LLM ✓", "LLM Prec", "Reason"]
-        rows = [[r['id'][:8], r['expected'], r['routed'], r['latency'], r['judgment'], 
-                r['precision'], r['reason'][:20]] for r in judge_results]
+        rows = [
+            [
+                r["id"][:8],
+                r["expected"],
+                r["routed"],
+                r["latency"],
+                r["judgment"],
+                r["precision"],
+                r["reason"][:20],
+            ]
+            for r in judge_results
+        ]
         table = _markdown_table(rows, headers)
         logger.info("\n=== Triage Agent Test Results ===\n")
         logger.info(table)
         logger.info("\n===================================\n")
-        
+
         # Log report to MLflow
         mlflow.log_text(table, "test_results.md")
 
         # Phase 5: HTML report
         report_data = []
         for r in judge_results:
-            report_data.append({
-                "conversation": r["conversation"],
-                "expected_target": r["expected"],
-                "actual_target": r["routed"],
-                "latency_value": r["latency"],
-                "status": "PASS" if r["judgment"] == "✔" else "FAIL",
-                "llm_judgment": r["judgment"],
-                "llm_precision": r["precision"],
-                "llm_reasoning": r["reason"]
-            })
+            report_data.append(
+                {
+                    "conversation": r["conversation"],
+                    "expected_target": r["expected"],
+                    "actual_target": r["routed"],
+                    "latency_value": r["latency"],
+                    "status": "PASS" if r["judgment"] == "✔" else "FAIL",
+                    "llm_judgment": r["judgment"],
+                    "llm_precision": r["precision"],
+                    "llm_reasoning": r["reason"],
+                }
+            )
         summary = {
             "total": len(report_data),
             "success": sum(1 for r in report_data if r["status"] == "PASS"),
             "failure": sum(1 for r in report_data if r["status"] == "FAIL"),
-            "success_percentage": "0.00" if len(report_data) == 0 else f"{sum(1 for r in report_data if r['status'] == 'PASS') / len(report_data) * 100:.2f}"
+            "success_percentage": "0.00"
+            if len(report_data) == 0
+            else f"{sum(1 for r in report_data if r['status'] == 'PASS') / len(report_data) * 100:.2f}",
         }
 
-        report_path = write_html_report(report_data, summary, "classifier_" + settings.classifier_version)
+        report_path = write_html_report(
+            report_data, summary, "classifier_" + settings.classifier_version
+        )
         logger.info(f"HTML report generated at: file://{report_path}")
-        
+
         # Log HTML report to MLflow
         mlflow.log_artifact(report_path)
 
@@ -386,13 +440,15 @@ async def test_triage_agent():
 @pytest.mark.asyncio
 async def test_triage_agent_simple(monkeypatch):
     load_dotenv()
-    
+
     # Start MLflow run for this test
     mlflow.set_experiment("triage_agent_simple_tests")
-    with mlflow.start_run(run_name=f"triage_simple_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"):
+    with mlflow.start_run(
+        run_name=f"triage_simple_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    ):
         mlflow.log_param("language_model", settings.language_model)
         mlflow.log_param("classifier_version", settings.classifier_version)
-        
+
         # Create test message
         test_message = TracedMessage(
             id=str(uuid4()),
@@ -401,29 +457,29 @@ async def test_triage_agent_simple(monkeypatch):
             data={
                 "chat_messages": [{"role": "user", "content": "hi how are you?"}],
                 "connection_id": str(uuid4()),
-                "agent": "TriageAgent"
-            }
+                "agent": "TriageAgent",
+            },
         )
-        
+
         # Mock channel publish
         mock_publish = AsyncMock()
         monkeypatch.setattr(Channel, "publish", mock_publish)
-        
+
         # Measure latency
         start_time = time.perf_counter()
         await handle_user_message(test_message)
         latency_ms = (time.perf_counter() - start_time) * 1000
-        
+
         # Log metrics
         mlflow.log_metric("latency", latency_ms)
-        
+
         # Get response and verify
         args, _ = mock_publish.call_args_list[0]
         agent = args[0].source
-        
+
         # Log result
         mlflow.log_metric("is_correct", 1.0 if agent == "TriageAgent" else 0.0)
-        
+
         # Assert expected result
         assert agent == "TriageAgent"
 
@@ -431,14 +487,16 @@ async def test_triage_agent_simple(monkeypatch):
 @pytest.mark.asyncio
 async def test_triage_agent_intent_change(monkeypatch):
     load_dotenv()
-    
+
     # Start MLflow run for this test
     mlflow.set_experiment("triage_agent_intent_tests")
-    with mlflow.start_run(run_name=f"triage_intent_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"):
+    with mlflow.start_run(
+        run_name=f"triage_intent_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    ):
         mlflow.log_param("language_model", settings.language_model)
         mlflow.log_param("classifier_version", settings.classifier_version)
         mlflow.log_param("test_type", "intent_change")
-        
+
         # Create test message with intent change
         test_message = TracedMessage(
             id=str(uuid4()),
@@ -447,35 +505,42 @@ async def test_triage_agent_intent_change(monkeypatch):
             data={
                 "chat_messages": [
                     {"role": "user", "content": "hi how are you?"},
-                    {"role": "assistant", "agent": "ChattyAgent", "content": "Hey, I'm good! How can I help you?"},
-                    {"role": "user", "content": "could you please give me my policy details?"},
+                    {
+                        "role": "assistant",
+                        "agent": "ChattyAgent",
+                        "content": "Hey, I'm good! How can I help you?",
+                    },
+                    {
+                        "role": "user",
+                        "content": "could you please give me my policy details?",
+                    },
                 ],
                 "connection_id": str(uuid4()),
-                "agent": "TriageAgent"
-            }
+                "agent": "TriageAgent",
+            },
         )
-        
+
         # Mock channel publish
         mock_publish = AsyncMock()
         monkeypatch.setattr(Channel, "publish", mock_publish)
-        
+
         # Measure latency
         start_time = time.perf_counter()
         await handle_user_message(test_message)
         latency_ms = (time.perf_counter() - start_time) * 1000
-        
+
         # Log metrics
         mlflow.log_metric("latency", latency_ms)
-        
+
         # Get response and verify
         args, _ = mock_publish.call_args_list[0]
         message_type = args[0].type
-        
+
         # Log result - check if it's a policy request as expected
         expected_type = "policy_request"
         mlflow.log_metric("is_correct", 1.0 if message_type == expected_type else 0.0)
         mlflow.log_param("expected_type", expected_type)
         mlflow.log_param("actual_type", message_type)
-        
+
         # Assert expected result
         assert message_type == "policy_request"

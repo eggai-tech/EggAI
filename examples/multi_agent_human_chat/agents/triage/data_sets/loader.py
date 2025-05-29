@@ -31,7 +31,7 @@ class DatasetRow:
 
 def load_dataset(file_path: Path):
     dataset = []
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         for line in file:
             data = json.loads(line)
             if data.get("target_agent") is None:
@@ -39,6 +39,7 @@ def load_dataset(file_path: Path):
             data["target_agent"] = translate_agent_str_to_enum(data["target_agent"])
             dataset.append(DatasetRow(**data))
     return dataset
+
 
 def translate_agent_str_to_enum(agent_str: str) -> TargetAgent:
     if agent_str == "BillingAgent":
@@ -58,8 +59,10 @@ def translate_agent_str_to_enum(agent_str: str) -> TargetAgent:
 def load_dataset_triage_testing():
     return load_dataset(Path(__file__).resolve().parent / "triage-testing.jsonl")
 
+
 def load_dataset_triage_training():
     return load_dataset(Path(__file__).resolve().parent / "triage-training.jsonl")
+
 
 def as_dspy_examples(dataset: list[DatasetRow]):
     examples = []
@@ -71,10 +74,12 @@ def as_dspy_examples(dataset: list[DatasetRow]):
         "ChattyAgent": TargetAgent.ChattyAgent,
     }
     for row in dataset:
-        examples.append(dspy.Example(
-            chat_history=row.conversation,
-            target_agent=target_agent_map[row.target_agent],
-        ).with_inputs("chat_history"))
+        examples.append(
+            dspy.Example(
+                chat_history=row.conversation,
+                target_agent=target_agent_map[row.target_agent],
+            ).with_inputs("chat_history")
+        )
     return examples
 
 

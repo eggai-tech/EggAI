@@ -1,4 +1,5 @@
 """Frontend agent tests."""
+
 import asyncio
 import uuid
 from unittest.mock import AsyncMock
@@ -14,7 +15,7 @@ from libraries.kafka_transport import create_kafka_transport
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
+        ssl_cert=settings.kafka_ca_content,
     )
 )
 
@@ -48,7 +49,7 @@ async def test_frontend_agent():
             "message": "Hello, how can I help you?",
             "connection_id": connection_id,
             "agent": "TriageAgent",
-        }
+        },
     )
 
     # Publish message to channel
@@ -60,8 +61,12 @@ async def test_frontend_agent():
     # Verify the message was sent to the WebSocket
     websocket_manager.send_message_to_connection.assert_called_with(
         connection_id,
-        {"sender": "TriageAgent", "content": "Hello, how can I help you?", "type": "assistant_message"},
+        {
+            "sender": "TriageAgent",
+            "content": "Hello, how can I help you?",
+            "type": "assistant_message",
+        },
     )
-    
+
     # Reset mock for future tests
     websocket_manager.send_message_to_connection.reset_mock()

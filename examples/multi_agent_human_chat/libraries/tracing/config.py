@@ -13,13 +13,13 @@ class Settings(BaseSettings):
     otel_endpoint_insecure: bool = Field(default=True)
     otel_exporter_otlp_protocol: str = Field(default="http/protobuf")
     tracing_enabled: bool = Field(default=True)
-    
+
     # Instrumentation configuration
     disabled_instrumentors: list[str] = Field(default=["langchain"])
-    
+
     # Sampling rate (1.0 = 100% of traces are sampled)
     sampling_rate: float = Field(default=1.0)
-    
+
     model_config = SettingsConfigDict(
         env_prefix="TRACING_", env_file=".env", env_ignore_empty=True, extra="ignore"
     )

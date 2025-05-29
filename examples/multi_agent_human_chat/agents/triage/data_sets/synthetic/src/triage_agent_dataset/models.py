@@ -11,6 +11,7 @@ class Agents(str, Enum):
     ESCALATION = "EscalationAgent"
     CHATTY = "ChattyAgent"
 
+
 class SpecialCaseType(str, Enum):
     EDGE_CASE = "edge_case"
     CROSS_DOMAIN = "cross_domain"
@@ -20,6 +21,7 @@ class SpecialCaseType(str, Enum):
     SMALL_TALK = "small_talk"
     ANGRY_CUSTOMER = "angry_customer"
     TECHNICAL_ERROR = "technical_error"
+
 
 class ConversationExample(BaseModel):
     conversation: str

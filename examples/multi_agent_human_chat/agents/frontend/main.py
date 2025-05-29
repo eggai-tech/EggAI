@@ -1,4 +1,5 @@
 """Main module for the Frontend Agent."""
+
 import asyncio
 import os
 from contextlib import asynccontextmanager
@@ -20,7 +21,7 @@ from .config import settings
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
+        ssl_cert=settings.kafka_ca_content,
     )
 )
 
@@ -32,10 +33,10 @@ logger = get_console_logger("frontend_agent")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:        
+    try:
         await frontend_agent.start()
         logger.info(f"{settings.app_name} started successfully")
-        
+
         yield
     finally:
         logger.info("Cleaning up resources")
@@ -50,14 +51,14 @@ async def read_root():
     try:
         html_file_path = os.path.join(settings.default_public_dir, "index.html")
         logger.debug(f"Reading HTML file from: {html_file_path}")
-        
+
         if not os.path.isfile(html_file_path):
             logger.error(f"File not found: {html_file_path}")
             raise FileNotFoundError(f"File not found: {html_file_path}")
-            
+
         with open(html_file_path, "r", encoding="utf-8") as file:
             file_content = file.read()
-            
+
         return HTMLResponse(content=file_content, status_code=200)
 
     except FileNotFoundError as fnf_error:
@@ -71,10 +72,7 @@ async def read_root():
 
 frontend_server = uvicorn.Server(
     uvicorn.Config(
-        api, 
-        host=settings.host, 
-        port=settings.port, 
-        log_level=settings.log_level
+        api, host=settings.host, port=settings.port, log_level=settings.log_level
     )
 )
 
@@ -85,7 +83,7 @@ if __name__ == "__main__":
         logger.info(f"Starting {settings.app_name}")
         init_telemetry(app_name=settings.app_name)
         logger.info(f"Telemetry initialized for {settings.app_name}")
-        
+
         logger.info(f"Server starting at http://{settings.host}:{settings.port}")
         asyncio.run(frontend_server.serve())
     except KeyboardInterrupt:

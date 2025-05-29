@@ -15,7 +15,7 @@ from .config import settings
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
+        ssl_cert=settings.kafka_ca_content,
     )
 )
 

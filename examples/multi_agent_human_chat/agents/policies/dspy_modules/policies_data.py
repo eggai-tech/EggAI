@@ -4,6 +4,7 @@ Shared policies data and tools to prevent circular imports.
 This module contains the shared database and tools used by both the main agent
 and the optimized DSPy version, preventing circular dependencies.
 """
+
 import asyncio
 import json
 import threading
@@ -68,12 +69,14 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
     Retrieves policy documentation based on a query and policy category.
     Returns a JSON-formatted string with the documentation results.
     """
-    logger.info(f"Tool called: query_policy_documentation(query='{query[:50]}...', policy_category='{policy_category}')")
+    logger.info(
+        f"Tool called: query_policy_documentation(query='{query[:50]}...', policy_category='{policy_category}')"
+    )
     try:
         from agents.policies.rag.retrieving import retrieve_policies
 
         asyncio.run(send_tool_usage_notification("Querying documentation..."))
-        
+
         logger.info(
             f"Retrieving policy information for query: '{query}', category: '{policy_category}'"
         )
@@ -106,7 +109,9 @@ def take_policy_by_number_from_database(policy_number: str) -> str:
     """
     logger.info(f"Retrieving policy details for policy number: '{policy_number}'")
 
-    asyncio.run(send_tool_usage_notification("Retrieving policy details from database..."))
+    asyncio.run(
+        send_tool_usage_notification("Retrieving policy details from database...")
+    )
 
     if not policy_number:
         logger.warning("Empty policy number provided")
@@ -122,7 +127,7 @@ def take_policy_by_number_from_database(policy_number: str) -> str:
                 # Format monetary values with proper currency notation
                 if policy.get("premium_amount"):
                     policy["premium_amount_usd"] = f"${policy['premium_amount']:.2f}"
-                
+
                 # Ensure critical fields are explicitly labeled for importance
                 if "due_date" in policy:
                     policy["payment_due_date"] = policy["due_date"]

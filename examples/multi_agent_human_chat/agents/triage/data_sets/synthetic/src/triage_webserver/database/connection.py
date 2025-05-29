@@ -18,7 +18,7 @@ logger.info(f"Connecting to database at: {config.DATABASE_URL}")
 engine = create_engine(
     config.DATABASE_URL,
     pool_pre_ping=True,  # Check connection liveness
-    echo=config.DEBUG    # Log SQL in debug mode
+    echo=config.DEBUG,  # Log SQL in debug mode
 )
 
 # Create a session factory
@@ -26,6 +26,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Add engine connection debugging
 if config.DEBUG:
+
     @event.listens_for(engine, "connect")
     def connect(dbapi_connection, connection_record):
         logger.info("Database connection established")
@@ -38,6 +39,7 @@ if config.DEBUG:
     def checkin(dbapi_connection, connection_record):
         logger.debug("Database connection checked in")
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -45,11 +47,12 @@ def get_db():
     finally:
         db.close()
 
+
 def init_db():
     """Initialize the database by creating all tables."""
     try:
         # Import all models here to ensure they are registered with Base
-        
+
         # Create all tables
         Base.metadata.create_all(bind=engine)
         logger.info("Database initialized successfully.")

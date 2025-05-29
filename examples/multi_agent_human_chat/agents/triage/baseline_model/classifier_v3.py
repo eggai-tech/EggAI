@@ -13,7 +13,10 @@ load_dotenv()
 settings = Settings()
 
 few_shots_classifier = FewShotsClassifier.load(
-    find_model(settings.classifier_v3_model_name, version=settings.classifier_v3_model_version))
+    find_model(
+        settings.classifier_v3_model_name, version=settings.classifier_v3_model_version
+    )
+)
 # running the classifier to warm up the model
 few_shots_classifier(["User: I want to know my policy due date"])
 
@@ -30,7 +33,7 @@ def classifier_v3(chat_history: str) -> ClassificationResult:
         TargetAgent.PolicyAgent: 1,
         TargetAgent.ClaimsAgent: 2,
         TargetAgent.EscalationAgent: 3,
-        TargetAgent.ChattyAgent: 4
+        TargetAgent.ChattyAgent: 4,
     }
 
     time_start = perf_counter()
@@ -46,7 +49,7 @@ def classifier_v3(chat_history: str) -> ClassificationResult:
             prompt_tokens=0,
             completion_tokens=0,
             latency_ms=latency_ms,
-        )
+        ),
     )
 
 

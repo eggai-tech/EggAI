@@ -16,7 +16,9 @@ load_dotenv()
 settings = Settings()
 nn_settings = AttentionNetSettings()
 
-checkpoint_path = find_model(settings.classifier_v5_model_name, version=settings.classifier_v5_model_version)
+checkpoint_path = find_model(
+    settings.classifier_v5_model_name, version=settings.classifier_v5_model_version
+)
 attention_net = torch.load(checkpoint_path, weights_only=False)
 attention_net.eval()
 # create wrapper
@@ -35,12 +37,14 @@ def classifier_v5(chat_history: str) -> ClassificationResult:
         TargetAgent.PolicyAgent: 1,
         TargetAgent.ClaimsAgent: 2,
         TargetAgent.EscalationAgent: 3,
-        TargetAgent.ChattyAgent: 4
+        TargetAgent.ChattyAgent: 4,
     }
     time_start = perf_counter()
     # IMPORTANT: the model expects the chat history to be a list of strings, each string being a message in the chat
     chat_history = chat_history.split("\n")
-    probs, _, attention_weights, attention_pooled_repr = model.predict_probab(chat_history, return_logits=True)
+    probs, _, attention_weights, attention_pooled_repr = model.predict_probab(
+        chat_history, return_logits=True
+    )
     probs = probs[0]
     best_label = torch.argmax(probs).item()
     best_target_agent = [k for k, v in labels.items() if v == best_label][0]
@@ -53,7 +57,7 @@ def classifier_v5(chat_history: str) -> ClassificationResult:
             prompt_tokens=0,
             completion_tokens=0,
             latency_ms=latency_ms,
-        )
+        ),
     )
 
 

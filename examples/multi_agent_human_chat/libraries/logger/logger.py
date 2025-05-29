@@ -52,7 +52,7 @@ LOGGING_CONFIG = {
             "propagate": False,
         },
         "uvicorn.access": {
-            "level": "INFO", 
+            "level": "INFO",
             "handlers": ["default"],
             "propagate": False,
         },
@@ -71,7 +71,7 @@ for logger_name in settings.suppress_loggers:
 def configure_logging(config: Optional[Dict[str, Any]] = None) -> None:
     """
     Configure logging based on provided configuration or default settings.
-    
+
     Args:
         config: Optional custom logging configuration dictionary
     """
@@ -82,10 +82,10 @@ def configure_logging(config: Optional[Dict[str, Any]] = None) -> None:
 def get_logger(service_name: str) -> logging.Logger:
     """
     Get a configured logger for the specified service.
-    
+
     Args:
         service_name: The name of the service or module requiring logging
-        
+
     Returns:
         A configured logger instance
     """
@@ -97,23 +97,23 @@ def get_console_logger(service_name: str) -> logging.Logger:
     """
     Get a colorized console logger for the specified service.
     This is particularly useful for development and debugging.
-    
+
     Args:
         service_name: The name of the service or module requiring logging
-        
+
     Returns:
         A configured logger with colorized console output
     """
     logger = logging.getLogger(service_name)
-    
+
     # Return the logger if handlers are already configured
     if logger.handlers:
         return logger
-    
+
     # Clear existing handlers if any
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
-    
+
     log_colors = {
         "DEBUG": "white",
         "INFO": "green",

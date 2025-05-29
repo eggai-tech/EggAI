@@ -23,7 +23,9 @@ AGENT_TO_CLASS = {
 }
 
 
-def sample_training_examples(dataset: dict[str, int], n_examples: int, seed: int) -> tuple[list[str], list[int]]:
+def sample_training_examples(
+    dataset: dict[str, int], n_examples: int, seed: int
+) -> tuple[list[str], list[int]]:
     """
     Sample n_examples examples per class.
 
@@ -69,7 +71,8 @@ def load_json_dataset(file_path: str) -> dict[str, int]:
         dataset = [item for item in dataset if item["target_agent"] is not None]
 
         return {
-            item["conversation"]: AGENT_TO_CLASS[item["target_agent"]] for item in dataset
+            item["conversation"]: AGENT_TO_CLASS[item["target_agent"]]
+            for item in dataset
         }
 
 
@@ -80,7 +83,10 @@ def load_csv_dataset(file_path: str, version="v2") -> dict[str, int]:
     """
     df = pd.read_csv(file_path)
     # convert to a dictionary
-    return {row["instruction"]: CATEGORY_LABEL_MAP[row["category"].strip()] for _, row in df.iterrows()}
+    return {
+        row["instruction"]: CATEGORY_LABEL_MAP[row["category"].strip()]
+        for _, row in df.iterrows()
+    }
 
 
 def load_dataset(file_path: str, version="v2") -> dict[str, int]:
@@ -98,7 +104,9 @@ def load_dataset(file_path: str, version="v2") -> dict[str, int]:
     elif file_path.endswith(".csv"):
         return load_csv_dataset(file_path, version)
     else:
-        raise ValueError("Unsupported file format. Please provide a .jsonl or .csv file.")
+        raise ValueError(
+            "Unsupported file format. Please provide a .jsonl or .csv file."
+        )
 
 
 def load_datasets(file_paths: list[str], version="v2") -> dict[str, int]:
@@ -122,8 +130,7 @@ def setup_logging(log_level: str = "INFO"):
     Set up logging configuration.
     """
     logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
 

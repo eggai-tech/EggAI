@@ -75,7 +75,9 @@ class TrackingLM(dspy.LM):
         total_estimated_tokens = 0
         for msg in messages:
             content = msg.get("content", "")
-            total_estimated_tokens += len(content) / 4 + 20  # 20 extra tokens for role and formatting
+            total_estimated_tokens += (
+                len(content) / 4 + 20
+            )  # 20 extra tokens for role and formatting
 
         # If within limits, return as is
         if total_estimated_tokens <= available_tokens:
@@ -127,15 +129,18 @@ def dspy_set_language_model(settings, overwrite_cache_enabled: Optional[bool] = 
     language_model = TrackingLM(
         settings.language_model,
         cache=cache_enabled,
-        api_base=settings.language_model_api_base if settings.language_model_api_base else None
+        api_base=settings.language_model_api_base
+        if settings.language_model_api_base
+        else None,
     )
 
     # Configure max context window if specified
-    if hasattr(settings, 'max_context_window') and settings.max_context_window:
+    if hasattr(settings, "max_context_window") and settings.max_context_window:
         language_model.max_context_window = settings.max_context_window
 
     # Debugging info
     from libraries.logger import get_console_logger
+
     logger = get_console_logger("dspy_language_model")
     logger.info(f"Configured language model: {settings.language_model}")
     logger.info(f"Max context window: {language_model.max_context_window}")
@@ -153,10 +158,8 @@ if __name__ == "__main__":
         cache_enabled = False
         language_model_api_base = None
 
-
     settings = Settings()
     lm = dspy_set_language_model(settings)
-
 
     # Test
     class ExtractInfo(dspy.Signature):
@@ -165,19 +168,24 @@ if __name__ == "__main__":
         text: str = dspy.InputField()
         title: str = dspy.OutputField()
         headings: list[str] = dspy.OutputField()
-        entities: list[dict[str, str]] = dspy.OutputField(desc="a list of entities and their metadata")
-
+        entities: list[dict[str, str]] = dspy.OutputField(
+            desc="a list of entities and their metadata"
+        )
 
     module = dspy.Predict(ExtractInfo)
 
-    text = "Apple Inc. announced its latest iPhone 14 today." \
-           "The CEO, Tim Cook, highlighted its new features in a press release."
+    text = (
+        "Apple Inc. announced its latest iPhone 14 today."
+        "The CEO, Tim Cook, highlighted its new features in a press release."
+    )
     response = module(text=text)
 
     print("Tokens printed: ", lm.total_tokens, lm.prompt_tokens, lm.completion_tokens)
 
-    text = "Microsoft Corporation is a technology company based in Redmond, Washington." \
-           "The company was founded by Bill Gates and Paul Allen in 1975."
+    text = (
+        "Microsoft Corporation is a technology company based in Redmond, Washington."
+        "The company was founded by Bill Gates and Paul Allen in 1975."
+    )
     r = module(text=text)
 
     print("Tokens printed: ", lm.total_tokens, lm.prompt_tokens, lm.completion_tokens)

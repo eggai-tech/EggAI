@@ -11,10 +11,10 @@ from triage_agent_dataset.models import Agents
 
 
 async def generate_dataset(
-    output_file: str = "dataset.jsonl", 
+    output_file: str = "dataset.jsonl",
     temperatures: Optional[List[float]] = None,
     turns: Optional[List[int]] = None,
-    total_target: Optional[int] = None
+    total_target: Optional[int] = None,
 ) -> None:
     """
     Generate a dataset using the specified parameters
@@ -24,10 +24,10 @@ async def generate_dataset(
         temperatures = [0.7, 0.8, 0.9]
     if turns is None:
         turns = [1, 3, 5]
-    
+
     dataset = []
     config = AppConfig()
-    
+
     # Override config values if provided
     if total_target is not None:
         config.TOTAL_TARGET = total_target
@@ -69,42 +69,48 @@ def main():
     """
     # Load environment variables
     dotenv.load_dotenv()
-    
+
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Generate a triage agent dataset")
     parser.add_argument(
-        "--output", "-o", 
-        type=str, 
-        default="dataset.jsonl", 
-        help="Output file path (default: dataset.jsonl)"
+        "--output",
+        "-o",
+        type=str,
+        default="dataset.jsonl",
+        help="Output file path (default: dataset.jsonl)",
     )
     parser.add_argument(
-        "--temperatures", "-t", 
-        type=float, 
-        nargs="+", 
-        help="List of temperatures to use (default: 0.7 0.8 0.9)"
+        "--temperatures",
+        "-t",
+        type=float,
+        nargs="+",
+        help="List of temperatures to use (default: 0.7 0.8 0.9)",
     )
     parser.add_argument(
-        "--turns", "-u", 
-        type=int, 
-        nargs="+", 
-        help="List of turns to use (default: 1 3 5)"
+        "--turns",
+        "-u",
+        type=int,
+        nargs="+",
+        help="List of turns to use (default: 1 3 5)",
     )
     parser.add_argument(
-        "--total", "-n", 
-        type=int, 
-        help="Total number of examples to generate (overrides config value)"
+        "--total",
+        "-n",
+        type=int,
+        help="Total number of examples to generate (overrides config value)",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Run the dataset generation
-    asyncio.run(generate_dataset(
-        output_file=args.output,
-        temperatures=args.temperatures,
-        turns=args.turns,
-        total_target=args.total
-    ))
+    asyncio.run(
+        generate_dataset(
+            output_file=args.output,
+            temperatures=args.temperatures,
+            turns=args.turns,
+            total_target=args.total,
+        )
+    )
 
 
 if __name__ == "__main__":

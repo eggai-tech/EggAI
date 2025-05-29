@@ -1,4 +1,5 @@
 """WebSocket connection manager for the frontend agent."""
+
 from collections import defaultdict
 from typing import Dict
 
@@ -35,13 +36,16 @@ class WebSocketManager:
             if not connection.state.closed:
                 connection.state.closed = True
                 if connection.client_state is not WebSocketState.DISCONNECTED:
-                    await connection.close(code=1001, reason="Connection closed by server")
+                    await connection.close(
+                        code=1001, reason="Connection closed by server"
+                    )
         self.active_connections.pop(connection_id, None)
 
     async def send_message_to_connection(self, connection_id: str, message_data: dict):
         from libraries.logger import get_console_logger
+
         logger = get_console_logger("websocket_manager")
-        
+
         logger.info(f"Sending message to connection {connection_id}: {message_data}")
         connection = self.active_connections.get(connection_id)
         if connection:
@@ -49,7 +53,10 @@ class WebSocketManager:
                 await connection.send_json(message_data)
                 logger.info(f"Message sent successfully to connection {connection_id}")
             except Exception as e:
-                logger.error(f"Error sending message to connection {connection_id}: {e}", exc_info=True)
+                logger.error(
+                    f"Error sending message to connection {connection_id}: {e}",
+                    exc_info=True,
+                )
         else:
             logger.warning(f"Connection {connection_id} not found, buffering message")
             self.message_buffers[connection_id].append(message_data)

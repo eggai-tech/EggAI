@@ -25,12 +25,12 @@ class FewShotsClassifier:
     """
 
     def __init__(
-            self,
-            n_classes: Optional[int] = None,
-            n_examples: Optional[int] = None,
-            seeds: int | list[int] = 47,
-            C: float = 1.0,
-            st_model_name: str = "all-MiniLM-L12-v2"
+        self,
+        n_classes: Optional[int] = None,
+        n_examples: Optional[int] = None,
+        seeds: int | list[int] = 47,
+        C: float = 1.0,
+        st_model_name: str = "all-MiniLM-L12-v2",
     ):
         self.n_classes = n_classes
         self.n_examples = n_examples
@@ -68,7 +68,11 @@ class FewShotsClassifier:
                 # if n_examples is not None, we sample the training set and the class distribution is balanced
                 class_weight = None
             logistic_regression = LogisticRegression(
-                penalty="l2", C=self.C, solver="lbfgs", max_iter=1000, class_weight=class_weight
+                penalty="l2",
+                C=self.C,
+                solver="lbfgs",
+                max_iter=1000,
+                class_weight=class_weight,
             )
             logistic_regression.fit(X, y)
             # add the classifier to the ensemble
@@ -129,7 +133,7 @@ class FewShotsClassifier:
         with open(input_path, "rb") as f:
             loaded = pickle.load(f)
             if not isinstance(loaded, FewShotsClassifier):
-                raise ValueError(f"Loaded object is not a FewShotsClassifier: {type(loaded)}")
+                raise ValueError(
+                    f"Loaded object is not a FewShotsClassifier: {type(loaded)}"
+                )
             return loaded
-
-

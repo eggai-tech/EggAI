@@ -19,10 +19,12 @@ from libraries.tracing.schemas import GenAIAttributes
 logger = get_console_logger("tracing.dspy")
 
 
-def add_gen_ai_attributes_to_span(span: trace.Span, model_name: str = "claude", **kwargs) -> None:
+def add_gen_ai_attributes_to_span(
+    span: trace.Span, model_name: str = "claude", **kwargs
+) -> None:
     """
     Add standard gen_ai attributes to a span to prevent errors with None values.
-    
+
     Args:
         span: OpenTelemetry span to add attributes to
         model_name: Name of the model being used
@@ -30,13 +32,13 @@ def add_gen_ai_attributes_to_span(span: trace.Span, model_name: str = "claude", 
     """
     # Create attributes with defaults to ensure no None values
     attr_dict = {"model_name": model_name}
-    
+
     # Add any additional attributes provided
     attr_dict.update({k: v for k, v in kwargs.items() if v is not None})
-    
+
     # Create the model with all attributes
     gen_ai_attrs = GenAIAttributes(**attr_dict)
-        
+
     # Set all attributes safely
     for key, value in gen_ai_attrs.to_span_attributes().items():
         safe_set_attribute(span, key, value)
@@ -96,21 +98,19 @@ def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
 
     def decorator(fn):
         tracer = trace.get_tracer(f"dspy.{name or fn.__name__}")
-        
+
         def set_gen_ai_attributes(span: trace.Span, **kwargs):
             """Set standard gen_ai attributes on the span to prevent errors."""
             # Extract relevant attributes from kwargs
             extracted_attrs = {}
-            
+
             # Service tier is commonly passed in kwargs
             if "service_tier" in kwargs:
                 extracted_attrs["service_tier"] = kwargs.get("service_tier")
-                
+
             # Use the common helper function for attribute setting
             add_gen_ai_attributes_to_span(
-                span, 
-                model_name=model_name,
-                **extracted_attrs
+                span, model_name=model_name, **extracted_attrs
             )
 
         @functools.wraps(fn)
@@ -126,7 +126,7 @@ def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
                 try:
                     # Set default gen_ai attributes
                     set_gen_ai_attributes(span, **kwargs)
-                    
+
                     # Trace a subset of kwargs for context
                     if "chat_history" in kwargs:
                         chat_excerpt = (
@@ -156,7 +156,7 @@ def traced_dspy_function(name=None, span_namer=None, model_name="claude"):
                 try:
                     # Set default gen_ai attributes
                     set_gen_ai_attributes(span, **kwargs)
-                    
+
                     # Trace a subset of kwargs for context
                     if "chat_history" in kwargs:
                         chat_excerpt = (

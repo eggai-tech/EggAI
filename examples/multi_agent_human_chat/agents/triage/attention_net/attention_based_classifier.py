@@ -21,22 +21,16 @@ class GatedAttentionPooling(nn.Module):
     """
 
     def __init__(
-            self,
-            input_dim: int = 256,
-            hidden_dim: int = 128,
-            attention_heads: int = 1,
-            dropout: Optional[float] = None
+        self,
+        input_dim: int = 256,
+        hidden_dim: int = 128,
+        attention_heads: int = 1,
+        dropout: Optional[float] = None,
     ):
         super(GatedAttentionPooling, self).__init__()
-        self.attention_v = [
-            nn.Linear(input_dim, hidden_dim),
-            nn.Tanh()
-        ]
+        self.attention_v = [nn.Linear(input_dim, hidden_dim), nn.Tanh()]
 
-        self.attention_u = [
-            nn.Linear(input_dim, hidden_dim),
-            nn.Sigmoid()
-        ]
+        self.attention_u = [nn.Linear(input_dim, hidden_dim), nn.Sigmoid()]
 
         if dropout is not None:
             assert 0 < dropout < 1, "Dropout must be between 0 and 1"
@@ -87,20 +81,17 @@ class AttentionBasedClassifier(nn.Module):
     """
 
     def __init__(
-            self,
-            embedding_dim: int = 384,
-            hidden_dims: tuple[int, int] = (256, 128),
-            n_classes: int = 5,
-            dropout: Optional[float] = None,
-            attention_heads: int = 1
+        self,
+        embedding_dim: int = 384,
+        hidden_dims: tuple[int, int] = (256, 128),
+        n_classes: int = 5,
+        dropout: Optional[float] = None,
+        attention_heads: int = 1,
     ):
         super(AttentionBasedClassifier, self).__init__()
 
         # non-linear projection of the SentenceTransformer embeddings to hidden_dims
-        attention_network = [
-            nn.Linear(embedding_dim, hidden_dims[0]),
-            nn.ReLU()
-        ]
+        attention_network = [nn.Linear(embedding_dim, hidden_dims[0]), nn.ReLU()]
 
         # add dropout if specified
         if dropout is not None:
@@ -112,18 +103,16 @@ class AttentionBasedClassifier(nn.Module):
             input_dim=hidden_dims[0],
             hidden_dim=hidden_dims[1],
             attention_heads=attention_heads,
-            dropout=dropout
+            dropout=dropout,
         )
         attention_network.append(gated_attention_pooling)
         self.attention_network = nn.Sequential(*attention_network)
         # add classification layer which returns the logits
-        self.classification_layer = nn.Linear(hidden_dims[0] * attention_heads, n_classes)
+        self.classification_layer = nn.Linear(
+            hidden_dims[0] * attention_heads, n_classes
+        )
 
-    def forward(
-            self,
-            x: torch.Tensor,
-            return_attention_weights: bool = False
-    ) -> Any:
+    def forward(self, x: torch.Tensor, return_attention_weights: bool = False) -> Any:
         """
         Forward pass through the model.
 
@@ -168,9 +157,9 @@ class AttentionBasedClassifierWrapper(nn.Module):
     """
 
     def __init__(
-            self,
-            attention_net: AttentionBasedClassifier,
-            st_model_name: str = "all-MiniLM-L12-v2"
+        self,
+        attention_net: AttentionBasedClassifier,
+        st_model_name: str = "all-MiniLM-L12-v2",
     ):
         super(AttentionBasedClassifierWrapper, self).__init__()
         device = get_device()
@@ -180,7 +169,9 @@ class AttentionBasedClassifierWrapper(nn.Module):
         for param in self.sentence_transformer.parameters():
             param.requires_grad = False
 
-    def forward(self, chat_history: list[str], return_attention_weights: bool = False) -> torch.Tensor:
+    def forward(
+        self, chat_history: list[str], return_attention_weights: bool = False
+    ) -> torch.Tensor:
         """
         Forward pass through the model.
 
@@ -196,11 +187,15 @@ class AttentionBasedClassifierWrapper(nn.Module):
                 attention_pooled_representation (attention_heads x hidden_dim)
         """
         # get the SentenceTransformer embeddings
-        x = self.sentence_transformer.encode(chat_history, convert_to_tensor=True, show_progress_bar=False)
+        x = self.sentence_transformer.encode(
+            chat_history, convert_to_tensor=True, show_progress_bar=False
+        )
         # pass the embeddings through the attention network
         return self.attention_net(x, return_attention_weights)
 
-    def predict_probab(self, chat_history: list[str], return_logits: bool = False) -> Any:
+    def predict_probab(
+        self, chat_history: list[str], return_logits: bool = False
+    ) -> Any:
         """
         Predict the class probabilities for the given chat history.
 

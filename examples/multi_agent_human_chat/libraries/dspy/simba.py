@@ -3,6 +3,7 @@ SIMBA optimization utilities.
 
 This module provides utilities for optimizing and loading SIMBA-optimized models.
 """
+
 import os
 from typing import Callable, List, Optional
 
@@ -23,11 +24,11 @@ def optimize_with_simba(
     max_demos: int = 5,
     log_to_mlflow: bool = True,
     experiment_name: str = "dspy_optimization",
-    seed: int = 42
+    seed: int = 42,
 ) -> dspy.Module:
     """
     Optimize a DSPy module using SIMBA algorithm.
-    
+
     Args:
         program: The DSPy module to optimize
         trainset: The training dataset
@@ -38,36 +39,38 @@ def optimize_with_simba(
         log_to_mlflow: Whether to log to MLflow
         experiment_name: MLflow experiment name
         seed: Random seed for reproducibility
-        
+
     Returns:
         The optimized DSPy module
     """
     logger.info(f"Starting SIMBA optimization with {len(trainset)} examples...")
-    
+
     # Set up MLflow logging if enabled
     if log_to_mlflow:
         mlflow.set_experiment(experiment_name)
-        mlflow.log_params({
-            "optimizer": "SIMBA",
-            "max_steps": max_steps,
-            "max_demos": max_demos,
-            "train_examples": len(trainset),
-            "seed": seed
-        })
-    
+        mlflow.log_params(
+            {
+                "optimizer": "SIMBA",
+                "max_steps": max_steps,
+                "max_demos": max_demos,
+                "train_examples": len(trainset),
+                "seed": seed,
+            }
+        )
+
     # Create and run the optimizer
     simba = dspy.SIMBA(metric=metric, max_steps=max_steps, max_demos=max_demos)
     optimized_program = simba.compile(program, trainset=trainset, seed=seed)
-    
+
     # Save the optimized program if path provided
     if output_path:
         logger.info(f"Saving optimized model to {output_path}")
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         optimized_program.save(output_path)
-        
+
         if log_to_mlflow:
             mlflow.log_artifact(output_path)
-    
+
     logger.info("SIMBA optimization complete")
     return optimized_program
 
@@ -98,12 +101,15 @@ def load_optimized_model(path: str) -> Optional[dspy.Module]:
             logger.info("Trying alternative loading method for optimized model")
             # Import json and load directly
             import json
-            with open(path, 'r') as f:
+
+            with open(path, "r") as f:
                 json_data = json.load(f)
                 logger.info(f"Successfully loaded JSON data from {path}")
                 # Since we can't directly load the program,
                 # return None and let the fallback mechanism handle it
-                logger.info("JSON data loaded but can't create program, will use fallback")
+                logger.info(
+                    "JSON data loaded but can't create program, will use fallback"
+                )
                 return None
         except Exception as e2:
             logger.error(f"All loading methods failed: {e2}")

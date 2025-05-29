@@ -4,6 +4,7 @@ Main module for the Escalation Agent.
 This module contains the main entry point for the escalation agent.
 It sets up the language model, transport, telemetry, and starts the agent.
 """
+
 import asyncio
 import logging
 
@@ -20,7 +21,7 @@ from .config import settings
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content
+        ssl_cert=settings.kafka_ca_content,
     )
 )
 
@@ -36,19 +37,19 @@ logger.setLevel(logging.INFO)
 async def main():
     """Main entry point for the escalation agent."""
     logger.info(f"Starting {settings.app_name}")
-    
+
     # Initialize OpenTelemetry
     init_telemetry(app_name=settings.app_name)
     logger.info(f"Telemetry initialized for {settings.app_name}")
-    
+
     # Configure language model
     dspy_set_language_model(settings)
     logger.info(f"Using language model: {settings.language_model}")
-    
+
     # Start the agent
     await ticketing_agent.start()
     logger.info(f"{settings.app_name} started successfully")
-    
+
     # Keep the agent running
     try:
         await asyncio.Future()

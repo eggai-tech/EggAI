@@ -30,7 +30,9 @@ tracer = create_tracer("policies_agent")
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
     """Format chat messages into a conversation string."""
     with tracer.start_as_current_span("get_conversation_string") as span:
-        safe_set_attribute(span, "chat_messages_count", len(chat_messages) if chat_messages else 0)
+        safe_set_attribute(
+            span, "chat_messages_count", len(chat_messages) if chat_messages else 0
+        )
 
         if not chat_messages:
             safe_set_attribute(span, "empty_messages", True)
@@ -52,10 +54,10 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
 
 
 async def process_policy_request(
-        conversation_string: str,
-        connection_id: str,
-        message_id: str,
-        timeout_seconds: float = None
+    conversation_string: str,
+    connection_id: str,
+    message_id: str,
+    timeout_seconds: float = None,
 ) -> None:
     """Generate a response to a policy request with streaming output."""
     # Create model config with timeout value
@@ -75,21 +77,25 @@ async def process_policy_request(
             raise ValueError("Conversation history is too short to process")
 
         # Start the stream
-        await human_stream_channel.publish(TracedMessage(
-            type="agent_message_stream_start",
-            source="PoliciesAgent",
-            data={
-                "message_id": message_id,
-                "connection_id": connection_id,
-            },
-            traceparent=child_traceparent,
-            tracestate=child_tracestate,
-        ))
+        await human_stream_channel.publish(
+            TracedMessage(
+                type="agent_message_stream_start",
+                source="PoliciesAgent",
+                data={
+                    "message_id": message_id,
+                    "connection_id": connection_id,
+                },
+                traceparent=child_traceparent,
+                tracestate=child_tracestate,
+            )
+        )
         logger.info(f"Stream started for message {message_id}")
 
         # Call the model with streaming
         logger.info("Calling policies model with streaming")
-        chunks = policies_optimized_dspy(chat_history=conversation_string, config=config)
+        chunks = policies_optimized_dspy(
+            chat_history=conversation_string, config=config
+        )
         chunk_count = 0
 
         # Process the streaming chunks
@@ -97,60 +103,68 @@ async def process_policy_request(
             async for chunk in chunks:
                 if isinstance(chunk, StreamResponse):
                     chunk_count += 1
-                    await human_stream_channel.publish(TracedMessage(
-                        type="agent_message_stream_chunk",
-                        source="PoliciesAgent",
-                        data={
-                            "message_chunk": chunk.chunk,
-                            "message_id": message_id,
-                            "chunk_index": chunk_count,
-                            "connection_id": connection_id,
-                        },
-                        traceparent=child_traceparent,
-                        tracestate=child_tracestate,
-                    ))
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_chunk",
+                            source="PoliciesAgent",
+                            data={
+                                "message_chunk": chunk.chunk,
+                                "message_id": message_id,
+                                "chunk_index": chunk_count,
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        )
+                    )
                 elif isinstance(chunk, Prediction):
                     # Get the complete response
                     response = chunk.final_response
                     if response:
                         response = response.replace(" [[ ## completed ## ]]", "")
 
-                    logger.info(f"Sending stream end with response: {response[:100] if response else 'EMPTY'}")
-                    await human_stream_channel.publish(TracedMessage(
-                        type="agent_message_stream_end",
-                        source="PoliciesAgent",
-                        data={
-                            "message_id": message_id,
-                            "message": response,
-                            "agent": "PoliciesAgent",
-                            "connection_id": connection_id,
-                        },
-                        traceparent=child_traceparent,
-                        tracestate=child_tracestate,
-                    ))
+                    logger.info(
+                        f"Sending stream end with response: {response[:100] if response else 'EMPTY'}"
+                    )
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_end",
+                            source="PoliciesAgent",
+                            data={
+                                "message_id": message_id,
+                                "message": response,
+                                "agent": "PoliciesAgent",
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        )
+                    )
                     logger.info(f"Stream ended for message {message_id}")
         except Exception as e:
             logger.error(f"Error in streaming response: {e}", exc_info=True)
             # Send an error message to end the stream
-            await human_stream_channel.publish(TracedMessage(
-                type="agent_message_stream_end",
-                source="PoliciesAgent",
-                data={
-                    "message_id": message_id,
-                    "message": "I'm sorry, I encountered an error while processing your request.",
-                    "agent": "PoliciesAgent",
-                    "connection_id": connection_id,
-                },
-                traceparent=child_traceparent,
-                tracestate=child_tracestate,
-            ))
+            await human_stream_channel.publish(
+                TracedMessage(
+                    type="agent_message_stream_end",
+                    source="PoliciesAgent",
+                    data={
+                        "message_id": message_id,
+                        "message": "I'm sorry, I encountered an error while processing your request.",
+                        "agent": "PoliciesAgent",
+                        "connection_id": connection_id,
+                    },
+                    traceparent=child_traceparent,
+                    tracestate=child_tracestate,
+                )
+            )
 
 
 @policies_agent.subscribe(
-    channel=agents_channel, 
+    channel=agents_channel,
     filter_by_message=lambda msg: msg.get("type") == "policy_request",
     auto_offset_reset="latest",
-    group_id="policies_agent_group"
+    group_id="policies_agent_group",
 )
 @traced_handler("handle_policy_request")
 async def handle_policy_request(msg: TracedMessage) -> None:
@@ -161,42 +175,43 @@ async def handle_policy_request(msg: TracedMessage) -> None:
 
         if not chat_messages:
             logger.warning(f"Empty chat history for connection: {connection_id}")
-            await human_channel.publish(TracedMessage(
-                type="agent_message",
-                source="PoliciesAgent",
-                data={
-                    "message": "I apologize, but I didn't receive any message content to process.",
-                    "connection_id": connection_id,
-                    "agent": "PoliciesAgent",
-                },
-                traceparent=msg.traceparent,
-                tracestate=msg.tracestate,
-            ))
+            await human_channel.publish(
+                TracedMessage(
+                    type="agent_message",
+                    source="PoliciesAgent",
+                    data={
+                        "message": "I apologize, but I didn't receive any message content to process.",
+                        "connection_id": connection_id,
+                        "agent": "PoliciesAgent",
+                    },
+                    traceparent=msg.traceparent,
+                    tracestate=msg.tracestate,
+                )
+            )
             return
 
         conversation_string = get_conversation_string(chat_messages)
         logger.info(f"Processing policy request for connection {connection_id}")
 
         await process_policy_request(
-            conversation_string,
-            connection_id,
-            str(msg.id),
-            timeout_seconds=30.0
+            conversation_string, connection_id, str(msg.id), timeout_seconds=30.0
         )
 
     except Exception as e:
         logger.error(f"Error in PoliciesAgent: {e}", exc_info=True)
-        await human_channel.publish(TracedMessage(
-            type="agent_message",
-            source="PoliciesAgent",
-            data={
-                "message": "I apologize, but I'm having trouble processing your request right now. Please try again.",
-                "connection_id": locals().get("connection_id", "unknown"),
-                "agent": "PoliciesAgent",
-            },
-            traceparent=msg.traceparent if 'msg' in locals() else None,
-            tracestate=msg.tracestate if 'msg' in locals() else None,
-        ))
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="PoliciesAgent",
+                data={
+                    "message": "I apologize, but I'm having trouble processing your request right now. Please try again.",
+                    "connection_id": locals().get("connection_id", "unknown"),
+                    "agent": "PoliciesAgent",
+                },
+                traceparent=msg.traceparent if "msg" in locals() else None,
+                tracestate=msg.tracestate if "msg" in locals() else None,
+            )
+        )
 
 
 @policies_agent.subscribe(channel=agents_channel)
@@ -207,6 +222,7 @@ async def handle_other_messages(msg: TracedMessage) -> None:
 
 
 if __name__ == "__main__":
+
     async def run():
         from libraries.dspy_set_language_model import dspy_set_language_model
 
@@ -227,6 +243,5 @@ if __name__ == "__main__":
                 logger.info(f"Chunk: {chunk.chunk}")
             elif isinstance(chunk, Prediction):
                 logger.info(f"Final response: {chunk.final_response}")
-
 
     asyncio.run(run())

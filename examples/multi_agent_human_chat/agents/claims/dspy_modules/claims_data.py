@@ -1,4 +1,5 @@
 """Claims data store and tools for claim operations."""
+
 import json
 import re
 from typing import Dict, List, Optional, Tuple, Union
@@ -17,44 +18,55 @@ tracer = create_tracer("claims_agent_data")
 
 class ClaimRecord(BaseModel):
     """Data structure for an insurance claim record with validation."""
+
     claim_number: str = Field(..., description="Unique identifier for the claim")
-    policy_number: str = Field(..., description="Policy number associated with the claim")
+    policy_number: str = Field(
+        ..., description="Policy number associated with the claim"
+    )
     status: str = Field(..., description="Current status of the claim")
     next_steps: str = Field(..., description="Next steps required for claim processing")
-    outstanding_items: List[str] = Field(default_factory=list, description="Items pending for claim processing")
+    outstanding_items: List[str] = Field(
+        default_factory=list, description="Items pending for claim processing"
+    )
     estimate: Optional[float] = Field(None, description="Estimated payout amount", gt=0)
-    estimate_date: Optional[str] = Field(None, description="Estimated date for payout (YYYY-MM-DD)")
-    details: Optional[str] = Field(None, description="Detailed description of the claim")
+    estimate_date: Optional[str] = Field(
+        None, description="Estimated date for payout (YYYY-MM-DD)"
+    )
+    details: Optional[str] = Field(
+        None, description="Detailed description of the claim"
+    )
     address: Optional[str] = Field(None, description="Address related to the claim")
     phone: Optional[str] = Field(None, description="Contact phone number")
-    damage_description: Optional[str] = Field(None, description="Description of damage or loss")
+    damage_description: Optional[str] = Field(
+        None, description="Description of damage or loss"
+    )
     contact_email: Optional[str] = Field(None, description="Contact email address")
-    
-    @field_validator('estimate_date')
+
+    @field_validator("estimate_date")
     @classmethod
     def validate_date_format(cls, v):
         """Validate date is in YYYY-MM-DD format."""
         if v is None:
             return v
-        if not re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
             raise ValueError("Date must be in YYYY-MM-DD format")
         return v
-    
-    @field_validator('phone')
+
+    @field_validator("phone")
     @classmethod
     def validate_phone(cls, v):
         """Validate phone number format."""
         if v is None:
             return v
         # Simple validation - could be enhanced with country-specific patterns
-        if not re.match(r'^\+?[\d\-\(\) ]{7,}$', v):
+        if not re.match(r"^\+?[\d\-\(\) ]{7,}$", v):
             raise ValueError("Invalid phone number format")
         return v
-    
+
     def to_dict(self) -> Dict:
         """Convert claim record to dictionary, excluding None values."""
         return {k: v for k, v in self.model_dump().items() if v is not None}
-    
+
     def to_json(self) -> str:
         """Convert claim record to JSON string."""
         return json.dumps(self.to_dict())
@@ -69,7 +81,7 @@ CLAIMS_DATABASE = [
         estimate=2300.0,
         estimate_date="2026-05-15",
         next_steps="Submit repair estimates",
-        outstanding_items=["Repair estimates"]
+        outstanding_items=["Repair estimates"],
     ),
     ClaimRecord(
         claim_number="1002",
@@ -78,7 +90,7 @@ CLAIMS_DATABASE = [
         estimate=1500.0,
         estimate_date="2026-04-20",
         next_steps="Processing payment",
-        outstanding_items=[]
+        outstanding_items=[],
     ),
     ClaimRecord(
         claim_number="1003",
@@ -87,13 +99,14 @@ CLAIMS_DATABASE = [
         estimate=None,
         estimate_date=None,
         next_steps="Upload photos and police report",
-        outstanding_items=["Photos", "Police report"]
+        outstanding_items=["Photos", "Police report"],
     ),
 ]
 
 
 class ClaimDataException(Exception):
     """Custom exception for claim data operations."""
+
     def __init__(self, message: str, category: ErrorCategory = ErrorCategory.SYSTEM):
         self.message = message
         self.category = category
@@ -104,18 +117,18 @@ def get_claim_record(claim_number: str) -> Optional[ClaimRecord]:
     """Find a claim record by claim number."""
     with tracer.start_as_current_span("get_claim_record") as span:
         safe_set_attribute(span, "claim_number", claim_number)
-        
+
         clean_claim_number = claim_number.strip() if claim_number else ""
-        
+
         if not clean_claim_number:
             safe_set_attribute(span, "empty_claim_number", True)
             return None
-            
+
         for record in CLAIMS_DATABASE:
             if record.claim_number == clean_claim_number:
                 safe_set_attribute(span, "claim_found", True)
                 return record
-                
+
         safe_set_attribute(span, "claim_found", False)
         return None
 
@@ -133,23 +146,21 @@ def get_claim_status(claim_number: str) -> str:
         if not claim_number or claim_number.lower() == "unknown":
             logger.warning("Invalid or missing claim number")
             raise ClaimDataException(
-                "Invalid claim number provided", 
-                ErrorCategory.USER_INPUT
+                "Invalid claim number provided", ErrorCategory.USER_INPUT
             )
-            
+
         logger.info(f"Retrieving claim status for claim number: {claim_number}")
         record = get_claim_record(claim_number)
-        
+
         if not record:
             logger.warning(f"Claim not found: {claim_number}")
             raise ClaimDataException(
-                f"Claim {claim_number} not found", 
-                ErrorCategory.USER_INPUT
+                f"Claim {claim_number} not found", ErrorCategory.USER_INPUT
             )
-            
+
         logger.info(f"Found claim record {claim_number}")
         return record.to_json()
-        
+
     except ClaimDataException as e:
         return format_error_response(get_user_friendly_error(e, e.category))
     except Exception as e:
@@ -165,33 +176,29 @@ def file_claim(policy_number: str, claim_details: str) -> str:
         if not policy_number or policy_number.lower() == "unknown":
             logger.warning("Invalid or missing policy number")
             raise ClaimDataException(
-                "Invalid policy number provided", 
-                ErrorCategory.USER_INPUT
+                "Invalid policy number provided", ErrorCategory.USER_INPUT
             )
-            
+
         if not claim_details:
             logger.warning("Missing claim details")
-            raise ClaimDataException(
-                "Missing claim details", 
-                ErrorCategory.USER_INPUT
-            )
-        
+            raise ClaimDataException("Missing claim details", ErrorCategory.USER_INPUT)
+
         logger.info(f"Filing new claim for policy: {policy_number}")
-        
+
         # Create new claim
         try:
             claim_numbers = [int(r.claim_number) for r in CLAIMS_DATABASE]
             new_number = str(max(claim_numbers) + 1 if claim_numbers else 1001)
-            
+
             new_claim = ClaimRecord(
                 claim_number=new_number,
                 policy_number=policy_number.strip(),
                 status="Filed",
                 next_steps="Provide documentation",
                 outstanding_items=["Photos", "Police report"],
-                details=claim_details
+                details=claim_details,
             )
-            
+
             CLAIMS_DATABASE.append(new_claim)
             logger.info(f"New claim filed: {new_number}")
             return new_claim.to_json()
@@ -199,10 +206,9 @@ def file_claim(policy_number: str, claim_details: str) -> str:
             # Handle Pydantic validation errors
             logger.error(f"Validation error creating claim: {ve}")
             raise ClaimDataException(
-                f"Invalid claim data: {ve}",
-                ErrorCategory.USER_INPUT
+                f"Invalid claim data: {ve}", ErrorCategory.USER_INPUT
             )
-            
+
     except ClaimDataException as e:
         return format_error_response(get_user_friendly_error(e, e.category))
     except Exception as e:
@@ -213,7 +219,7 @@ def file_claim(policy_number: str, claim_details: str) -> str:
 # Field validators registry
 class FieldValidators:
     """Validation functions for claim fields."""
-    
+
     @staticmethod
     def validate_estimate(value: str) -> Tuple[bool, Optional[Union[str, float]]]:
         """Validate estimate field value."""
@@ -233,7 +239,11 @@ class FieldValidators:
         try:
             # Basic validation that could be expanded
             year, month, day = value.split("-")
-            if not (1900 <= int(year) <= 2100 and 1 <= int(month) <= 12 and 1 <= int(day) <= 31):
+            if not (
+                1900 <= int(year) <= 2100
+                and 1 <= int(month) <= 12
+                and 1 <= int(day) <= 31
+            ):
                 return False, "Date values out of range"
             return True, value
         except ValueError:
@@ -278,33 +288,35 @@ ALLOWED_FIELDS = list(FIELD_VALIDATORS.keys())
 
 
 @tracer.start_as_current_span("update_field_value")
-def update_field_value(record: ClaimRecord, field: str, new_value: str) -> Tuple[bool, Optional[str]]:
+def update_field_value(
+    record: ClaimRecord, field: str, new_value: str
+) -> Tuple[bool, Optional[str]]:
     """Update a field in a claim record with validation and type conversion."""
     # Security check - only allow specific fields
     if field not in ALLOWED_FIELDS:
         return False, ErrorResponse.SECURITY_FIELD_BLOCKED
-    
+
     # Get appropriate validator
     validator = FIELD_VALIDATORS.get(field, FieldValidators.validate_text)
-    
+
     # Validate and convert value
     success, result = validator(new_value)
     if not success:
         return False, result
-    
+
     # Update record field with validated value
     try:
         # Create update dict with the single field to update
         update_data = {field: result}
-        
+
         # Use model_copy to create a new instance with the updated field
         updated_record = record.model_copy(update=update_data)
-        
+
         # Copy updated values back to original record
         # This approach is needed because we're modifying a shared database record
         for key, value in updated_record.model_dump().items():
             setattr(record, key, value)
-            
+
         return True, None
     except Exception as e:
         logger.error(f"Error updating field: {e}")
@@ -319,52 +331,49 @@ def update_claim_info(claim_number: str, field: str, new_value: str) -> str:
         if not claim_number or claim_number.lower() == "unknown":
             logger.warning("Invalid or missing claim number")
             raise ClaimDataException(
-                "Invalid claim number provided",
-                ErrorCategory.USER_INPUT
+                "Invalid claim number provided", ErrorCategory.USER_INPUT
             )
-        
+
         if not field:
             logger.warning("Missing field name")
             raise ClaimDataException(
-                "Missing field to update",
-                ErrorCategory.USER_INPUT
+                "Missing field to update", ErrorCategory.USER_INPUT
             )
-        
+
         if new_value is None:
             logger.warning("Missing new value")
             raise ClaimDataException(
-                "Missing value for update",
-                ErrorCategory.USER_INPUT
+                "Missing value for update", ErrorCategory.USER_INPUT
             )
-        
+
         logger.info(f"Updating claim {claim_number}: {field} -> {new_value}")
         record = get_claim_record(claim_number)
-        
+
         if not record:
             logger.warning(f"Cannot update claim {claim_number}: not found")
             raise ClaimDataException(
-                f"Claim {claim_number} not found",
-                ErrorCategory.USER_INPUT
+                f"Claim {claim_number} not found", ErrorCategory.USER_INPUT
             )
-            
+
         if not hasattr(record, field):
             logger.warning(f"Field '{field}' not in claim record")
             raise ClaimDataException(
-                f"Field '{field}' not in claim record",
-                ErrorCategory.USER_INPUT
+                f"Field '{field}' not in claim record", ErrorCategory.USER_INPUT
             )
-            
+
         success, error = update_field_value(record, field, new_value)
         if not success:
             logger.error(f"Error updating field: {error}")
             raise ClaimDataException(
                 error,
-                ErrorCategory.USER_INPUT if "invalid" in str(error).lower() else ErrorCategory.SECURITY
+                ErrorCategory.USER_INPUT
+                if "invalid" in str(error).lower()
+                else ErrorCategory.SECURITY,
             )
-            
+
         logger.info(f"Successfully updated {field} for claim {claim_number}")
         return record.to_json()
-            
+
     except ClaimDataException as e:
         return format_error_response(get_user_friendly_error(e, e.category))
     except Exception as e:

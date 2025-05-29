@@ -34,11 +34,14 @@ class AgentClassificationSignature(dspy.Signature):
 
 
 # Improved zero-shot prompt with detailed classification rules
-ZERO_SHOT_INSTRUCTIONS = """
+ZERO_SHOT_INSTRUCTIONS = (
+    """
 You are an intelligent classifier in a multi-agent insurance support system. Your task is to analyze the chat history and determine which specialized agent should handle the user's query.
 
 ## Available Target Agents:
-""" + formatted_agent_registry() + """
+"""
+    + formatted_agent_registry()
+    + """
 
 ## Classification Rules:
 1. If the query is about bills, payments, invoices, paperless billing, payment methods, late payment fees, fee calculations, refunds, or ANY financial matters → BillingAgent
@@ -66,22 +69,30 @@ You are an intelligent classifier in a multi-agent insurance support system. You
 
 Return only the name of the target agent without explanation.
 """
+)
 
-classifier_v4_program = dspy.Predict(signature=AgentClassificationSignature.with_instructions(ZERO_SHOT_INSTRUCTIONS))
+classifier_v4_program = dspy.Predict(
+    signature=AgentClassificationSignature.with_instructions(ZERO_SHOT_INSTRUCTIONS)
+)
 
 # Define the path for the optimizations file
-optimizations_json = os.path.abspath(os.path.join(os.path.dirname(__file__), "optimizations_v4.json"))
+optimizations_json = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "optimizations_v4.json")
+)
 
 # Check if the optimizations file exists and load it
 if os.path.exists(optimizations_json):
     logger.info(f"Loading optimizations from {optimizations_json}")
-    with open(optimizations_json, 'r') as f:
+    with open(optimizations_json, "r") as f:
         optimizations = json.load(f)
-        if 'instructions' in optimizations:
+        if "instructions" in optimizations:
             # Create a new program with the optimized instructions
             classifier_v4_program = dspy.Predict(
-                signature=AgentClassificationSignature.with_instructions(optimizations['instructions'])
+                signature=AgentClassificationSignature.with_instructions(
+                    optimizations["instructions"]
+                )
             )
+
 
 def classifier_v4(chat_history: str) -> AgentClassificationSignature:
     result = classifier_v4_program(chat_history=chat_history)
@@ -91,11 +102,13 @@ def classifier_v4(chat_history: str) -> AgentClassificationSignature:
         completion_tokens=lm.completion_tokens,
         latency_ms=lm.latency_ms,
     )
-    
+
     # Log token usage when in debug mode
-    if os.environ.get('TRIAGE_DEBUG') == '1':
-        logger.debug(f"Token usage - Total: {lm.total_tokens}, "
-                    f"Prompt: {lm.prompt_tokens}, Completion: {lm.completion_tokens}")
+    if os.environ.get("TRIAGE_DEBUG") == "1":
+        logger.debug(
+            f"Token usage - Total: {lm.total_tokens}, "
+            f"Prompt: {lm.prompt_tokens}, Completion: {lm.completion_tokens}"
+        )
     return result
 
 
@@ -106,9 +119,9 @@ if __name__ == "__main__":
         "User: I need to pay my bill. Can you help me?",
         "User: What does my policy cover for water damage?",
         "User: I want to file a claim for my car accident yesterday.",
-        "User: I've been trying to resolve this for weeks! I need to speak to a manager!"
+        "User: I've been trying to resolve this for weeks! I need to speak to a manager!",
     ]
-    
+
     logger.info("Testing zero-shot classifier on example cases:")
     for test in test_cases:
         res = classifier_v4(chat_history=test)

@@ -6,6 +6,6 @@ class WebServerConfig(BaseSettings):
     SECRET_KEY: str = "development_secret_key"
     MODEL: str = "openai/gpt-4o-mini"
     DEBUG: bool = True
-    
+
     class Config:
         env_prefix = ""
