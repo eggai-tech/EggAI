@@ -15,6 +15,7 @@ class FewshotSettings(BaseSettings):
     n_examples: Optional[int] = Field(default=None)
     seed: Union[int, List[int]] = Field(default=[42, 47, 53])
     model_name_template: str = Field(default="fewshot_baseline_n_{n_examples}")
+    checkpoint_dir: str = Field(default="baseline_checkpoints", env="CHECKPOINT_DIR")
 
     # Dataset configuration
     train_dataset_paths: List[str] = Field(

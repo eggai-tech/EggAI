@@ -133,7 +133,10 @@ class FewShotsClassifier:
         with open(input_path, "rb") as f:
             loaded = pickle.load(f)
             if not isinstance(loaded, FewShotsClassifier):
-                raise ValueError(
-                    f"Loaded object is not a FewShotsClassifier: {type(loaded)}"
-                )
+                assert isinstance(loaded, list), "Loaded model must be a list of classifiers"
+                # if a list of classifiers is loaded, create a FewShotsClassifier instance
+                result = FewShotsClassifier()
+                result.classifiers = loaded
+                return result
+
             return loaded

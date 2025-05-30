@@ -95,10 +95,14 @@ def main() -> int:
     for k, acc in zip(CATEGORY_LABEL_MAP.keys(), per_class_acc, strict=False):
         mlflow.log_metric(f"{k}_accuracy", acc)
 
-    # Save the model in the model registry
+    # save the model
     n_examples = settings.n_examples if settings.n_examples else "all"
     model_name = settings.model_name_template.format(n_examples=n_examples)
+    # save the model locally
+    logger.info(f"Saving model {model_name} to local path {settings.checkpoint_dir}")
+    fewshot_classifier.save(settings.checkpoint_dir, name=model_name)
 
+    # Save the model in the model registry
     logger.info(f"Saving model {model_name} to the MLflow registry")
     mlflow.sklearn.log_model(
         sk_model=fewshot_classifier,
