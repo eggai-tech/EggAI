@@ -89,7 +89,9 @@ jobs:
       - name: Start services with Docker Compose
         uses: hoverkraft-tech/compose-action@v2.2.0
         with:
-          compose-file: examples/multi_agent_human_chat/docker-compose.yml
+          compose-file: |
+            examples/multi_agent_human_chat/docker-compose.yml
+            examples/multi_agent_human_chat/docker-compose-lmstudio.yaml
 
       - name: Wait for Redpanda and MinIO to be healthy
         run: |
