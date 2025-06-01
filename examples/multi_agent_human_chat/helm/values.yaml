@@ -1,0 +1,41 @@
+agents:
+  audit:
+    enabled: true
+    replicaCount: 1
+  billing:
+    enabled: true
+    replicaCount: 1
+  claims:
+    enabled: true
+    replicaCount: 1
+  escalation:
+    enabled: true
+    replicaCount: 1
+  frontend:
+    enabled: true
+    replicaCount: 1
+  policies:
+    enabled: true
+    replicaCount: 1
+  triage:
+    enabled: true
+    replicaCount: 1
+
+image:
+  repository: docker pull ghcr.io/eggai-tech/multi_agent_human_chat
+  pullPolicy: IfNotPresent
+  tag: latest
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
