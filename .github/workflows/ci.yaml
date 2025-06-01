@@ -182,4 +182,4 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ghcr.io/eggai-tech/multi_agent_human_chat:${{ steps.image_tag.outputs.tag }}
+          tags: ghcr.io/eggai-tech/multi-agent-human-chat:${{ steps.image_tag.outputs.tag }}
