@@ -7,9 +7,18 @@ metadata:
   annotations:
     "helm.sh/hook": test
 spec:
+  automountServiceAccountToken: false
   containers:
     - name: wget
       image: busybox
       command: ['wget']
       args: ['{{ include "eggai-multi-agent-chat.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+      ephemeralStorage: "2Gi"
