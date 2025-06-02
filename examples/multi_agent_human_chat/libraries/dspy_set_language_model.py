@@ -152,7 +152,7 @@ def dspy_set_language_model(settings, overwrite_cache_enabled: Optional[bool] = 
 if __name__ == "__main__":
 
     class Settings:
-        language_model = "lm_studio/gemma-3-4b-it-qat"
+        language_model = "lm_studio/gemma-3-12b-it-qat"
         cache_enabled = False
         language_model_api_base = "http://localhost:1234/v1"
         max_context_window = 128000

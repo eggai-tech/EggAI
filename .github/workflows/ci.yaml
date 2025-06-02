@@ -48,7 +48,7 @@ jobs:
     env:
       # Triage agent settings
       TRIAGE_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      TRIAGE_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      TRIAGE_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
       TRIAGE_CLASSIFIER_VERSION: v4
       TRIAGE_CLASSIFIER_V3_MODEL_NAME: fewshot_classifier_n_all
       TRIAGE_CLASSIFIER_V3_MODEL_VERSION: 1
@@ -59,19 +59,19 @@ jobs:
 
       # Policies agent settings
       POLICIES_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      POLICIES_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      POLICIES_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
 
       # Claims agent settings
       CLAIMS_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      CLAIMS_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      CLAIMS_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
 
       # Billing agent settings
       BILLING_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      BILLING_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      BILLING_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
 
       # Escalation agent settings
       ESCALATION_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
-      ESCALATION_LANGUAGE_MODEL: lm_studio/gemma-3-4b-it-qat
+      ESCALATION_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
 
       # Shared settings
       LM_STUDIO_API_BASE: http://localhost:1234/v1/

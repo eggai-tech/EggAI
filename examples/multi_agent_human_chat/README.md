@@ -194,7 +194,7 @@ By default, the system uses LM Studio as the local model server.
 1. Start a local model server with LM Studio:
    ```bash
    # Download and install LM Studio from https://lmstudio.ai/
-   # Launch LM Studio and load the gemma-3-4b-it-qat model (or another compatible model)
+   # Launch LM Studio and load the gemma-3-12b-it-qat model (or another compatible model)
    # Click "Local Server" in the sidebar and start the server
    # Ensure it's running on http://localhost:1234
    ```
@@ -207,19 +207,19 @@ By default, the system uses LM Studio as the local model server.
    The example configuration is already set up for LM Studio with the following settings:
    ```
    TRIAGE_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   TRIAGE_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+   TRIAGE_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
 
    POLICIES_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   POLICIES_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+   POLICIES_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
 
    CLAIMS_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   CLAIMS_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+   CLAIMS_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
 
    BILLING_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   BILLING_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+   BILLING_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
 
    ESCALATION_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   ESCALATION_LANGUAGE_MODEL=lm_studio/gemma-3-4b-it-qat
+   ESCALATION_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
 
    LM_STUDIO_API_BASE=http://localhost:1234/v1/
    LM_STUDIO_API_KEY=lm-studio
