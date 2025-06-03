@@ -1,0 +1,33 @@
+name: Release Helm Chart
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "examples/multi_agent_human_chat/helm/**"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push chart to GHCR
+        run: |
+          version=$(yq '.version' examples/multi_agent_human_chat/helm/Chart.yaml)
+          helm package examples/multi_agent_human_chat/helm --version ${{ steps.chart.outputs.version }} --destination packaged
+          helm push packaged/multi-agent-human-chat-${{ steps.chart.outputs.version }}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm
