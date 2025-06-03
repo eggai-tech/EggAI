@@ -121,9 +121,9 @@ jobs:
           make test-claims-agent
           make test-frontend-agent
           make test-audit-agent
-          # make test-triage-agent - fails, should be fixed
-          # make test-escalation-agent - fails on timeout
-          # make test-policies-agent - fails on timeout
+          make test-triage-agent
+          make test-escalation-agent
+          make test-policies-agent
 
       - name: Dump logs on failure
         if: ${{ failure() }}
