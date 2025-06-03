@@ -110,7 +110,7 @@ def take_policy_by_number_from_database(policy_number: str) -> str:
     logger.info(f"Retrieving policy details for policy number: '{policy_number}'")
 
     asyncio.run(
-        send_tool_usage_notification("Retrieving policy details from database...")
+        send_tool_usage_notification("Retrieving policy details...")
     )
 
     if not policy_number:
