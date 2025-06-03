@@ -409,7 +409,6 @@ async def test_policies_agent_single():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip
 async def test_policies_agent():
     """Test the policies agent with standardized test cases."""
 
