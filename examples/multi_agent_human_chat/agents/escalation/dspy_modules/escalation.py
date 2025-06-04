@@ -6,24 +6,24 @@ which handles ticket creation and management for customer issues.
 """
 
 import json
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncIterable, Dict, List, Optional, Tuple, Union
+from typing import AsyncIterable, Dict, List, Optional, Union
 
 import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedChainOfThought, TracedReAct, create_tracer, traced_dspy_function
-
 from agents.escalation.types import (
-    ConfirmationResponse,
-    ModelResult,
+    ModelConfig,
     TicketDepartment,
     TicketInfo,
-    ModelConfig,
+)
+from libraries.logger import get_console_logger
+from libraries.tracing import (
+    TracedReAct,
+    create_tracer,
+    traced_dspy_function,
 )
 
 logger = get_console_logger("escalation_agent.dspy")
@@ -57,7 +57,7 @@ class TicketingSignature(dspy.Signature):
 
     DEPARTMENT MAPPING:
     - Technical issues, login problems, website issues → "Technical Support"
-    - Payment issues, billing disputes, premium questions → "Billing"  
+    - Payment issues, billing disputes, premium questions → "Billing"
     - Policy purchases, quotes, coverage questions → "Sales"
 
     BE CONVERSATIONAL:
@@ -110,28 +110,35 @@ logger.info(
 def get_tickets_by_policy(policy_number: str) -> str:
     """Retrieve all tickets associated with a policy number from the database."""
     logger.info(f"Searching for tickets with policy number: {policy_number}")
-    
+
     matching_tickets = [
-        ticket for ticket in ticket_database 
+        ticket
+        for ticket in ticket_database
         if ticket.get("policy_number") == policy_number
     ]
-    
+
     if not matching_tickets:
-        return json.dumps({
-            "found": False,
-            "message": f"No tickets found for policy number {policy_number}",
-            "tickets": []
-        })
-    
-    return json.dumps({
-        "found": True,
-        "message": f"Found {len(matching_tickets)} ticket(s) for policy number {policy_number}",
-        "tickets": matching_tickets
-    })
+        return json.dumps(
+            {
+                "found": False,
+                "message": f"No tickets found for policy number {policy_number}",
+                "tickets": [],
+            }
+        )
+
+    return json.dumps(
+        {
+            "found": True,
+            "message": f"Found {len(matching_tickets)} ticket(s) for policy number {policy_number}",
+            "tickets": matching_tickets,
+        }
+    )
 
 
 @tracer.start_as_current_span("create_ticket")
-def create_ticket(policy_number: str, dept: TicketDepartment, title: str, contact: str) -> str:
+def create_ticket(
+    policy_number: str, dept: TicketDepartment, title: str, contact: str
+) -> str:
     """Create a ticket in the database and return the ticket details as JSON."""
     logger.info("Creating ticket in database...")
     ticket = TicketInfo(
@@ -145,7 +152,6 @@ def create_ticket(policy_number: str, dept: TicketDepartment, title: str, contac
     ticket_dict = ticket.model_dump()
     ticket_database.append(ticket_dict)
     return json.dumps(ticket_dict)
-
 
 
 # Create a main escalation model for streaming
@@ -169,8 +175,6 @@ ticket_database: List[Dict] = [
 ]
 
 
-
-
 @traced_dspy_function(name="escalation_dspy")
 def escalation_optimized_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
@@ -192,9 +196,9 @@ def escalation_optimized_dspy(
 if __name__ == "__main__":
 
     async def run():
-        from libraries.tracing import init_telemetry
-        from libraries.dspy_set_language_model import dspy_set_language_model
         from agents.escalation.config import settings
+        from libraries.dspy_set_language_model import dspy_set_language_model
+        from libraries.tracing import init_telemetry
 
         init_telemetry(settings.app_name)
         dspy_set_language_model(settings)

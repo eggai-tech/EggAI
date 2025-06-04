@@ -11,7 +11,6 @@ from agents.billing.dspy_modules.billing_data import (
     update_billing_info,
 )
 from agents.billing.types import ModelConfig
-from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
 

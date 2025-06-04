@@ -94,7 +94,9 @@ class BillingRecord(BaseModel):
     amount_due: float = Field(..., description="Amount due", ge=0)
     due_date: str = Field(..., description="Due date for payment (YYYY-MM-DD)")
     billing_status: str = Field(..., description="Current billing status")
-    billing_cycle: str = Field(..., description="Billing cycle (monthly, quarterly, etc.)")
+    billing_cycle: str = Field(
+        ..., description="Billing cycle (monthly, quarterly, etc.)"
+    )
     last_payment_date: Optional[str] = Field(
         None, description="Date of last payment (YYYY-MM-DD)"
     )

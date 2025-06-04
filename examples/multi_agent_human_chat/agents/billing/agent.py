@@ -91,9 +91,7 @@ async def process_billing_request(
 
         # Call the model with streaming
         logger.info("Calling billing model with streaming")
-        chunks = billing_optimized_dspy(
-            chat_history=conversation_string, config=config
-        )
+        chunks = billing_optimized_dspy(chat_history=conversation_string, config=config)
         chunk_count = 0
 
         # Process the streaming chunks

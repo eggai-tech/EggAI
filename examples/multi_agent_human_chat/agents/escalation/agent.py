@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from typing import List
-from uuid import uuid4
 
 from dspy import Prediction
 from dspy.streaming import StreamResponse
@@ -13,7 +12,7 @@ from agents.escalation.dspy_modules.escalation import escalation_optimized_dspy
 from agents.escalation.types import ChatMessage, ModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, traced_handler, format_span_as_traceparent
+from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
 from libraries.tracing.otel import safe_set_attribute
 
 logger = get_console_logger("escalation_agent")
@@ -56,8 +55,10 @@ async def process_escalation_request(
     message_id: str,
     timeout_seconds: float = None,
 ) -> None:
-    config = ModelConfig(name="escalation_react", timeout_seconds=timeout_seconds or 30.0)
-    
+    config = ModelConfig(
+        name="escalation_react", timeout_seconds=timeout_seconds or 30.0
+    )
+
     with tracer.start_as_current_span("process_escalation_request") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
         safe_set_attribute(span, "connection_id", connection_id)
@@ -85,7 +86,9 @@ async def process_escalation_request(
         logger.info(f"Stream started for message {message_id}")
 
         logger.info("Calling escalation model with streaming")
-        chunks = escalation_optimized_dspy(chat_history=conversation_string, config=config)
+        chunks = escalation_optimized_dspy(
+            chat_history=conversation_string, config=config
+        )
         chunk_count = 0
 
         try:
@@ -147,8 +150,6 @@ async def process_escalation_request(
             )
 
 
-
-
 @ticketing_agent.subscribe(
     channel=agents_channel,
     filter_by_message=lambda msg: msg.get("type") == "ticketing_request",
@@ -168,7 +169,7 @@ async def handle_ticketing_request(msg: TracedMessage) -> None:
                 "User: [No message content received]",
                 connection_id,
                 str(msg.id),
-                timeout_seconds=30.0
+                timeout_seconds=30.0,
             )
             return
 
@@ -176,10 +177,7 @@ async def handle_ticketing_request(msg: TracedMessage) -> None:
         logger.info(f"Processing ticketing request for connection {connection_id}")
 
         await process_escalation_request(
-            conversation_string,
-            connection_id,
-            str(msg.id),
-            timeout_seconds=30.0
+            conversation_string, connection_id, str(msg.id), timeout_seconds=30.0
         )
 
     except Exception as e:
@@ -189,7 +187,7 @@ async def handle_ticketing_request(msg: TracedMessage) -> None:
                 f"System: Error occurred - {str(e)}",
                 locals().get("connection_id", "unknown"),
                 str(locals().get("msg", {}).get("id", "")),
-                timeout_seconds=30.0
+                timeout_seconds=30.0,
             )
         except Exception:
             logger.error("Failed to send error response", exc_info=True)
@@ -221,7 +219,7 @@ if __name__ == "__main__":
             test_conversation,
             "test-connection-123",
             "test-message-456",
-            timeout_seconds=30.0
+            timeout_seconds=30.0,
         )
 
     asyncio.run(run())
