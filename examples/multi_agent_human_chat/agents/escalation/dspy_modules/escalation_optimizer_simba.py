@@ -14,10 +14,6 @@ import dspy
 from sklearn.model_selection import train_test_split
 
 from agents.escalation.config import settings
-from agents.escalation.dspy_modules.escalation_dataset import (
-    as_dspy_examples,
-    create_escalation_dataset,
-)
 
 # Direct use of dspy.SIMBA
 from libraries.dspy_set_language_model import dspy_set_language_model
