@@ -73,27 +73,14 @@ class ModelConfig(BaseModel):
     )
 
 
-class SessionData(BaseModel):
-    """Data structure for session data with validation."""
-
-    step: WorkflowStep = Field(
-        "ask_additional_data", description="Current workflow step"
-    )
-    department: Optional[TicketDepartment] = Field(
-        None, description="Department for the ticket"
-    )
-    title: Optional[str] = Field(None, description="Title of the ticket")
-    contact_info: Optional[str] = Field(
-        None, description="Contact information of the user"
-    )
-
-    model_config = {"validate_assignment": True}
+# SessionData no longer needed with simplified intelligent agent approach
 
 
 class TicketInfo(BaseModel):
     """Data structure for ticket information with validation."""
 
     id: str = Field(..., description="Unique identifier for the ticket")
+    policy_number: str = Field(description="Policy number associated with the ticket")
     department: TicketDepartment = Field(..., description="Department for the ticket")
     title: str = Field(..., description="Title of the ticket")
     contact_info: str = Field(..., description="Contact information of the user")

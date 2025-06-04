@@ -1,6 +1,13 @@
+import asyncio
+from typing import List
+
+from dspy import Prediction
+from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
-from libraries.channels import channels
+from agents.billing.config import settings
+from agents.billing.types import ChatMessage, ModelConfig
+from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedMessage,
@@ -8,144 +15,229 @@ from libraries.tracing import (
     format_span_as_traceparent,
     traced_handler,
 )
+from libraries.tracing.otel import safe_set_attribute
 
 from .dspy_modules.billing import billing_optimized_dspy
 
 billing_agent = Agent(name="BillingAgent")
 logger = get_console_logger("billing_agent.handler")
-
 agents_channel = Channel(channels.agents)
 human_channel = Channel(channels.human)
-
+human_stream_channel = Channel(channels.human_stream)
 tracer = create_tracer("billing_agent")
 
 
-def get_conversation_string(chat_messages):
-    conversation = ""
-    for chat in chat_messages:
-        role = chat.get("role", "User")
-        conversation += f"{role}: {chat['content']}\n"
-    return conversation
+def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
+    """Format chat messages into a conversation string."""
+    with tracer.start_as_current_span("get_conversation_string") as span:
+        safe_set_attribute(
+            span, "chat_messages_count", len(chat_messages) if chat_messages else 0
+        )
+
+        if not chat_messages:
+            safe_set_attribute(span, "empty_messages", True)
+            return ""
+
+        conversation_parts = []
+        for chat in chat_messages:
+            if "content" not in chat:
+                safe_set_attribute(span, "invalid_message", True)
+                logger.warning("Message missing content field")
+                continue
+
+            role = chat.get("role", "User")
+            conversation_parts.append(f"{role}: {chat['content']}")
+
+        conversation = "\n".join(conversation_parts) + "\n"
+        safe_set_attribute(span, "conversation_length", len(conversation))
+        return conversation
 
 
-async def publish_agent_response(connection_id, message):
-    with tracer.start_as_current_span("publish_to_human") as publish_span:
-        child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
+async def process_billing_request(
+    conversation_string: str,
+    connection_id: str,
+    message_id: str,
+    timeout_seconds: float = None,
+) -> None:
+    """Generate a response to a billing request with streaming output."""
+    # Create model config with timeout value
+    config = ModelConfig(name="billing_react", timeout_seconds=timeout_seconds or 30.0)
+    with tracer.start_as_current_span("process_billing_request") as span:
+        child_traceparent, child_tracestate = format_span_as_traceparent(span)
+        safe_set_attribute(span, "connection_id", connection_id)
+        safe_set_attribute(span, "message_id", message_id)
+        safe_set_attribute(span, "conversation_length", len(conversation_string))
+        safe_set_attribute(span, "timeout_seconds", config.timeout_seconds)
 
-        await human_channel.publish(
+        if not conversation_string or len(conversation_string.strip()) < 5:
+            safe_set_attribute(span, "error", "Empty or too short conversation")
+            span.set_status(1, "Invalid input")
+            raise ValueError("Conversation history is too short to process")
+
+        # Start the stream
+        await human_stream_channel.publish(
             TracedMessage(
-                type="agent_message",
+                type="agent_message_stream_start",
                 source="BillingAgent",
                 data={
-                    "message": message,
+                    "message_id": message_id,
                     "connection_id": connection_id,
-                    "agent": "BillingAgent",
                 },
                 traceparent=child_traceparent,
                 tracestate=child_tracestate,
             )
         )
+        logger.info(f"Stream started for message {message_id}")
+
+        # Call the model with streaming
+        logger.info("Calling billing model with streaming")
+        chunks = billing_optimized_dspy(chat_history=conversation_string, config=config)
+        chunk_count = 0
+
+        # Process the streaming chunks
+        try:
+            async for chunk in chunks:
+                if isinstance(chunk, StreamResponse):
+                    chunk_count += 1
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_chunk",
+                            source="BillingAgent",
+                            data={
+                                "message_chunk": chunk.chunk,
+                                "message_id": message_id,
+                                "chunk_index": chunk_count,
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        )
+                    )
+                elif isinstance(chunk, Prediction):
+                    # Get the complete response
+                    response = chunk.final_response
+                    if response:
+                        response = response.replace(" [[ ## completed ## ]]", "")
+
+                    logger.info(
+                        f"Sending stream end with response: {response[:100] if response else 'EMPTY'}"
+                    )
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_end",
+                            source="BillingAgent",
+                            data={
+                                "message_id": message_id,
+                                "message": response,
+                                "agent": "BillingAgent",
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        )
+                    )
+                    logger.info(f"Stream ended for message {message_id}")
+        except Exception as e:
+            logger.error(f"Error in streaming response: {e}", exc_info=True)
+            # Send an error message to end the stream
+            await human_stream_channel.publish(
+                TracedMessage(
+                    type="agent_message_stream_end",
+                    source="BillingAgent",
+                    data={
+                        "message_id": message_id,
+                        "message": "I'm sorry, I encountered an error while processing your request.",
+                        "agent": "BillingAgent",
+                        "connection_id": connection_id,
+                    },
+                    traceparent=child_traceparent,
+                    tracestate=child_tracestate,
+                )
+            )
 
 
 @billing_agent.subscribe(
     channel=agents_channel,
     filter_by_message=lambda msg: msg.get("type") == "billing_request",
+    auto_offset_reset="latest",
+    group_id="billing_agent_group",
 )
-@traced_handler("handle_billing_message")
-async def handle_billing_message(msg: TracedMessage):
-    # Add extensive debug logging
-    logger.info(f"Received billing request: {msg}")
-    logger.info(f"Message type: {msg.type}")
-    logger.info(f"Message data: {msg.data}")
-
-    # Extract message data
-    chat_messages = msg.data.get("chat_messages", [])
-    connection_id = msg.data.get("connection_id", "unknown")
-    logger.info(f"Processing for connection_id: {connection_id}")
-
-    conversation_string = get_conversation_string(chat_messages)
-    logger.info("Processing billing request")
-
+@traced_handler("handle_billing_request")
+async def handle_billing_request(msg: TracedMessage) -> None:
+    """Handle incoming billing request messages from the agents channel."""
     try:
-        # Get response from DSPy model
-        response = billing_optimized_dspy(chat_history=conversation_string)
+        chat_messages: List[ChatMessage] = msg.data.get("chat_messages", [])
+        connection_id: str = msg.data.get("connection_id", "unknown")
 
-        # Log response details
-        logger.info("Sending response to user")
-        logger.info(
-            f"Response: {response[:100]}..." if len(response) > 100 else response
+        if not chat_messages:
+            logger.warning(f"Empty chat history for connection: {connection_id}")
+            await human_channel.publish(
+                TracedMessage(
+                    type="agent_message",
+                    source="BillingAgent",
+                    data={
+                        "message": "I apologize, but I didn't receive any message content to process.",
+                        "connection_id": connection_id,
+                        "agent": "BillingAgent",
+                    },
+                    traceparent=msg.traceparent,
+                    tracestate=msg.tracestate,
+                )
+            )
+            return
+
+        conversation_string = get_conversation_string(chat_messages)
+        logger.info(f"Processing billing request for connection {connection_id}")
+
+        await process_billing_request(
+            conversation_string, connection_id, str(msg.id), timeout_seconds=30.0
         )
 
-        # Send response to user
-        await publish_agent_response(connection_id, response)
     except Exception as e:
-        # Log error details
-        logger.error(f"Error in agent handler: {str(e)}", exc_info=True)
-
-        # Simple error message
-        await publish_agent_response(
-            connection_id,
-            "I apologize, but I'm unable to process your billing request at this time. Please try again later.",
+        logger.error(f"Error in BillingAgent: {e}", exc_info=True)
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="BillingAgent",
+                data={
+                    "message": "I apologize, but I'm having trouble processing your request right now. Please try again.",
+                    "connection_id": locals().get("connection_id", "unknown"),
+                    "agent": "BillingAgent",
+                },
+                traceparent=msg.traceparent if "msg" in locals() else None,
+                tracestate=msg.tracestate if "msg" in locals() else None,
+            )
         )
 
 
 @billing_agent.subscribe(channel=agents_channel)
 @traced_handler("handle_others")
-async def handle_others(msg: TracedMessage):
-    # Simply log non-billing messages
+async def handle_other_messages(msg: TracedMessage) -> None:
+    """Handle non-billing messages received on the agent channel."""
     logger.debug("Received non-billing message: %s", msg)
 
 
 if __name__ == "__main__":
-    import asyncio
-    from uuid import uuid4
 
-    from eggai.transport import eggai_set_default_transport
+    async def run():
+        from libraries.dspy_set_language_model import dspy_set_language_model
 
-    from agents.billing.config import settings
-    from libraries.dspy_set_language_model import dspy_set_language_model
-    from libraries.kafka_transport import create_kafka_transport
+        dspy_set_language_model(settings)
 
-    # Set up transport
-    eggai_set_default_transport(
-        lambda: create_kafka_transport(
-            bootstrap_servers=settings.kafka_bootstrap_servers,
-            ssl_cert=settings.kafka_ca_content,
-        )
-    )
+        await clear_channels()
 
-    dspy_set_language_model(settings)
-    logger.info("Running direct test for billing agent")
-
-    # Define simple test case
-    async def test_billing_direct():
-        test_id = str(uuid4())
-        test_connection_id = f"test-{test_id}"
-
-        logger.info(f"Testing with connection_id: {test_connection_id}")
-
-        # Create test message
-        test_msg = TracedMessage(
-            id=test_id,
-            type="billing_request",
-            source="TestScript",
-            data={
-                "chat_messages": [
-                    {"role": "User", "content": "How much is my premium?"},
-                    {
-                        "role": "BillingAgent",
-                        "content": "Could you please provide your policy number?",
-                    },
-                    {"role": "User", "content": "It's B67890."},
-                ],
-                "connection_id": test_connection_id,
-                "message_id": test_id,
-            },
+        test_conversation = (
+            "User: How much is my premium?\n"
+            "BillingAgent: Could you please provide your policy number?\n"
+            "User: It's B67890.\n"
         )
 
-        # Direct call to handler
-        await handle_billing_message(test_msg)
-        logger.info("Test complete")
+        logger.info("Running test query for billing agent")
+        chunks = billing_optimized_dspy(chat_history=test_conversation)
+        async for chunk in chunks:
+            if isinstance(chunk, StreamResponse):
+                logger.info(f"Chunk: {chunk.chunk}")
+            elif isinstance(chunk, Prediction):
+                logger.info(f"Final response: {chunk.final_response}")
 
-    # Run the test
-    asyncio.run(test_billing_direct())
+    asyncio.run(run())
