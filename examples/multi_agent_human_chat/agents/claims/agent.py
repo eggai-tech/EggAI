@@ -1,12 +1,14 @@
 import asyncio
-import time
 from typing import List
 
+from dspy import Prediction
+from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
 from agents.claims.config import settings
 from agents.claims.dspy_modules.claims import claims_optimized_dspy
-from agents.claims.types import ChatMessage
+from agents.claims.types import ChatMessage, ModelConfig
+from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedMessage,
@@ -18,8 +20,9 @@ from libraries.tracing.otel import safe_set_attribute
 
 claims_agent = Agent(name="ClaimsAgent")
 logger = get_console_logger("claims_agent.handler")
-agents_channel = Channel("agents")
-human_channel = Channel("human")
+agents_channel = Channel(channels.agents)
+human_channel = Channel(channels.human)
+human_stream_channel = Channel(channels.human_stream)
 tracer = create_tracer("claims_agent")
 
 
@@ -48,129 +51,193 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
         return conversation
 
 
-async def publish_agent_response(connection_id: str, message: str) -> None:
-    """Publish agent response to the human channel."""
-    with tracer.start_as_current_span("publish_to_human") as publish_span:
-        child_traceparent, child_tracestate = format_span_as_traceparent(publish_span)
-
-        await human_channel.publish(
-            TracedMessage(
-                type="agent_message",
-                source="ClaimsAgent",
-                data={
-                    "message": message,
-                    "connection_id": connection_id,
-                    "agent": "ClaimsAgent",
-                },
-                traceparent=child_traceparent,
-                tracestate=child_tracestate,
-            )
-        )
-
-
 async def process_claims_request(
-    conversation_string: str, connection_id: str, timeout_seconds: float = 30.0
-) -> str:
-    """Generate a response to a claims request with timeout protection."""
+    conversation_string: str,
+    connection_id: str,
+    message_id: str,
+    timeout_seconds: float = None,
+) -> None:
+    """Generate a response to a claims request with streaming output."""
+    # Create model config with timeout value
+    config = ModelConfig(name="claims_react", timeout_seconds=timeout_seconds or 30.0)
     with tracer.start_as_current_span("process_claims_request") as span:
+        child_traceparent, child_tracestate = format_span_as_traceparent(span)
         safe_set_attribute(span, "connection_id", connection_id)
+        safe_set_attribute(span, "message_id", message_id)
         safe_set_attribute(span, "conversation_length", len(conversation_string))
-        safe_set_attribute(span, "timeout_seconds", timeout_seconds)
+        safe_set_attribute(span, "timeout_seconds", config.timeout_seconds)
 
-        start_time = time.perf_counter()
-
-        # Validate input
         if not conversation_string or len(conversation_string.strip()) < 5:
             safe_set_attribute(span, "error", "Empty or too short conversation")
             span.set_status(1, "Invalid input")
             raise ValueError("Conversation history is too short to process")
 
-        # Call the model
-        logger.info("Calling claims model")
-        result = claims_optimized_dspy(chat_history=conversation_string)
+        # Start the stream
+        await human_stream_channel.publish(
+            TracedMessage(
+                type="agent_message_stream_start",
+                source="ClaimsAgent",
+                data={
+                    "message_id": message_id,
+                    "connection_id": connection_id,
+                },
+                traceparent=child_traceparent,
+                tracestate=child_tracestate,
+            )
+        )
+        logger.info(f"Stream started for message {message_id}")
 
-        # Record metrics
-        processing_time = time.perf_counter() - start_time
-        safe_set_attribute(span, "processing_time_ms", processing_time * 1000)
-        safe_set_attribute(span, "response_length", len(result))
+        # Call the model with streaming
+        logger.info("Calling claims model with streaming")
+        chunks = claims_optimized_dspy(
+            chat_history=conversation_string, config=config
+        )
+        chunk_count = 0
 
-        # Validate response
-        if not result or len(result.strip()) < 10:
-            safe_set_attribute(span, "error", "Empty or too short response")
-            safe_set_attribute(span, "error_details", "Invalid response")
-            return "I apologize, but I couldn't generate a proper response. Please try asking again."
+        # Process the streaming chunks
+        try:
+            async for chunk in chunks:
+                if isinstance(chunk, StreamResponse):
+                    chunk_count += 1
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_chunk",
+                            source="ClaimsAgent",
+                            data={
+                                "message_chunk": chunk.chunk,
+                                "message_id": message_id,
+                                "chunk_index": chunk_count,
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        )
+                    )
+                elif isinstance(chunk, Prediction):
+                    # Get the complete response
+                    response = chunk.final_response
+                    if response:
+                        response = response.replace(" [[ ## completed ## ]]", "")
 
-        return result
+                    logger.info(
+                        f"Sending stream end with response: {response[:100] if response else 'EMPTY'}"
+                    )
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_end",
+                            source="ClaimsAgent",
+                            data={
+                                "message_id": message_id,
+                                "message": response,
+                                "agent": "ClaimsAgent",
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        )
+                    )
+                    logger.info(f"Stream ended for message {message_id}")
+        except Exception as e:
+            logger.error(f"Error in streaming response: {e}", exc_info=True)
+            # Send an error message to end the stream
+            await human_stream_channel.publish(
+                TracedMessage(
+                    type="agent_message_stream_end",
+                    source="ClaimsAgent",
+                    data={
+                        "message_id": message_id,
+                        "message": "I'm sorry, I encountered an error while processing your request.",
+                        "agent": "ClaimsAgent",
+                        "connection_id": connection_id,
+                    },
+                    traceparent=child_traceparent,
+                    tracestate=child_tracestate,
+                )
+            )
 
 
 @claims_agent.subscribe(
     channel=agents_channel,
     filter_by_message=lambda msg: msg.get("type") == "claim_request",
+    auto_offset_reset="latest",
+    group_id="claims_agent_group",
 )
-@traced_handler("handle_claims_message")
-async def handle_claims_message(msg: TracedMessage) -> None:
-    """Handle incoming claims message from agents channel."""
+@traced_handler("handle_claim_request")
+async def handle_claim_request(msg: TracedMessage) -> None:
+    """Handle incoming claim request messages from the agents channel."""
     try:
         chat_messages: List[ChatMessage] = msg.data.get("chat_messages", [])
         connection_id: str = msg.data.get("connection_id", "unknown")
 
         if not chat_messages:
             logger.warning(f"Empty chat history for connection: {connection_id}")
-            await publish_agent_response(
-                connection_id,
-                "I apologize, but I didn't receive any message content to process.",
+            await human_channel.publish(
+                TracedMessage(
+                    type="agent_message",
+                    source="ClaimsAgent",
+                    data={
+                        "message": "I apologize, but I didn't receive any message content to process.",
+                        "connection_id": connection_id,
+                        "agent": "ClaimsAgent",
+                    },
+                    traceparent=msg.traceparent,
+                    tracestate=msg.tracestate,
+                )
             )
             return
 
         conversation_string = get_conversation_string(chat_messages)
-        logger.info("Processing claims request")
-        logger.debug(
-            f"Conversation context: {conversation_string[:100]}..."
-            if conversation_string
-            else "Empty conversation"
+        logger.info(f"Processing claim request for connection {connection_id}")
+
+        await process_claims_request(
+            conversation_string, connection_id, str(msg.id), timeout_seconds=30.0
         )
-
-        try:
-            final_text = await process_claims_request(
-                conversation_string, connection_id
-            )
-
-            logger.info("Sending response to user")
-            logger.debug(f"Response: {final_text[:100]}...")
-            await publish_agent_response(connection_id, final_text)
-
-        except ValueError:
-            logger.warning("Invalid input for claims request")
-            await publish_agent_response(
-                connection_id,
-                "Please provide valid information for your claim request.",
-            )
-
-        except asyncio.TimeoutError:
-            logger.error("Timeout processing claims request")
-            await publish_agent_response(
-                connection_id,
-                "I'm taking longer than expected to process your request. Please try again in a moment.",
-            )
 
     except Exception as e:
         logger.error(f"Error in ClaimsAgent: {e}", exc_info=True)
-        await publish_agent_response(
-            connection_id if "connection_id" in locals() else "unknown",
-            "An unexpected error occurred while processing your request. Please try again.",
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="ClaimsAgent",
+                data={
+                    "message": "I apologize, but I'm having trouble processing your request right now. Please try again.",
+                    "connection_id": locals().get("connection_id", "unknown"),
+                    "agent": "ClaimsAgent",
+                },
+                traceparent=msg.traceparent if "msg" in locals() else None,
+                tracestate=msg.tracestate if "msg" in locals() else None,
+            )
         )
 
 
+@claims_agent.subscribe(channel=agents_channel)
+@traced_handler("handle_others")
+async def handle_other_messages(msg: TracedMessage) -> None:
+    """Handle non-claim messages received on the agent channel."""
+    logger.debug("Received non-claim message: %s", msg)
+
+
 if __name__ == "__main__":
-    from libraries.dspy_set_language_model import dspy_set_language_model
 
-    dspy_set_language_model(settings)
-    test_conversation = (
-        "User: Hi, I'd like to file a new claim.\n"
-        "ClaimsAgent: Certainly! Could you provide your policy number and incident details?\n"
-        "User: Policy A12345, my car was hit at a stop sign.\n"
-    )
+    async def run():
+        from libraries.dspy_set_language_model import dspy_set_language_model
 
-    logger.info("Running test query for claims agent")
-    result = claims_optimized_dspy(chat_history=test_conversation)
-    logger.info(f"Test response: {result}")
+        dspy_set_language_model(settings)
+
+        await clear_channels()
+
+        test_conversation = (
+            "User: Hi, I'd like to file a new claim.\n"
+            "ClaimsAgent: Certainly! Could you provide your policy number and incident details?\n"
+            "User: Policy A12345, my car was hit at a stop sign.\n"
+        )
+
+        logger.info("Running test query for claims agent")
+        chunks = claims_optimized_dspy(chat_history=test_conversation)
+        async for chunk in chunks:
+            if isinstance(chunk, StreamResponse):
+                logger.info(f"Chunk: {chunk.chunk}")
+            elif isinstance(chunk, Prediction):
+                logger.info(f"Final response: {chunk.final_response}")
+
+    asyncio.run(run())

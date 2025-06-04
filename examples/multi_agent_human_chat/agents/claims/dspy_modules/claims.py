@@ -3,9 +3,11 @@
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, AsyncIterable, Dict, Optional, Union
 
 import dspy
+from dspy import Prediction
+from dspy.streaming import StreamResponse
 from pydantic import BaseModel, Field
 
 from agents.claims.config import settings
@@ -28,6 +30,9 @@ class ModelConfig(BaseModel):
     cache_enabled: bool = Field(False, description="Whether to enable model caching")
     truncation_length: int = Field(
         15000, description="Maximum length for conversation history", ge=1000
+    )
+    timeout_seconds: float = Field(
+        30.0, description="Timeout for model inference in seconds", ge=1.0
     )
 
 
@@ -238,53 +243,51 @@ def truncate_long_history(
 @traced_dspy_function(name="claims_dspy")
 def claims_optimized_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
-) -> str:
-    """Process a claims inquiry using the DSPy model."""
+) -> AsyncIterable[Union[StreamResponse, Prediction]]:
+    """Process a claims inquiry using the DSPy model with streaming output."""
     config = config or DEFAULT_CONFIG
 
-    with claims_tracer.start_as_current_span("claims_optimized_dspy") as span:
-        safe_set_attribute(span, "input_length", len(chat_history))
-        start_time = time.perf_counter()
+    # Handle long conversations
+    truncation_result = truncate_long_history(chat_history, config)
+    chat_history = truncation_result["history"]
 
-        # Initialize language model
-        dspy_set_language_model(settings, overwrite_cache_enabled=config.cache_enabled)
-
-        # Handle long conversations
-        truncation_result = truncate_long_history(chat_history, config)
-        chat_history = truncation_result["history"]
-
-        # Record truncation if needed
-        if truncation_result["truncated"]:
-            safe_set_attribute(span, "truncated", True)
-            safe_set_attribute(
-                span, "original_length", truncation_result["original_length"]
-            )
-            safe_set_attribute(
-                span, "truncated_length", truncation_result["truncated_length"]
-            )
-
-        # Get prediction directly from model
-        prediction = claims_optimized(chat_history=chat_history)
-        response = prediction.final_response
-
-        if not response or len(response) < 10:
-            raise ValueError("Model returned an empty or too short response")
-
-        # Record metrics
-        elapsed = time.perf_counter() - start_time
-        safe_set_attribute(span, "processing_time_ms", elapsed * 1000)
-        safe_set_attribute(span, "response_length", len(response))
-
-        return response
+    # Create a streaming version of the claims model
+    return dspy.streamify(
+        claims_optimized,
+        stream_listeners=[
+            dspy.streaming.StreamListener(signature_field_name="final_response"),
+        ],
+        include_final_prediction_in_output_stream=True,
+        is_async_program=False,
+        async_streaming=True,
+    )(chat_history=chat_history)
 
 
 if __name__ == "__main__":
-    # Test the claims DSPy module
-    test_conversation = (
-        "User: Hi, I'd like to check my claim status.\n"
-        "ClaimsAgent: Sure! Could you please provide your claim number?\n"
-        "User: It's 1001.\n"
-    )
 
-    result = claims_optimized_dspy(test_conversation)
-    print(f"Response: {result}")
+    async def run():
+        from libraries.tracing import init_telemetry
+
+        init_telemetry(settings.app_name)
+        # Initialize the DSPy model with the configured language model
+        dspy_set_language_model(settings)
+
+        # Test the claims DSPy module
+        test_conversation = (
+            "User: Hi, I'd like to check my claim status.\n"
+            "ClaimsAgent: Sure! Could you please provide your claim number?\n"
+            "User: It's 1001.\n"
+        )
+
+        chunks = claims_optimized_dspy(test_conversation)
+
+        async for chunk in chunks:
+            if isinstance(chunk, StreamResponse):
+                print(f"Stream chunk: {chunk.chunk}")
+            elif isinstance(chunk, Prediction):
+                result = chunk
+                print(f"Final response: {result.final_response}")
+
+    import asyncio
+
+    asyncio.run(run())
