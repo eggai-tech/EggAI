@@ -2,8 +2,8 @@ name: Release Helm Chart
 
 on:
   push:
-    branches:
-      - main
+    # branches:
+    #   - main
     paths:
       - "examples/multi_agent_human_chat/helm/**"
 
