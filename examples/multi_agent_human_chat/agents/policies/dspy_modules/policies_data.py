@@ -47,7 +47,9 @@ POLICIES_DATABASE = [
 ]
 
 
-def add_test_policy(policy_number: str, policy_category: PolicyCategory, name: str = "Test User") -> None:
+def add_test_policy(
+    policy_number: str, policy_category: PolicyCategory, name: str = "Test User"
+) -> None:
     """
     Add a test policy to the database dynamically.
     Used by test cases to ensure policy exists for testing RAG functionality.
@@ -57,7 +59,7 @@ def add_test_policy(policy_number: str, policy_category: PolicyCategory, name: s
         if policy["policy_number"] == policy_number:
             logger.info(f"Policy {policy_number} already exists in database")
             return
-    
+
     # Create test policy entry
     test_policy = {
         "policy_number": policy_number,
@@ -67,7 +69,7 @@ def add_test_policy(policy_number: str, policy_category: PolicyCategory, name: s
         "due_date": "2026-03-15",
         "coverage_details": f"test coverage for {policy_category} policy",
     }
-    
+
     POLICIES_DATABASE.append(test_policy)
     logger.info(f"Added test policy {policy_number} ({policy_category}) to database")
 
@@ -78,7 +80,9 @@ def remove_test_policy(policy_number: str) -> None:
     Used for cleanup after tests.
     """
     global POLICIES_DATABASE
-    POLICIES_DATABASE = [p for p in POLICIES_DATABASE if p["policy_number"] != policy_number]
+    POLICIES_DATABASE = [
+        p for p in POLICIES_DATABASE if p["policy_number"] != policy_number
+    ]
     logger.info(f"Removed test policy {policy_number} from database")
 
 
