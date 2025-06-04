@@ -1,280 +1,227 @@
 import asyncio
 import logging
-from typing import Dict
+from typing import List
 from uuid import uuid4
 
+from dspy import Prediction
+from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry import trace
 
+from agents.escalation.config import settings
+from agents.escalation.dspy_modules.escalation import escalation_optimized_dspy
+from agents.escalation.types import ChatMessage, ModelConfig
+from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, traced_handler
+from libraries.tracing import TracedMessage, traced_handler, format_span_as_traceparent
 from libraries.tracing.otel import safe_set_attribute
 
-from .config import settings
-from .dspy_modules.escalation import (
-    create_ticket_from_session,
-    process_confirmation,
-    process_ticket_info,
-)
-from .types import ChatMessage, SessionData
-
-# Configure logger
 logger = get_console_logger("escalation_agent")
 logger.setLevel(logging.INFO)
 
-# Channels and Agent setup
 ticketing_agent = Agent(name="TicketingAgent")
-agents_channel = Channel("agents")
-human_channel = Channel("human")
+agents_channel = Channel(channels.agents)
+human_stream_channel = Channel(channels.human_stream)
 tracer = trace.get_tracer("ticketing_agent")
 
-# In-memory session storage
-pending_tickets: Dict[str, SessionData] = {}
+
+def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
+    with tracer.start_as_current_span("get_conversation_string") as span:
+        safe_set_attribute(
+            span, "chat_messages_count", len(chat_messages) if chat_messages else 0
+        )
+
+        if not chat_messages:
+            safe_set_attribute(span, "empty_messages", True)
+            return ""
+
+        conversation_parts = []
+        for chat in chat_messages:
+            if "content" not in chat:
+                safe_set_attribute(span, "invalid_message", True)
+                logger.warning("Message missing content field")
+                continue
+
+            role = chat.get("role", "User")
+            conversation_parts.append(f"{role}: {chat['content']}")
+
+        conversation = "\n".join(conversation_parts) + "\n"
+        safe_set_attribute(span, "conversation_length", len(conversation))
+        return conversation
 
 
-def get_session_data(session: str) -> SessionData:
-    """Get session data for a given session ID, creating it if it doesn't exist."""
-    if session not in pending_tickets:
-        pending_tickets[session] = SessionData()
-    return pending_tickets[session]
+async def process_escalation_request(
+    conversation_string: str,
+    connection_id: str,
+    message_id: str,
+    timeout_seconds: float = None,
+) -> None:
+    config = ModelConfig(name="escalation_react", timeout_seconds=timeout_seconds or 30.0)
+    
+    with tracer.start_as_current_span("process_escalation_request") as span:
+        child_traceparent, child_tracestate = format_span_as_traceparent(span)
+        safe_set_attribute(span, "connection_id", connection_id)
+        safe_set_attribute(span, "message_id", message_id)
+        safe_set_attribute(span, "conversation_length", len(conversation_string))
+        safe_set_attribute(span, "timeout_seconds", config.timeout_seconds)
 
+        if not conversation_string or len(conversation_string.strip()) < 5:
+            safe_set_attribute(span, "error", "Empty or too short conversation")
+            span.set_status(1, "Invalid input")
+            raise ValueError("Conversation history is too short to process")
 
-@tracer.start_as_current_span("update_session_data")
-def update_session_data(session: str, session_data: SessionData) -> None:
-    """Update session data for a given session ID."""
-    pending_tickets[session] = session_data
+        await human_stream_channel.publish(
+            TracedMessage(
+                type="agent_message_stream_start",
+                source="TicketingAgent",
+                data={
+                    "message_id": message_id,
+                    "connection_id": connection_id,
+                },
+                traceparent=child_traceparent,
+                tracestate=child_tracestate,
+            )
+        )
+        logger.info(f"Stream started for message {message_id}")
 
-
-def get_conversation_string(chat_messages: list[ChatMessage]) -> str:
-    """Convert a list of chat messages to a conversation string."""
-    conversation = ""
-    for chat in chat_messages:
-        role = chat.get("role", "User")
-        conversation += f"{role}: {chat['content']}\n"
-    return conversation
-
-
-@tracer.start_as_current_span("publish_agent_response")
-async def publish_agent_response(message: str, meta: Dict) -> None:
-    """Publish a response from the agent to the human channel."""
-    with tracer.start_as_current_span("send_message") as span:
-        safe_set_attribute(span, "message.length", len(message))
-        safe_set_attribute(span, "connection_id", meta.get("connection_id", "unknown"))
+        logger.info("Calling escalation model with streaming")
+        chunks = escalation_optimized_dspy(chat_history=conversation_string, config=config)
+        chunk_count = 0
 
         try:
-            await human_channel.publish(
+            async for chunk in chunks:
+                if isinstance(chunk, StreamResponse):
+                    chunk_count += 1
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_chunk",
+                            source="TicketingAgent",
+                            data={
+                                "message_chunk": chunk.chunk,
+                                "message_id": message_id,
+                                "chunk_index": chunk_count,
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        )
+                    )
+                elif isinstance(chunk, Prediction):
+                    response = chunk.final_response
+                    if response:
+                        response = response.replace(" [[ ## completed ## ]]", "")
+
+                    logger.info(
+                        f"Sending stream end with response: {response[:100] if response else 'EMPTY'}"
+                    )
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_end",
+                            source="TicketingAgent",
+                            data={
+                                "message_id": message_id,
+                                "message": response,
+                                "agent": "TicketingAgent",
+                                "connection_id": connection_id,
+                            },
+                            traceparent=child_traceparent,
+                            tracestate=child_tracestate,
+                        )
+                    )
+                    logger.info(f"Stream ended for message {message_id}")
+        except Exception as e:
+            logger.error(f"Error in streaming response: {e}", exc_info=True)
+            await human_stream_channel.publish(
                 TracedMessage(
-                    type="agent_message",
+                    type="agent_message_stream_end",
                     source="TicketingAgent",
                     data={
-                        "message": message,
-                        "connection_id": meta.get("connection_id"),
-                        "message_id": meta.get("message_id", ""),
+                        "message_id": message_id,
+                        "message": "I'm sorry, I encountered an error while processing your request.",
                         "agent": "TicketingAgent",
-                        "session": meta.get("session", ""),
+                        "connection_id": connection_id,
                     },
+                    traceparent=child_traceparent,
+                    tracestate=child_tracestate,
                 )
             )
-            safe_set_attribute(span, "message.sent", True)
-            logger.debug(f"Published message to human channel: {message[:50]}...")
-        except Exception as e:
-            safe_set_attribute(span, "message.sent", False)
-            safe_set_attribute(span, "error", str(e))
-            logger.error(f"Failed to publish message: {str(e)}", exc_info=True)
-            raise
 
 
-@tracer.start_as_current_span("handle_data_collection")
-async def handle_data_collection(session: str, chat_history: str, meta: Dict) -> None:
-    """Handle the data collection step of the ticket creation workflow."""
-    logger.info("Processing step: Data collection")
-
-    session_data = get_session_data(session)
-
-    try:
-        result, updated_session = await asyncio.wait_for(
-            process_ticket_info(chat_history, session_data),
-            timeout=settings.timeout_seconds,
-        )
-
-        # Update session with collected information
-        update_session_data(session, updated_session)
-
-        # Send response to user
-        await publish_agent_response(result.message, meta)
-
-    except asyncio.TimeoutError:
-        logger.warning(f"Timeout while processing ticket info for session: {session}")
-        error_message = (
-            "I'm sorry, but it's taking longer than expected to process your request. "
-            "Let me try again. Could you please provide details about your issue?"
-        )
-        await publish_agent_response(error_message, meta)
-    except Exception as e:
-        logger.error(f"Error handling data collection: {str(e)}", exc_info=True)
-        error_message = (
-            "I apologize, but I encountered an error while processing your request. "
-            "Let's try again. Could you please provide details about your issue?"
-        )
-        await publish_agent_response(error_message, meta)
-
-
-@tracer.start_as_current_span("handle_confirmation")
-async def handle_confirmation(session: str, chat_history: str, meta: Dict) -> None:
-    """Handle the confirmation step of the ticket creation workflow."""
-    logger.info("Processing step: Confirmation")
-
-    session_data = get_session_data(session)
-
-    try:
-        result, updated_session, confirmed = await asyncio.wait_for(
-            process_confirmation(chat_history, session_data),
-            timeout=settings.timeout_seconds,
-        )
-
-        # Update session with confirmation result
-        update_session_data(session, updated_session)
-
-        # Send confirmation message to user
-        await publish_agent_response(result.message, meta)
-
-        # If confirmed, move to ticket creation
-        if confirmed:
-            await handle_ticket_creation(session, chat_history, meta)
-
-    except asyncio.TimeoutError:
-        logger.warning(f"Timeout while processing confirmation for session: {session}")
-        error_message = (
-            "I'm sorry, but it's taking longer than expected to process your confirmation. "
-            "Could you please confirm if you'd like to create a ticket with the information provided?"
-        )
-        await publish_agent_response(error_message, meta)
-    except Exception as e:
-        logger.error(f"Error handling confirmation: {str(e)}", exc_info=True)
-        error_message = (
-            "I apologize, but I encountered an error processing your confirmation. "
-            "Could you please confirm if the information I collected is correct?"
-        )
-        await publish_agent_response(error_message, meta)
-
-
-@tracer.start_as_current_span("handle_ticket_creation")
-async def handle_ticket_creation(session: str, chat_history: str, meta: Dict) -> None:
-    """Handle the ticket creation step of the workflow."""
-    logger.info("Processing step: Ticket creation")
-
-    session_data = get_session_data(session)
-
-    try:
-        result = await asyncio.wait_for(
-            create_ticket_from_session(session_data), timeout=settings.timeout_seconds
-        )
-
-        # Send ticket creation confirmation to user
-        await publish_agent_response(result.message, meta)
-
-        # Clean up session data
-        logger.info(f"Ticket created for session {session}. Cleaning up session data.")
-        pending_tickets.pop(session, None)
-
-    except asyncio.TimeoutError:
-        logger.warning(f"Timeout while creating ticket for session: {session}")
-        error_message = (
-            "I'm sorry, but it's taking longer than expected to create your ticket. "
-            "Please try again in a moment."
-        )
-        await publish_agent_response(error_message, meta)
-    except Exception as e:
-        logger.error(f"Error creating ticket: {str(e)}", exc_info=True)
-        error_message = (
-            "I apologize, but I encountered an error while creating your ticket. "
-            "Please try again later or contact our support team directly."
-        )
-        await publish_agent_response(error_message, meta)
-
-
-@tracer.start_as_current_span("agentic_workflow")
-async def agentic_workflow(session: str, chat_history: str, meta: Dict) -> None:
-    """Process a ticket request through the appropriate workflow step."""
-    session_data = get_session_data(session)
-    step = session_data.step
-
-    logger.info(f"Processing ticket for session: {session}, step: {step}")
-
-    try:
-        if step == "ask_additional_data":
-            await handle_data_collection(session, chat_history, meta)
-        elif step == "ask_confirmation":
-            await handle_confirmation(session, chat_history, meta)
-        elif step == "create_ticket":
-            await handle_ticket_creation(session, chat_history, meta)
-        else:
-            logger.error(f"Invalid workflow step: {step}")
-            error_message = "I apologize, but I encountered an error. Let's start over."
-            await publish_agent_response(error_message, meta)
-            # Reset session to beginning
-            update_session_data(session, SessionData())
-    except Exception as e:
-        logger.error(f"Error in agentic_workflow: {str(e)}", exc_info=True)
-        error_message = "I apologize, but I encountered an error. Let's try again."
-        await publish_agent_response(error_message, meta)
 
 
 @ticketing_agent.subscribe(
     channel=agents_channel,
     filter_by_message=lambda msg: msg.get("type") == "ticketing_request",
+    auto_offset_reset="latest",
+    group_id="escalation_agent_group",
 )
 @traced_handler("handle_ticketing_request")
 async def handle_ticketing_request(msg: TracedMessage) -> None:
-    """Handle incoming ticketing request messages from the agents channel."""
-    logger.info(f"Received ticketing request: {msg.id}")
-
+    """Handle incoming ticketing request messages with intelligent streaming."""
     try:
-        # Extract message data with appropriate type checking
-        session = msg.data.get("session", f"session_{uuid4()}")
-        chat_messages = msg.data.get("chat_messages", [])
-        connection_id = msg.data.get("connection_id", "unknown")
+        chat_messages: List[ChatMessage] = msg.data.get("chat_messages", [])
+        connection_id: str = msg.data.get("connection_id", "unknown")
 
-        logger.info(
-            f"Processing for connection_id: {connection_id}, session: {session}"
+        if not chat_messages:
+            logger.warning(f"Empty chat history for connection: {connection_id}")
+            await process_escalation_request(
+                "User: [No message content received]",
+                connection_id,
+                str(msg.id),
+                timeout_seconds=30.0
+            )
+            return
+
+        conversation_string = get_conversation_string(chat_messages)
+        logger.info(f"Processing ticketing request for connection {connection_id}")
+
+        await process_escalation_request(
+            conversation_string,
+            connection_id,
+            str(msg.id),
+            timeout_seconds=30.0
         )
 
-        # Convert chat messages to conversation string
-        conversation_string = get_conversation_string(chat_messages)
-
-        # Prepare metadata for response messages
-        meta = {
-            "session": session,
-            "message_id": msg.id,
-            "connection_id": connection_id,
-            "agent": "TicketingAgent",
-        }
-
-        # Process the request through the workflow
-        await agentic_workflow(session, conversation_string, meta)
-
     except Exception as e:
-        logger.error(f"Error handling ticketing request: {str(e)}", exc_info=True)
-        # Attempt to send error message if we have connection_id
+        logger.error(f"Error in TicketingAgent: {e}", exc_info=True)
         try:
-            if msg.data.get("connection_id"):
-                error_message = (
-                    "I apologize, but I encountered an unexpected error. "
-                    "Please try again or contact our support team."
-                )
-                await publish_agent_response(
-                    error_message,
-                    {
-                        "connection_id": msg.data.get("connection_id"),
-                        "message_id": msg.id,
-                        "agent": "TicketingAgent",
-                    },
-                )
+            await process_escalation_request(
+                f"System: Error occurred - {str(e)}",
+                locals().get("connection_id", "unknown"),
+                str(locals().get("msg", {}).get("id", "")),
+                timeout_seconds=30.0
+            )
         except Exception:
-            logger.error("Failed to send error message", exc_info=True)
+            logger.error("Failed to send error response", exc_info=True)
 
 
 @ticketing_agent.subscribe(channel=agents_channel)
-async def handle_others(msg: TracedMessage) -> None:
-    """Handle other messages from the agents channel for debugging."""
-    logger.debug(f"Received non-ticketing message: {msg.type}")
+@traced_handler("handle_others")
+async def handle_other_messages(msg: TracedMessage) -> None:
+    """Handle non-ticketing messages received on the agent channel."""
+    logger.debug("Received non-ticketing message: %s", msg)
+
+
+if __name__ == "__main__":
+
+    async def run():
+        from libraries.dspy_set_language_model import dspy_set_language_model
+
+        dspy_set_language_model(settings)
+        await clear_channels()
+
+        test_conversation = (
+            "User: I need to escalate an issue with my policy A12345.\n"
+            "TicketingAgent: I can help you with that. Let me check if there are any existing tickets for policy A12345.\n"
+            "User: My claim was denied incorrectly and I need this reviewed by technical support. My email is john@example.com.\n"
+        )
+
+        logger.info("Running simplified escalation agent test")
+        await process_escalation_request(
+            test_conversation,
+            "test-connection-123",
+            "test-message-456",
+            timeout_seconds=30.0
+        )
+
+    asyncio.run(run())
