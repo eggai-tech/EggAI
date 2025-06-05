@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   release:
+    name: Helm Chart Release 
     runs-on: ubuntu-latest
 
     steps:
@@ -29,5 +30,6 @@ jobs:
       - name: Push chart to GHCR
         run: |
           version=$(yq '.version' examples/multi_agent_human_chat/helm/Chart.yaml)
+          helm registry login ghcr.io/eggai-tech/multi_agent_human_chat/helm --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }}
           helm package examples/multi_agent_human_chat/helm --version ${version} --destination packaged
           helm push packaged/eggai-multi-agent-chat-${version}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm
