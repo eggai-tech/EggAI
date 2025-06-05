@@ -30,4 +30,4 @@ jobs:
         run: |
           version=$(yq '.version' examples/multi_agent_human_chat/helm/Chart.yaml)
           helm package examples/multi_agent_human_chat/helm --version ${version} --destination packaged
-          helm push packaged/multi-agent-human-chat-${version}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm
+          helm push packaged/eggai-multi-agent-chat-${version}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm
