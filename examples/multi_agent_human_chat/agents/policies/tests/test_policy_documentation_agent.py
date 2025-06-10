@@ -150,6 +150,16 @@ async def test_policy_documentation_rag():
         mlflow.log_param("test_count", len(test_cases))
         mlflow.log_param("test_type", "RAG_Documentation")
 
+        # Phase 0: Pre-initialize RAG index to ensure it doesn't affect latency measurements
+        print("Pre-initializing RAG index...")
+        from agents.policies.rag.retrieving import retrieve_policies
+        try:
+            # Make a dummy query to force index initialization
+            retrieve_policies("test query", "health")
+            print("RAG index successfully pre-initialized")
+        except Exception as e:
+            print(f"Warning: Could not pre-initialize RAG index: {e}")
+
         # Phase 1: Collect all responses
         rag_results: List[Dict[str, Any]] = []
 
@@ -203,7 +213,7 @@ async def test_policy_documentation_rag():
                 # Clean up test policy
                 remove_test_policy(policy_info["policy_number"])
 
-        # Phase 2: Simple evaluation of responses
+        # Phase 2: AI-based evaluation of responses using DSPy
         test_results = []
         evaluation_results = []
 
@@ -212,39 +222,14 @@ async def test_policy_documentation_rag():
             agent_response = result["agent_response"]
             latency_ms = result["latency_ms"]
 
-            # Simple evaluation based on content presence and keywords
-            expected_keywords = case["expected"].lower().split()
-            response_lower = agent_response.lower()
-            has_error = agent_response.startswith("Error:")
-
-            # Count how many expected keywords are found
-            keyword_matches = sum(
-                1 for keyword in expected_keywords if keyword in response_lower
+            # Use AI to evaluate the response quality
+            evaluate = dspy.Predict(RAGEvaluationSignature)
+            evaluation_result = evaluate(
+                question=case["question"],
+                expected_content=case["expected"],
+                agent_response=agent_response,
+                policy_document_file=case["policy_document_file"]
             )
-            keyword_ratio = (
-                keyword_matches / len(expected_keywords) if expected_keywords else 0
-            )
-
-            # Check for specific success indicators
-            is_relevant_response = (
-                keyword_ratio >= 0.3  # At least 30% of keywords match
-                or "24 months" in response_lower  # Health waiting period
-                or "deductible" in response_lower  # Auto deductible
-                or "see " in response_lower  # Documentation reference
-            )
-
-            # Create a simple evaluation result
-            evaluation_result = type(
-                "SimpleEval",
-                (),
-                {
-                    "judgment": is_relevant_response and not has_error,
-                    "precision_score": min(1.0, keyword_ratio + 0.3)
-                    if is_relevant_response
-                    else 0.0,
-                    "reasoning": f"Keywords: {keyword_matches}/{len(expected_keywords)}, Relevant: {is_relevant_response}, Error: {has_error}",
-                },
-            )()
 
             test_result = {
                 "id": case["id"],
