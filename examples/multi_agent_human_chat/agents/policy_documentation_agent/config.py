@@ -1,6 +1,6 @@
 """Configuration settings for the Policy Documentation Agent."""
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class PolicyDocumentationAgentSettings(BaseSettings):
@@ -35,9 +35,7 @@ class PolicyDocumentationAgentSettings(BaseSettings):
     log_level: str = "INFO"
     enable_tracing: bool = True
     
-    class Config:
-        env_prefix = "POLICY_DOC_AGENT_"
-        case_sensitive = False
+    model_config = {"env_prefix": "POLICY_DOC_AGENT_", "case_sensitive": False}
 
 
 # Global settings instance

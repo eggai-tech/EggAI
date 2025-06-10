@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policy-documentation test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run lint lint-fix
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policy-documentation test-rag-evaluation test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run lint lint-fix
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -87,6 +87,13 @@ test-policy-documentation:
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Policy documentation tests completed."
+
+test-rag-evaluation:
+	@echo "Running RAG evaluation tests..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/policy_documentation_agent/tests/test_rag_evaluation.py -s \
+       --junitxml=reports/pytest-results.xml \
+       --html=reports/pytest-results.html --self-contained-html
+	@echo "RAG evaluation tests completed."
 
 test-triage-classifier-v0:
 	@echo "Running tests for basic classifier v0 (minimal prompt)..."
