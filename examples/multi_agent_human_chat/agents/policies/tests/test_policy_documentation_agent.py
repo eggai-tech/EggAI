@@ -153,6 +153,7 @@ async def test_policy_documentation_rag():
         # Phase 0: Pre-initialize RAG index to ensure it doesn't affect latency measurements
         print("Pre-initializing RAG index...")
         from agents.policies.rag.retrieving import retrieve_policies
+
         try:
             # Make a dummy query to force index initialization
             retrieve_policies("test query", "health")
@@ -228,7 +229,7 @@ async def test_policy_documentation_rag():
                 question=case["question"],
                 expected_content=case["expected"],
                 agent_response=agent_response,
-                policy_document_file=case["policy_document_file"]
+                policy_document_file=case["policy_document_file"],
             )
 
             test_result = {
@@ -305,7 +306,7 @@ async def test_policy_documentation_rag():
 
         # Identify improvement areas
         needs_improvement = []
-        for i, (test_result, eval_result) in enumerate(
+        for _i, (test_result, eval_result) in enumerate(
             zip(test_results, evaluation_results, strict=False)
         ):
             if not eval_result.judgment or eval_result.precision_score < 0.6:

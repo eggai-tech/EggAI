@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from typing import List, Optional
+from typing import List
 
 from eggai import Agent, Channel
 
@@ -60,7 +60,7 @@ async def process_documentation_request(
     """Process a policy documentation request using RAG components."""
     config = ModelConfig(timeout_seconds=timeout_seconds or 30.0)
     request_id = str(uuid.uuid4())
-    
+
     with tracer.start_as_current_span("process_documentation_request") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
         safe_set_attribute(span, "connection_id", connection_id)
@@ -75,13 +75,13 @@ async def process_documentation_request(
             raise ValueError("Conversation history is too short to process")
 
         # Extract the last user message as the query
-        lines = conversation_string.strip().split('\n')
+        lines = conversation_string.strip().split("\n")
         query = ""
         for line in reversed(lines):
             if line.startswith("User:"):
                 query = line[5:].strip()
                 break
-        
+
         if not query:
             query = conversation_string.strip()
 
@@ -124,7 +124,7 @@ async def process_documentation_request(
             retrieval_response = await wait_for_response(
                 "retrieval_response", request_id, timeout_seconds=30.0
             )
-            
+
             if "error" in retrieval_response.data:
                 logger.error(f"Retrieval error: {retrieval_response.data['error']}")
                 raise Exception(f"Retrieval failed: {retrieval_response.data['error']}")
@@ -154,10 +154,14 @@ async def process_documentation_request(
             augmentation_response = await wait_for_response(
                 "augmentation_response", request_id, timeout_seconds=30.0
             )
-            
+
             if "error" in augmentation_response.data:
-                logger.error(f"Augmentation error: {augmentation_response.data['error']}")
-                raise Exception(f"Augmentation failed: {augmentation_response.data['error']}")
+                logger.error(
+                    f"Augmentation error: {augmentation_response.data['error']}"
+                )
+                raise Exception(
+                    f"Augmentation failed: {augmentation_response.data['error']}"
+                )
 
             augmented_context = augmentation_response.data.get("augmented_context", "")
             logger.info(f"Augmented context length: {len(augmented_context)}")
@@ -185,17 +189,25 @@ async def process_documentation_request(
             if streaming:
                 # Handle streaming generation
                 await handle_streaming_generation(
-                    request_id, message_id, connection_id, child_traceparent, child_tracestate
+                    request_id,
+                    message_id,
+                    connection_id,
+                    child_traceparent,
+                    child_tracestate,
                 )
             else:
                 # Wait for generation response
                 generation_response = await wait_for_response(
                     "generation_response", request_id, timeout_seconds=60.0
                 )
-                
+
                 if "error" in generation_response.data:
-                    logger.error(f"Generation error: {generation_response.data['error']}")
-                    raise Exception(f"Generation failed: {generation_response.data['error']}")
+                    logger.error(
+                        f"Generation error: {generation_response.data['error']}"
+                    )
+                    raise Exception(
+                        f"Generation failed: {generation_response.data['error']}"
+                    )
 
                 response = generation_response.data.get("response", "")
                 logger.info(f"Generated response length: {len(response)}")
@@ -218,7 +230,7 @@ async def process_documentation_request(
         except Exception as e:
             logger.error(f"Error in documentation processing: {e}", exc_info=True)
             error_message = "I apologize, but I encountered an error while processing your request. Please try again."
-            
+
             if streaming:
                 await human_stream_channel.publish(
                     TracedMessage(
@@ -251,29 +263,32 @@ async def process_documentation_request(
 
 
 async def handle_streaming_generation(
-    request_id: str, message_id: str, connection_id: str, 
-    traceparent: str, tracestate: str
+    request_id: str,
+    message_id: str,
+    connection_id: str,
+    traceparent: str,
+    tracestate: str,
 ) -> None:
     """Handle streaming generation responses."""
     chunk_count = 0
     final_response = ""
-    
+
     # Wait for stream start
     await wait_for_response("generation_stream_start", request_id, timeout_seconds=30.0)
-    
+
     while True:
         try:
             # Wait for either stream chunk or stream end
             response = await wait_for_response(
-                ["generation_stream_chunk", "generation_stream_end"], 
-                request_id, 
-                timeout_seconds=60.0
+                ["generation_stream_chunk", "generation_stream_end"],
+                request_id,
+                timeout_seconds=60.0,
             )
-            
+
             if response.data.get("type") == "generation_stream_chunk":
                 chunk_count += 1
                 chunk = response.data.get("chunk", "")
-                
+
                 await human_stream_channel.publish(
                     TracedMessage(
                         type="agent_message_stream_chunk",
@@ -288,10 +303,10 @@ async def handle_streaming_generation(
                         tracestate=tracestate,
                     )
                 )
-                
+
             elif response.data.get("type") == "generation_stream_end":
                 final_response = response.data.get("response", "")
-                
+
                 await human_stream_channel.publish(
                     TracedMessage(
                         type="agent_message_stream_end",
@@ -308,7 +323,7 @@ async def handle_streaming_generation(
                 )
                 logger.info(f"Stream ended for message {message_id}")
                 break
-                
+
         except asyncio.TimeoutError:
             logger.error("Timeout waiting for generation stream")
             break
@@ -318,29 +333,30 @@ async def handle_streaming_generation(
 
 
 async def wait_for_response(
-    response_type: str | List[str], 
-    request_id: str, 
-    timeout_seconds: float = 30.0
+    response_type: str | List[str], request_id: str, timeout_seconds: float = 30.0
 ) -> TracedMessage:
     """Wait for a specific response type with the given request_id."""
-    response_types = response_type if isinstance(response_type, list) else [response_type]
-    
+    response_types = (
+        response_type if isinstance(response_type, list) else [response_type]
+    )
+
     async def message_filter(msg):
         return (
-            msg.get("type") in response_types and 
-            msg.data.get("request_id") == request_id
+            msg.get("type") in response_types
+            and msg.data.get("request_id") == request_id
         )
-    
+
     try:
         async with internal_channel.subscribe(
-            filter_by_message=message_filter,
-            auto_offset_reset="latest"
+            filter_by_message=message_filter, auto_offset_reset="latest"
         ) as subscription:
             async for message in subscription:
                 return message
-                
+
     except asyncio.TimeoutError:
-        logger.error(f"Timeout waiting for {response_types} with request_id {request_id}")
+        logger.error(
+            f"Timeout waiting for {response_types} with request_id {request_id}"
+        )
         raise
 
 
@@ -360,8 +376,10 @@ async def handle_documentation_request(msg: TracedMessage) -> None:
 
         if not chat_messages:
             logger.warning(f"Empty chat history for connection: {connection_id}")
-            error_message = "I apologize, but I didn't receive any message content to process."
-            
+            error_message = (
+                "I apologize, but I didn't receive any message content to process."
+            )
+
             if streaming:
                 await human_stream_channel.publish(
                     TracedMessage(
@@ -409,17 +427,17 @@ async def handle_documentation_request(msg: TracedMessage) -> None:
         logger.info(f"Processing documentation request for connection {connection_id}")
 
         await process_documentation_request(
-            conversation_string, 
-            connection_id, 
-            str(msg.id), 
+            conversation_string,
+            connection_id,
+            str(msg.id),
             timeout_seconds=30.0,
-            streaming=streaming
+            streaming=streaming,
         )
 
     except Exception as e:
         logger.error(f"Error in PolicyDocumentationAgent: {e}", exc_info=True)
         error_message = "I apologize, but I'm having trouble processing your request right now. Please try again."
-        
+
         await human_channel.publish(
             TracedMessage(
                 type="agent_message",
@@ -443,7 +461,7 @@ async def handle_other_messages(msg: TracedMessage) -> None:
 
 
 if __name__ == "__main__":
-    
+
     async def run():
         from agents.policies.config import settings
         from libraries.dspy_set_language_model import dspy_set_language_model
@@ -458,22 +476,28 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for policy documentation agent")
-        
+
         # Simulate a documentation request
         test_message = TracedMessage(
             type="documentation_request",
             source="TestClient",
             data={
                 "chat_messages": [
-                    {"role": "User", "content": "I need information about fire damage coverage."},
-                    {"role": "PolicyDocumentationAgent", "content": "I can help you with information about fire damage coverage. Let me search our policy documents."},
-                    {"role": "User", "content": "Is it covered under auto insurance?"}
+                    {
+                        "role": "User",
+                        "content": "I need information about fire damage coverage.",
+                    },
+                    {
+                        "role": "PolicyDocumentationAgent",
+                        "content": "I can help you with information about fire damage coverage. Let me search our policy documents.",
+                    },
+                    {"role": "User", "content": "Is it covered under auto insurance?"},
                 ],
                 "connection_id": "test_connection",
-                "streaming": False
-            }
+                "streaming": False,
+            },
         )
-        
+
         await handle_documentation_request(test_message)
 
     asyncio.run(run())

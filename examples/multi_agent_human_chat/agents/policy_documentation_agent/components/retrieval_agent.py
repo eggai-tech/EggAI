@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from eggai import Agent, Channel
 from ragatouille import RAGPretrainedModel
@@ -33,7 +33,7 @@ def ensure_index_built() -> None:
     global _INDEX_BUILT
     if _INDEX_BUILT:
         return
-        
+
     index_root = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", ".ragatouille")
     )
@@ -72,9 +72,7 @@ def retrieve_documents(query: str, category: str = None) -> List[Dict[str, Any]]
     """Retrieve relevant documents based on query."""
     global _INDEX_LOADED, _RAG
 
-    logger.info(
-        f"Retrieving documents for query: '{query}', category: '{category}'"
-    )
+    logger.info(f"Retrieving documents for query: '{query}', category: '{category}'")
     ensure_index_built()
 
     if not _INDEX_LOADED:
@@ -126,7 +124,7 @@ async def handle_retrieval_request(msg: TracedMessage) -> None:
         query = msg.data.get("query", "")
         category = msg.data.get("category")
         request_id = msg.data.get("request_id", "")
-        
+
         if not query:
             logger.warning("Empty query in retrieval request")
             await internal_channel.publish(
@@ -146,7 +144,7 @@ async def handle_retrieval_request(msg: TracedMessage) -> None:
 
         logger.info(f"Processing retrieval request: {query}")
         documents = retrieve_documents(query, category)
-        
+
         await internal_channel.publish(
             TracedMessage(
                 type="retrieval_response",

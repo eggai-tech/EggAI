@@ -1,11 +1,16 @@
+import os
 import warnings
 from typing import List
-import os
 
-import pytest
 import mlflow
-from ragas import SingleTurnSample, EvaluationDataset, evaluate
-from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
+import pytest
+from ragas import EvaluationDataset, SingleTurnSample, evaluate
+from ragas.metrics import (
+    answer_relevancy,
+    context_precision,
+    context_recall,
+    faithfulness,
+)
 
 from agents.policies.dspy_modules.policies_data import (
     add_test_policy,
@@ -20,7 +25,9 @@ warnings.filterwarnings("ignore", category=FutureWarning, message=".*torch.cuda.
 warnings.filterwarnings(
     "ignore", category=UserWarning, message=".*CUDA is not available.*"
 )
-warnings.filterwarnings("ignore", category=UserWarning, module="torch.amp.autocast_mode")
+warnings.filterwarnings(
+    "ignore", category=UserWarning, module="torch.amp.autocast_mode"
+)
 warnings.filterwarnings("ignore", category=FutureWarning, module="torch.cuda.amp")
 
 # Suppress specific ColBERT output
@@ -64,7 +71,7 @@ def get_rag_test_cases():
             "policy_document_file": "auto.md",
         },
         {
-            "id": "health_waiting_period", 
+            "id": "health_waiting_period",
             "question": "What is the waiting period for pre-existing conditions?",
             "expected": "Pre-Existing Conditions: Excluded for the first 24 months",
             "policy_document_file": "health.md",
@@ -94,14 +101,14 @@ def create_ragas_samples() -> List[SingleTurnSample]:
 
             try:
                 import signal
-                
+
                 def timeout_handler(signum, frame):
                     raise TimeoutError("Model call timed out after 30 seconds")
-                
+
                 # Set a 30-second timeout for the model call
                 signal.signal(signal.SIGALRM, timeout_handler)
                 signal.alarm(30)
-                
+
                 try:
                     result = policies_model(chat_history=conversation)
                     signal.alarm(0)  # Cancel the alarm
@@ -113,7 +120,7 @@ def create_ragas_samples() -> List[SingleTurnSample]:
                 except TimeoutError:
                     signal.alarm(0)  # Cancel the alarm
                     actual_response = "Error: Model call timed out - LM Studio server may not be running"
-                    
+
             except Exception as e:
                 print(f"Warning: Error getting response for {case['id']}: {e}")
                 actual_response = f"Error: Could not get response - {str(e)}"
@@ -122,14 +129,16 @@ def create_ragas_samples() -> List[SingleTurnSample]:
                 actual_response = "No response received"
 
             # Get retrieved contexts (simulate based on policy document)
-            retrieved_contexts = [f"Context from {case['policy_document_file']}: {case['expected']}"]
+            retrieved_contexts = [
+                f"Context from {case['policy_document_file']}: {case['expected']}"
+            ]
 
             # Create Ragas sample
             sample = SingleTurnSample(
                 user_input=case["question"],
                 retrieved_contexts=retrieved_contexts,
                 response=actual_response,
-                reference=case["expected"]
+                reference=case["expected"],
             )
             samples.append(sample)
 
@@ -143,75 +152,82 @@ def create_ragas_samples() -> List[SingleTurnSample]:
 @pytest.mark.asyncio
 async def test_rag_with_ragas():
     """Test RAG system using Ragas evaluation framework."""
-    
+
     # Setup MLflow
     experiment_name = "rag_evaluation"
     mlflow.set_experiment(experiment_name)
-    
+
     with mlflow.start_run(run_name="rag_evaluation_test"):
         # Create evaluation samples
         samples = create_ragas_samples()
-        
+
         if not samples:
             pytest.fail("No evaluation samples created")
 
         # Log test parameters
         mlflow.log_param("num_samples", len(samples))
         mlflow.log_param("evaluation_framework", "ragas")
-        mlflow.log_param("metrics", "faithfulness,answer_relevancy,context_precision,context_recall")
-        
+        mlflow.log_param(
+            "metrics", "faithfulness,answer_relevancy,context_precision,context_recall"
+        )
+
         # Create evaluation dataset
         dataset = EvaluationDataset(samples=samples)
 
         # Define metrics to evaluate
         metrics = [
-            faithfulness,        # Measures factual consistency
-            answer_relevancy,    # Measures relevance of answer to question
-            context_precision,   # Measures precision of retrieved context
-            context_recall,      # Measures recall of retrieved context
+            faithfulness,  # Measures factual consistency
+            answer_relevancy,  # Measures relevance of answer to question
+            context_precision,  # Measures precision of retrieved context
+            context_recall,  # Measures recall of retrieved context
         ]
 
         # Run evaluation
         try:
             results = evaluate(dataset=dataset, metrics=metrics)
-            
+
             # Log results to MLflow and print summary
             print("\n=== Ragas RAG Evaluation Results ===")
-            
-            if hasattr(results, 'to_pandas'):
+
+            if hasattr(results, "to_pandas"):
                 df = results.to_pandas()
-                
+
                 # Log metrics to MLflow and print
                 for column in df.columns:
-                    if column not in ['user_input', 'retrieved_contexts', 'response', 'reference']:
+                    if column not in [
+                        "user_input",
+                        "retrieved_contexts",
+                        "response",
+                        "reference",
+                    ]:
                         values = df[column].dropna()
                         if len(values) > 0:
                             avg_score = values.mean()
                             print(f"{column}: {avg_score:.3f}")
                             mlflow.log_metric(f"avg_{column}", avg_score)
-                            
+
                             # Log individual scores
                             for i, score in enumerate(values):
                                 mlflow.log_metric(f"{column}_sample_{i}", score)
-                
+
                 # Save detailed results as artifact
                 df.to_csv("rag_evaluation_results.csv", index=False)
                 mlflow.log_artifact("rag_evaluation_results.csv")
                 os.remove("rag_evaluation_results.csv")
 
             # Log overall results dict if available
-            if hasattr(results, '__dict__'):
+            if hasattr(results, "__dict__"):
                 for key, value in results.__dict__.items():
                     if isinstance(value, (int, float)):
                         mlflow.log_metric(f"overall_{key}", value)
-            
+
             # Set tags
             mlflow.set_tag("test_type", "rag_evaluation")
             mlflow.set_tag("framework", "ragas")
             mlflow.set_tag("status", "completed")
-            
+
             print("\nRAG evaluation completed successfully!")
-            
+
         except Exception as e:
             mlflow.set_tag("status", "failed")
             mlflow.log_param("error", str(e))
@@ -221,4 +237,5 @@ async def test_rag_with_ragas():
 if __name__ == "__main__":
     # Run the test directly for debugging
     import asyncio
+
     asyncio.run(test_rag_with_ragas())

@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from eggai import Agent, Channel
 
@@ -22,9 +22,7 @@ def augment_context(
         return f"Query: {query}\n\nNo relevant policy documents found."
 
     # Sort documents by relevance score if available
-    sorted_docs = sorted(
-        documents, key=lambda x: x.get("score", 0), reverse=True
-    )
+    sorted_docs = sorted(documents, key=lambda x: x.get("score", 0), reverse=True)
 
     context_parts = [f"Query: {query}", "Relevant Policy Information:"]
     current_length = len("\n".join(context_parts))
@@ -33,9 +31,9 @@ def augment_context(
         content = doc.get("content", "")
         metadata = doc.get("document_metadata", {})
         category = metadata.get("category", "unknown")
-        
+
         doc_section = f"\n--- Policy {category.upper()} (Relevance: {doc.get('score', 0):.3f}) ---\n{content}"
-        
+
         if current_length + len(doc_section) > max_context_length:
             if i == 0:
                 # If even the first document is too long, truncate it
@@ -44,13 +42,15 @@ def augment_context(
                 doc_section = f"\n--- Policy {category.upper()} (Relevance: {doc.get('score', 0):.3f}) ---\n{truncated_content}"
                 context_parts.append(doc_section)
             break
-        
+
         context_parts.append(doc_section)
         current_length += len(doc_section)
 
     augmented_context = "\n".join(context_parts)
-    logger.info(f"Augmented context with {len([p for p in context_parts if p.startswith('---')])} documents, total length: {len(augmented_context)}")
-    
+    logger.info(
+        f"Augmented context with {len([p for p in context_parts if p.startswith('---')])} documents, total length: {len(augmented_context)}"
+    )
+
     return augmented_context
 
 
@@ -72,8 +72,10 @@ Instructions:
 - Be specific and cite which policy section your answer comes from when possible
 - Maintain a helpful and professional tone
 """
-    
-    logger.info(f"Formatted context for generation, total length: {len(formatted_context)}")
+
+    logger.info(
+        f"Formatted context for generation, total length: {len(formatted_context)}"
+    )
     return formatted_context
 
 
@@ -92,7 +94,7 @@ async def handle_augmentation_request(msg: TracedMessage) -> None:
         conversation_history = msg.data.get("conversation_history", "")
         request_id = msg.data.get("request_id", "")
         max_context_length = msg.data.get("max_context_length", 4000)
-        
+
         if not query:
             logger.warning("Empty query in augmentation request")
             await internal_channel.publish(
@@ -110,11 +112,13 @@ async def handle_augmentation_request(msg: TracedMessage) -> None:
             )
             return
 
-        logger.info(f"Processing augmentation request: {query} with {len(documents)} documents")
-        
+        logger.info(
+            f"Processing augmentation request: {query} with {len(documents)} documents"
+        )
+
         # Augment the context with retrieved documents
         augmented_context = augment_context(query, documents, max_context_length)
-        
+
         # Format for generation if conversation history is provided
         if conversation_history:
             formatted_context = format_context_for_generation(
@@ -122,7 +126,7 @@ async def handle_augmentation_request(msg: TracedMessage) -> None:
             )
         else:
             formatted_context = augmented_context
-        
+
         await internal_channel.publish(
             TracedMessage(
                 type="augmentation_response",
@@ -158,20 +162,20 @@ async def handle_augmentation_request(msg: TracedMessage) -> None:
 
 if __name__ == "__main__":
     logger.info("Running augmenting agent as script")
-    
+
     # Test data
     test_documents = [
         {
             "content": "Fire damage is covered under comprehensive insurance with a $500 deductible.",
             "document_metadata": {"category": "auto"},
-            "score": 0.95
+            "score": 0.95,
         },
         {
             "content": "Home insurance covers fire damage with full replacement cost coverage.",
             "document_metadata": {"category": "home"},
-            "score": 0.87
-        }
+            "score": 0.87,
+        },
     ]
-    
+
     result = augment_context("Is fire damage covered?", test_documents)
     logger.info(f"Augmented result: {result[:200]}...")
