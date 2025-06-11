@@ -35,3 +35,4 @@ psycopg2-binary>=2.9.9
 python-multipart>=0.0.9
 # dev dependencies
 ruff==0.11.11
+pytest-cov==6.0.0

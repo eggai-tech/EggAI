@@ -42,6 +42,7 @@ start: setup docker-up start-all
 test:
 	@echo "Running tests..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest -s \
+       --cov=agents --cov-report=xml:coverage.xml --cov-report=term \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests completed."
@@ -49,6 +50,7 @@ test:
 test-billing-agent:
 	@echo "Running tests for billing agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/billing -s \
+       --cov=agents.billing --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for billing agent completed."
@@ -56,6 +58,7 @@ test-billing-agent:
 test-claims-agent:
 	@echo "Running tests for claims agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/claims -s \
+       --cov=agents.claims --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for claims agent completed."
@@ -63,6 +66,7 @@ test-claims-agent:
 test-escalation-agent:
 	@echo "Running tests for escalation agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/escalation -s \
+       --cov=agents.escalation --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for escalation agent completed."
@@ -70,6 +74,7 @@ test-escalation-agent:
 test-frontend-agent:
 	@echo "Running tests for frontend agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/frontend -s \
+       --cov=agents.frontend --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for frontend agent completed."
@@ -77,6 +82,7 @@ test-frontend-agent:
 test-policies-agent:
 	@echo "Running tests for policies agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/policies -s \
+       --cov=agents.policies --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for policies agent completed."
@@ -120,6 +126,7 @@ test-triage-classifier-v5:
 test-triage-agent:
 	@echo "Running tests for triage agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_agent.py -s \
+       --cov=agents.triage --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for triage agent completed."
@@ -127,6 +134,7 @@ test-triage-agent:
 test-audit-agent:
 	@echo "Running tests for audit agent..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/pytest agents/audit -s \
+       --cov=agents.audit --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for audit agent completed."

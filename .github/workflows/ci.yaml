@@ -27,6 +27,25 @@ jobs:
         with:
           src: examples/multi_agent_human_chat
 
+  sonarqube-scan:
+    runs-on: ubuntu-latest
+    name: SonarQube scan
+    needs: integration
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage results
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-xml
+          path: examples/multi_agent_human_chat/
+
       - name: Run SonarQube scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
@@ -137,6 +156,13 @@ jobs:
           name: pytest-results.xml
           path: examples/multi_agent_human_chat/reports/pytest-results.xml
 
+      - name: Archive coverage results
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: coverage-xml
+          path: examples/multi_agent_human_chat/coverage.xml
+
       - name: Summarize test results
         if: always()
         uses: pmeier/pytest-results-action@main
@@ -153,7 +179,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    needs: integration
+    needs: [integration, sonarqube-scan]
     steps:
       - uses: actions/checkout@v4
 
