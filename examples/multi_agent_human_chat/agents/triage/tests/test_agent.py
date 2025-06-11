@@ -337,7 +337,7 @@ async def test_triage_agent():
                         mock_ev = type('MockEval', (), {
                             'judgment': res["routed"] == res["expected"],
                             'precision_score': 1.0 if res["routed"] == res["expected"] else 0.0,
-                            'reasoning': f"LLM unavailable, using rule-based check"
+                            'reasoning': "LLM unavailable, using rule-based check"
                         })()
                         return res, mock_ev, case_idx
 
