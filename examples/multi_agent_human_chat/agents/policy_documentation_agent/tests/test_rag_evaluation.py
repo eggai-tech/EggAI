@@ -1,5 +1,7 @@
 import os
 import warnings
+from datetime import datetime
+from pathlib import Path
 from typing import List
 
 import mlflow
@@ -16,6 +18,9 @@ from agents.policies.dspy_modules.policies_data import (
     add_test_policy,
     remove_test_policy,
 )
+from libraries.tracing import init_telemetry
+
+from .utils import calculate_metric_summaries, generate_rag_html_report
 
 # Disable warnings
 warnings.filterwarnings("ignore")
@@ -73,7 +78,7 @@ def get_rag_test_cases():
         {
             "id": "health_waiting_period",
             "question": "What is the waiting period for pre-existing conditions?",
-            "expected": "Pre-Existing Conditions: Excluded for the first 24 months",
+            "expected": "Excluded for the first 24 months",
             "policy_document_file": "health.md",
         },
     ]
@@ -91,44 +96,17 @@ def create_ragas_samples() -> List[SingleTurnSample]:
         add_test_policy(policy_info["policy_number"], policy_info["category"])
 
         try:
-            # Create conversation using helper
             conversation = conversation_helper.create_conversation(
                 case["question"], case["policy_document_file"]
             )
 
-            # Get response from policy agent
             from agents.policies.dspy_modules.policies import policies_model
-
-            try:
-                import signal
-
-                def timeout_handler(signum, frame):
-                    raise TimeoutError("Model call timed out after 30 seconds")
-
-                # Set a 30-second timeout for the model call
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(30)
-
-                try:
-                    result = policies_model(chat_history=conversation)
-                    signal.alarm(0)  # Cancel the alarm
-                    actual_response = (
-                        result.final_response.replace(" [[ ## completed ## ]]", "")
-                        if result.final_response
-                        else ""
-                    )
-                except TimeoutError:
-                    signal.alarm(0)  # Cancel the alarm
-                    actual_response = "Error: Model call timed out - LM Studio server may not be running"
-
-            except Exception as e:
-                print(f"Warning: Error getting response for {case['id']}: {e}")
-                actual_response = f"Error: Could not get response - {str(e)}"
-
-            if not actual_response:
-                actual_response = "No response received"
-
-            # Get retrieved contexts (simulate based on policy document)
+            result = policies_model(chat_history=conversation)
+            actual_response = (
+                result.final_response.replace(" [[ ## completed ## ]]", "")
+                if result.final_response
+                else ""
+            )
             retrieved_contexts = [
                 f"Context from {case['policy_document_file']}: {case['expected']}"
             ]
@@ -143,7 +121,6 @@ def create_ragas_samples() -> List[SingleTurnSample]:
             samples.append(sample)
 
         finally:
-            # Clean up test policy
             remove_test_policy(policy_info["policy_number"])
 
     return samples
@@ -153,11 +130,23 @@ def create_ragas_samples() -> List[SingleTurnSample]:
 async def test_rag_with_ragas():
     """Test RAG system using Ragas evaluation framework."""
 
+    init_telemetry("ragas_evaluation_test")
+
+    mlflow.dspy.autolog()
+    mlflow.openai.autolog()
+
+    # Setup reports directory
+    reports_dir = Path(__file__).parent / "reports"
+    reports_dir.mkdir(exist_ok=True)
+    
+    # Generate timestamp for unique filenames
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     # Setup MLflow
     experiment_name = "rag_evaluation"
     mlflow.set_experiment(experiment_name)
 
-    with mlflow.start_run(run_name="rag_evaluation_test"):
+    with mlflow.start_run(run_name=f"rag_evaluation_test_{timestamp}"):
         # Create evaluation samples
         samples = create_ragas_samples()
 
@@ -170,6 +159,7 @@ async def test_rag_with_ragas():
         mlflow.log_param(
             "metrics", "faithfulness,answer_relevancy,context_precision,context_recall"
         )
+        mlflow.log_param("timestamp", timestamp)
 
         # Create evaluation dataset
         dataset = EvaluationDataset(samples=samples)
@@ -189,42 +179,67 @@ async def test_rag_with_ragas():
             # Log results to MLflow and print summary
             print("\n=== Ragas RAG Evaluation Results ===")
 
-            if hasattr(results, "to_pandas"):
-                df = results.to_pandas()
+            df = results.to_pandas()
 
-                # Log metrics to MLflow and print
-                for column in df.columns:
-                    if column not in [
-                        "user_input",
-                        "retrieved_contexts",
-                        "response",
-                        "reference",
-                    ]:
-                        values = df[column].dropna()
-                        if len(values) > 0:
-                            avg_score = values.mean()
-                            print(f"{column}: {avg_score:.3f}")
-                            mlflow.log_metric(f"avg_{column}", avg_score)
+            # Log metrics to MLflow and print
+            for column in df.columns:
+                if column not in [
+                    "user_input",
+                    "retrieved_contexts",
+                    "response",
+                    "reference",
+                ]:
+                    values = df[column].dropna()
+                    if len(values) > 0:
+                        avg_score = values.mean()
+                        print(f"{column}: {avg_score:.3f}")
+                        mlflow.log_metric(f"avg_{column}", avg_score)
 
-                            # Log individual scores
-                            for i, score in enumerate(values):
-                                mlflow.log_metric(f"{column}_sample_{i}", score)
+            # Save detailed results locally and as MLflow artifact
+            results_file = reports_dir / f"rag_evaluation_results_{timestamp}.csv"
+            df.to_csv(results_file, index=False)
+            mlflow.log_artifact(str(results_file))
 
-                # Save detailed results as artifact
-                df.to_csv("rag_evaluation_results.csv", index=False)
-                mlflow.log_artifact("rag_evaluation_results.csv")
-                os.remove("rag_evaluation_results.csv")
+            # Generate HTML report for searchable results
+            html_file = reports_dir / f"rag_evaluation_results_{timestamp}.html"
 
-            # Log overall results dict if available
-            if hasattr(results, "__dict__"):
-                for key, value in results.__dict__.items():
-                    if isinstance(value, (int, float)):
-                        mlflow.log_metric(f"overall_{key}", value)
+            # Calculate summary metrics using utility function
+            metric_summaries = calculate_metric_summaries(df)
+
+            # Generate HTML report using utility function
+            generate_rag_html_report(
+                df=df,
+                timestamp=timestamp,
+                samples_count=len(samples),
+                metric_summaries=metric_summaries,
+                output_path=html_file
+            )
+            mlflow.log_artifact(str(html_file))
+
+            # Also save a summary report
+            summary_file = reports_dir / f"rag_evaluation_summary_{timestamp}.txt"
+            with open(summary_file, "w") as f:
+                f.write(f"RAG Evaluation Summary - {timestamp}\n")
+                f.write("=" * 50 + "\n\n")
+                f.write(f"Number of samples: {len(samples)}\n")
+                f.write("Evaluation framework: ragas\n\n")
+                f.write("Metrics:\n")
+                for metric, avg_score in metric_summaries.items():
+                    f.write(f"  {metric}: {avg_score:.3f}\n")
+
+            mlflow.log_artifact(str(summary_file))
+
+            # Print clickable file paths
+            print(f"\nReports saved to: {reports_dir}")
+            print(f"  - HTML Report (searchable): file://{html_file.absolute()}")
+            print(f"  - CSV Data: file://{results_file.absolute()}")
+            print(f"  - Summary: file://{summary_file.absolute()}")
 
             # Set tags
             mlflow.set_tag("test_type", "rag_evaluation")
             mlflow.set_tag("framework", "ragas")
             mlflow.set_tag("status", "completed")
+            mlflow.set_tag("reports_dir", str(reports_dir))
 
             print("\nRAG evaluation completed successfully!")
 

@@ -10,6 +10,7 @@ from libraries.channels import channels
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, traced_handler
+from libraries.tracing.dspy import TracedChainOfThought, traced_dspy_function
 
 generation_agent = Agent(name="GenerationAgent")
 logger = get_console_logger("policy_documentation_agent.generation")
@@ -52,11 +53,15 @@ class PolicyDocumentationSignature(dspy.Signature):
     )
 
 
-# Initialize the generation model
-generation_model = dspy.ChainOfThought(PolicyDocumentationSignature)
+# Initialize the generation model with tracing
+generation_model = TracedChainOfThought(
+    PolicyDocumentationSignature,
+    name="policy_documentation_generation",
+    tracer=tracer
+)
 
 
-@tracer.start_as_current_span("generate_response")
+@traced_dspy_function(name="generate_response")
 def generate_response(
     augmented_context: str, config: Optional[ModelConfig] = None
 ) -> str:
@@ -83,7 +88,7 @@ def generate_response(
         return "I apologize, but I encountered an error while processing your request. Please try again."
 
 
-@tracer.start_as_current_span("generate_streaming_response")
+@traced_dspy_function(name="generate_streaming_response")
 def generate_streaming_response(
     augmented_context: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:

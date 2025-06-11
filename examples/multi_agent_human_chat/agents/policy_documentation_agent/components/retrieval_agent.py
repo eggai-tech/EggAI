@@ -178,11 +178,10 @@ async def handle_retrieval_request(msg: TracedMessage) -> None:
         )
 
 
+
 if __name__ == "__main__":
     logger.info("Running retrieval agent as script")
     results = retrieve_documents("Is Fire Damage Coverage included?")
     logger.info(f"Retrieved {len(results)} results")
-    for idx, r in enumerate(results[:3]):
-        logger.info(
-            f"Result {idx + 1}: {r.get('document_metadata', {}).get('category')} - {r.get('content', '')[:100]}..."
-        )
+    for _idx, r in enumerate(results[:3]):
+        logger.info(r)

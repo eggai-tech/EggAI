@@ -1,8 +1,9 @@
 import asyncio
 import uuid
-from typing import List
+from typing import List, Union
 
 from eggai import Agent, Channel
+from eggai.transport import KafkaTransport, eggai_set_default_transport
 
 from agents.policies.types import ChatMessage, ModelConfig
 from libraries.channels import channels, clear_channels
@@ -11,6 +12,7 @@ from libraries.tracing import (
     TracedMessage,
     create_tracer,
     format_span_as_traceparent,
+    init_telemetry,
     traced_handler,
 )
 from libraries.tracing.otel import safe_set_attribute
@@ -211,6 +213,7 @@ async def process_documentation_request(
 
                 response = generation_response.data.get("response", "")
                 logger.info(f"Generated response length: {len(response)}")
+                logger.info(f"FINAL RESPONSE: {response}")
 
                 # Send final response
                 await human_channel.publish(
@@ -332,32 +335,57 @@ async def handle_streaming_generation(
             break
 
 
+# Global dictionary to store pending response futures
+_pending_responses = {}
+
+@policy_documentation_agent.subscribe(
+    channel=internal_channel,
+    auto_offset_reset="latest",
+    group_id="policy_documentation_response_handler",
+    filter_by_message=lambda msg: msg.get("type") in ["retrieval_response", "augmentation_response", "generation_response"],
+)
+async def handle_internal_responses(msg: TracedMessage) -> None:
+    """Handle responses from sub-agents."""
+    request_id = msg.data.get("request_id")
+    if request_id and request_id in _pending_responses:
+        future = _pending_responses[request_id]
+        if not future.done():
+            logger.info(f"Received response {msg.type} for request_id {request_id}")
+            future.set_result(msg)
+
+
 async def wait_for_response(
-    response_type: str | List[str], request_id: str, timeout_seconds: float = 30.0
+    response_type: Union[str, List[str]], request_id: str, timeout_seconds: float = 30.0
 ) -> TracedMessage:
     """Wait for a specific response type with the given request_id."""
     response_types = (
         response_type if isinstance(response_type, list) else [response_type]
     )
-
-    async def message_filter(msg):
-        return (
-            msg.get("type") in response_types
-            and msg.data.get("request_id") == request_id
-        )
-
+    
+    logger.info(f"Waiting for response types {response_types} with request_id {request_id}")
+    
+    # Create a future to wait for the response
+    response_future = asyncio.Future()
+    _pending_responses[request_id] = response_future
+    
     try:
-        async with internal_channel.subscribe(
-            filter_by_message=message_filter, auto_offset_reset="latest"
-        ) as subscription:
-            async for message in subscription:
-                return message
-
+        # Wait for the response with timeout
+        response = await asyncio.wait_for(response_future, timeout=timeout_seconds)
+        
+        # Validate response type
+        if response.type not in response_types:
+            logger.warning(f"Received unexpected response type {response.type}, expected {response_types}")
+            # Continue waiting for the correct response type
+            return await wait_for_response(response_type, request_id, timeout_seconds)
+        
+        logger.info(f"Successfully received response for request_id {request_id}")
+        return response
     except asyncio.TimeoutError:
-        logger.error(
-            f"Timeout waiting for {response_types} with request_id {request_id}"
-        )
-        raise
+        logger.error(f"Timeout waiting for {response_types} with request_id {request_id}")
+        raise asyncio.TimeoutError(f"Timeout waiting for response types {response_types}")
+    finally:
+        # Clean up the pending response
+        _pending_responses.pop(request_id, None)
 
 
 @policy_documentation_agent.subscribe(
@@ -464,20 +492,55 @@ if __name__ == "__main__":
 
     async def run():
         from agents.policies.config import settings
-        from libraries.dspy_set_language_model import dspy_set_language_model
-
-        dspy_set_language_model(settings)
-        await clear_channels()
-
-        test_conversation = (
-            "User: I need information about fire damage coverage.\n"
-            "PolicyDocumentationAgent: I can help you with information about fire damage coverage. Let me search our policy documents.\n"
-            "User: Is it covered under auto insurance?\n"
+        from agents.policy_documentation_agent.components.augmenting_agent import (
+            augmenting_agent,
+        )
+        from agents.policy_documentation_agent.components.generation_agent import (
+            generation_agent,
         )
 
-        logger.info("Running test query for policy documentation agent")
+        # Import sub-agents
+        from agents.policy_documentation_agent.components.retrieval_agent import (
+            retrieval_agent,
+        )
+        from libraries.dspy_set_language_model import dspy_set_language_model
 
-        # Simulate a documentation request
+        eggai_set_default_transport(lambda: KafkaTransport())
+
+        init_telemetry("TestPolicyDocumentationAgent")
+        dspy_set_language_model(settings)
+
+        await clear_channels()
+
+        logger.info("Starting all sub-agents...")
+        
+        # Start all agents concurrently
+        agent_tasks = []
+        
+        # Start retrieval agent
+        logger.info("Starting retrieval agent...")
+        agent_tasks.append(asyncio.create_task(retrieval_agent.start()))
+        
+        # Start augmenting agent  
+        logger.info("Starting augmenting agent...")
+        agent_tasks.append(asyncio.create_task(augmenting_agent.start()))
+        
+        # Start generation agent
+        logger.info("Starting generation agent...")
+        agent_tasks.append(asyncio.create_task(generation_agent.start()))
+        
+        # Start main policy documentation agent
+        logger.info("Starting main policy documentation agent...")
+        agent_tasks.append(asyncio.create_task(policy_documentation_agent.start()))
+        
+        # Wait a moment for agents to initialize
+        await asyncio.sleep(2)
+        
+        logger.info("All agents started successfully!")
+
+        # Test the system with a documentation request
+        logger.info("Testing integrated system with real sub-agents...")
+
         test_message = TracedMessage(
             type="documentation_request",
             source="TestClient",
@@ -499,5 +562,16 @@ if __name__ == "__main__":
         )
 
         await handle_documentation_request(test_message)
+        
+        # Stop all agents
+        logger.info("Stopping all agents...")
+        for task in agent_tasks:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        
+        logger.info("Test completed!")
 
     asyncio.run(run())

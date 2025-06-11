@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, Optional
+from typing import Dict, Optional, Generic, TypeVar
 
 from eggai.schemas import Message
 from pydantic import BaseModel, Field
@@ -29,6 +29,14 @@ class TracedMessage(Message):
     service_tier: Optional[str] = Field(
         default="standard",
         description="Service tier for gen_ai spans (standard, premium, etc.)",
+    )
+
+TData = TypeVar("TData", bound=Dict[str, str], covariant=True)
+
+class TracedTypedMessage(TracedMessage, Generic[TData]):
+    data: TData = Field(
+        default_factory=dict,
+        description="Application-specific event payload with OpenTelemetry tracing information",
     )
 
 
