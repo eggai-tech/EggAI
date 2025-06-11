@@ -241,7 +241,7 @@ def truncate_long_history(
 
 
 @traced_dspy_function(name="claims_dspy")
-def claims_optimized_dspy(
+async def claims_optimized_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process a claims inquiry using the DSPy model with streaming output."""
@@ -252,7 +252,7 @@ def claims_optimized_dspy(
     chat_history = truncation_result["history"]
 
     # Create a streaming version of the claims model
-    return dspy.streamify(
+    streamify_func = dspy.streamify(
         claims_optimized,
         stream_listeners=[
             dspy.streaming.StreamListener(signature_field_name="final_response"),
@@ -260,7 +260,10 @@ def claims_optimized_dspy(
         include_final_prediction_in_output_stream=True,
         is_async_program=False,
         async_streaming=True,
-    )(chat_history=chat_history)
+    )
+    
+    async for chunk in streamify_func(chat_history=chat_history):
+        yield chunk
 
 
 if __name__ == "__main__":

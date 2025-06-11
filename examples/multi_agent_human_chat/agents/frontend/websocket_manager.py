@@ -32,13 +32,18 @@ class WebSocketManager:
 
     async def disconnect(self, connection_id: str):
         connection = self.active_connections.get(connection_id)
-        if connection:
-            if not connection.state.closed:
-                connection.state.closed = True
-                if connection.client_state is not WebSocketState.DISCONNECTED:
+        if connection is not None:
+            try:
+                if hasattr(connection, 'state') and hasattr(connection.state, 'closed'):
+                    if not connection.state.closed:
+                        connection.state.closed = True
+                if hasattr(connection, 'client_state') and connection.client_state != WebSocketState.DISCONNECTED:
                     await connection.close(
                         code=1001, reason="Connection closed by server"
                     )
+            except Exception:
+                # If closing fails, still remove from active connections
+                pass
         self.active_connections.pop(connection_id, None)
 
     async def send_message_to_connection(self, connection_id: str, message_data: dict):
@@ -48,7 +53,7 @@ class WebSocketManager:
 
         logger.info(f"Sending message to connection {connection_id}: {message_data}")
         connection = self.active_connections.get(connection_id)
-        if connection:
+        if connection is not None:
             try:
                 await connection.send_json(message_data)
                 logger.info(f"Message sent successfully to connection {connection_id}")

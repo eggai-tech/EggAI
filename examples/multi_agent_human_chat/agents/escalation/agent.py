@@ -86,13 +86,12 @@ async def process_escalation_request(
         logger.info(f"Stream started for message {message_id}")
 
         logger.info("Calling escalation model with streaming")
-        chunks = escalation_optimized_dspy(
-            chat_history=conversation_string, config=config
-        )
         chunk_count = 0
 
         try:
-            async for chunk in chunks:
+            async for chunk in escalation_optimized_dspy(
+                chat_history=conversation_string, config=config
+            ):
                 if isinstance(chunk, StreamResponse):
                     chunk_count += 1
                     await human_stream_channel.publish(
@@ -183,10 +182,12 @@ async def handle_ticketing_request(msg: TracedMessage) -> None:
     except Exception as e:
         logger.error(f"Error in TicketingAgent: {e}", exc_info=True)
         try:
+            connection_id = locals().get("connection_id", "unknown")
+            message_id = str(msg.id) if msg else "unknown"
             await process_escalation_request(
                 f"System: Error occurred - {str(e)}",
-                locals().get("connection_id", "unknown"),
-                str(locals().get("msg", {}).get("id", "")),
+                connection_id,
+                message_id,
                 timeout_seconds=60.0,
             )
         except Exception:
