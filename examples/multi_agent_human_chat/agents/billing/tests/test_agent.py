@@ -37,6 +37,7 @@ logger = get_console_logger("billing_agent.tests.agent")
 test_agent = Agent("TestBillingAgent")
 test_channel = Channel("agents")
 human_channel = Channel("human")
+human_stream_channel = Channel("human_stream")
 response_queue = asyncio.Queue()
 
 # Configure language model for billing agent
@@ -44,8 +45,8 @@ dspy_lm = dspy_set_language_model(settings, overwrite_cache_enabled=False)
 
 
 @test_agent.subscribe(
-    channel=human_channel,
-    filter_by_message=lambda event: event.get("type") == "agent_message",
+    channel=human_stream_channel,
+    filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
     auto_offset_reset="latest",
     group_id="test_billing_agent_group",
 )
