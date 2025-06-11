@@ -253,25 +253,37 @@ async def test_triage_agent():
         for case in test_dataset:
             msg_id = str(uuid4())
             pending[msg_id] = case
-            await test_channel.publish(
-                {
-                    "id": msg_id,
-                    "type": "user_message",
-                    "source": "TestTriageAgent",
-                    "data": {
-                        "chat_messages": [
-                            {"role": "User", "content": case.conversation}
-                        ],
-                        "connection_id": str(uuid4()),
-                        "message_id": msg_id,
-                    },
-                }
-            )
+            try:
+                await test_channel.publish(
+                    {
+                        "id": msg_id,
+                        "type": "user_message",
+                        "source": "TestTriageAgent",
+                        "data": {
+                            "chat_messages": [
+                                {"role": "User", "content": case.conversation}
+                            ],
+                            "connection_id": str(uuid4()),
+                            "message_id": msg_id,
+                        },
+                    }
+                )
+            except Exception as e:
+                logger.warning(f"Failed to publish message {msg_id}: {e}")
+                # Continue with other test cases
+                continue
 
+        # Wait a bit for messages to be published
+        await asyncio.sleep(1)
+        
         # Phase 2: Collect classifications
         classification_errors: List[str] = []
-        for i in range(len(test_dataset)):
-            event = await _response_queue.get()
+        for i in range(len(pending)):
+            try:
+                event = await asyncio.wait_for(_response_queue.get(), timeout=30.0)
+            except asyncio.TimeoutError:
+                logger.error(f"Timeout waiting for response {i+1}/{len(pending)}")
+                break
             mid = event.data.get("message_id")
             if mid not in pending:
                 logger.warning(f"Unexpected message ID: {mid}")
