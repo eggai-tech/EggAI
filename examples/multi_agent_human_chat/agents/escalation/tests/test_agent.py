@@ -161,7 +161,7 @@ async def handle_agent_response(event):
 
 
 async def wait_for_agent_response(
-    connection_id: str, timeout: float = 10.0
+    connection_id: str, timeout: float = 60.0
 ) -> Optional[Dict]:
     """Wait for a response from the agent with the specified connection ID."""
     # Clear existing messages

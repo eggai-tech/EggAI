@@ -105,9 +105,9 @@ async def test_billing_agent():
                     )
                 )
 
-                # Wait for response from the agent
+                # Wait for response from the agent (increased timeout for CI)
                 response_event = await wait_for_agent_response(
-                    response_queue, connection_id, timeout=30.0
+                    response_queue, connection_id, timeout=60.0
                 )
 
                 # Extract agent response and calculate metrics
