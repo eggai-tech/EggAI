@@ -19,5 +19,7 @@ COPY src/ /app/src/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -e .
 
+USER 1000
+
 # Run the application
 CMD ["triage-server", "--reload"]

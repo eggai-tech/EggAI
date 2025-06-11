@@ -8,4 +8,6 @@ COPY libraries /app/libraries
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r /app/requirements.txt
 
+USER 1000
+
 ENTRYPOINT ["python", "-m"]
