@@ -166,6 +166,7 @@ class ClaimsEvaluationSignature(dspy.Signature):
 test_agent = Agent("TestClaimsAgent")
 test_channel = Channel("agents")
 human_channel = Channel("human")
+human_stream_channel = Channel("human_stream")
 
 _response_queue = asyncio.Queue()
 
@@ -191,8 +192,8 @@ def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
 
 
 @test_agent.subscribe(
-    channel=human_channel,
-    filter_by_message=lambda event: event.get("type") == "agent_message",
+    channel=human_stream_channel,
+    filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
     auto_offset_reset="latest",
     group_id="test_claims_agent_group",
 )
