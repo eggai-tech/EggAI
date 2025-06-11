@@ -56,7 +56,7 @@ async def process_escalation_request(
     timeout_seconds: float = None,
 ) -> None:
     config = ModelConfig(
-        name="escalation_react", timeout_seconds=timeout_seconds or 30.0
+        name="escalation_react", timeout_seconds=timeout_seconds or 60.0
     )
 
     with tracer.start_as_current_span("process_escalation_request") as span:
@@ -177,7 +177,7 @@ async def handle_ticketing_request(msg: TracedMessage) -> None:
         logger.info(f"Processing ticketing request for connection {connection_id}")
 
         await process_escalation_request(
-            conversation_string, connection_id, str(msg.id), timeout_seconds=30.0
+            conversation_string, connection_id, str(msg.id), timeout_seconds=60.0
         )
 
     except Exception as e:
@@ -187,7 +187,7 @@ async def handle_ticketing_request(msg: TracedMessage) -> None:
                 f"System: Error occurred - {str(e)}",
                 locals().get("connection_id", "unknown"),
                 str(locals().get("msg", {}).get("id", "")),
-                timeout_seconds=30.0,
+                timeout_seconds=60.0,
             )
         except Exception:
             logger.error("Failed to send error response", exc_info=True)
