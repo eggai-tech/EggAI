@@ -559,7 +559,7 @@ async def test_policies_agent():
         if not evaluation_results:
             logger.warning(f"No evaluation results collected. Collected {collected_responses} responses out of {len(test_cases)} test cases.")
             # Log which test cases are still pending
-            for msg_id, item in pending.items():
+            for _, item in pending.items():
                 logger.warning(f"Still pending: {item['case']['id']} (connection_id: {item['connection_id']})")
             
             # Allow the test to pass if we're in a CI environment and got at least some responses
