@@ -55,9 +55,7 @@ class PolicyDocumentationSignature(dspy.Signature):
 
 # Initialize the generation model with tracing
 generation_model = TracedChainOfThought(
-    PolicyDocumentationSignature,
-    name="policy_documentation_generation",
-    tracer=tracer
+    PolicyDocumentationSignature, name="policy_documentation_generation", tracer=tracer
 )
 
 

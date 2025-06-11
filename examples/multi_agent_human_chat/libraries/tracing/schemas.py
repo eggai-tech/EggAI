@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, Optional, Generic, TypeVar
+from typing import Dict, Generic, Optional, TypeVar
 
 from eggai.schemas import Message
 from pydantic import BaseModel, Field
@@ -31,7 +31,9 @@ class TracedMessage(Message):
         description="Service tier for gen_ai spans (standard, premium, etc.)",
     )
 
+
 TData = TypeVar("TData", bound=Dict[str, str], covariant=True)
+
 
 class TracedTypedMessage(TracedMessage, Generic[TData]):
     data: TData = Field(

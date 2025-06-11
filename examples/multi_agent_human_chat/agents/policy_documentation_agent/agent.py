@@ -338,11 +338,13 @@ async def handle_streaming_generation(
 # Global dictionary to store pending response futures
 _pending_responses = {}
 
+
 @policy_documentation_agent.subscribe(
     channel=internal_channel,
     auto_offset_reset="latest",
     group_id="policy_documentation_response_handler",
-    filter_by_message=lambda msg: msg.get("type") in ["retrieval_response", "augmentation_response", "generation_response"],
+    filter_by_message=lambda msg: msg.get("type")
+    in ["retrieval_response", "augmentation_response", "generation_response"],
 )
 async def handle_internal_responses(msg: TracedMessage) -> None:
     """Handle responses from sub-agents."""
@@ -361,28 +363,36 @@ async def wait_for_response(
     response_types = (
         response_type if isinstance(response_type, list) else [response_type]
     )
-    
-    logger.info(f"Waiting for response types {response_types} with request_id {request_id}")
-    
+
+    logger.info(
+        f"Waiting for response types {response_types} with request_id {request_id}"
+    )
+
     # Create a future to wait for the response
     response_future = asyncio.Future()
     _pending_responses[request_id] = response_future
-    
+
     try:
         # Wait for the response with timeout
         response = await asyncio.wait_for(response_future, timeout=timeout_seconds)
-        
+
         # Validate response type
         if response.type not in response_types:
-            logger.warning(f"Received unexpected response type {response.type}, expected {response_types}")
+            logger.warning(
+                f"Received unexpected response type {response.type}, expected {response_types}"
+            )
             # Continue waiting for the correct response type
             return await wait_for_response(response_type, request_id, timeout_seconds)
-        
+
         logger.info(f"Successfully received response for request_id {request_id}")
         return response
     except asyncio.TimeoutError:
-        logger.error(f"Timeout waiting for {response_types} with request_id {request_id}")
-        raise asyncio.TimeoutError(f"Timeout waiting for response types {response_types}")
+        logger.error(
+            f"Timeout waiting for {response_types} with request_id {request_id}"
+        )
+        raise asyncio.TimeoutError(
+            f"Timeout waiting for response types {response_types}"
+        )
     finally:
         # Clean up the pending response
         _pending_responses.pop(request_id, None)
@@ -513,29 +523,29 @@ if __name__ == "__main__":
         await clear_channels()
 
         logger.info("Starting all sub-agents...")
-        
+
         # Start all agents concurrently
         agent_tasks = []
-        
+
         # Start retrieval agent
         logger.info("Starting retrieval agent...")
         agent_tasks.append(asyncio.create_task(retrieval_agent.start()))
-        
-        # Start augmenting agent  
+
+        # Start augmenting agent
         logger.info("Starting augmenting agent...")
         agent_tasks.append(asyncio.create_task(augmenting_agent.start()))
-        
+
         # Start generation agent
         logger.info("Starting generation agent...")
         agent_tasks.append(asyncio.create_task(generation_agent.start()))
-        
+
         # Start main policy documentation agent
         logger.info("Starting main policy documentation agent...")
         agent_tasks.append(asyncio.create_task(policy_documentation_agent.start()))
-        
+
         # Wait a moment for agents to initialize
         await asyncio.sleep(2)
-        
+
         logger.info("All agents started successfully!")
 
         # Test the system with a documentation request
@@ -562,7 +572,7 @@ if __name__ == "__main__":
         )
 
         await handle_documentation_request(test_message)
-        
+
         # Stop all agents
         logger.info("Stopping all agents...")
         for task in agent_tasks:
@@ -571,7 +581,7 @@ if __name__ == "__main__":
                 await task
             except asyncio.CancelledError:
                 pass
-        
+
         logger.info("Test completed!")
 
     asyncio.run(run())

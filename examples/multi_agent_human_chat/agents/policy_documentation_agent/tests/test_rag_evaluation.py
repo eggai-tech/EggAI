@@ -101,6 +101,7 @@ def create_ragas_samples() -> List[SingleTurnSample]:
             )
 
             from agents.policies.dspy_modules.policies import policies_model
+
             result = policies_model(chat_history=conversation)
             actual_response = (
                 result.final_response.replace(" [[ ## completed ## ]]", "")
@@ -138,7 +139,7 @@ async def test_rag_with_ragas():
     # Setup reports directory
     reports_dir = Path(__file__).parent / "reports"
     reports_dir.mkdir(exist_ok=True)
-    
+
     # Generate timestamp for unique filenames
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -212,7 +213,7 @@ async def test_rag_with_ragas():
                 timestamp=timestamp,
                 samples_count=len(samples),
                 metric_summaries=metric_summaries,
-                output_path=html_file
+                output_path=html_file,
             )
             mlflow.log_artifact(str(html_file))
 

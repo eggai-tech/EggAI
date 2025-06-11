@@ -178,7 +178,6 @@ async def handle_retrieval_request(msg: TracedMessage) -> None:
         )
 
 
-
 if __name__ == "__main__":
     logger.info("Running retrieval agent as script")
     results = retrieve_documents("Is Fire Damage Coverage included?")
