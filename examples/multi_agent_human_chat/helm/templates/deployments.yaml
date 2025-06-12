@@ -1,4 +1,5 @@
 {{- if .Values.agents.audit.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -60,6 +61,7 @@ spec:
       {{- end }}
 {{- end }}
 {{- if .Values.agents.billing.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -121,6 +123,7 @@ spec:
       {{- end }}
 {{- end }}
 {{- if .Values.agents.claims.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -182,6 +185,7 @@ spec:
       {{- end }}
 {{- end }}
 {{- if .Values.agents.escalation.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -243,6 +247,7 @@ spec:
       {{- end }}
 {{- end }}
 {{- if .Values.agents.frontend.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -304,6 +309,7 @@ spec:
       {{- end }}
 {{- end }}
 {{- if .Values.agents.policies.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -365,6 +371,7 @@ spec:
       {{- end }}
 {{- end }}
 {{- if .Values.agents.triage.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
