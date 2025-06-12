@@ -9,6 +9,7 @@ from libraries.channels import channels
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, traced_handler
+from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
 from .config import settings
@@ -26,6 +27,8 @@ agents_channel = Channel("agents")
 human_channel = Channel("human")
 audit_logs_channel = Channel("audit_logs")
 tracer = create_tracer("audit_agent")
+
+init_token_metrics(port=settings.prometheus_metrics_port, application_name=settings.app_name)
 
 MESSAGE_CATEGORIES: Dict[str, AuditCategory] = {
     "agent_message": "User Communication",

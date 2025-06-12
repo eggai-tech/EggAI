@@ -12,6 +12,9 @@ from libraries.channels import channels
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
+from libraries.tracing.init_metrics import init_token_metrics
+
+init_token_metrics(port=9091, application_name=settings.app_name)
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(
