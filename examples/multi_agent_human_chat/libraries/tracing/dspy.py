@@ -67,22 +67,52 @@ class TracedChainOfThought(dspy.ChainOfThought):
 
     def __call__(self, *args, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_call") as span:
-            add_gen_ai_attributes_to_span(span)
             span.set_attribute("dspy.call_args", str(args))
             span.set_attribute("dspy.call_kwargs", str(kwargs))
-            return super().__call__(*args, **kwargs)
+            res = super().__call__(*args, **kwargs)
+            usage = res.get_lm_usage()
+            if usage:
+                model_name = list(usage.keys())[0] if usage else "unknown_model"
+                add_gen_ai_attributes_to_span(span, model_name=model_name)
+                for k, v in usage[model_name].items():
+                    if v is not None and not isinstance(v, dict):
+                        span.set_attribute(k, v)
+
+            return res
 
     def forward(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_forward") as span:
             add_gen_ai_attributes_to_span(span)
             span.set_attribute("dspy.forward_args", str(kwargs))
-            return super().forward(**kwargs)
+            res = super().forward(**kwargs)
+            lm: TrackingLM = dspy.settings.get("lm")
+            prompt = lm.history[-1].get("prompt", "")
+            if prompt:
+                span.set_attribute("dspy.prompt", prompt)
+            messages = lm.history[-1].get("messages", [])
+            if messages:
+                concatenated_contents = "\n".join(
+                    msg.get("content", "") for msg in messages if isinstance(msg, dict)
+                )
+                span.set_attribute("dspy.messages", concatenated_contents)
+            return res
 
     def predict(self, **kwargs):
         with self.tracer.start_as_current_span(f"{self.trace_name}_predict") as span:
             add_gen_ai_attributes_to_span(span)
             span.set_attribute("dspy.predict_args", str(kwargs))
-            return super().predict(**kwargs)
+            res = super().predict(**kwargs)
+            lm: TrackingLM = dspy.settings.get("lm")
+            prompt = lm.history[-1].get("prompt", "")
+            if prompt:
+                span.set_attribute("dspy.prompt", prompt)
+            messages = lm.history[-1].get("messages", [])
+            if messages:
+                concatenated_contents = "\n".join(
+                    msg.get("content", "") for msg in messages if isinstance(msg, dict)
+                )
+                span.set_attribute("dspy.messages", concatenated_contents)
+            return res
 
 
 def traced_dspy_function(name=None, span_namer=None):

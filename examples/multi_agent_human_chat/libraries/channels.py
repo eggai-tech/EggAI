@@ -26,6 +26,9 @@ class ChannelConfig(BaseSettings):
     audit_logs: str = Field(
         default="audit_logs", description="Channel for audit logging"
     )
+    internal: str = Field(
+        default="internal", description="Channel for internal agent communication"
+    )
 
     # For potential future use
     metrics: str = Field(
@@ -59,6 +62,7 @@ async def clear_channels():
                 channels.human_stream,
                 channels.agents,
                 channels.audit_logs,
+                channels.internal,
             ]
         )
     except Exception as e:
