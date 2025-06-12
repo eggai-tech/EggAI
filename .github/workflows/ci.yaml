@@ -136,6 +136,7 @@ jobs:
       - name: Run integration tests
         working-directory: examples/multi_agent_human_chat
         run: |
+          make test-libraries
           make test-triage-agent
           make test-escalation-agent
           make test-policies-agent

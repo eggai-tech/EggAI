@@ -13,6 +13,7 @@ from agents.escalation.types import ChatMessage, ModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
+from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
 logger = get_console_logger("escalation_agent")
@@ -22,6 +23,8 @@ ticketing_agent = Agent(name="TicketingAgent")
 agents_channel = Channel(channels.agents)
 human_stream_channel = Channel(channels.human_stream)
 tracer = trace.get_tracer("ticketing_agent")
+
+init_token_metrics(port=settings.prometheus_metrics_port, application_name=settings.app_name)
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:

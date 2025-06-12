@@ -15,6 +15,7 @@ from libraries.tracing import (
     format_span_as_traceparent,
     traced_handler,
 )
+from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
 from .dspy_modules.billing import billing_optimized_dspy
@@ -25,6 +26,8 @@ agents_channel = Channel(channels.agents)
 human_channel = Channel(channels.human)
 human_stream_channel = Channel(channels.human_stream)
 tracer = create_tracer("billing_agent")
+
+init_token_metrics(port=settings.prometheus_metrics_port, application_name=settings.app_name)
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:

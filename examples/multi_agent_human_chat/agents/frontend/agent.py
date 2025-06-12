@@ -12,6 +12,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
+from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import (
     extract_span_context,
     safe_set_attribute,
@@ -50,6 +51,8 @@ human_stream_channel = Channel("human_stream")
 websocket_manager = WebSocketManager()
 messages_cache = {}
 tracer = trace.get_tracer("frontend_agent")
+
+init_token_metrics(port=settings.prometheus_metrics_port, application_name=settings.app_name)
 
 
 @tracer.start_as_current_span("add_websocket_gateway")
