@@ -13,9 +13,11 @@ import argparse
 import asyncio
 import signal
 import sys
-from typing import Optional
 
-from agents.policies.rag.workflows.worker import run_policy_documentation_worker, PolicyDocumentationWorkerSettings
+from agents.policies.rag.workflows.worker import (
+    PolicyDocumentationWorkerSettings,
+    run_policy_documentation_worker,
+)
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.rag.start_worker")
@@ -60,7 +62,7 @@ async def main():
     settings.temporal_namespace = args.namespace
     settings.temporal_task_queue = args.task_queue
     
-    logger.info(f"Starting Policy Documentation Temporal worker with settings:")
+    logger.info("Starting Policy Documentation Temporal worker with settings:")
     logger.info(f"  Server URL: {settings.temporal_server_url}")
     logger.info(f"  Namespace: {settings.temporal_namespace}")
     logger.info(f"  Task Queue: {settings.temporal_task_queue}")

@@ -71,7 +71,10 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
         # Try to use Temporal workflow for documentation queries
         try:
             import asyncio
-            from agents.policies.rag.documentation_temporal_client import DocumentationTemporalClient
+
+            from agents.policies.rag.documentation_temporal_client import (
+                DocumentationTemporalClient,
+            )
             
             logger.info(f"Using Temporal workflow for documentation query: '{query}', category: '{policy_category}'")
             

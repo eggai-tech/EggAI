@@ -1,12 +1,13 @@
-import uuid
 from datetime import timedelta
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from agents.policies.rag.workflows.activities.retrieval_activity import policy_retrieval_activity
+    from agents.policies.rag.workflows.activities.retrieval_activity import (
+        policy_retrieval_activity,
+    )
 
 
 class DocumentationQueryWorkflowInput(BaseModel):

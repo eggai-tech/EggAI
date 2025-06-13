@@ -4,9 +4,9 @@ from typing import Optional
 from temporalio.client import Client
 
 from agents.policies.rag.workflows.documentation_workflow import (
+    DocumentationQueryResult,
     DocumentationQueryWorkflow,
     DocumentationQueryWorkflowInput,
-    DocumentationQueryResult
 )
 from libraries.logger import get_console_logger
 

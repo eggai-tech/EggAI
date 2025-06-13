@@ -4,8 +4,12 @@ from typing import Optional
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from agents.policies.rag.workflows.activities.retrieval_activity import policy_retrieval_activity
-from agents.policies.rag.workflows.documentation_workflow import DocumentationQueryWorkflow
+from agents.policies.rag.workflows.activities.retrieval_activity import (
+    policy_retrieval_activity,
+)
+from agents.policies.rag.workflows.documentation_workflow import (
+    DocumentationQueryWorkflow,
+)
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.rag.worker")
