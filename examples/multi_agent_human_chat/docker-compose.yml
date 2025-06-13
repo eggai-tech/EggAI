@@ -4,6 +4,8 @@ networks:
     driver: bridge
 volumes:
   redpanda: null
+  postgres_temporal_data: null
+  postgres_mlflow_data: null
 services:
   redpanda:
     command:
@@ -77,6 +79,7 @@ services:
       rpk topic create agents --brokers=redpanda:9092 &&
       echo 'Topic agents created successfully!'"
   otel-collector:
+    container_name: otel-collector
     image: otel/opentelemetry-collector:0.86.0
     command: [ "--config=/etc/otel-collector.yaml" ]
     volumes:
@@ -86,6 +89,7 @@ services:
     networks:
       - eggai-example-network
   tempo:
+    container_name: tempo
     image: grafana/tempo:latest
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
@@ -100,6 +104,7 @@ services:
     networks:
       - eggai-example-network
   prometheus:
+    container_name: prometheus
     image: prom/prometheus:latest
     command:
       - --config.file=/etc/prometheus.yaml
@@ -113,6 +118,7 @@ services:
     networks:
       - eggai-example-network
   grafana:
+    container_name: grafana
     image: grafana/grafana:latest
     volumes:
       - ./dockerConfig/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
@@ -128,6 +134,7 @@ services:
     networks:
       - eggai-example-network
   minio-setup:
+    container_name: minio-setup
     image: minio/mc
     depends_on:
       minio:
@@ -136,6 +143,7 @@ services:
     networks:
       - eggai-example-network
   minio:
+    container_name: minio
     image: minio/minio
     expose:
       - "9000"
@@ -155,6 +163,7 @@ services:
     networks:
       - eggai-example-network
   mlflow-artifacts-server:
+    container_name: mlflow-artifacts-server
     image: ghcr.io/mlflow/mlflow:v3.0.0rc2
     depends_on:
       - minio
@@ -177,18 +186,88 @@ services:
       --artifacts-only
     networks:
       - eggai-example-network
-  postgres:
+  postgres-temporal:
+    container_name: postgres-temporal
+    image: postgres
+    environment:
+      POSTGRES_DB: temporal
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_temporal_data:/var/lib/postgresql/data
+    networks:
+      - eggai-example-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -t 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+  postgres-mlflow:
+    container_name: postgres-mlflow
     image: postgres
     environment:
       POSTGRES_DB: db
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_mlflow_data:/var/lib/postgresql/data
     networks:
       - eggai-example-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -t 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+  temporal:
+    container_name: temporal
+    depends_on:
+      postgres-temporal:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgres-temporal
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    image: temporalio/auto-setup:1.23.0
+    networks:
+      - eggai-example-network
+    ports:
+      - 7233:7233
+    volumes:
+      - ./dockerConfig/development-sql.yaml:/etc/temporal/config/dynamicconfig/development-sql.yaml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7233/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+  temporal-ui:
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    image: temporalio/ui:2.26.2
+    networks:
+      - eggai-example-network
+    ports:
+      - 8081:8080
   mlflow-tracking-server:
+    container_name: mlflow-tracking-server
     image: ghcr.io/mlflow/mlflow:v3.0.0rc2
     depends_on:
-      - postgres
+      - postgres-mlflow
       - mlflow-artifacts-server
     expose:
       - "5001"
@@ -206,7 +285,7 @@ services:
       bash -c "pip install psycopg2-binary boto3 && mlflow server
       --host 0.0.0.0
       --port 5001
-      --backend-store-uri postgresql://user:password@postgres:5432/db
+      --backend-store-uri postgresql://user:password@postgres-mlflow:5432/db
       --default-artifact-root s3://mlflow
       --gunicorn-opts '--log-level debug'"
     networks:
