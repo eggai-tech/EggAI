@@ -101,6 +101,5 @@ class DocumentationTemporalClient:
     
     async def close(self):
         """Close the Temporal client connection."""
-        if self._client:
-            await self._client.close()
-            self._client = None
+        # No need to explicitly close the client in newer Temporal SDK versions
+        self._client = None
