@@ -182,15 +182,29 @@ def handle_knowledge_base_response(msg: TracedMessage) -> None:
                 response_message = msg.data.get("response", "No documentation found.")
                 future.set_result(response_message)
                 logger.info(f"Received knowledge base response for request {request_id}")
+            else:
+                logger.warning(f"Future already done for request {request_id}")
+        else:
+            logger.warning(f"Request ID {request_id} not found in pending requests. Available: {list(_pending_knowledge_base_requests.keys())}")
     elif msg.type == "agent_message" and msg.source == "PolicyDocumentationAgent":
-        # Legacy support for old message format
-        request_id = msg.data.get("connection_id", "").replace("policies_tool_", "")
+        # Legacy support for old message format - try both request_id and connection_id parsing
+        request_id = msg.data.get("request_id", "")
+        if not request_id:
+            # Fallback to parsing from connection_id
+            connection_id = msg.data.get("connection_id", "")
+            if connection_id.startswith("policies_tool_"):
+                request_id = connection_id.replace("policies_tool_", "")
+        
         if request_id and request_id in _pending_knowledge_base_requests:
             future = _pending_knowledge_base_requests[request_id]
             if not future.done():
                 response_message = msg.data.get("message", "No documentation found.")
                 future.set_result(response_message)
                 logger.info(f"Received knowledge base response for request {request_id}")
+            else:
+                logger.warning(f"Future already done for request {request_id}")
+        else:
+            logger.warning(f"Request ID {request_id} not found in pending requests. Available: {list(_pending_knowledge_base_requests.keys())}")
 
 
 @tracer.start_as_current_span("query_policy_documentation")

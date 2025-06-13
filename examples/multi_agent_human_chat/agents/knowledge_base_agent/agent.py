@@ -58,6 +58,7 @@ async def process_documentation_request(
     message_id: str,
     timeout_seconds: float = None,
     streaming: bool = True,
+    original_request_id: str = None,
 ) -> None:
     """Process a policy documentation request using RAG components."""
     config = ModelConfig(timeout_seconds=timeout_seconds or 30.0)
@@ -197,6 +198,7 @@ async def process_documentation_request(
                     connection_id,
                     child_traceparent,
                     child_tracestate,
+                    original_request_id,
                 )
             else:
                 # Wait for generation response
@@ -218,7 +220,9 @@ async def process_documentation_request(
                 logger.info(f"FINAL RESPONSE: {response}")
 
                 # Send final response back to agents channel for the requesting agent
-                logger.info(f"Publishing documentation_response to agents channel for request {message_id}")
+                # Use original_request_id from the calling agent (policies agent), not internal message_id
+                response_request_id = original_request_id if original_request_id else message_id
+                logger.info(f"Publishing documentation_response to agents channel for request {response_request_id}")
                 await agents_channel.publish(
                     TracedMessage(
                         type="documentation_response",
@@ -226,7 +230,7 @@ async def process_documentation_request(
                         data={
                             "response": response,
                             "connection_id": connection_id,
-                            "request_id": message_id,
+                            "request_id": response_request_id,
                         },
                         traceparent=child_traceparent,
                         tracestate=child_tracestate,
@@ -254,6 +258,8 @@ async def process_documentation_request(
             error_message = "I apologize, but I encountered an error while processing your request. Please try again."
 
             # Send error response back to agents channel for the requesting agent
+            # Use original_request_id from the calling agent (policies agent), not internal message_id
+            error_request_id = original_request_id if original_request_id else message_id
             await agents_channel.publish(
                 TracedMessage(
                     type="documentation_response",
@@ -261,7 +267,7 @@ async def process_documentation_request(
                     data={
                         "response": error_message,
                         "connection_id": connection_id,
-                        "request_id": message_id,
+                        "request_id": error_request_id,
                         "error": str(e),
                     },
                     traceparent=child_traceparent,
@@ -306,6 +312,7 @@ async def handle_streaming_generation(
     connection_id: str,
     traceparent: str,
     tracestate: str,
+    original_request_id: str = None,
 ) -> None:
     """Handle streaming generation responses."""
     chunk_count = 0
@@ -346,6 +353,8 @@ async def handle_streaming_generation(
                 final_response = response.data.get("response", "")
 
                 # Send final response back to agents channel for the requesting agent
+                # Use original_request_id from the calling agent (policies agent), not internal message_id
+                stream_response_request_id = original_request_id if original_request_id else message_id
                 await agents_channel.publish(
                     TracedMessage(
                         type="documentation_response",
@@ -353,7 +362,7 @@ async def handle_streaming_generation(
                         data={
                             "response": final_response,
                             "connection_id": connection_id,
-                            "request_id": message_id,
+                            "request_id": stream_response_request_id,
                         },
                         traceparent=traceparent,
                         tracestate=tracestate,
@@ -461,6 +470,8 @@ async def handle_documentation_request(msg: TracedMessage) -> None:
         chat_messages: List[ChatMessage] = msg.data.get("chat_messages", [])
         connection_id: str = msg.data.get("connection_id", "unknown")
         streaming: bool = msg.data.get("streaming", True)
+        # Extract original request_id from the calling agent (policies agent)
+        original_request_id: str = msg.data.get("request_id", str(msg.id))
 
         if not chat_messages:
             logger.warning(f"Empty chat history for connection: {connection_id}")
@@ -521,6 +532,7 @@ async def handle_documentation_request(msg: TracedMessage) -> None:
             str(msg.id),
             timeout_seconds=30.0,
             streaming=streaming,
+            original_request_id=original_request_id,
         )
 
     except Exception as e:
