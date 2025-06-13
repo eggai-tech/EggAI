@@ -176,13 +176,13 @@ ticket_database: List[Dict] = [
 
 
 @traced_dspy_function(name="escalation_dspy")
-def escalation_optimized_dspy(
+async def escalation_optimized_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process an escalation inquiry using the DSPy model with streaming output."""
     config = config or ModelConfig()
 
-    return dspy.streamify(
+    streamify_func = dspy.streamify(
         escalation_model,
         stream_listeners=[
             dspy.streaming.StreamListener(signature_field_name="final_response"),
@@ -190,7 +190,10 @@ def escalation_optimized_dspy(
         include_final_prediction_in_output_stream=True,
         is_async_program=False,
         async_streaming=True,
-    )(chat_history=chat_history)
+    )
+    
+    async for chunk in streamify_func(chat_history=chat_history):
+        yield chunk
 
 
 if __name__ == "__main__":

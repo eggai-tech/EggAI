@@ -13,6 +13,7 @@ from agents.escalation.types import ChatMessage, ModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
+from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
 logger = get_console_logger("escalation_agent")
@@ -22,6 +23,8 @@ ticketing_agent = Agent(name="TicketingAgent")
 agents_channel = Channel(channels.agents)
 human_stream_channel = Channel(channels.human_stream)
 tracer = trace.get_tracer("ticketing_agent")
+
+init_token_metrics(port=settings.prometheus_metrics_port, application_name=settings.app_name)
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
@@ -86,13 +89,12 @@ async def process_escalation_request(
         logger.info(f"Stream started for message {message_id}")
 
         logger.info("Calling escalation model with streaming")
-        chunks = escalation_optimized_dspy(
-            chat_history=conversation_string, config=config
-        )
         chunk_count = 0
 
         try:
-            async for chunk in chunks:
+            async for chunk in escalation_optimized_dspy(
+                chat_history=conversation_string, config=config
+            ):
                 if isinstance(chunk, StreamResponse):
                     chunk_count += 1
                     await human_stream_channel.publish(
@@ -183,10 +185,12 @@ async def handle_ticketing_request(msg: TracedMessage) -> None:
     except Exception as e:
         logger.error(f"Error in TicketingAgent: {e}", exc_info=True)
         try:
+            connection_id = locals().get("connection_id", "unknown")
+            message_id = str(msg.id) if msg else "unknown"
             await process_escalation_request(
                 f"System: Error occurred - {str(e)}",
-                locals().get("connection_id", "unknown"),
-                str(locals().get("msg", {}).get("id", "")),
+                connection_id,
+                message_id,
                 timeout_seconds=60.0,
             )
         except Exception:

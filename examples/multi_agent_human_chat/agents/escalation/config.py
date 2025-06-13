@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     # Observability settings
     otel_endpoint: str = Field(default="http://localhost:4318")
     tracing_enabled: bool = Field(default=True)
+    prometheus_metrics_port: int = Field(default=9094, description="Port for Prometheus metrics server")
 
     # Ticketing specific settings
     ticket_database_path: str = Field(default="")
