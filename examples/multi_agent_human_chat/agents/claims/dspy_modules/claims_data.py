@@ -252,7 +252,9 @@ class FieldValidators:
     @staticmethod
     def validate_items_list(value: str) -> Tuple[bool, Optional[List[str]]]:
         """Validate a comma-separated list of items."""
-        items = [item.strip() for item in value.split(",")]
+        if not value or not value.strip():
+            return False, "Please provide at least one item"
+        items = [item.strip() for item in value.split(",") if item.strip()]
         if not items:
             return False, "Please provide at least one item"
         return True, items
@@ -344,6 +346,13 @@ def update_claim_info(claim_number: str, field: str, new_value: str) -> str:
             logger.warning("Missing new value")
             raise ClaimDataException(
                 "Missing value for update", ErrorCategory.USER_INPUT
+            )
+
+        # Check if field is allowed BEFORE checking if claim exists
+        if field not in ALLOWED_FIELDS:
+            logger.warning(f"Security: Attempted to update disallowed field '{field}'")
+            raise ClaimDataException(
+                ErrorResponse.SECURITY_FIELD_BLOCKED, ErrorCategory.SECURITY
             )
 
         logger.info(f"Updating claim {claim_number}: {field} -> {new_value}")

@@ -80,7 +80,9 @@ async def handle_user_message(msg: TracedMessage):
         conversation_string = ""
         for chat in chat_messages:
             user = chat.get("agent", "User")
-            conversation_string += f"{user}: {chat['content']}\n"
+            content = chat.get("content", "")
+            if content:
+                conversation_string += f"{user}: {content}\n"
 
         response = current_classifier(chat_history=conversation_string)
         target_agent = response.target_agent

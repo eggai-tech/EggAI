@@ -129,7 +129,7 @@ def truncate_long_history(
 
 
 @traced_dspy_function(name="billing_dspy")
-def billing_optimized_dspy(
+async def billing_optimized_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process a billing inquiry using the DSPy model with streaming output."""
@@ -140,7 +140,7 @@ def billing_optimized_dspy(
     chat_history = truncation_result["history"]
 
     # Create a streaming version of the billing model
-    return dspy.streamify(
+    streamify_func = dspy.streamify(
         billing_model,
         stream_listeners=[
             dspy.streaming.StreamListener(signature_field_name="final_response"),
@@ -148,7 +148,10 @@ def billing_optimized_dspy(
         include_final_prediction_in_output_stream=True,
         is_async_program=False,
         async_streaming=True,
-    )(chat_history=chat_history)
+    )
+    
+    async for chunk in streamify_func(chat_history=chat_history):
+        yield chunk
 
 
 if __name__ == "__main__":
