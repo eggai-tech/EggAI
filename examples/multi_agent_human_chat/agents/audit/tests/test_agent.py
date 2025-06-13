@@ -177,11 +177,7 @@ async def test_audit_agent_basic():
     message_type = "agent_message"
     source = "ChatAgent"
     expected_category = "User Communication"
-    mock_kafka = type(
-        "MockKafkaMessage",
-        (),
-        {"raw_message": type("RawMessage", (), {"topic": "human"})()},
-    )()
+    mock_kafka = type("MockKafkaMessage", (), {"raw_message": type("RawMessage", (), {"topic": "human"})()})()
 
     with mlflow.start_run(
         run_name=f"audit_basic_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -230,9 +226,7 @@ async def test_audit_agent_message_types():
             )
             channel_name = "human" if channel == human_channel else "agents"
             mock_kafka = type(
-                "MockKafkaMessage",
-                (),
-                {"raw_message": type("RawMessage", (), {"topic": channel_name})()},
+                "MockKafkaMessage", (), {"raw_message": type("RawMessage", (), {"topic": channel_name})()}
             )()
 
             try:
@@ -296,11 +290,7 @@ async def test_audit_agent_error_handling():
         message_type = "unknown_message_type"
         source = "TestSource"
         expected_category = "Other"
-        mock_kafka = type(
-            "MockKafkaMessage",
-            (),
-            {"raw_message": type("RawMessage", (), {"topic": "agents"})()},
-        )()
+        mock_kafka = type("MockKafkaMessage", (), {"raw_message": type("RawMessage", (), {"topic": "agents"})()})()
 
         message_id = str(uuid4())
         traced_message = TracedMessage(
