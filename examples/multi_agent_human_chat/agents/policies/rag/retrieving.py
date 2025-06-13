@@ -1,4 +1,5 @@
 import os
+from typing import Optional, List, Dict, Any
 
 from ragatouille import RAGPretrainedModel
 
@@ -14,7 +15,7 @@ _RAG = None
 
 
 @tracer.start_as_current_span("retrieve_policies")
-def retrieve_policies(query, category=None):
+def retrieve_policies(query: str, category: Optional[str] = None) -> List[Dict[str, Any]]:
     global _INDEX_LOADED, _RAG
 
     logger.info(
@@ -56,6 +57,11 @@ def retrieve_policies(query, category=None):
     except Exception as e:
         logger.error(f"Error searching RAG index: {e}", exc_info=True)
         return []
+
+
+# Note: Temporal workflows are now only used for documentation queries
+# via the query_policy_documentation function in policies_data.py
+# Direct policy retrieval uses the retrieve_policies function above
 
 
 if __name__ == "__main__":

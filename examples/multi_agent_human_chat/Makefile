@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run lint lint-fix
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policy-rag-temporal test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policy-documentation-worker start-all restart setup-and-run lint lint-fix
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -86,6 +86,11 @@ test-policies-agent:
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
 	@echo "Tests for policies agent completed."
+
+test-policy-rag-temporal:
+	@echo "Running Policy RAG Temporal integration tests..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/test_temporal_integration.py
+	@echo "Policy RAG Temporal integration tests completed."
 
 test-triage-classifier-v0:
 	@echo "Running tests for basic classifier v0 (minimal prompt)..."
@@ -196,9 +201,13 @@ start-audit:
 	@echo "Starting Audit Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.audit.main
 
+start-policy-documentation-worker:
+	@echo "Starting Policy Documentation Temporal Worker..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py
+
 start-all:
-	@echo "Starting all agents..."
-	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims
+	@echo "Starting all agents and workers..."
+	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims start-policy-documentation-worker
 
 restart: stop start
 	@echo "Environment and Docker Compose have been restarted."

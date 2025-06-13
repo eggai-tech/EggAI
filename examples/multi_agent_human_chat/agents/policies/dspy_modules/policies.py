@@ -49,10 +49,9 @@ class PolicyAgentSignature(dspy.Signature):
         1. The policy number (e.g., "B67890")
         2. The exact due date in YYYY-MM-DD format (e.g., "2026-03-15")
         3. The premium amount with dollar sign (e.g., "$300.00")
-    - For policy coverage inquiries: ALWAYS include ALL THREE of the following:
+    - For policy coverage inquiries: ALWAYS include BOTH of the following:
         1. The policy number (e.g., "A12345")
         2. The policy category (auto, home, etc.)
-        3. Specific coverage details from the "coverage_details" field (e.g., "collision, comprehensive, liability")
     - When referencing documentation, include citation in format: (see category#section).
     - Example: "According to your home insurance policy C24680, water damage from burst pipes is covered (see home#3.1)."
 
@@ -104,14 +103,13 @@ class PolicyAgentSignature(dspy.Signature):
       4. DO NOT LOOK AT previous messages for policy numbers
       5. DO NOT GUESS or INFER policy numbers - they must be explicitly provided in the CURRENT message
       6. Once (and ONLY if) a valid, explicitly provided policy number exists in the current message, call take_policy_by_number_from_database
-      7. From the JSON response, extract THREE pieces of information:
+      7. From the JSON response, extract TWO pieces of information:
          a. policy_number (e.g., "A12345")
          b. policy_category (e.g., "auto")
-         c. coverage_details (e.g., "collision, comprehensive, liability, and uninsured motorist protection")
       8. Construct your response in this format:
-         "Based on your [policy_category] policy [policy_number], your coverage includes [coverage_details]."
-      9. Example: "Based on your auto policy A12345, your coverage includes collision, comprehensive, liability, and uninsured motorist protection."
-      10. VERIFY your response contains ALL THREE required elements BEFORE sending it.
+         "Based on your [policy_category] policy [policy_number], I can help you with coverage information."
+      9. Example: "Based on your auto policy A12345, I can help you with coverage information."
+      10. VERIFY your response contains BOTH required elements BEFORE sending it.
 
     CRITICAL DOCUMENTATION WORKFLOW:
     - When a user asks about coverage or policy rules:

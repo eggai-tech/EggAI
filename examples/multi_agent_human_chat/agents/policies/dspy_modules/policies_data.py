@@ -23,10 +23,9 @@ POLICIES_DATABASE = [
     {
         "policy_number": "A12345",
         "name": "John Doe",
-        "policy_category": "auto",
+        "policy_category": "home",
         "premium_amount": 500,
         "due_date": "2026-03-01",
-        "coverage_details": "collision, comprehensive, liability, and uninsured motorist protection",
     },
     {
         "policy_number": "B67890",
@@ -34,15 +33,13 @@ POLICIES_DATABASE = [
         "policy_category": "life",
         "premium_amount": 300,
         "due_date": "2026-03-15",
-        "coverage_details": "term life insurance with $500,000 death benefit",
     },
     {
         "policy_number": "C24680",
         "name": "Alice Johnson",
-        "policy_category": "home",
+        "policy_category": "auto",
         "premium_amount": 400,
         "due_date": "2026-03-01",
-        "coverage_details": "dwelling coverage, personal property, liability, and water damage from burst pipes",
     },
 ]
 
@@ -64,29 +61,65 @@ class ThreadWithResult(threading.Thread):
 @tracer.start_as_current_span("query_policy_documentation")
 def query_policy_documentation(query: str, policy_category: PolicyCategory) -> str:
     """
-    Retrieves policy documentation based on a query and policy category.
+    Retrieves policy documentation based on a query and policy category using Temporal workflow.
     Returns a JSON-formatted string with the documentation results.
     """
     logger.info(
         f"Tool called: query_policy_documentation(query='{query[:50]}...', policy_category='{policy_category}')"
     )
     try:
-        from agents.policies.rag.retrieving import retrieve_policies
+        # Try to use Temporal workflow for documentation queries
+        try:
+            import asyncio
+            from agents.policies.rag.documentation_temporal_client import DocumentationTemporalClient
+            
+            logger.info(f"Using Temporal workflow for documentation query: '{query}', category: '{policy_category}'")
+            
+            async def run_temporal_query():
+                client = DocumentationTemporalClient()
+                result = await client.query_documentation_async(query, policy_category)
+                await client.close()
+                return result
+            
+            # Run the async function in a thread
+            def temporal_query():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(run_temporal_query())
+                finally:
+                    loop.close()
+            
+            thread = ThreadWithResult(target=temporal_query)
+            thread.start()
+            result = thread.join()
+            
+            if result and result.success:
+                logger.info(f"Temporal documentation query successful: {len(result.results)} results")
+                if len(result.results) >= 2:
+                    return json.dumps([result.results[0], result.results[1]])
+                return json.dumps(result.results)
+            else:
+                logger.warning(f"Temporal documentation query failed: {result.error_message if result else 'No result'}")
+                raise Exception("Temporal query failed")
+                
+        except Exception as temporal_error:
+            logger.warning(f"Temporal workflow unavailable for documentation query: {temporal_error}")
+            # Fallback to direct retrieval only for documentation queries
+            logger.info("Falling back to direct retrieval for documentation")
+            from agents.policies.rag.retrieving import retrieve_policies
 
-        logger.info(
-            f"Retrieving policy information for query: '{query}', category: '{policy_category}'"
-        )
-        thread = ThreadWithResult(
-            target=retrieve_policies, args=(query, policy_category)
-        )
-        thread.start()
-        results = thread.join()
+            thread = ThreadWithResult(
+                target=retrieve_policies, args=(query, policy_category)
+            )
+            thread.start()
+            results = thread.join()
 
-        if results:
-            logger.info(f"Found documentation: {len(results)} results")
-            if len(results) >= 2:
-                return json.dumps([results[0], results[1]])
-            return json.dumps(results)
+            if results:
+                logger.info(f"Found documentation via fallback: {len(results)} results")
+                if len(results) >= 2:
+                    return json.dumps([results[0], results[1]])
+                return json.dumps(results)
 
         logger.warning(
             f"No documentation found for query: '{query}', category: '{policy_category}'"
