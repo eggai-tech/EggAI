@@ -83,7 +83,7 @@ Instructions:
     channel=internal_channel,
     filter_by_message=lambda msg: msg.get("type") == "augmentation_request",
     auto_offset_reset="latest",
-    group_id="augmenting_agent_group",
+    group_id="augmenting_agent_unique_group",
 )
 @traced_handler("handle_augmentation_request")
 async def handle_augmentation_request(msg: TracedMessage) -> None:

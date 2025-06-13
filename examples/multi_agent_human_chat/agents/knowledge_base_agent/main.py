@@ -6,16 +6,26 @@ import signal
 import sys
 from typing import List
 
+from eggai.transport import eggai_set_default_transport
 from agents.policies.config import settings as policies_settings
-from agents.policy_documentation_agent.agent import policy_documentation_agent
-from agents.policy_documentation_agent.components.augmenting_agent import (
+from libraries.kafka_transport import create_kafka_transport
+
+# Configure transport before importing agents
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=policies_settings.kafka_bootstrap_servers,
+        ssl_cert=policies_settings.kafka_ca_content,
+    )
+)
+
+from agents.knowledge_base_agent.agent import policy_documentation_agent
+from agents.knowledge_base_agent.components.augmenting_agent import (
     augmenting_agent,
 )
-from agents.policy_documentation_agent.components.generation_agent import (
+from agents.knowledge_base_agent.components.generation_agent import (
     generation_agent,
 )
-from agents.policy_documentation_agent.components.retrieval_agent import retrieval_agent
-from libraries.channels import clear_channels
+from agents.knowledge_base_agent.components.retrieval_agent import retrieval_agent
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 
@@ -59,20 +69,18 @@ async def run_agents(agents: List):
         tasks = []
 
         for agent in agents:
-            task = asyncio.create_task(agent.run(), name=f"{agent.name}_task")
+            agent_name = getattr(agent, '_name', 'unknown_agent')
+            task = asyncio.create_task(agent.start(), name=f"{agent_name}_task")
             tasks.append(task)
-            logger.info(f"Started {agent.name}")
+            logger.info(f"Started {agent_name}")
 
         logger.info("All agents started successfully")
 
-        # Wait for shutdown signal or task completion
-        done, pending = await asyncio.wait(
-            tasks + [asyncio.create_task(shutdown_event.wait())],
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-
-        # Cancel remaining tasks
-        for task in pending:
+        # Wait for shutdown signal only (let tasks run indefinitely)
+        await shutdown_event.wait()
+        
+        # Cancel all tasks on shutdown
+        for task in tasks:
             task.cancel()
             try:
                 await task
@@ -92,9 +100,6 @@ async def main():
         # Set up signal handlers
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
-
-        # Clear channels before starting
-        await clear_channels()
 
         # Initialize and run agents
         agents = await initialize_agents()

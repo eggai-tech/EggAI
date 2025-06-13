@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policy-documentation test-rag-evaluation test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-all restart setup-and-run lint lint-fix
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policy-documentation test-rag-evaluation test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-knowledge-base-agent start-all restart setup-and-run lint lint-fix
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -194,9 +194,13 @@ start-audit:
 	@echo "Starting Audit Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.audit.main
 
+start-knowledge-base-agent:
+	@echo "Starting Knowledge Base Agent..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.knowledge_base_agent.main
+
 start-all:
 	@echo "Starting all agents..."
-	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims
+	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims start-knowledge-base-agent
 
 restart: stop start
 	@echo "Environment and Docker Compose have been restarted."

@@ -115,7 +115,7 @@ def retrieve_documents(query: str, category: str = None) -> List[Dict[str, Any]]
     channel=internal_channel,
     filter_by_message=lambda msg: msg.get("type") == "retrieval_request",
     auto_offset_reset="latest",
-    group_id="retrieval_agent_group",
+    group_id="retrieval_agent_unique_group",
 )
 @traced_handler("handle_retrieval_request")
 async def handle_retrieval_request(msg: TracedMessage) -> None:

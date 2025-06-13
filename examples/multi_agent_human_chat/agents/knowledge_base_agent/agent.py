@@ -190,6 +190,7 @@ async def process_documentation_request(
 
             if streaming:
                 # Handle streaming generation
+                logger.info(f"Taking streaming path for request {request_id}")
                 await handle_streaming_generation(
                     request_id,
                     message_id,
@@ -199,6 +200,7 @@ async def process_documentation_request(
                 )
             else:
                 # Wait for generation response
+                logger.info(f"Taking non-streaming path for request {request_id}")
                 generation_response = await wait_for_response(
                     "generation_response", request_id, timeout_seconds=60.0
                 )
@@ -215,7 +217,24 @@ async def process_documentation_request(
                 logger.info(f"Generated response length: {len(response)}")
                 logger.info(f"FINAL RESPONSE: {response}")
 
-                # Send final response
+                # Send final response back to agents channel for the requesting agent
+                logger.info(f"Publishing documentation_response to agents channel for request {message_id}")
+                await agents_channel.publish(
+                    TracedMessage(
+                        type="documentation_response",
+                        source="PolicyDocumentationAgent",
+                        data={
+                            "response": response,
+                            "connection_id": connection_id,
+                            "request_id": message_id,
+                        },
+                        traceparent=child_traceparent,
+                        tracestate=child_tracestate,
+                    )
+                )
+                logger.info(f"Successfully published documentation_response for request {message_id}")
+
+                # Also send to human channel if needed
                 await human_channel.publish(
                     TracedMessage(
                         type="agent_message",
@@ -233,6 +252,22 @@ async def process_documentation_request(
         except Exception as e:
             logger.error(f"Error in documentation processing: {e}", exc_info=True)
             error_message = "I apologize, but I encountered an error while processing your request. Please try again."
+
+            # Send error response back to agents channel for the requesting agent
+            await agents_channel.publish(
+                TracedMessage(
+                    type="documentation_response",
+                    source="PolicyDocumentationAgent",
+                    data={
+                        "response": error_message,
+                        "connection_id": connection_id,
+                        "request_id": message_id,
+                        "error": str(e),
+                    },
+                    traceparent=child_traceparent,
+                    tracestate=child_tracestate,
+                )
+            )
 
             if streaming:
                 await human_stream_channel.publish(
@@ -310,6 +345,21 @@ async def handle_streaming_generation(
             elif response.data.get("type") == "generation_stream_end":
                 final_response = response.data.get("response", "")
 
+                # Send final response back to agents channel for the requesting agent
+                await agents_channel.publish(
+                    TracedMessage(
+                        type="documentation_response",
+                        source="PolicyDocumentationAgent",
+                        data={
+                            "response": final_response,
+                            "connection_id": connection_id,
+                            "request_id": message_id,
+                        },
+                        traceparent=traceparent,
+                        tracestate=tracestate,
+                    )
+                )
+
                 await human_stream_channel.publish(
                     TracedMessage(
                         type="agent_message_stream_end",
@@ -342,7 +392,7 @@ _pending_responses = {}
 @policy_documentation_agent.subscribe(
     channel=internal_channel,
     auto_offset_reset="latest",
-    group_id="policy_documentation_response_handler",
+    group_id="policy_documentation_response_handler_unique",
     filter_by_message=lambda msg: msg.get("type")
     in ["retrieval_response", "augmentation_response", "generation_response"],
 )
@@ -463,6 +513,7 @@ async def handle_documentation_request(msg: TracedMessage) -> None:
 
         conversation_string = get_conversation_string(chat_messages)
         logger.info(f"Processing documentation request for connection {connection_id}")
+        logger.info(f"Streaming mode: {streaming}")
 
         await process_documentation_request(
             conversation_string,
@@ -502,15 +553,15 @@ if __name__ == "__main__":
 
     async def run():
         from agents.policies.config import settings
-        from agents.policy_documentation_agent.components.augmenting_agent import (
+        from agents.knowledge_base_agent.components.augmenting_agent import (
             augmenting_agent,
         )
-        from agents.policy_documentation_agent.components.generation_agent import (
+        from agents.knowledge_base_agent.components.generation_agent import (
             generation_agent,
         )
 
         # Import sub-agents
-        from agents.policy_documentation_agent.components.retrieval_agent import (
+        from agents.knowledge_base_agent.components.retrieval_agent import (
             retrieval_agent,
         )
         from libraries.dspy_set_language_model import dspy_set_language_model

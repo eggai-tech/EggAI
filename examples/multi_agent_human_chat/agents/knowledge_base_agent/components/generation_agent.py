@@ -128,7 +128,7 @@ def generate_streaming_response(
     channel=internal_channel,
     filter_by_message=lambda msg: msg.get("type") == "generation_request",
     auto_offset_reset="latest",
-    group_id="generation_agent_group",
+    group_id="generation_agent_unique_group",
 )
 @traced_handler("handle_generation_request")
 async def handle_generation_request(msg: TracedMessage) -> None:

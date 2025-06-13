@@ -40,7 +40,7 @@ def take_policy_by_number_from_database(policy_number: str):
     return (
         '{"policy_number": "'
         + policy_number
-        + '", "name": "John Doe", "policy_category": "auto", "premium_amount": 500, "premium_amount_usd": "$500.00", "due_date": "2025-06-15", "payment_due_date": "2025-06-15", "next_payment_date": "2025-06-15", "coverage_details": "collision, comprehensive, liability, and uninsured motorist protection"}'
+        + '", "name": "John Doe", "policy_category": "auto", "premium_amount": 500, "due_date": "2025-06-15"}'
     )
 
 
