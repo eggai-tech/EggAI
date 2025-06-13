@@ -1,18 +1,23 @@
 import asyncio
+import logging
 from typing import Optional
 
 from temporalio.client import Client
+from temporalio.contrib.pydantic import pydantic_data_converter
 from temporalio.worker import Worker
 
+from agents.policies.rag.workflows.activities.augmentation_activity import (
+    policy_augmentation_activity,
+)
+from agents.policies.rag.workflows.activities.generation_activity import (
+    policy_generation_activity,
+)
 from agents.policies.rag.workflows.activities.retrieval_activity import (
-    policy_retrieval_activity,
+    retrieve_policy_documents,
 )
-from agents.policies.rag.workflows.documentation_workflow import (
-    DocumentationQueryWorkflow,
-)
-from libraries.logger import get_console_logger
+from agents.policies.rag.workflows.rag_workflow import RAGWorkflow
 
-logger = get_console_logger("policies_agent.rag.worker")
+logger = logging.getLogger(__name__)
 
 
 class PolicyDocumentationWorkerSettings:
@@ -44,14 +49,21 @@ async def run_policy_documentation_worker(
     if client is None:
         client = await Client.connect(
             settings.temporal_server_url,
-            namespace=settings.temporal_namespace
+            namespace=settings.temporal_namespace,
+            data_converter=pydantic_data_converter
         )
     
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[DocumentationQueryWorkflow],
-        activities=[policy_retrieval_activity],
+        workflows=[
+            RAGWorkflow,
+        ],
+        activities=[
+            retrieve_policy_documents,
+            policy_augmentation_activity,
+            policy_generation_activity,
+        ],
     )
     
     logger.info(f"Starting Policy Documentation worker on task queue: {settings.temporal_task_queue}")
@@ -79,4 +91,11 @@ async def main():
 
 
 if __name__ == "__main__":
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # Run the worker
     asyncio.run(main())

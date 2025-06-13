@@ -28,6 +28,11 @@ policies_tracer = create_tracer("policies_agent")
 language_model = dspy_set_language_model(settings)
 
 
+def get_language_model():
+    """Get the current language model instance."""
+    return language_model
+
+
 class PolicyAgentSignature(dspy.Signature):
     """
     You are the Policy Agent for an insurance company.

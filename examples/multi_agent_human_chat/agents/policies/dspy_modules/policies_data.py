@@ -72,16 +72,13 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
         try:
             import asyncio
 
-            from agents.policies.rag.documentation_temporal_client import (
-                DocumentationTemporalClient,
-            )
+            from agents.policies.rag.rag_client import RAGClient
             
             logger.info(f"Using Temporal workflow for documentation query: '{query}', category: '{policy_category}'")
             
             async def run_temporal_query():
-                client = DocumentationTemporalClient()
-                result = await client.query_documentation_async(query, policy_category)
-                await client.close()
+                client = RAGClient()
+                result = await client.process_query(query, policy_category)
                 return result
             
             # Run the async function in a thread
@@ -97,13 +94,15 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
             thread.start()
             result = thread.join()
             
-            if result and result.success:
-                logger.info(f"Temporal documentation query successful: {len(result.results)} results")
-                if len(result.results) >= 2:
-                    return json.dumps([result.results[0], result.results[1]])
-                return json.dumps(result.results)
+            if result and result.get('success'):
+                logger.info("Temporal documentation query successful")
+                # Extract the relevant documents from the response
+                retrieval_results = result.get('retrieval_results', [])
+                if len(retrieval_results) >= 2:
+                    return json.dumps([retrieval_results[0], retrieval_results[1]])
+                return json.dumps(retrieval_results)
             else:
-                logger.warning(f"Temporal documentation query failed: {result.error_message if result else 'No result'}")
+                logger.warning(f"Temporal documentation query failed: {result.get('error') if result else 'No result'}")
                 raise Exception("Temporal query failed")
                 
         except Exception as temporal_error:
