@@ -39,7 +39,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "# GenAI Observability Dashboard with Pricing\n\nReal-time monitoring of AI model token usage, request patterns, and cost tracking using OpenTelemetry semantic conventions.",
+        "content": "# Token Usage And Cost",
         "mode": "markdown"
       },
       "pluginVersion": "11.1.0-71516",
@@ -1152,7 +1152,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "GenAI Observability with Pricing",
+  "title": "Token Usage And Cost",
   "uid": "cdiz9piuoa3gge",
   "version": 1,
   "weekStart": "",
