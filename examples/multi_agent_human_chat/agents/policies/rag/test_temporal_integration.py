@@ -15,9 +15,11 @@ Key components demonstrated:
 import asyncio
 import sys
 import time
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
-from agents.policies.rag.documentation_temporal_client import DocumentationTemporalClient
+from agents.policies.rag.documentation_temporal_client import (
+    DocumentationTemporalClient,
+)
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.rag.test_temporal")
