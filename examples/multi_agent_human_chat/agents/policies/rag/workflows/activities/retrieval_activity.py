@@ -1,29 +1,37 @@
+import logging
+from typing import Any, Dict, List, Optional
+
+from opentelemetry import trace
 from temporalio import activity
 
 from agents.policies.rag.retrieving import retrieve_policies
-from libraries.logger import get_console_logger
 
-logger = get_console_logger("policies_agent.rag.temporal")
+logger = logging.getLogger(__name__)
+tracer = trace.get_tracer("policies_agent.rag.activities")
 
-
-@activity.defn
-async def policy_retrieval_activity(query: str, category: str = None) -> list:
+@activity.defn(name="retrieve_policy_documents")
+@tracer.start_as_current_span("retrieve_policy_documents")
+async def retrieve_policy_documents(query: str, category: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Temporal activity for retrieving policy information.
+    Retrieve relevant policy documents based on the query.
     
     Args:
-        query: The search query
-        category: Optional category filter
+        query: The user's query
+        category: Optional policy category (auto, home, life, health)
         
     Returns:
-        List of retrieved policy documents
+        List of relevant policy documents with metadata
     """
-    logger.info(f"Starting policy retrieval for query: '{query}', category: '{category}'")
+    logger.info(f"Retrieving policy documents for query: '{query}', category: '{category}'")
     
     try:
+        # Call the sync retrieval function
         results = retrieve_policies(query, category)
-        logger.info(f"Successfully retrieved {len(results)} policy documents")
+        
+        logger.info(f"Retrieved {len(results)} relevant policy documents")
+        # Return the results directly - Pydantic converter will handle serialization
         return results
+    
     except Exception as e:
-        logger.error(f"Policy retrieval failed: {e}", exc_info=True)
-        raise e
+        logger.error(f"Error retrieving policy documents: {e}", exc_info=True)
+        return []
