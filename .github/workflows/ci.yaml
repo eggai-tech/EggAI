@@ -117,7 +117,7 @@ jobs:
           echo "Waiting for Redpanda and MinIO to be healthy..."
           timeout 180 bash -c '
             until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
-                  [ "$(docker inspect -f {{.State.Health.Status}} eggai-examples-minio-1)" = "healthy" ]; do
+                  [ "$(docker inspect -f {{.State.Health.Status}} minio)" = "healthy" ]; do
               echo "Waiting..."
               sleep 5
             done
