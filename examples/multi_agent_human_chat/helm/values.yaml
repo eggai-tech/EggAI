@@ -37,7 +37,7 @@ resources:
   requests:
     cpu: "100m"
     memory: "128Mi"
-    ephemeralStorage: "2Gi"
+    ephemeral-storage: "2Gi"
 
 podAnnotations: {}
 
