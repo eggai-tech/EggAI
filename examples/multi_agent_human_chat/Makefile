@@ -156,6 +156,8 @@ stop: docker-down
 	@echo "Environment and Docker Compose have been stopped."
 
 clean:
+	@echo "Cleaning up Policy RAG index..."
+	@rm -rf agents/policies/rag/.ragatouille
 	@echo "Cleaning up the environment..."
 	@rm -rf $(VENV_DIR)
 	@echo "Environment cleaned."
