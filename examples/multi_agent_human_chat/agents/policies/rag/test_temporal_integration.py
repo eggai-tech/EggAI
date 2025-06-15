@@ -17,6 +17,8 @@ import sys
 import time
 from typing import Any, Dict, List
 
+import pytest
+
 from agents.policies.rag.documentation_temporal_client import (
     DocumentationTemporalClient,
 )
@@ -24,7 +26,7 @@ from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.rag.test_temporal")
 
-
+@pytest.mark.asyncio
 async def test_sequential_queries():
     """Test sequential documentation queries using Temporal workflows."""
     client = DocumentationTemporalClient()
@@ -64,7 +66,7 @@ async def test_sequential_queries():
     finally:
         await client.close()
 
-
+@pytest.mark.asyncio
 async def test_parallel_queries():
     """Test parallel documentation queries using Temporal workflows."""
     client = DocumentationTemporalClient()
