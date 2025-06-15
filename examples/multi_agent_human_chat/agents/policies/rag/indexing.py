@@ -59,6 +59,7 @@ def ensure_index_built():
                 collection=my_policies_content,
                 document_ids=policies_ids,
                 document_metadatas=document_metadata,
+                use_faiss=True,
             )
             logger.info("RAG index built successfully")
         except Exception as e:
