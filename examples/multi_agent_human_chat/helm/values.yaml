@@ -22,7 +22,7 @@ agents:
     replicaCount: 1
 
 image:
-  repository: docker pull ghcr.io/eggai-tech/multi_agent_human_chat
+  repository: ghcr.io/eggai-tech/multi_agent_human_chat
   pullPolicy: IfNotPresent
   tag: latest
 
