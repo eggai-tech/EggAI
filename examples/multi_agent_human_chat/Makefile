@@ -81,11 +81,21 @@ test-frontend-agent:
 
 test-policies-agent:
 	@echo "Running tests for policies agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/policies -s \
+	@echo "Starting Policy Documentation Temporal Worker in background..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py & \
+	WORKER_PID=$$!; \
+	sleep 3; \
+	echo "Running pytest with temporal worker running..."; \
+	$(VENV_DIR)/bin/pytest agents/policies -s \
        --cov=agents.policies --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
-       --html=reports/pytest-results.html --self-contained-html
-	@echo "Tests for policies agent completed."
+       --html=reports/pytest-results.html --self-contained-html; \
+	TEST_EXIT_CODE=$$?; \
+	echo "Stopping Policy Documentation Temporal Worker..."; \
+	kill $$WORKER_PID 2>/dev/null || true; \
+	wait $$WORKER_PID 2>/dev/null || true; \
+	echo "Tests for policies agent completed."; \
+	exit $$TEST_EXIT_CODE
 
 test-policy-rag-temporal:
 	@echo "Running Policy RAG Temporal integration tests..."
