@@ -218,7 +218,6 @@ async def handle_policy_request(msg: TracedMessage) -> None:
 
 
 @policies_agent.subscribe(channel=agents_channel)
-@traced_handler("handle_others")
 async def handle_other_messages(msg: TracedMessage) -> None:
     """Handle non-policy messages received on the agent channel."""
     logger.debug("Received non-policy message: %s", msg)
