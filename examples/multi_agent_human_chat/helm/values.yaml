@@ -22,11 +22,7 @@ agents:
     replicaCount: 1
 
 image:
-<<<<<<< Updated upstream
-  repository: docker pull ghcr.io/eggai-tech/multi_agent_human_chat
-=======
   repository: ghcr.io/eggai-tech/multi-agent-human-chat
->>>>>>> Stashed changes
   pullPolicy: IfNotPresent
   tag: latest
 
