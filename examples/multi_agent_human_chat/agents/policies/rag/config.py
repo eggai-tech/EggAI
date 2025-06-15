@@ -10,7 +10,7 @@ class RAGConfig:
     TEMPORAL_ADDRESS = "localhost:7233"
     TEMPORAL_NAMESPACE = "default"
     TASK_QUEUE = "policy-rag"
-    WORKFLOW_ID_PREFIX = "rag"
+    WORKFLOW_ID_PREFIX = "policy-rag-workflow"
     
     # Workflow Configuration
     ACTIVITY_TIMEOUT_SECONDS = 30
