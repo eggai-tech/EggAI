@@ -24,7 +24,9 @@ agents_channel = Channel(channels.agents)
 human_stream_channel = Channel(channels.human_stream)
 tracer = trace.get_tracer("ticketing_agent")
 
-init_token_metrics(port=settings.prometheus_metrics_port, application_name=settings.app_name)
+init_token_metrics(
+    port=settings.prometheus_metrics_port, application_name=settings.app_name
+)
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:

@@ -24,7 +24,9 @@ class Settings(BaseSettings):
     # Observability settings
     otel_endpoint: str = Field(default="http://localhost:4318")
     tracing_enabled: bool = Field(default=True)
-    prometheus_metrics_port: int = Field(default=9092, description="Port for Prometheus metrics server")
+    prometheus_metrics_port: int = Field(
+        default=9092, description="Port for Prometheus metrics server"
+    )
 
     # Claims specific settings
     claims_database_path: str = Field(default="")

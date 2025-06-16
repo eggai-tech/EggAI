@@ -1,6 +1,7 @@
 import asyncio
 import os
 import uuid
+from collections import defaultdict
 
 import uvicorn
 from eggai import Agent, Channel
@@ -49,10 +50,12 @@ frontend_agent = Agent("FrontendAgent")
 human_channel = Channel("human")
 human_stream_channel = Channel("human_stream")
 websocket_manager = WebSocketManager()
-messages_cache = {}
+messages_cache = defaultdict(list)
 tracer = trace.get_tracer("frontend_agent")
 
-init_token_metrics(port=settings.prometheus_metrics_port, application_name=settings.app_name)
+init_token_metrics(
+    port=settings.prometheus_metrics_port, application_name=settings.app_name
+)
 
 
 @tracer.start_as_current_span("add_websocket_gateway")

@@ -34,10 +34,13 @@ class WebSocketManager:
         connection = self.active_connections.get(connection_id)
         if connection is not None:
             try:
-                if hasattr(connection, 'state') and hasattr(connection.state, 'closed'):
+                if hasattr(connection, "state") and hasattr(connection.state, "closed"):
                     if not connection.state.closed:
                         connection.state.closed = True
-                if hasattr(connection, 'client_state') and connection.client_state != WebSocketState.DISCONNECTED:
+                if (
+                    hasattr(connection, "client_state")
+                    and connection.client_state != WebSocketState.DISCONNECTED
+                ):
                     await connection.close(
                         code=1001, reason="Connection closed by server"
                     )

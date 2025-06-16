@@ -52,8 +52,12 @@ def test_billing_signature_fields():
 @pytest.mark.asyncio
 async def test_billing_optimized_dspy_basic():
     """Test basic functionality of billing_optimized_dspy."""
-    conversation = "User: What's my current bill?\nBillingAgent: Let me check that for you."
-    expected_response = "Your current balance is $125.50. Your next payment is due on March 15th."
+    conversation = (
+        "User: What's my current bill?\nBillingAgent: Let me check that for you."
+    )
+    expected_response = (
+        "Your current balance is $125.50. Your next payment is due on March 15th."
+    )
     await shared_dspy_basic(billing_optimized_dspy, conversation, expected_response)
 
 

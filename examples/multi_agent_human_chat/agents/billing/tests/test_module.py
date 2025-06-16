@@ -44,21 +44,23 @@ async def test_billing_dspy_module():
 
             # Measure performance
             start_time = time.perf_counter()
-            response_generator = billing_optimized_dspy(chat_history=conversation_string)
-            
+            response_generator = billing_optimized_dspy(
+                chat_history=conversation_string
+            )
+
             # Extract the final response from the async generator
             agent_response = ""
             async for chunk in response_generator:
                 from dspy import Prediction
                 from dspy.streaming import StreamResponse
-                
+
                 if isinstance(chunk, StreamResponse):
                     agent_response += chunk.chunk
                 elif isinstance(chunk, Prediction):
                     # Use the final response from the prediction if available
-                    if hasattr(chunk, 'final_response'):
+                    if hasattr(chunk, "final_response"):
                         agent_response = chunk.final_response
-            
+
             latency_ms = (time.perf_counter() - start_time) * 1000
 
             # Evaluate response
@@ -71,7 +73,9 @@ async def test_billing_dspy_module():
                 "id": f"test-{i + 1}",
                 "policy": policy_number,
                 "expected": case["expected_response"][:50] + "...",
-                "response": agent_response[:50] + "..." if len(agent_response) > 50 else agent_response,
+                "response": agent_response[:50] + "..."
+                if len(agent_response) > 50
+                else agent_response,
                 "latency": f"{latency_ms:.1f} ms",
                 "precision": f"{precision_score:.2f}",
                 "result": "PASS" if precision_score >= 0.7 else "FAIL",

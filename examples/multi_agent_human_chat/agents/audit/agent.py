@@ -28,7 +28,9 @@ human_channel = Channel("human")
 audit_logs_channel = Channel("audit_logs")
 tracer = create_tracer("audit_agent")
 
-init_token_metrics(port=settings.prometheus_metrics_port, application_name=settings.app_name)
+init_token_metrics(
+    port=settings.prometheus_metrics_port, application_name=settings.app_name
+)
 
 MESSAGE_CATEGORIES: Dict[str, AuditCategory] = {
     "agent_message": "User Communication",

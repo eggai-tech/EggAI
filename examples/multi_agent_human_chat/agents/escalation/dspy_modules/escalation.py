@@ -191,7 +191,7 @@ async def escalation_optimized_dspy(
         is_async_program=False,
         async_streaming=True,
     )
-    
+
     async for chunk in streamify_func(chat_history=chat_history):
         yield chunk
 

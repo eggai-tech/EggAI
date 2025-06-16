@@ -28,7 +28,9 @@ class Settings(BaseSettings):
     otel_endpoint: str = Field(default="http://localhost:4318")
     tracing_enabled: bool = Field(default=True)
     debug_logging_enabled: bool = Field(default=False)
-    prometheus_metrics_port: int = Field(default=9096, description="Port for Prometheus metrics server")
+    prometheus_metrics_port: int = Field(
+        default=9096, description="Port for Prometheus metrics server"
+    )
 
     # Audit specific settings
     audit_channel_name: str = Field(default="audit_logs")

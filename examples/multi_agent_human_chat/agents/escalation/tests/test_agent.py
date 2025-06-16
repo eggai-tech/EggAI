@@ -312,11 +312,14 @@ async def test_escalation_agent():
 
                 # Log evaluation results but don't fail tests for precision
                 # The agent consistently asks for policy numbers which is a valid approach
-                if not evaluation_result.judgment and evaluation_result.precision_score < 0.5:
+                if (
+                    not evaluation_result.judgment
+                    and evaluation_result.precision_score < 0.5
+                ):
                     logger.warning(
                         f"Test case {i + 1} has low precision score {evaluation_result.precision_score}: {evaluation_result.reasoning}"
                     )
-                
+
                 # Only assert that we got a response
                 assert agent_response, f"Test case {i + 1} got no response from agent"
 
@@ -351,18 +354,24 @@ async def test_escalation_agent():
 
         logger.info(f"\n=== Escalation Agent Test Results ===\n{report}\n")
         mlflow.log_text(report, "test_results.md")
-        
+
         # Calculate success metrics
-        successful_tests = sum(1 for r in test_results if r.get("response") != "TIMEOUT")
+        successful_tests = sum(
+            1 for r in test_results if r.get("response") != "TIMEOUT"
+        )
         total_tests = len(test_results)
-        
+
         # Log overall metrics
         mlflow.log_metric("successful_tests", successful_tests)
         mlflow.log_metric("total_tests", total_tests)
-        mlflow.log_metric("success_rate", successful_tests / total_tests if total_tests > 0 else 0)
-        
+        mlflow.log_metric(
+            "success_rate", successful_tests / total_tests if total_tests > 0 else 0
+        )
+
         # Assert that at least some tests passed
         assert successful_tests > 0, f"All {total_tests} test cases timed out"
-        
+
         if successful_tests < total_tests:
-            logger.warning(f"Only {successful_tests}/{total_tests} test cases completed successfully")
+            logger.warning(
+                f"Only {successful_tests}/{total_tests} test cases completed successfully"
+            )

@@ -275,14 +275,14 @@ async def test_triage_agent():
 
         # Wait a bit for messages to be published
         await asyncio.sleep(1)
-        
+
         # Phase 2: Collect classifications
         classification_errors: List[str] = []
         for i in range(len(pending)):
             try:
                 event = await asyncio.wait_for(_response_queue.get(), timeout=30.0)
             except asyncio.TimeoutError:
-                logger.error(f"Timeout waiting for response {i+1}/{len(pending)}")
+                logger.error(f"Timeout waiting for response {i + 1}/{len(pending)}")
                 break
             mid = event.data.get("message_id")
             if mid not in pending:
@@ -344,20 +344,28 @@ async def test_triage_agent():
                         )
                         return res, ev, case_idx
                     except Exception as e:
-                        logger.warning(f"LLM evaluation failed for case {case_idx}: {e}")
+                        logger.warning(
+                            f"LLM evaluation failed for case {case_idx}: {e}"
+                        )
                         # Return a mock evaluation result
-                        mock_ev = type('MockEval', (), {
-                            'judgment': res["routed"] == res["expected"],
-                            'precision_score': 1.0 if res["routed"] == res["expected"] else 0.0,
-                            'reasoning': "LLM unavailable, using rule-based check"
-                        })()
+                        mock_ev = type(
+                            "MockEval",
+                            (),
+                            {
+                                "judgment": res["routed"] == res["expected"],
+                                "precision_score": 1.0
+                                if res["routed"] == res["expected"]
+                                else 0.0,
+                                "reasoning": "LLM unavailable, using rule-based check",
+                            },
+                        )()
                         return res, mock_ev, case_idx
 
             tasks = [
                 asyncio.create_task(limited_eval(r, i))
                 for i, r in enumerate(classification_results)
             ]
-            
+
             for coro in asyncio.as_completed(tasks):
                 res, ev, case_idx = await coro
                 passed = ev.judgment
@@ -368,7 +376,9 @@ async def test_triage_agent():
                 )
 
                 # Log LLM evaluation metrics to MLflow
-                mlflow.log_metric(f"llm_judgment_{case_idx + 1}", 1.0 if passed else 0.0)
+                mlflow.log_metric(
+                    f"llm_judgment_{case_idx + 1}", 1.0 if passed else 0.0
+                )
                 mlflow.log_metric(f"precision_case_{case_idx + 1}", float(prec))
 
                 judge_results.append(
@@ -501,6 +511,7 @@ async def test_triage_agent_simple(monkeypatch):
 
         # Create channels mock - triage publishes to human_stream_channel for ChattyAgent
         from agents.triage.agent import human_stream_channel
+
         mock_publish = AsyncMock()
         monkeypatch.setattr(human_stream_channel, "publish", mock_publish)
 
@@ -509,24 +520,28 @@ async def test_triage_agent_simple(monkeypatch):
         try:
             await handle_user_message(test_message)
             latency_ms = (time.perf_counter() - start_time) * 1000
-            
+
             # Log metrics
             mlflow.log_metric("latency", latency_ms)
-            
+
             # Verify we got the expected stream messages
-            assert mock_publish.call_count >= 2  # Should have start and at least one chunk
-            
+            assert (
+                mock_publish.call_count >= 2
+            )  # Should have start and at least one chunk
+
             # Check first call is stream start
             first_call = mock_publish.call_args_list[0]
             first_msg = first_call[0][0]
             assert first_msg.type == "agent_message_stream_start"
             assert first_msg.source == "TriageAgent"
-            
+
             # Log result
             mlflow.log_metric("is_correct", 1.0)
         except Exception as e:
             # If LMStudio is not running, this is expected
-            logger.warning(f"Triage agent test failed (likely LMStudio not running): {e}")
+            logger.warning(
+                f"Triage agent test failed (likely LMStudio not running): {e}"
+            )
             mlflow.log_metric("latency", -1)
             mlflow.log_metric("is_correct", 0.0)
             mlflow.log_text(f"Error: {str(e)}", "error.txt")
@@ -572,6 +587,7 @@ async def test_triage_agent_intent_change(monkeypatch):
 
         # Create mocks for both channels - triage might route to either
         from agents.triage.agent import agents_channel, human_stream_channel
+
         mock_agents_publish = AsyncMock()
         mock_stream_publish = AsyncMock()
         monkeypatch.setattr(agents_channel, "publish", mock_agents_publish)
@@ -582,19 +598,21 @@ async def test_triage_agent_intent_change(monkeypatch):
         try:
             await handle_user_message(test_message)
             latency_ms = (time.perf_counter() - start_time) * 1000
-            
+
             # Log metrics
             mlflow.log_metric("latency", latency_ms)
-            
+
             # Check which channel got the message
             if mock_agents_publish.called:
                 # Should have routed to PolicyAgent via agents_channel
                 args, _ = mock_agents_publish.call_args_list[0]
                 message_type = args[0].type
-                
+
                 # Log result - check if it's a policy request as expected
                 expected_type = "policy_request"
-                mlflow.log_metric("is_correct", 1.0 if message_type == expected_type else 0.0)
+                mlflow.log_metric(
+                    "is_correct", 1.0 if message_type == expected_type else 0.0
+                )
                 mlflow.log_param("expected_type", expected_type)
                 mlflow.log_param("actual_type", message_type)
             else:
@@ -603,12 +621,14 @@ async def test_triage_agent_intent_change(monkeypatch):
                 mlflow.log_metric("is_correct", 0.0)  # Not the expected routing
                 mlflow.log_param("expected_type", "policy_request")
                 mlflow.log_param("actual_type", "ChattyAgent")
-            
+
             # Assert expected result - should have routed somewhere
             assert mock_agents_publish.called or mock_stream_publish.called
         except Exception as e:
             # If LMStudio is not running, this is expected
-            logger.warning(f"Triage agent intent test failed (likely LMStudio not running): {e}")
+            logger.warning(
+                f"Triage agent intent test failed (likely LMStudio not running): {e}"
+            )
             mlflow.log_metric("latency", -1)
             mlflow.log_metric("is_correct", 0.0)
             mlflow.log_text(f"Error: {str(e)}", "error.txt")

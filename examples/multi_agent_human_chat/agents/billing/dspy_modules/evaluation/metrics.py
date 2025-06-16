@@ -18,9 +18,7 @@ def get_amount_score(expected: str, actual: str) -> Tuple[float, bool]:
 
         # Extract amount from actual
         actual_amount_match = re.search(r"\$(\d+(?:\.\d+)?)", actual)
-        actual_amount = (
-            actual_amount_match.group(1) if actual_amount_match else None
-        )
+        actual_amount = actual_amount_match.group(1) if actual_amount_match else None
 
         if not actual_amount:
             return (0.0, True)
@@ -47,20 +45,20 @@ def get_date_score(expected: str, actual: str) -> Tuple[float, bool]:
     """Evaluate date matching between expected and actual responses."""
     # Look for dates in YYYY-MM-DD format
     expected_dates = re.findall(r"(\d{4}-\d{2}-\d{2})", expected)
-    
+
     if not expected_dates:
         return (0.0, False)
 
     actual_dates = re.findall(r"(\d{4}-\d{2}-\d{2})", actual)
-    
+
     for expected_date in expected_dates:
         # Check for exact match
         if expected_date in actual:
             return (1.0, True)
-        
+
         # Check for alternative formats
         year, month, day = expected_date.split("-")
-        
+
         # Various date formats including with forward slashes
         date_patterns = [
             f"{month}/{day}/{year}",  # 05/15/2026
@@ -68,11 +66,11 @@ def get_date_score(expected: str, actual: str) -> Tuple[float, bool]:
             f"{month}-{day}-{year}",  # 05-15-2026
             f"{month}.{day}.{year}",  # 05.15.2026
         ]
-        
+
         for pattern in date_patterns:
             if pattern in actual:
                 return (0.7, True)
-        
+
         # Check for month names
         month_names = {
             "01": ["january", "jan"],
@@ -88,7 +86,7 @@ def get_date_score(expected: str, actual: str) -> Tuple[float, bool]:
             "11": ["november", "nov"],
             "12": ["december", "dec"],
         }
-        
+
         if month in month_names:
             for month_name in month_names[month]:
                 if month_name.lower() in actual.lower() and year in actual:
@@ -149,7 +147,10 @@ def get_status_score(expected: str, actual: str) -> Tuple[float, bool]:
         elif expected_has_quotes and not actual_has_quotes:
             return (0.8, True)  # Missing quotes
         else:
-            return (1.0, True)  # Both no quotes or actual has quotes when expected doesn't
+            return (
+                1.0,
+                True,
+            )  # Both no quotes or actual has quotes when expected doesn't
     else:
         return (0.0, True)
 
@@ -188,22 +189,22 @@ def get_billing_cycle_score(expected: str, actual: str) -> Tuple[float, bool]:
     # If exact billing cycle match found
     if actual_cycle and expected_cycle == actual_cycle:
         return (1.0, True)
-    
+
     # Check for partial matches
     actual_lower = actual.lower()
-    
+
     # Check if "billing cycle" is mentioned but with different value
     if "billing cycle" in actual_lower:
         return (0.8, True)  # Has "billing cycle" but different or no clear value
-    
+
     # Check if just "cycle" is mentioned
     if "cycle" in actual_lower and expected_cycle in actual_lower:
         return (0.7, True)  # Has "cycle" and the expected cycle type
-    
+
     # Check if just the cycle type is mentioned (e.g., "monthly")
     if expected_cycle in actual_lower:
         return (0.3, True)  # Only has the cycle type
-    
+
     return (0.0, True)
 
 
@@ -238,7 +239,7 @@ def get_format_score(expected: str, actual: str) -> Tuple[float, bool]:
     # Add format score if we checked anything
     if format_checks > 0:
         final_score = format_score / format_checks
-        
+
         # Check if the overall text structure is different even if formats match
         # This catches cases where the formats are correct but the sentence structure differs
         if final_score >= 1.0:
@@ -246,12 +247,14 @@ def get_format_score(expected: str, actual: str) -> Tuple[float, bool]:
             # but have matching formats, it's a partial match
             expected_lower = expected.lower()
             actual_lower = actual.lower()
-            
+
             # Check for significant differences in text structure
-            if (abs(len(expected) - len(actual)) > len(expected) * 0.3 or
-                expected_lower[:20] != actual_lower[:20]):  # First 20 chars differ significantly
+            if (
+                abs(len(expected) - len(actual)) > len(expected) * 0.3
+                or expected_lower[:20] != actual_lower[:20]
+            ):  # First 20 chars differ significantly
                 partial_match = True
-        
+
         # For partial format matches, ensure score is less than 1.0
         if partial_match and final_score >= 1.0:
             final_score = 0.9

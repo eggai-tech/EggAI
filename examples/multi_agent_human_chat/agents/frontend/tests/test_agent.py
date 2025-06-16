@@ -128,9 +128,11 @@ async def test_handle_human_stream_messages_start():
     """Test handling stream start messages."""
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
-    
+
     # Mock websocket manager
-    with patch.object(websocket_manager, 'send_message_to_connection', new_callable=AsyncMock) as mock_send:
+    with patch.object(
+        websocket_manager, "send_message_to_connection", new_callable=AsyncMock
+    ) as mock_send:
         message = TracedMessage(
             id=message_id,
             type="agent_message_stream_start",
@@ -140,12 +142,16 @@ async def test_handle_human_stream_messages_start():
                 "connection_id": connection_id,
             },
         )
-        
+
         await handle_human_stream_messages(message)
-        
+
         mock_send.assert_called_once_with(
             connection_id,
-            {"sender": "TestAgent", "content": "", "type": "assistant_message_stream_start"}
+            {
+                "sender": "TestAgent",
+                "content": "",
+                "type": "assistant_message_stream_start",
+            },
         )
 
 
@@ -154,8 +160,10 @@ async def test_handle_human_stream_messages_chunk():
     """Test handling stream chunk messages."""
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
-    
-    with patch.object(websocket_manager, 'send_message_to_connection', new_callable=AsyncMock) as mock_send:
+
+    with patch.object(
+        websocket_manager, "send_message_to_connection", new_callable=AsyncMock
+    ) as mock_send:
         message = TracedMessage(
             id=message_id,
             type="agent_message_stream_chunk",
@@ -167,9 +175,9 @@ async def test_handle_human_stream_messages_chunk():
                 "chunk_index": 1,
             },
         )
-        
+
         await handle_human_stream_messages(message)
-        
+
         mock_send.assert_called_once_with(
             connection_id,
             {
@@ -177,7 +185,7 @@ async def test_handle_human_stream_messages_chunk():
                 "content": "Hello",
                 "chunk_index": 1,
                 "type": "assistant_message_stream_chunk",
-            }
+            },
         )
 
 
@@ -186,11 +194,13 @@ async def test_handle_human_stream_messages_end():
     """Test handling stream end messages."""
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
-    
+
     # Initialize messages cache
     messages_cache[connection_id] = []
-    
-    with patch.object(websocket_manager, 'send_message_to_connection', new_callable=AsyncMock) as mock_send:
+
+    with patch.object(
+        websocket_manager, "send_message_to_connection", new_callable=AsyncMock
+    ) as mock_send:
         message = TracedMessage(
             id=message_id,
             type="agent_message_stream_end",
@@ -201,21 +211,21 @@ async def test_handle_human_stream_messages_end():
                 "message": "Complete response",
             },
         )
-        
+
         await handle_human_stream_messages(message)
-        
+
         # Check message was added to cache
         assert len(messages_cache[connection_id]) == 1
         assert messages_cache[connection_id][0]["content"] == "Complete response"
         assert messages_cache[connection_id][0]["agent"] == "TestAgent"
-        
+
         mock_send.assert_called_once_with(
             connection_id,
             {
                 "sender": "TestAgent",
                 "content": "Complete response",
                 "type": "assistant_message_stream_end",
-            }
+            },
         )
 
 
@@ -224,8 +234,10 @@ async def test_handle_human_stream_messages_waiting():
     """Test handling stream waiting messages."""
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
-    
-    with patch.object(websocket_manager, 'send_message_to_connection', new_callable=AsyncMock) as mock_send:
+
+    with patch.object(
+        websocket_manager, "send_message_to_connection", new_callable=AsyncMock
+    ) as mock_send:
         message = TracedMessage(
             id=message_id,
             type="agent_message_stream_waiting_message",
@@ -236,16 +248,16 @@ async def test_handle_human_stream_messages_waiting():
                 "message": "Please wait...",
             },
         )
-        
+
         await handle_human_stream_messages(message)
-        
+
         mock_send.assert_called_once_with(
             connection_id,
             {
                 "sender": "TestAgent",
                 "content": "Please wait...",
                 "type": "assistant_message_stream_waiting_message",
-            }
+            },
         )
 
 
@@ -254,11 +266,13 @@ async def test_handle_human_messages():
     """Test handling regular human messages."""
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
-    
+
     # Initialize messages cache
     messages_cache[connection_id] = []
-    
-    with patch.object(websocket_manager, 'send_message_to_connection', new_callable=AsyncMock) as mock_send:
+
+    with patch.object(
+        websocket_manager, "send_message_to_connection", new_callable=AsyncMock
+    ) as mock_send:
         message = TracedMessage(
             id=message_id,
             type="agent_message",
@@ -270,17 +284,21 @@ async def test_handle_human_messages():
                 "agent": "TestAgent",
             },
         )
-        
+
         await handle_human_messages(message)
-        
+
         # Check message was added to cache
         assert len(messages_cache[connection_id]) == 1
         assert messages_cache[connection_id][0]["content"] == "Hello user"
         assert messages_cache[connection_id][0]["agent"] == "TestAgent"
-        
+
         mock_send.assert_called_once_with(
             connection_id,
-            {"sender": "TestAgent", "content": "Hello user", "type": "assistant_message"}
+            {
+                "sender": "TestAgent",
+                "content": "Hello user",
+                "type": "assistant_message",
+            },
         )
 
 
@@ -289,12 +307,14 @@ async def test_handle_human_messages_new_connection():
     """Test handling messages for new connections."""
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
-    
+
     # Ensure connection not in cache
     if connection_id in messages_cache:
         del messages_cache[connection_id]
-    
-    with patch.object(websocket_manager, 'send_message_to_connection', new_callable=AsyncMock) as mock_send:
+
+    with patch.object(
+        websocket_manager, "send_message_to_connection", new_callable=AsyncMock
+    ) as mock_send:
         message = TracedMessage(
             id=message_id,
             type="agent_message",
@@ -306,9 +326,9 @@ async def test_handle_human_messages_new_connection():
                 "agent": "TestAgent",
             },
         )
-        
+
         await handle_human_messages(message)
-        
+
         # Check cache was initialized and message added
         assert connection_id in messages_cache
         assert len(messages_cache[connection_id]) == 1
@@ -319,9 +339,13 @@ def test_add_websocket_gateway(test_app, mock_server):
     """Test adding websocket gateway to FastAPI app."""
     # Test that the function doesn't raise an error
     add_websocket_gateway("/ws", test_app, mock_server)
-    
+
     # Check that a websocket route was added
-    websocket_routes = [route for route in test_app.routes if hasattr(route, 'path') and route.path == "/ws"]
+    websocket_routes = [
+        route
+        for route in test_app.routes
+        if hasattr(route, "path") and route.path == "/ws"
+    ]
     assert len(websocket_routes) > 0
 
 
@@ -329,9 +353,9 @@ def test_add_websocket_gateway(test_app, mock_server):
 async def test_websocket_manager_connect(mock_websocket, connection_id):
     """Test WebSocket manager connection."""
     manager = WebSocketManager()
-    
+
     result = await manager.connect(mock_websocket, connection_id)
-    
+
     assert result == connection_id
     assert connection_id in manager.active_connections
     assert manager.active_connections[connection_id] == mock_websocket
@@ -343,11 +367,13 @@ async def test_websocket_manager_disconnect(mock_websocket, connection_id):
     """Test WebSocket manager disconnection."""
     manager = WebSocketManager()
     manager.active_connections[connection_id] = mock_websocket
-    
+
     await manager.disconnect(connection_id)
-    
+
     assert connection_id not in manager.active_connections
-    mock_websocket.close.assert_called_once_with(code=1001, reason="Connection closed by server")
+    mock_websocket.close.assert_called_once_with(
+        code=1001, reason="Connection closed by server"
+    )
 
 
 @pytest.mark.asyncio
@@ -355,14 +381,14 @@ async def test_websocket_manager_send_message(mock_websocket, connection_id):
     """Test sending message through WebSocket manager."""
     manager = WebSocketManager()
     manager.active_connections[connection_id] = mock_websocket
-    
+
     message_data = {"type": "test", "content": "Hello"}
-    
+
     # Mock the logger import to avoid import issues
-    with patch('libraries.logger.get_console_logger') as mock_logger:
+    with patch("libraries.logger.get_console_logger") as mock_logger:
         mock_logger.return_value = MagicMock()
         await manager.send_message_to_connection(connection_id, message_data)
-    
+
     mock_websocket.send_json.assert_called_once_with(message_data)
 
 
@@ -370,12 +396,12 @@ async def test_websocket_manager_send_message(mock_websocket, connection_id):
 async def test_websocket_manager_send_message_no_connection(connection_id):
     """Test sending message when connection doesn't exist."""
     manager = WebSocketManager()
-    
+
     message_data = {"type": "test", "content": "Hello"}
-    with patch('libraries.logger.get_console_logger') as mock_logger:
+    with patch("libraries.logger.get_console_logger") as mock_logger:
         mock_logger.return_value = MagicMock()
         await manager.send_message_to_connection(connection_id, message_data)
-    
+
     # Message should be buffered
     assert connection_id in manager.message_buffers
     assert message_data in manager.message_buffers[connection_id]
@@ -385,37 +411,41 @@ async def test_websocket_manager_send_message_no_connection(connection_id):
 async def test_websocket_manager_attach_message_id(connection_id, message_id):
     """Test attaching message ID to connection."""
     manager = WebSocketManager()
-    
+
     await manager.attach_message_id(message_id, connection_id)
-    
+
     assert manager.message_ids[message_id] == connection_id
 
 
 @pytest.mark.asyncio
-async def test_websocket_manager_send_to_message_id(mock_websocket, connection_id, message_id):
+async def test_websocket_manager_send_to_message_id(
+    mock_websocket, connection_id, message_id
+):
     """Test sending message by message ID."""
     manager = WebSocketManager()
     manager.active_connections[connection_id] = mock_websocket
     manager.message_ids[message_id] = connection_id
-    
+
     message_data = {"type": "test", "content": "Hello"}
-    
+
     # Mock the logger import to avoid import issues
-    with patch('libraries.logger.get_console_logger') as mock_logger:
+    with patch("libraries.logger.get_console_logger") as mock_logger:
         mock_logger.return_value = MagicMock()
         await manager.send_to_message_id(message_id, message_data)
-    
+
     mock_websocket.send_json.assert_called_once_with(message_data)
 
 
 @pytest.mark.asyncio
-async def test_websocket_manager_get_connection_id_from_message_id(connection_id, message_id):
+async def test_websocket_manager_get_connection_id_from_message_id(
+    connection_id, message_id
+):
     """Test getting connection ID from message ID."""
     manager = WebSocketManager()
     manager.message_ids[message_id] = connection_id
-    
+
     result = await manager.get_connection_id_from_message_id(message_id)
-    
+
     assert result == connection_id
 
 
@@ -423,19 +453,19 @@ async def test_websocket_manager_get_connection_id_from_message_id(connection_id
 async def test_websocket_manager_broadcast_message():
     """Test broadcasting message to all connections."""
     manager = WebSocketManager()
-    
+
     # Create multiple mock websockets
     mock_ws1 = MagicMock(spec=WebSocket)
     mock_ws1.send_json = AsyncMock()
     mock_ws2 = MagicMock(spec=WebSocket)
     mock_ws2.send_json = AsyncMock()
-    
+
     manager.active_connections["conn1"] = mock_ws1
     manager.active_connections["conn2"] = mock_ws2
-    
+
     message_data = {"type": "broadcast", "content": "Hello all"}
     await manager.broadcast_message(message_data)
-    
+
     mock_ws1.send_json.assert_called_once_with(message_data)
     mock_ws2.send_json.assert_called_once_with(message_data)
 
@@ -444,41 +474,47 @@ async def test_websocket_manager_broadcast_message():
 async def test_websocket_manager_disconnect_all():
     """Test disconnecting all connections."""
     manager = WebSocketManager()
-    
+
     # Create multiple mock websockets
     mock_ws1 = MagicMock(spec=WebSocket)
     mock_ws1.close = AsyncMock()
     mock_ws1.state = MagicMock()
     mock_ws1.state.closed = False
     mock_ws1.client_state = WebSocketState.CONNECTED
-    
+
     mock_ws2 = MagicMock(spec=WebSocket)
     mock_ws2.close = AsyncMock()
     mock_ws2.state = MagicMock()
     mock_ws2.state.closed = False
     mock_ws2.client_state = WebSocketState.CONNECTED
-    
+
     manager.active_connections["conn1"] = mock_ws1
     manager.active_connections["conn2"] = mock_ws2
-    
+
     await manager.disconnect_all()
-    
+
     assert len(manager.active_connections) == 0
-    mock_ws1.close.assert_called_once_with(code=1001, reason="Connection closed by server")
-    mock_ws2.close.assert_called_once_with(code=1001, reason="Connection closed by server")
+    mock_ws1.close.assert_called_once_with(
+        code=1001, reason="Connection closed by server"
+    )
+    mock_ws2.close.assert_called_once_with(
+        code=1001, reason="Connection closed by server"
+    )
 
 
 @pytest.mark.asyncio
-async def test_websocket_manager_connect_with_buffered_messages(mock_websocket, connection_id):
+async def test_websocket_manager_connect_with_buffered_messages(
+    mock_websocket, connection_id
+):
     """Test connecting when there are buffered messages."""
     manager = WebSocketManager()
-    
+
     # Add buffered messages
     buffered_message = {"type": "buffered", "content": "Buffered message"}
     manager.message_buffers[connection_id].append(buffered_message)
-    
+
     await manager.connect(mock_websocket, connection_id)
-    
+
     # Check that buffered message was sent
     mock_websocket.send_json.assert_called_with(buffered_message)
     # Check that buffer was cleared
@@ -490,18 +526,18 @@ async def test_websocket_manager_send_message_error(mock_websocket, connection_i
     """Test handling error when sending message."""
     manager = WebSocketManager()
     manager.active_connections[connection_id] = mock_websocket
-    
+
     # Make send_json raise an exception
     mock_websocket.send_json.side_effect = Exception("Send failed")
-    
+
     message_data = {"type": "test", "content": "Hello"}
-    
+
     # Mock the logger import to avoid import issues
-    with patch('libraries.logger.get_console_logger') as mock_logger:
+    with patch("libraries.logger.get_console_logger") as mock_logger:
         mock_logger.return_value = MagicMock()
         # Should not raise exception
         await manager.send_message_to_connection(connection_id, message_data)
-    
+
     mock_websocket.send_json.assert_called_once_with(message_data)
 
 
@@ -509,17 +545,17 @@ async def test_websocket_manager_send_message_error(mock_websocket, connection_i
 async def test_websocket_manager_disconnect_already_closed(connection_id):
     """Test disconnecting already closed connection."""
     manager = WebSocketManager()
-    
+
     mock_websocket = MagicMock(spec=WebSocket)
     mock_websocket.state = MagicMock()
     mock_websocket.state.closed = True
     mock_websocket.client_state = WebSocketState.DISCONNECTED
     mock_websocket.close = AsyncMock()
-    
+
     manager.active_connections[connection_id] = mock_websocket
-    
+
     await manager.disconnect(connection_id)
-    
+
     # Should not try to close already closed connection
     mock_websocket.close.assert_not_called()
     assert connection_id not in manager.active_connections
@@ -528,7 +564,7 @@ async def test_websocket_manager_disconnect_already_closed(connection_id):
 def test_websocket_manager_initialization():
     """Test WebSocket manager initialization."""
     manager = WebSocketManager()
-    
+
     assert isinstance(manager.active_connections, dict)
     assert isinstance(manager.message_buffers, dict)
     assert isinstance(manager.message_ids, dict)

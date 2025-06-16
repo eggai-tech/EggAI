@@ -19,18 +19,22 @@ from libraries.tracing import TracedMessage
 async def test_billing_agent_error_handling(monkeypatch):
     """Test error handling in billing agent."""
     load_dotenv()
-    
+
     def mock_billing_error(*args, **kwargs):
         async def error_generator():
             raise Exception("Billing module error")
+
         return error_generator()
-    
-    monkeypatch.setattr("agents.billing.agent.billing_optimized_dspy", mock_billing_error)
-    
+
+    monkeypatch.setattr(
+        "agents.billing.agent.billing_optimized_dspy", mock_billing_error
+    )
+
     from agents.billing.agent import human_stream_channel
+
     mock_publish = AsyncMock()
     monkeypatch.setattr(human_stream_channel, "publish", mock_publish)
-    
+
     test_message = TracedMessage(
         id=str(uuid4()),
         type="billing_request",
@@ -41,13 +45,16 @@ async def test_billing_agent_error_handling(monkeypatch):
             "message_id": str(uuid4()),
         },
     )
-    
+
     await handle_billing_request(test_message)
-    
+
     assert mock_publish.called
-    error_calls = [call for call in mock_publish.call_args_list 
-                   if call[0][0].type == "agent_message_stream_end" 
-                   and "error" in call[0][0].data.get("message", "").lower()]
+    error_calls = [
+        call
+        for call in mock_publish.call_args_list
+        if call[0][0].type == "agent_message_stream_end"
+        and "error" in call[0][0].data.get("message", "").lower()
+    ]
     assert len(error_calls) > 0
 
 
@@ -55,11 +62,12 @@ async def test_billing_agent_error_handling(monkeypatch):
 async def test_billing_empty_chat_messages(monkeypatch):
     """Test handling of empty chat messages."""
     load_dotenv()
-    
+
     from agents.billing.agent import human_channel
+
     mock_publish = AsyncMock()
     monkeypatch.setattr(human_channel, "publish", mock_publish)
-    
+
     test_message = TracedMessage(
         id=str(uuid4()),
         type="billing_request",
@@ -70,13 +78,16 @@ async def test_billing_empty_chat_messages(monkeypatch):
             "message_id": str(uuid4()),
         },
     )
-    
+
     await handle_billing_request(test_message)
-    
+
     assert mock_publish.called
-    error_calls = [call for call in mock_publish.call_args_list 
-                   if call[0][0].type == "agent_message" 
-                   and "didn't receive any message content" in call[0][0].data.get("message", "")]
+    error_calls = [
+        call
+        for call in mock_publish.call_args_list
+        if call[0][0].type == "agent_message"
+        and "didn't receive any message content" in call[0][0].data.get("message", "")
+    ]
     assert len(error_calls) > 0
 
 
@@ -84,11 +95,12 @@ async def test_billing_empty_chat_messages(monkeypatch):
 async def test_billing_missing_connection_id(monkeypatch):
     """Test handling of missing connection_id."""
     load_dotenv()
-    
+
     from agents.billing.agent import human_stream_channel
+
     mock_publish = AsyncMock()
     monkeypatch.setattr(human_stream_channel, "publish", mock_publish)
-    
+
     test_message = TracedMessage(
         id=str(uuid4()),
         type="billing_request",
@@ -98,9 +110,9 @@ async def test_billing_missing_connection_id(monkeypatch):
             "message_id": str(uuid4()),
         },
     )
-    
+
     await handle_billing_request(test_message)
-    
+
     assert mock_publish.called
     for call in mock_publish.call_args_list:
         msg = call[0][0]
@@ -116,7 +128,7 @@ async def test_handle_other_messages():
         source="TestAgent",
         data={"content": "debug info"},
     )
-    
+
     await handle_other_messages(test_message)
 
 
@@ -128,10 +140,7 @@ def test_get_conversation_string_empty():
 
 def test_get_conversation_string_missing_content():
     """Test get_conversation_string with missing content field."""
-    messages = [
-        {"role": "user"},
-        {"role": "assistant", "content": "Hello"}
-    ]
+    messages = [{"role": "user"}, {"role": "assistant", "content": "Hello"}]
     result = get_conversation_string(messages)
     assert "user:" not in result.lower()
     assert "assistant: Hello" in result
@@ -141,7 +150,7 @@ def test_get_conversation_string_normal():
     """Test get_conversation_string with normal messages."""
     messages = [
         {"role": "user", "content": "Hi"},
-        {"role": "assistant", "content": "Hello", "agent": "BillingAgent"}
+        {"role": "assistant", "content": "Hello", "agent": "BillingAgent"},
     ]
     result = get_conversation_string(messages)
     assert "user: Hi" in result
@@ -153,33 +162,37 @@ async def test_process_billing_request_short_conversation():
     """Test process_billing_request with conversation too short."""
     connection_id = str(uuid4())
     message_id = str(uuid4())
-    
+
     with pytest.raises(ValueError, match="too short"):
         await process_billing_request("Hi", connection_id, message_id)
 
 
-@pytest.mark.asyncio 
+@pytest.mark.asyncio
 async def test_billing_missing_data_fields(monkeypatch):
     """Test handling of missing various data fields."""
     load_dotenv()
-    
+
     from agents.billing.agent import human_channel
+
     mock_publish = AsyncMock()
     monkeypatch.setattr(human_channel, "publish", mock_publish)
-    
+
     test_message = TracedMessage(
         id=str(uuid4()),
         type="billing_request",
         source="TestAgent",
         data={},
     )
-    
+
     await handle_billing_request(test_message)
-    
+
     assert mock_publish.called
-    error_calls = [call for call in mock_publish.call_args_list 
-                   if call[0][0].type == "agent_message" 
-                   and "didn't receive any message content" in call[0][0].data.get("message", "")]
+    error_calls = [
+        call
+        for call in mock_publish.call_args_list
+        if call[0][0].type == "agent_message"
+        and "didn't receive any message content" in call[0][0].data.get("message", "")
+    ]
     assert len(error_calls) > 0
 
 
@@ -187,16 +200,17 @@ async def test_billing_missing_data_fields(monkeypatch):
 async def test_billing_exception_in_handler(monkeypatch):
     """Test exception handling in main handler."""
     load_dotenv()
-    
+
     from agents.billing.agent import human_channel
+
     mock_publish = AsyncMock()
     monkeypatch.setattr(human_channel, "publish", mock_publish)
-    
+
     def mock_error(*args, **kwargs):
         raise Exception("Unexpected error")
-    
+
     monkeypatch.setattr("agents.billing.agent.get_conversation_string", mock_error)
-    
+
     test_message = TracedMessage(
         id=str(uuid4()),
         type="billing_request",
@@ -206,12 +220,12 @@ async def test_billing_exception_in_handler(monkeypatch):
             "connection_id": str(uuid4()),
         },
     )
-    
+
     await handle_billing_request(test_message)
-    
+
     assert mock_publish.called
     error_published = any(
-        "trouble processing" in call[0][0].data.get("message", "").lower() 
+        "trouble processing" in call[0][0].data.get("message", "").lower()
         for call in mock_publish.call_args_list
         if call[0][0].type == "agent_message"
     )
@@ -222,7 +236,7 @@ def test_get_conversation_string_special_characters():
     """Test conversation string with special characters and formatting."""
     messages = [
         {"role": "user", "content": "What's my bill? It costs $100.50!"},
-        {"role": "assistant", "content": "I'll help you with that. Let me check..."}
+        {"role": "assistant", "content": "I'll help you with that. Let me check..."},
     ]
     result = get_conversation_string(messages)
     assert "What's my bill? It costs $100.50!" in result

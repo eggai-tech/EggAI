@@ -55,21 +55,23 @@ async def test_billing_response_evaluation():
 
             # Get the model's response to evaluate
             start_time = time.perf_counter()
-            response_generator = billing_optimized_dspy(chat_history=case["chat_history"])
-            
+            response_generator = billing_optimized_dspy(
+                chat_history=case["chat_history"]
+            )
+
             # Extract the final response from the async generator
             agent_response = ""
             async for chunk in response_generator:
                 from dspy import Prediction
                 from dspy.streaming import StreamResponse
-                
+
                 if isinstance(chunk, StreamResponse):
                     agent_response += chunk.chunk
                 elif isinstance(chunk, Prediction):
                     # Use the final response from the prediction if available
-                    if hasattr(chunk, 'final_response'):
+                    if hasattr(chunk, "final_response"):
                         agent_response = chunk.final_response
-            
+
             response_time = (time.perf_counter() - start_time) * 1000
 
             # Calculate algorithmic precision
@@ -96,7 +98,9 @@ async def test_billing_response_evaluation():
                 "id": f"test-{i + 1}",
                 "policy": case["policy_number"],
                 "expected": case["expected_response"][:30] + "...",
-                "response": agent_response[:30] + "..." if len(agent_response) > 30 else agent_response,
+                "response": agent_response[:30] + "..."
+                if len(agent_response) > 30
+                else agent_response,
                 "latency": f"{response_time:.1f} ms",
                 "judgment": "✔" if evaluation_result.judgment else "✘",
                 "precision": f"{evaluation_result.precision_score:.2f}",
