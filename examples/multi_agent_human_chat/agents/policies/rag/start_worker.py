@@ -67,22 +67,28 @@ async def main():
     logger.info(f"  Namespace: {settings.temporal_namespace}")
     logger.info(f"  Task Queue: {settings.temporal_task_queue}")
     
+    # Create shutdown event
+    shutdown_event = asyncio.Event()
+    
+    # Set up async signal handlers for graceful shutdown
+    def signal_handler(signum):
+        logger.info(f"Received signal {signum}, shutting down...")
+        shutdown_event.set()
+    
+    # Register signal handlers using asyncio loop
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, lambda s=sig: signal_handler(s))
+    
+    worker = None
     try:
         # Start the worker
         worker = await run_policy_documentation_worker(settings=settings)
         
-        # Set up signal handlers for graceful shutdown
-        def signal_handler(signum, frame):
-            logger.info(f"Received signal {signum}, shutting down...")
-            sys.exit(0)
-        
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-        
         logger.info("Policy Documentation worker is running. Press Ctrl+C to stop.")
         
-        # Keep the worker running
-        await asyncio.Event().wait()
+        # Wait for shutdown signal
+        await shutdown_event.wait()
         
     except KeyboardInterrupt:
         logger.info("Worker shutdown requested by user")
@@ -90,6 +96,12 @@ async def main():
         logger.error(f"Error running Policy Documentation worker: {e}", exc_info=True)
         sys.exit(1)
     finally:
+        if worker:
+            logger.info("Shutting down worker...")
+            try:
+                await worker.shutdown()
+            except Exception as e:
+                logger.error(f"Error during worker shutdown: {e}")
         logger.info("Policy Documentation worker shutdown complete")
 
 
