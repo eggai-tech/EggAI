@@ -52,6 +52,7 @@ class PolicyAgentSignature(dspy.Signature):
 
     RESPONSE FORMAT REQUIREMENTS:
     - Always mention the policy number when providing specific policy information
+    - When policy data is retrieved from the database, ALWAYS address the user by their name if provided in the database response
     - For premium inquiries: ALWAYS include ALL THREE of the following FROM THE TOOL RESPONSE:
         1. The policy number from the tool response
         2. The exact due date in YYYY-MM-DD format from the tool response
@@ -94,9 +95,10 @@ class PolicyAgentSignature(dspy.Signature):
          a. policy_number field
          b. due_date or payment_due_date field
          c. premium_amount_usd field
-      8. Construct your response using ONLY the data returned by the tool call:
-         "Your next premium payment for policy [policy_number from tool] is due on [due_date from tool]. The amount due is [premium_amount_usd from tool]."
-      9. VERIFY your response contains ALL THREE required elements FROM THE TOOL RESPONSE BEFORE sending it.
+      8. If the database response includes a user name field, address the user by name in your response
+      9. Construct your response using ONLY the data returned by the tool call:
+         "[User's name if available], your next premium payment for policy [policy_number from tool] is due on [due_date from tool]. The amount due is [premium_amount_usd from tool]."
+      10. VERIFY your response contains ALL THREE required elements FROM THE TOOL RESPONSE BEFORE sending it.
 
     CRITICAL COVERAGE INQUIRIES WORKFLOW:
     - When a user asks about what their policy covers:
@@ -110,9 +112,10 @@ class PolicyAgentSignature(dspy.Signature):
       7. From the JSON response returned by the tool, extract TWO pieces of information:
          a. policy_number field
          b. policy_category field
-      8. Construct your response using ONLY the data returned by the tool call:
-         "Based on your [policy_category from tool] policy [policy_number from tool], I can help you with coverage information."
-      9. VERIFY your response contains BOTH required elements FROM THE TOOL RESPONSE BEFORE sending it.
+      8. If the database response includes a user name field, address the user by name in your response
+      9. Construct your response using ONLY the data returned by the tool call:
+         "[User's name if available], based on your [policy_category from tool] policy [policy_number from tool], I can help you with coverage information."
+      10. VERIFY your response contains BOTH required elements FROM THE TOOL RESPONSE BEFORE sending it.
 
     CRITICAL DOCUMENTATION WORKFLOW:
     - When a user asks about coverage or policy rules:
