@@ -14,6 +14,11 @@ import asyncio
 import signal
 import sys
 
+from agents.policies.rag.documentation_temporal_client import (
+    DocumentationTemporalClient,
+)
+from agents.policies.rag.indexing import get_policy_content
+from agents.policies.rag.workflows.ingestion_workflow import DocumentData
 from agents.policies.rag.workflows.worker import (
     PolicyDocumentationWorkerSettings,
     run_policy_documentation_worker,
@@ -28,68 +33,128 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Start the Policy RAG Temporal worker",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+        epilog=__doc__,
     )
-    
+
     parser.add_argument(
         "--server-url",
         default="localhost:7233",
-        help="Temporal server URL (default: localhost:7233)"
+        help="Temporal server URL (default: localhost:7233)",
     )
-    
+
     parser.add_argument(
-        "--namespace",
-        default="default",
-        help="Temporal namespace (default: default)"
+        "--namespace", default="default", help="Temporal namespace (default: default)"
     )
-    
+
     parser.add_argument(
         "--task-queue",
         default="policy-rag",
-        help="Temporal task queue name (default: policy-rag)"
+        help="Temporal task queue name (default: policy-rag)",
     )
-    
+
     return parser.parse_args()
+
+
+async def trigger_initial_document_ingestion(
+    settings: PolicyDocumentationWorkerSettings,
+):
+    """Trigger initial document ingestion for all 4 policy documents."""
+    logger.info("Starting initial document ingestion for all 4 policies...")
+
+    # Select all 4 documents to ingest (auto, home, health, life)
+    policy_ids = ["auto", "home", "health", "life"]
+
+    try:
+        # Prepare document data
+        documents = []
+        for policy_id in policy_ids:
+            content = get_policy_content(policy_id)
+            documents.append(
+                DocumentData(
+                    content=content,
+                    document_id=policy_id,
+                    category=policy_id,
+                    filename=f"{policy_id}.md",
+                )
+            )
+
+        # Create client with same settings as worker
+        client = DocumentationTemporalClient(
+            temporal_server_url=settings.temporal_server_url,
+            temporal_namespace=settings.temporal_namespace,
+            temporal_task_queue=settings.temporal_task_queue,
+        )
+
+        # Trigger ingestion workflow (idempotent - won't rebuild if documents exist)
+        logger.info(f"Triggering ingestion workflow for {len(documents)} documents...")
+        result = await client.ingest_documents_async(
+            documents=documents,
+            force_rebuild=False,  # Make it idempotent
+            validate_first=True,
+        )
+
+        if result.success:
+            if result.skipped:
+                logger.info(f"Initial document ingestion skipped: {result.skip_reason}")
+                logger.info(
+                    f"Existing documents found: {result.total_documents_indexed}"
+                )
+            else:
+                logger.info("Initial document ingestion completed successfully!")
+                logger.info(f"Documents processed: {result.documents_processed}")
+                logger.info(
+                    f"Total documents indexed: {result.total_documents_indexed}"
+                )
+        else:
+            logger.error(f"Initial document ingestion failed: {result.error_message}")
+
+        await client.close()
+
+    except Exception as e:
+        logger.error(f"Error during initial document ingestion: {e}", exc_info=True)
 
 
 async def main():
     """Main function to start the worker."""
     args = parse_args()
-    
+
     # Create worker settings
     settings = PolicyDocumentationWorkerSettings()
     settings.temporal_server_url = args.server_url
     settings.temporal_namespace = args.namespace
     settings.temporal_task_queue = args.task_queue
-    
+
     logger.info("Starting Policy Documentation Temporal worker with settings:")
     logger.info(f"  Server URL: {settings.temporal_server_url}")
     logger.info(f"  Namespace: {settings.temporal_namespace}")
     logger.info(f"  Task Queue: {settings.temporal_task_queue}")
-    
+
     # Create shutdown event
     shutdown_event = asyncio.Event()
-    
+
     # Set up async signal handlers for graceful shutdown
     def signal_handler(signum):
         logger.info(f"Received signal {signum}, shutting down...")
         shutdown_event.set()
-    
+
     # Register signal handlers using asyncio loop
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, lambda s=sig: signal_handler(s))
-    
+
     worker = None
     try:
         # Start the worker
         worker = await run_policy_documentation_worker(settings=settings)
-        
+
         logger.info("Policy Documentation worker is running. Press Ctrl+C to stop.")
-        
+
+        # Trigger initial document ingestion for all 4 policies
+        await trigger_initial_document_ingestion(settings)
+
         # Wait for shutdown signal
         await shutdown_event.wait()
-        
+
     except KeyboardInterrupt:
         logger.info("Worker shutdown requested by user")
     except Exception as e:

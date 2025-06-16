@@ -3,7 +3,6 @@ from typing import Any, Dict, List, Optional
 
 from ragatouille import RAGPretrainedModel
 
-from agents.policies.rag.indexing import ensure_index_built
 from libraries.logger import get_console_logger
 from libraries.tracing import create_tracer
 
@@ -15,13 +14,14 @@ _RAG = None
 
 
 @tracer.start_as_current_span("retrieve_policies")
-def retrieve_policies(query: str, category: Optional[str] = None) -> List[Dict[str, Any]]:
+def retrieve_policies(
+    query: str, category: Optional[str] = None
+) -> List[Dict[str, Any]]:
     global _INDEX_LOADED, _RAG
 
     logger.info(
         f"Retrieving policy information for query: '{query}', category: '{category}'"
     )
-    ensure_index_built()
 
     if not _INDEX_LOADED:
         logger.info("Loading RAG index for the first time")

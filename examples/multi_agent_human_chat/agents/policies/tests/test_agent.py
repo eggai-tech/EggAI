@@ -469,7 +469,10 @@ async def test_policies_agent():
         max_wait_time = 60.0  # Maximum time to wait for all responses
         start_wait = time.perf_counter()
 
-        while collected_responses < len(test_cases) and (time.perf_counter() - start_wait) < max_wait_time:
+        while (
+            collected_responses < len(test_cases)
+            and (time.perf_counter() - start_wait) < max_wait_time
+        ):
             try:
                 event = await asyncio.wait_for(_response_queue.get(), timeout=5.0)
 
@@ -557,16 +560,24 @@ async def test_policies_agent():
                 )
 
         if not evaluation_results:
-            logger.warning(f"No evaluation results collected. Collected {collected_responses} responses out of {len(test_cases)} test cases.")
+            logger.warning(
+                f"No evaluation results collected. Collected {collected_responses} responses out of {len(test_cases)} test cases."
+            )
             # Log which test cases are still pending
             for _, item in pending.items():
-                logger.warning(f"Still pending: {item['case']['id']} (connection_id: {item['connection_id']})")
-            
+                logger.warning(
+                    f"Still pending: {item['case']['id']} (connection_id: {item['connection_id']})"
+                )
+
             # Allow the test to pass if we're in a CI environment and got at least some responses
             if collected_responses == 0:
-                pytest.fail(f"No responses received at all within {max_wait_time}s timeout.")
+                pytest.fail(
+                    f"No responses received at all within {max_wait_time}s timeout."
+                )
             else:
-                logger.warning(f"Partial success: {collected_responses}/{len(test_cases)} responses received.")
+                logger.warning(
+                    f"Partial success: {collected_responses}/{len(test_cases)} responses received."
+                )
                 return  # Exit early but don't fail
 
         overall_precision = sum(e.precision_score for e in evaluation_results) / len(

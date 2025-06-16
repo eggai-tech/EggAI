@@ -75,15 +75,17 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
             from agents.policies.rag.documentation_temporal_client import (
                 DocumentationTemporalClient,
             )
-            
-            logger.info(f"Using Temporal workflow for documentation query: '{query}', category: '{policy_category}'")
-            
+
+            logger.info(
+                f"Using Temporal workflow for documentation query: '{query}', category: '{policy_category}'"
+            )
+
             async def run_temporal_query():
                 client = DocumentationTemporalClient()
                 result = await client.query_documentation_async(query, policy_category)
                 await client.close()
                 return result
-            
+
             # Run the async function in a thread
             def temporal_query():
                 loop = asyncio.new_event_loop()
@@ -92,22 +94,28 @@ def query_policy_documentation(query: str, policy_category: PolicyCategory) -> s
                     return loop.run_until_complete(run_temporal_query())
                 finally:
                     loop.close()
-            
+
             thread = ThreadWithResult(target=temporal_query)
             thread.start()
             result = thread.join()
-            
+
             if result and result.success:
-                logger.info(f"Temporal documentation query successful: {len(result.results)} results")
+                logger.info(
+                    f"Temporal documentation query successful: {len(result.results)} results"
+                )
                 if len(result.results) >= 2:
                     return json.dumps([result.results[0], result.results[1]])
                 return json.dumps(result.results)
             else:
-                logger.warning(f"Temporal documentation query failed: {result.error_message if result else 'No result'}")
+                logger.warning(
+                    f"Temporal documentation query failed: {result.error_message if result else 'No result'}"
+                )
                 raise Exception("Temporal query failed")
-                
+
         except Exception as temporal_error:
-            logger.warning(f"Temporal workflow unavailable for documentation query: {temporal_error}")
+            logger.warning(
+                f"Temporal workflow unavailable for documentation query: {temporal_error}"
+            )
             # Fallback to direct retrieval only for documentation queries
             logger.info("Falling back to direct retrieval for documentation")
             from agents.policies.rag.retrieving import retrieve_policies

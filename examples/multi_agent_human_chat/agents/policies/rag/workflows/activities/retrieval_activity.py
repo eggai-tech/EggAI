@@ -10,16 +10,18 @@ logger = get_console_logger("policies_agent.rag.temporal")
 async def policy_retrieval_activity(query: str, category: str = None) -> list:
     """
     Temporal activity for retrieving policy information.
-    
+
     Args:
         query: The search query
         category: Optional category filter
-        
+
     Returns:
         List of retrieved policy documents
     """
-    logger.info(f"Starting policy retrieval for query: '{query}', category: '{category}'")
-    
+    logger.info(
+        f"Starting policy retrieval for query: '{query}', category: '{category}'"
+    )
+
     try:
         results = retrieve_policies(query, category)
         logger.info(f"Successfully retrieved {len(results)} policy documents")
