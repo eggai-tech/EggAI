@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from docling.chunking import HierarchicalChunker
 from docling_core.types import DoclingDocument

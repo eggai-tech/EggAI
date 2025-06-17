@@ -3,8 +3,8 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
-from temporalio import activity
 from ragatouille import RAGPretrainedModel
+from temporalio import activity
 
 from libraries.logger import get_console_logger
 

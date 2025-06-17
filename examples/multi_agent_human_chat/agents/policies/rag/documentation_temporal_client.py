@@ -1,7 +1,7 @@
 import os
 import re
 import uuid
-from typing import List, Optional
+from typing import Optional
 
 from temporalio.client import Client
 

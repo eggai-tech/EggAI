@@ -63,7 +63,6 @@ async def trigger_initial_document_ingestion(
     policy_ids = ["auto", "home", "health", "life"]
     
     # Policies directory path (relative to the rag module)
-    import os
     from pathlib import Path
     current_dir = Path(__file__).parent
     policies_dir = current_dir / "policies"

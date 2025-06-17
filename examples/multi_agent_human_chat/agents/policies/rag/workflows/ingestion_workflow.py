@@ -5,17 +5,17 @@ from pydantic import BaseModel
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from agents.policies.rag.workflows.activities.document_loading_activity import (
-        load_document_activity,
-    )
     from agents.policies.rag.workflows.activities.document_chunking_activity import (
         chunk_document_activity,
     )
-    from agents.policies.rag.workflows.activities.document_verification_activity import (
-        verify_document_activity,
-    )
     from agents.policies.rag.workflows.activities.document_indexing_activity import (
         index_document_activity,
+    )
+    from agents.policies.rag.workflows.activities.document_loading_activity import (
+        load_document_activity,
+    )
+    from agents.policies.rag.workflows.activities.document_verification_activity import (
+        verify_document_activity,
     )
 
 
