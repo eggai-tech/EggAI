@@ -13,11 +13,42 @@ if os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
     os.environ['TORCH_EXTENSIONS_DIR'] = '/tmp/torch_extensions_clean'
     os.environ['COLBERT_LOAD_TORCH_EXTENSION_VERBOSE'] = 'True'  # Enable verbose for debugging
     
-    # Ensure CUDA libraries are properly linked
-    os.environ['LD_LIBRARY_PATH'] = os.environ.get('LD_LIBRARY_PATH', '') + ':/usr/local/cuda/lib64'
-    
-    # Allow recompilation of extensions if needed
+    # Force complete rebuild of extensions
     os.environ['TORCH_EXTENSION_RECOMPILE'] = '1'
+    os.environ['TORCH_EXTENSION_FORCE_REBUILD'] = '1'
+    
+    # Ensure CUDA libraries are properly linked
+    cuda_lib_paths = [
+        '/usr/local/cuda/lib64',
+        '/usr/local/cuda/lib',
+        '/opt/cuda/lib64',
+        '/usr/lib/x86_64-linux-gnu'
+    ]
+    current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
+    os.environ['LD_LIBRARY_PATH'] = current_ld_path + ':' + ':'.join(cuda_lib_paths)
+    
+    # Additional environment variables for shared library loading
+    os.environ['LIBRARY_PATH'] = os.environ.get('LIBRARY_PATH', '') + ':' + ':'.join(cuda_lib_paths)
+    
+    # Additional torch compilation flags for CI stability
+    os.environ['TORCH_COMPILE_DEBUG'] = '1'
+    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+    os.environ['TORCH_USE_CUDA_DSA'] = '1'
+    
+    # Ensure proper C++ compiler flags
+    os.environ['CXXFLAGS'] = os.environ.get('CXXFLAGS', '') + ' -fPIC'
+    os.environ['LDFLAGS'] = os.environ.get('LDFLAGS', '') + ' -Wl,-rpath,' + ':'.join(cuda_lib_paths)
+    
+    # Try to disable problematic extensions if they keep failing
+    import shutil
+    # Clean any existing extension cache
+    if os.path.exists('/tmp/torch_extensions_clean'):
+        shutil.rmtree('/tmp/torch_extensions_clean')
+    if os.path.exists('/home/runner/.cache/torch_extensions'):
+        try:
+            shutil.rmtree('/home/runner/.cache/torch_extensions')
+        except (OSError, PermissionError):
+            pass
 
 import shutil
 from pathlib import Path
@@ -171,13 +202,39 @@ def init_policies_index(force_rebuild: bool = False):
                 if "decompress_residuals_cpp.so" in error_str or "torch_extensions" in error_str:
                     logger.warning("Torch extension loading error detected - this may be due to CUDA environment issues in CI")
                     logger.info("This could be caused by CUDA version mismatches or missing CUDA development libraries")
+                    
+                    # In CI environments, try one more time with extensions completely disabled
+                    if os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
+                        logger.info("Attempting fallback: trying to disable torch extensions completely...")
+                        try:
+                            # Set aggressive environment variables to disable extensions
+                            os.environ['COLBERT_DISABLE_TORCH_EXTENSIONS'] = '1'
+                            os.environ['TORCH_EXTENSION_DISABLE'] = '1'
+                            os.environ['CUDA_VISIBLE_DEVICES'] = ''
+                            
+                            # Try to create a new RAG instance with disabled extensions
+                            r_fallback = RAGPretrainedModel.from_pretrained(
+                                "colbert-ir/colbertv2.0", 
+                                index_root=str(index_root)
+                            )
+                            r_fallback.index(
+                                index_name="policies_index",
+                                collection=policies_content,
+                                document_ids=policy_ids,
+                                document_metadatas=document_metadata,
+                                use_faiss=False,
+                            )
+                            indexing_success = True
+                            logger.info("Successfully built index with torch extensions disabled")
+                        except Exception as fallback_e:
+                            logger.warning(f"Fallback attempt also failed: {fallback_e}")
                 
                 # In CI environments, don't fail the build - let tests use empty retrieval
-                if os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
+                if not indexing_success and (os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS')):
                     logger.warning("Index creation failed in CI GPU environment, tests will continue with empty retrieval")
                     logger.info("Consider checking CUDA installation and torch extension compatibility")
                     return False
-                else:
+                elif not indexing_success:
                     raise Exception(f"Index creation failed: {plaid_e}")
         
         if not indexing_success:
@@ -190,6 +247,9 @@ def init_policies_index(force_rebuild: bool = False):
         logger.error(f"Failed to initialize policies RAG index: {e}", exc_info=True)
         return False
 
+
+# Alias for backward compatibility
+init_index = init_policies_index
 
 if __name__ == "__main__":
     import argparse
