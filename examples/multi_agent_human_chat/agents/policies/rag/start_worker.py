@@ -11,6 +11,7 @@ Example:
 
 import argparse
 import asyncio
+import os
 import signal
 import sys
 
@@ -121,6 +122,12 @@ async def trigger_initial_document_ingestion(
 async def main():
     """Main function to start the worker."""
     args = parse_args()
+
+    # Log CI environment detection
+    if os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
+        logger.info("CI environment detected in worker process")
+    else:
+        logger.info("Local development environment detected")
 
     # Create worker settings
     settings = PolicyDocumentationWorkerSettings()

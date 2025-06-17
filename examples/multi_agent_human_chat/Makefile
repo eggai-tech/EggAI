@@ -84,7 +84,7 @@ test-policies-agent:
 	@echo "Initializing Policy RAG index..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/init_index.py || true
 	@echo "Starting Policy Documentation Temporal Worker in background..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py & \
+	@source $(VENV_DIR)/bin/activate && CI=$(CI) GITHUB_ACTIONS=$(GITHUB_ACTIONS) PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py & \
 	WORKER_PID=$$!; \
 	sleep 5; \
 	echo "Running pytest with temporal worker running..."; \
