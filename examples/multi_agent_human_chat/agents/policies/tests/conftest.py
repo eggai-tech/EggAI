@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 
 import pytest
 
@@ -10,3 +11,23 @@ def event_loop():
     asyncio.set_event_loop(loop)
     yield loop
     loop.close()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ensure_rag_index():
+    """Ensure the RAG index is initialized before running tests."""
+    from agents.policies.rag.init_index import init_policies_index
+    
+    # Check if index exists
+    current_dir = Path(__file__).parent.parent / "rag"
+    index_path = current_dir / ".ragatouille" / "colbert" / "indexes" / "policies_index"
+    metadata_path = index_path / "metadata.json"
+    
+    if not index_path.exists() or not metadata_path.exists():
+        print("RAG index not found, initializing...")
+        success = init_policies_index(force_rebuild=False)
+        if not success:
+            pytest.fail("Failed to initialize RAG index")
+        print("RAG index initialized successfully")
+    else:
+        print("RAG index already exists")

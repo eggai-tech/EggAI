@@ -31,7 +31,13 @@ def retrieve_policies(
         index_path = os.path.abspath(
             os.path.join(index_root, "colbert", "indexes", "policies_index")
         )
+        metadata_path = os.path.join(index_path, "metadata.json")
         logger.debug(f"Using index path: {index_path}")
+
+        # Check if index exists
+        if not os.path.exists(index_path) or not os.path.exists(metadata_path):
+            logger.error(f"RAG index not found at {index_path}. Please run: python agents/policies/rag/init_index.py")
+            raise FileNotFoundError(f"RAG index not found. Index path: {index_path}, Metadata exists: {os.path.exists(metadata_path)}")
 
         try:
             _RAG = RAGPretrainedModel.from_index(index_path)
@@ -39,6 +45,9 @@ def retrieve_policies(
             logger.info("RAG index loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load RAG index: {e}", exc_info=True)
+            logger.error(f"Index path: {index_path}")
+            logger.error(f"Index exists: {os.path.exists(index_path)}")
+            logger.error(f"Metadata exists: {os.path.exists(metadata_path)}")
             raise
 
     try:

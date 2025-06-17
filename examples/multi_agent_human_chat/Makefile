@@ -81,10 +81,12 @@ test-frontend-agent:
 
 test-policies-agent:
 	@echo "Running tests for policies agent..."
+	@echo "Initializing Policy RAG index..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/init_index.py
 	@echo "Starting Policy Documentation Temporal Worker in background..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py & \
 	WORKER_PID=$$!; \
-	sleep 3; \
+	sleep 5; \
 	echo "Running pytest with temporal worker running..."; \
 	$(VENV_DIR)/bin/pytest agents/policies -s \
        --cov=agents.policies --cov-report=xml:coverage.xml --cov-report=term --cov-append \
