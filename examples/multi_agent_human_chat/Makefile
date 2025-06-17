@@ -82,7 +82,7 @@ test-frontend-agent:
 test-policies-agent:
 	@echo "Running tests for policies agent..."
 	@echo "Initializing Policy RAG index..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/init_index.py
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/init_index.py || true
 	@echo "Starting Policy Documentation Temporal Worker in background..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py & \
 	WORKER_PID=$$!; \
