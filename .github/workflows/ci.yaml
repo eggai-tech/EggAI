@@ -139,7 +139,7 @@ jobs:
           make test-libraries
           make test-triage-agent
           make test-escalation-agent
-          # make test-policies-agent
+          make test-policies-agent
           make test-billing-agent
           make test-claims-agent
           make test-frontend-agent
