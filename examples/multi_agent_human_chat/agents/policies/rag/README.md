@@ -414,28 +414,25 @@ class PolicyDocumentationWorkerSettings:
     indexing_timeout_seconds: int = 600
 ```
 
-### RAGatouille Index Configuration
-```python
-# ColBERT index settings in indexing activities
-index_config = {
-    "index_name": "policies_index",
-    "max_document_length": 500,  # tokens per chunk
-    "overlap": 2,  # sentence overlap between chunks
-    "use_faiss": True,  # for faster search
-    "nbits": 2,  # compression level
-}
-```
+## Monitoring & Observability
 
-### ReAct Agent Tuning
-```python
-# agents/policies/dspy_modules/policies.py
-policies_model = TracedReAct(
-    PolicyAgentSignature,
-    tools=[get_personal_policy_details, search_policy_documentation],
-    max_iters=5,  # max reasoning steps
-    name="policies_react",
-    tracer=policies_tracer,
-)
+### Temporal Web UI
+Monitor workflow execution at: **http://localhost:8081**
+
+- View running workflows
+- Inspect workflow history
+- Debug failed executions
+- Monitor worker health
+
+### Logging
+Structured logging with correlation IDs:
+
+```bash
+# Worker logs
+make start-policy-documentation-worker
+
+# Test system health  
+python agents/policies/rag/test_simple_documentation.py
 ```
 
 ## 🔧 Development & Extension
