@@ -1,344 +1,484 @@
-# Policy RAG with Temporal Workflows
+# Multi-Agent Policy System: Temporal + RAG + ReAct Architecture
 
-A sophisticated Retrieval-Augmented Generation (RAG) system for insurance policy documents, leveraging Temporal workflows for robust documentation query orchestration and RAGatouille for high-performance semantic search.
+A sophisticated insurance policy system combining **Temporal workflows** for durable document ingestion, **RAGatouille/ColBERT** for semantic search, and **DSPy ReAct agents** for intelligent policy assistance.
 
-## Why RAG + Temporal?
+## 🏗️ System Architecture Overview
 
-### The Challenge of Long-Running RAG Workflows
-
-Traditional RAG systems face several challenges when dealing with complex, multi-step retrieval and generation workflows:
-
-- **Network Failures**: Long-running processes can fail due to network interruptions
-- **Resource Constraints**: Memory limitations during large document processing
-- **Error Recovery**: Difficult to resume workflows from failure points
-- **Observability**: Limited visibility into multi-step retrieval pipelines
-- **Scalability**: Hard to distribute processing across multiple workers
-
-### Temporal's Solution for RAG
-
-Temporal provides a **durable execution platform** that makes RAG workflows:
-
-- **🔄 Fault-Tolerant**: Automatic retries and state recovery
-- **👀 Observable**: Complete visibility into workflow execution
-- **⚡ Scalable**: Distribute work across multiple workers
-- **🎯 Reliable**: Guaranteed execution even with failures
-- **📊 Auditable**: Full history of all workflow steps
-
-## RAGatouille: State-of-the-Art Retrieval
-
-This system uses [RAGatouille](https://github.com/bclavie/RAGatouille), a powerful retrieval library built on **ColBERT** (Contextualized Late Interaction over BERT):
-
-### Why RAGatouille?
-- **🚀 Performance**: ColBERT's late interaction mechanism provides superior relevance
-- **💾 Efficiency**: Compressed embeddings reduce storage requirements
-- **🎯 Accuracy**: Better semantic understanding compared to traditional embeddings
-- **⚖️ Scalable**: Handles large document collections efficiently
-
-### ColBERT Architecture
-ColBERT uses a unique "late interaction" approach:
-1. **Query Encoding**: Encodes queries into contextualized embeddings
-2. **Document Encoding**: Pre-computes document embeddings offline
-3. **Late Interaction**: Performs fine-grained matching at query time
-4. **Result Ranking**: Provides highly relevant results with fast retrieval
-
-## System Architecture
-
-### Two-Tier Retrieval Strategy
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Policy RAG System                        │
-├─────────────────────────────────────────────────────────────┤
-│  Simple Queries          │  Complex Documentation Queries   │
-│                          │                                   │
-│  retrieve_policies()     │  query_policy_documentation()     │
-│  ↓                       │  ↓                                │
-│  RAGatouille             │  Temporal Workflow                │
-│  (Direct)                │  ↓                                │
-│                          │  RAGatouille + Orchestration      │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "Document Ingestion (Temporal)"
+        A[Policy Documents] --> B[Verification Activity]
+        B --> C[DocLing Loading Activity] 
+        C --> D[Hierarchical Chunking Activity]
+        D --> E[ColBERT Indexing Activity]
+        E --> F[RAGatouille Index]
+    end
+    
+    subgraph "Query Processing (DSPy ReAct)"
+        G[User Query] --> H[Policy Agent]
+        H --> I{Query Type?}
+        I -->|Personal Data| J[get_personal_policy_details]
+        I -->|General Info| K[search_policy_documentation]
+        J --> L[(Policy Database)]
+        K --> F
+        F --> M[Retrieved Documents]
+        M --> N[Contextualized Response]
+    end
+    
+    subgraph "Observability"
+        O[OpenTelemetry Traces]
+        P[Temporal UI]
+        Q[Tool Call Chain]
+    end
+    
+    H --> O
+    B --> P
+    J --> Q
+    K --> Q
 ```
 
-### Core Components
+## 🚀 Why This Architecture?
 
-#### 1. **RAGatouille Retrieval Engine** (`retrieving.py`)
-- **ColBERT-powered search** for semantic document retrieval
-- **Index management** with automatic loading and caching
-- **Category filtering** for targeted policy searches
-- **High-performance** direct queries without workflow overhead
+### Temporal for Ingestion: Durable Long-Running Processes
 
-#### 2. **Temporal Documentation Workflows** (`workflows/`)
-For complex, long-running documentation queries that benefit from:
-- **Fault tolerance** during multi-step retrieval processes
-- **State persistence** across workflow steps  
-- **Retry mechanisms** for transient failures
-- **Distributed execution** across worker nodes
+Document ingestion involves multiple complex steps that can fail:
+- **PDF parsing** with DocLing can timeout on large documents
+- **Chunking operations** require significant memory for hierarchical processing  
+- **ColBERT indexing** is CPU-intensive and can take minutes for large collections
+- **Network failures** during index uploads to distributed storage
 
-**Components:**
-- `documentation_workflow.py` - Orchestrates complex documentation retrieval
-- `retrieval_activity.py` - Temporal activity wrapping RAGatouille calls
-- `worker.py` - Temporal worker handling documentation workflows
+**Temporal provides:**
+- ✅ **Automatic retries** with exponential backoff
+- ✅ **State persistence** - resume from any failed step
+- ✅ **Fault tolerance** - survive worker crashes and restarts
+- ✅ **Observability** - complete audit trail of ingestion processes
+- ✅ **Scalability** - distribute activities across multiple workers
 
-#### 3. **Smart Query Router** (`policies_data.py`)
-The `query_policy_documentation()` function intelligently routes queries:
+### ReAct for Intelligence: Tool-Using AI Agents
+
+Traditional chatbots can't reliably choose between different data sources. Our ReAct agent:
+
+- 🧠 **Reasons about query intent** - personal vs. general policy questions
+- 🔧 **Selects appropriate tools** - database lookup vs. document search  
+- 📝 **Maintains conversation context** - builds on previous interactions
+- 🔄 **Iterates when needed** - can call multiple tools in sequence
+- 📊 **Provides citations** - includes document references and metadata
+
+## 📋 Document Ingestion Pipeline
+
+### Temporal Workflow: 4-Stage Processing
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant W as Temporal Workflow
+    participant V as Verification Activity
+    participant L as Loading Activity
+    participant CH as Chunking Activity
+    participant I as Indexing Activity
+    participant R as RAGatouille Index
+    
+    C->>W: Start ingestion (file_path, category)
+    W->>V: Check existing documents
+    V-->>W: Skip if already exists
+    W->>L: Load with DocLing
+    L-->>W: Structured document
+    W->>CH: Hierarchical chunking
+    CH-->>W: Document chunks
+    W->>I: Index with ColBERT
+    I->>R: Store embeddings
+    I-->>W: Indexing complete
+    W-->>C: Final result with metadata
+```
+
+### Stage Details
+
+#### 1. Document Verification Activity
 ```python
-# First: Attempt Temporal workflow (for reliability)
-# Fallback: Direct RAGatouille retrieval (for availability)
+# agents/policies/rag/workflows/activities/document_verification_activity.py
+def verify_document_activity(input: DocumentVerificationInput) -> DocumentVerificationResult:
+    """
+    - Checks docid_metadata_map.json for existing chunks
+    - Supports force_rebuild to skip verification  
+    - Prevents duplicate processing of same documents
+    """
 ```
 
-### When to Use Each Approach
+#### 2. Document Loading Activity  
+```python
+# agents/policies/rag/workflows/activities/document_loading_activity.py  
+def load_document_activity(input: DocumentLoadingInput) -> DocumentLoadingResult:
+    """
+    - Uses DocLing DocumentConverter for PDF/markdown parsing
+    - Extracts structured content with page metadata
+    - Handles various document formats (PDF, MD, DOCX)
+    """
+```
 
-| Use Case | Method | Why |
-|----------|--------|-----|
-| **Quick policy lookups** | `retrieve_policies()` | Fast, direct access |
-| **Complex documentation queries** | `query_policy_documentation()` | Fault-tolerant, auditable |
-| **High-volume simple searches** | Direct RAGatouille | Low latency, no overhead |
-| **Multi-step analysis workflows** | Temporal workflow | Durable, observable, scalable |
+#### 3. Document Chunking Activity
+```python
+# agents/policies/rag/workflows/activities/document_chunking_activity.py
+def chunk_document_activity(input: DocumentChunkingInput) -> DocumentChunkingResult:
+    """
+    - DocLing HierarchicalChunker with GPT-2 tokenizer
+    - Config: max_tokens=500, min_tokens=100, overlap_sentences=2
+    - Respects sentence boundaries for semantic coherence
+    """
+```
 
-## Benefits of This Hybrid Approach
+#### 4. Document Indexing Activity
+```python
+# agents/policies/rag/workflows/activities/document_indexing_activity.py
+def index_document_activity(input: DocumentIndexingInput) -> DocumentIndexingResult:
+    """
+    - RAGatouille with ColBERT-v2.0 dense retrieval
+    - Stores in .ragatouille/colbert/indexes/{index_name}
+    - Metadata: category, type, chunk_index, source, original_file
+    """
+```
 
-### ⚡ **Performance**
-- Simple queries: Direct RAGatouille access (sub-second response)
-- Complex queries: Temporal orchestration (reliable execution)
+## 🤖 ReAct Agent: Tool-Using Intelligence
 
-### 🛡️ **Reliability** 
-- Documentation workflows survive failures and resume automatically
-- Direct retrieval provides immediate fallback for availability
+### Agent Architecture
 
-### 📊 **Observability**
-- Temporal UI shows complete workflow execution history
-- Detailed logging for both direct and workflow-based retrieval
+```mermaid
+graph LR
+    subgraph "DSPy ReAct Agent"
+        A[User Query] --> B[Intent Analysis]
+        B --> C{Personal or General?}
+        
+        C -->|Personal| D[get_personal_policy_details]
+        C -->|General| E[search_policy_documentation]
+        
+        D --> F[(Policy Database)]
+        E --> G[RAG Search]
+        
+        F --> H[Response Synthesis]
+        G --> H
+        H --> I[Final Response]
+    end
+    
+    subgraph "Internal Trajectory"
+        J[Thought: Analyze query type]
+        K[Action: Call appropriate tool]
+        L[Observation: Tool result]
+        M[Thought: Synthesize response]
+        
+        J --> K --> L --> M
+    end
+```
 
-### 🎯 **Scalability**
-- Direct retrieval scales with RAGatouille's performance
-- Temporal workflows distribute across multiple workers
+### Tool Calling Chain & Trajectory
 
-## Quick Start
+The ReAct agent maintains an internal **trajectory** of reasoning steps:
 
-### 1. Launch the Complete System
+```python
+# Example internal trajectory for: "What's my premium for A12345?"
 
+trajectory = [
+    {
+        "step": 1,
+        "type": "thought", 
+        "content": "User asking about premium for policy A12345. This is personal policy data requiring policy lookup."
+    },
+    {
+        "step": 2,
+        "type": "action",
+        "tool": "get_personal_policy_details",
+        "input": {"policy_number": "A12345"}
+    },
+    {
+        "step": 3, 
+        "type": "observation",
+        "content": '{"policy_number": "A12345", "name": "John Doe", "premium_amount_usd": "$500.00", "due_date": "2026-03-01"}'
+    },
+    {
+        "step": 4,
+        "type": "thought",
+        "content": "I have the policy details. Need to format response with name, amount, and date."
+    },
+    {
+        "step": 5,
+        "type": "final_response", 
+        "content": "Hello John Doe, your premium for policy A12345 is $500.00 and it's due on 2026-03-01."
+    }
+]
+```
+
+### Decision Logic Implementation
+
+```python
+# agents/policies/dspy_modules/policies.py - PolicyAgentSignature
+class PolicyAgentSignature(dspy.Signature):
+    """
+    DECISION LOGIC - Choose the right tool:
+
+    PERSONAL POLICY QUERIES (use get_personal_policy_details):
+    - User asks about "my policy" AND provides policy number (A12345)
+    - Questions about premium payments, due dates, personal details
+    - REQUIRED: Policy number must be in current message
+
+    GENERAL POLICY QUESTIONS (use search_policy_documentation):  
+    - User asks about coverage, policy rules, what's covered
+    - No personal policy number needed or provided
+    - Examples: "What does fire damage cover?", "How does auto insurance work?"
+    """
+```
+
+### Tool Implementations
+
+#### Personal Policy Tool
+```python
+# agents/policies/dspy_modules/policies_data.py
+def get_personal_policy_details(policy_number: str) -> str:
+    """
+    - Retrieves specific policy data from in-memory database
+    - Returns JSON with policy_number, name, category, premium, due_date
+    - Used for: premium inquiries, payment dates, personal policy info
+    """
+```
+
+#### Documentation Search Tool  
+```python
+def search_policy_documentation(query: str, category: str = None) -> str:
+    """
+    - Calls RAGatouille via threading for async compatibility
+    - Searches indexed policy documents with semantic matching
+    - Returns top 2 results with content, scores, and metadata
+    - Used for: coverage questions, policy explanations, general info
+    """
+```
+
+## 🔍 RAG System: ColBERT Semantic Search
+
+### RAGatouille Integration
+
+```mermaid
+graph TB
+    subgraph "RAG Search Process"
+        A[Query: 'fire damage coverage'] --> B[ColBERT Query Encoding]
+        B --> C[Late Interaction Matching]
+        C --> D[Ranked Document Chunks]
+        D --> E[Category Filtering]
+        E --> F[Top Results with Scores]
+    end
+    
+    subgraph "Index Structure"
+        G[home_chunk_1: Fire coverage details]
+        H[home_chunk_2: Exclusions and limits] 
+        I[auto_chunk_1: Vehicle fire damage]
+        J[life_chunk_1: Policy benefits]
+        
+        G --> K[ColBERT Embeddings]
+        H --> K
+        I --> K  
+        J --> K
+    end
+    
+    C --> K
+```
+
+### Retrieval Implementation
+
+```python
+# agents/policies/rag/retrieving.py
+def retrieve_policies(query: str, category: str = None) -> List[Dict]:
+    """
+    ColBERT-powered semantic search:
+    
+    1. Lazy load RAGatouille index on first query
+    2. Execute semantic search with ColBERT late interaction  
+    3. Filter results by category if specified
+    4. Return ranked results with:
+       - content: Document chunk text
+       - score: Relevance score (0-100)  
+       - document_id: Unique chunk identifier
+       - document_metadata: Category, type, source file
+    """
+```
+
+### Search Result Format
+```json
+[
+  {
+    "content": "The Insurer agrees to indemnify the Insured for loss or damage to the insured property arising from fire...",
+    "score": 19.55415153503418,
+    "rank": 1,
+    "document_id": "home_chunk_4", 
+    "passage_id": 38,
+    "document_metadata": {
+      "category": "home",
+      "type": "policy", 
+      "chunk_index": 4,
+      "source": "document_converter",
+      "original_file": "home.md"
+    }
+  }
+]
+```
+
+## 🚀 Getting Started
+
+### 1. Start Complete System
 ```bash
 make start
 ```
 
-This starts:
-- **Temporal Server** (orchestration platform)
-- **Policy Documentation Worker** (handles complex queries)
-- **All Insurance Agents** (including policies agent)
-- **Supporting Services** (PostgreSQL, monitoring, etc.)
+This launches:
+- **Temporal Server** (workflow orchestration)
+- **Policy Documentation Worker** (ingestion activities) 
+- **All Insurance Agents** (including policies ReAct agent)
+- **Supporting Services** (PostgreSQL, monitoring)
 
-### 2. Verify RAGatouille Index
-
-The system automatically builds the ColBERT index on first use:
-
+### 2. Verify System Health
 ```bash
+# Test ingestion workflow
 python agents/policies/rag/test_simple_documentation.py
+
+# Test ReAct agent  
+python -c "
+from agents.policies.dspy_modules.policies import policies_model
+result = policies_model(chat_history='User: What does fire damage cover?')
+print(result.final_response)
+"
 ```
 
-### 3. Usage Examples
+### 3. Example Usage Patterns
 
-#### Simple Policy Retrieval (Direct RAGatouille)
+#### Personal Policy Queries
 ```python
-from agents.policies.rag.retrieving import retrieve_policies
-
-# Fast, direct semantic search
-results = retrieve_policies("fire damage coverage", category="home")
-# Returns: List of relevant policy documents with scores
+# Query requiring policy number - uses database lookup
+query = "User: What's my premium for policy A12345?"
+result = policies_model(chat_history=query)
+# Response: "Hello John Doe, your premium for policy A12345 is $500.00..."
 ```
 
-#### Complex Documentation Queries (Temporal + RAGatouille)
+#### General Policy Questions
+```python  
+# Query about coverage - uses RAG search
+query = "User: What does fire damage cover in home insurance?"
+result = policies_model(chat_history=query)
+# Response: "According to our Standard Home Insurance Policy, the Insurer agrees to indemnify..."
+```
+
+#### Privacy Protection
 ```python
-from agents.policies.dspy_modules.policies_data import query_policy_documentation
-
-# Fault-tolerant workflow execution
-docs = query_policy_documentation("coverage exclusions and limitations", "auto")
-# Returns: JSON-formatted documentation with citations
+# Query without policy number - asks for it
+query = "User: What's my premium payment?"  
+result = policies_model(chat_history=query)
+# Response: "To provide your personal policy information, I need your policy number..."
 ```
 
-## Advanced Usage
+## 📊 Observability & Monitoring
 
-### Manual Worker Management
+### Temporal Workflow Monitoring
+- **Web UI**: http://localhost:8081
+- **Workflow History**: Complete execution trace for each ingestion
+- **Activity Status**: Real-time progress of verification, loading, chunking, indexing
+- **Error Details**: Stack traces and retry attempts for failed activities
 
-Start only the documentation worker:
-```bash
-make start-policy-documentation-worker
-```
-
-With custom Temporal configuration:
-```bash
-python agents/policies/rag/start_worker.py \
-  --server-url temporal.company.com:7233 \
-  --namespace production \
-  --task-queue policy-documentation
-```
-
-### Direct Temporal Client Usage
-
-For building custom workflows on top of the documentation system:
-
+### ReAct Agent Tracing  
 ```python
-import asyncio
-from agents.policies.rag.documentation_temporal_client import DocumentationTemporalClient
+# OpenTelemetry spans capture:
+# - Tool selection reasoning
+# - Tool call inputs/outputs  
+# - LM prompts and responses
+# - Final response synthesis
 
-async def complex_analysis():
-    client = DocumentationTemporalClient()
-    
-    # Execute with full workflow observability
-    result = await client.query_documentation_async(
-        query="multi-policy coverage interactions",
-        policy_category="auto",
-        request_id="analysis-001"
-    )
-    
-    if result.success:
-        print(f"Found {len(result.results)} relevant documents")
-        return result.results
-    else:
-        print(f"Workflow failed: {result.error_message}")
-        return []
-    
-    await client.close()
-
-# Run the async function
-results = asyncio.run(complex_analysis())
+with tracer.start_as_current_span("policies_react") as span:
+    span.set_attribute("query_type", "personal_policy")
+    span.set_attribute("tools_called", ["get_personal_policy_details"])
+    span.set_attribute("policy_number", "A12345")
 ```
 
-## API Reference
+### Key Metrics
+- **Ingestion Success Rate**: >99% with Temporal retries
+- **Tool Selection Accuracy**: Correct tool chosen for query type
+- **RAG Retrieval Latency**: 50-200ms for semantic search
+- **End-to-End Response Time**: <2s for database, <5s for RAG queries
 
-### Core Functions
+## 🏗️ Advanced Configuration
 
-#### `retrieve_policies(query, category=None)`
-Direct RAGatouille-powered retrieval for simple, fast queries.
-
+### Temporal Workflows
 ```python
-from agents.policies.rag.retrieving import retrieve_policies
-
-results = retrieve_policies(
-    query="fire damage coverage",    # Search query
-    category="home"                  # Optional: "auto", "home", "life", "health"
-)
-# Returns: List[Dict] with document content and metadata
-```
-
-#### `query_policy_documentation(query, policy_category)`
-Temporal workflow-orchestrated retrieval for complex documentation queries.
-
-```python
-from agents.policies.dspy_modules.policies_data import query_policy_documentation
-
-docs = query_policy_documentation(
-    query="coverage exclusions and limitations",
-    policy_category="auto"           # Required: policy category
-)
-# Returns: JSON string with formatted documentation results
-```
-
-### Temporal Client (Advanced)
-
-#### `DocumentationTemporalClient`
-Direct access to Temporal workflows for custom integrations.
-
-```python
-from agents.policies.rag.documentation_temporal_client import DocumentationTemporalClient
-
-client = DocumentationTemporalClient(
-    temporal_server_url="localhost:7233",    # Temporal server
-    temporal_namespace="default",            # Temporal namespace  
-    temporal_task_queue="policy-rag"        # Task queue name
-)
-
-# Execute workflow
-result = await client.query_documentation_async(query, category, request_id)
-```
-
-## Configuration
-
-### Temporal Settings
-
-Configure in `workflows/worker.py` or via constructor:
-
-```python
+# agents/policies/rag/workflows/worker.py
 class PolicyDocumentationWorkerSettings:
     temporal_server_url: str = "localhost:7233"
-    temporal_namespace: str = "default" 
+    temporal_namespace: str = "default"
     temporal_task_queue: str = "policy-rag"
+    
+    # Activity retry policies
+    verification_max_attempts: int = 3
+    loading_timeout_seconds: int = 300  
+    chunking_max_attempts: int = 5
+    indexing_timeout_seconds: int = 600
 ```
 
-### RAGatouille Index
-
-The ColBERT index is built automatically from policy documents in:
-- `agents/policies/rag/policies/` (markdown files)
-
-To rebuild the index:
+### RAGatouille Index Configuration
 ```python
-from agents.policies.rag.indexing import ensure_index_built
-ensure_index_built(force_rebuild=True)
+# ColBERT index settings in indexing activities
+index_config = {
+    "index_name": "policies_index",
+    "max_document_length": 500,  # tokens per chunk
+    "overlap": 2,  # sentence overlap between chunks
+    "use_faiss": True,  # for faster search
+    "nbits": 2,  # compression level
+}
 ```
 
-## Monitoring & Observability
-
-### Temporal Web UI
-Monitor workflow execution at: **http://localhost:8081**
-
-- View running workflows
-- Inspect workflow history
-- Debug failed executions
-- Monitor worker health
-
-### Logging
-Structured logging with correlation IDs:
-
-```bash
-# Worker logs
-make start-policy-documentation-worker
-
-# Test system health  
-python agents/policies/rag/test_simple_documentation.py
+### ReAct Agent Tuning
+```python
+# agents/policies/dspy_modules/policies.py
+policies_model = TracedReAct(
+    PolicyAgentSignature,
+    tools=[get_personal_policy_details, search_policy_documentation],
+    max_iters=5,  # max reasoning steps
+    name="policies_react",
+    tracer=policies_tracer,
+)
 ```
 
-### Metrics
-Key metrics to monitor:
-- **Direct retrieval latency**: Sub-second for most queries
-- **Workflow success rate**: Should be >99% with retries
-- **Fallback frequency**: Indicates Temporal health
-- **Index query performance**: ColBERT search times
+## 🔧 Development & Extension
 
-## Production Deployment
+### Adding New Document Types
+1. **Create policy markdown** in `agents/policies/rag/policies/`
+2. **Update category enum** in type definitions
+3. **Run ingestion** with new category parameter
+4. **Test retrieval** with category filtering
 
-### Scaling Considerations
+### Custom Activities
+```python
+# agents/policies/rag/workflows/activities/custom_activity.py
+@activity.defn(name="custom_processing")
+async def custom_activity(input: CustomInput) -> CustomResult:
+    # Your custom document processing logic
+    return CustomResult(success=True, processed_count=len(results))
+```
 
-1. **RAGatouille Performance**
-   - Index size scales with document collection
-   - Memory usage: ~2-4GB for large policy sets
-   - Query latency: 50-200ms typical
+### Extended Tool Integration
+```python
+# Add new tools to ReAct agent
+new_tools = [
+    get_personal_policy_details,
+    search_policy_documentation, 
+    calculate_premium_estimates,  # New tool
+    check_claim_status,          # New tool
+]
 
-2. **Temporal Workers**
-   - Scale workers horizontally for documentation query load
-   - Each worker handles ~10-50 concurrent workflows
-   - CPU-bound: prefer more cores over more memory
+policies_model = TracedReAct(
+    PolicyAgentSignature,
+    tools=new_tools,
+    max_iters=8,  # More iterations for complex tool chains
+)
+```
 
-3. **High Availability**
-   - Run multiple Temporal workers across nodes
-   - Direct retrieval provides automatic fallback
-   - Index can be shared across worker instances
+## 🔗 Learn More
 
-### Security
-
-- **Network**: Secure Temporal server communication
-- **Data**: Policy documents contain sensitive information
-- **Access**: Control worker deployment and scaling
-
-### Development
-
-To extend the system:
-
-1. **Add new activities**: Create in `workflows/activities/`
-2. **Extend workflows**: Modify `documentation_workflow.py`
-3. **Custom clients**: Build on `DocumentationTemporalClient`
+- **Temporal Workflows**: [docs.temporal.io](https://docs.temporal.io/)
+- **DSPy ReAct Agents**: [dspy-docs.vercel.app](https://dspy-docs.vercel.app/)  
+- **RAGatouille/ColBERT**: [github.com/bclavie/RAGatouille](https://github.com/bclavie/RAGatouille)
+- **DocLing Document AI**: [ds4sd.github.io/docling](https://ds4sd.github.io/docling/)
 
 ---
 
-**Learn More:**
-- [Temporal Documentation](https://docs.temporal.io/)
-- [RAGatouille GitHub](https://github.com/bclavie/RAGatouille)
-- [ColBERT Paper](https://arxiv.org/abs/2004.12832)
+This architecture demonstrates how **durable workflows**, **semantic search**, and **reasoning agents** can combine to create robust, observable, and intelligent document processing systems.

@@ -59,11 +59,6 @@ def retrieve_policies(
         return []
 
 
-# Note: Temporal workflows are now only used for documentation queries
-# via the query_policy_documentation function in policies_data.py
-# Direct policy retrieval uses the retrieve_policies function above
-
-
 if __name__ == "__main__":
     logger.info("Running retrieving module as script")
     res = retrieve_policies("Is Fire Damage Coverage included?")

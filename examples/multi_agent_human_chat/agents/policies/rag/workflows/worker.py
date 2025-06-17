@@ -4,15 +4,17 @@ from typing import Optional
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from agents.policies.rag.workflows.activities.ingestion_activity import (
-    document_ingestion_activity,
-    validate_documents_activity,
+from agents.policies.rag.workflows.activities.document_loading_activity import (
+    load_document_activity,
 )
-from agents.policies.rag.workflows.activities.retrieval_activity import (
-    policy_retrieval_activity,
+from agents.policies.rag.workflows.activities.document_chunking_activity import (
+    chunk_document_activity,
 )
-from agents.policies.rag.workflows.documentation_workflow import (
-    DocumentationQueryWorkflow,
+from agents.policies.rag.workflows.activities.document_verification_activity import (
+    verify_document_activity,
+)
+from agents.policies.rag.workflows.activities.document_indexing_activity import (
+    index_document_activity,
 )
 from agents.policies.rag.workflows.ingestion_workflow import (
     DocumentIngestionWorkflow,
@@ -65,11 +67,12 @@ async def run_policy_documentation_worker(
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[DocumentationQueryWorkflow, DocumentIngestionWorkflow],
+        workflows=[DocumentIngestionWorkflow],
         activities=[
-            policy_retrieval_activity,
-            document_ingestion_activity,
-            validate_documents_activity,
+            load_document_activity,
+            chunk_document_activity,
+            verify_document_activity,
+            index_document_activity,
         ],
     )
 

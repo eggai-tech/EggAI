@@ -17,8 +17,6 @@ import sys
 from agents.policies.rag.documentation_temporal_client import (
     DocumentationTemporalClient,
 )
-from agents.policies.rag.indexing import get_policy_content
-from agents.policies.rag.workflows.ingestion_workflow import DocumentData
 from agents.policies.rag.workflows.worker import (
     PolicyDocumentationWorkerSettings,
     run_policy_documentation_worker,
@@ -58,26 +56,19 @@ def parse_args():
 async def trigger_initial_document_ingestion(
     settings: PolicyDocumentationWorkerSettings,
 ):
-    """Trigger initial document ingestion for all 4 policy documents."""
+    """Trigger initial document ingestion for all 4 policy documents using single-file approach."""
     logger.info("Starting initial document ingestion for all 4 policies...")
 
     # Select all 4 documents to ingest (auto, home, health, life)
     policy_ids = ["auto", "home", "health", "life"]
+    
+    # Policies directory path (relative to the rag module)
+    import os
+    from pathlib import Path
+    current_dir = Path(__file__).parent
+    policies_dir = current_dir / "policies"
 
     try:
-        # Prepare document data
-        documents = []
-        for policy_id in policy_ids:
-            content = get_policy_content(policy_id)
-            documents.append(
-                DocumentData(
-                    content=content,
-                    document_id=policy_id,
-                    category=policy_id,
-                    filename=f"{policy_id}.md",
-                )
-            )
-
         # Create client with same settings as worker
         client = DocumentationTemporalClient(
             temporal_server_url=settings.temporal_server_url,
@@ -85,28 +76,42 @@ async def trigger_initial_document_ingestion(
             temporal_task_queue=settings.temporal_task_queue,
         )
 
-        # Trigger ingestion workflow (idempotent - won't rebuild if documents exist)
-        logger.info(f"Triggering ingestion workflow for {len(documents)} documents...")
-        result = await client.ingest_documents_async(
-            documents=documents,
-            force_rebuild=False,  # Make it idempotent
-            validate_first=True,
-        )
+        # Process each policy file individually
+        total_processed = 0
+        total_indexed = 0
+        
+        for policy_id in policy_ids:
+            policy_file = policies_dir / f"{policy_id}.md"
+            
+            if not policy_file.exists():
+                logger.warning(f"Policy file not found: {policy_file}")
+                continue
+                
+            logger.info(f"Processing policy file: {policy_file}")
+            
+            # Trigger single-file ingestion workflow
+            result = await client.ingest_document_async(
+                file_path=str(policy_file),
+                category=policy_id,
+                index_name="policies_index",
+                force_rebuild=False,  # Make it idempotent
+            )
 
-        if result.success:
-            if result.skipped:
-                logger.info(f"Initial document ingestion skipped: {result.skip_reason}")
-                logger.info(
-                    f"Existing documents found: {result.total_documents_indexed}"
-                )
+            if result.success:
+                if result.skipped:
+                    logger.info(f"Policy {policy_id} skipped: {result.skip_reason}")
+                else:
+                    logger.info(f"Policy {policy_id} ingested successfully!")
+                    logger.info(f"  Chunks indexed: {result.total_documents_indexed}")
+                    
+                total_processed += result.documents_processed
+                total_indexed += result.total_documents_indexed
             else:
-                logger.info("Initial document ingestion completed successfully!")
-                logger.info(f"Documents processed: {result.documents_processed}")
-                logger.info(
-                    f"Total documents indexed: {result.total_documents_indexed}"
-                )
-        else:
-            logger.error(f"Initial document ingestion failed: {result.error_message}")
+                logger.error(f"Policy {policy_id} ingestion failed: {result.error_message}")
+
+        logger.info("Initial document ingestion completed!")
+        logger.info(f"Total files processed: {total_processed}")
+        logger.info(f"Total chunks indexed: {total_indexed}")
 
         await client.close()
 

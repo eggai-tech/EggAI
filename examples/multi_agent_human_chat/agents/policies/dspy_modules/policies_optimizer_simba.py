@@ -44,15 +44,6 @@ def take_policy_by_number_from_database(policy_number: str):
     )
 
 
-def query_policy_documentation(query: str, policy_category: str):
-    """Query the policy documentation for specific information."""
-    return (
-        '[{"category": "'
-        + policy_category
-        + '", "section": "2.1", "content": "Coverage details for '
-        + query
-        + '"}]'
-    )
 
 
 def precision_metric(example, pred, trace=None) -> float:
@@ -159,7 +150,7 @@ def main():
     # Create agent for optimization
     agent = TracedReAct(
         PolicyAgentSignature,
-        tools=[take_policy_by_number_from_database, query_policy_documentation],
+        tools=[take_policy_by_number_from_database],
         name="policies_react",
         tracer=None,  # No tracing during optimization
         max_iters=5,
