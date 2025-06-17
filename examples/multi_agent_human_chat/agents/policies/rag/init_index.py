@@ -91,12 +91,11 @@ def init_policies_index(force_rebuild: bool = False):
             logger.info("CI environment detected, forcing CPU-only mode")
         
         # Check if faiss is available for indexing
-        faiss_available = False
-        try:
-            import faiss
-            faiss_available = True
+        import importlib.util
+        faiss_available = importlib.util.find_spec("faiss") is not None
+        if faiss_available:
             logger.info("FAISS library is available")
-        except ImportError:
+        else:
             logger.warning("FAISS library not available, will use PLAID fallback")
         
         # Set device to CPU if CUDA is not available or causing issues
