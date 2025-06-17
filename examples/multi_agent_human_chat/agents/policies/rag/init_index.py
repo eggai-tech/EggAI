@@ -5,6 +5,20 @@ This is useful for testing environments where we need to ensure the index is cre
 """
 
 import os
+
+# Set environment variables BEFORE any other imports for CI GPU environment
+if os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
+    # For GPU runners, ensure proper CUDA environment
+    # Clear the torch extensions cache to force recompilation
+    os.environ['TORCH_EXTENSIONS_DIR'] = '/tmp/torch_extensions_clean'
+    os.environ['COLBERT_LOAD_TORCH_EXTENSION_VERBOSE'] = 'True'  # Enable verbose for debugging
+    
+    # Ensure CUDA libraries are properly linked
+    os.environ['LD_LIBRARY_PATH'] = os.environ.get('LD_LIBRARY_PATH', '') + ':/usr/local/cuda/lib64'
+    
+    # Allow recompilation of extensions if needed
+    os.environ['TORCH_EXTENSION_RECOMPILE'] = '1'
+
 import shutil
 from pathlib import Path
 
@@ -81,14 +95,9 @@ def init_policies_index(force_rebuild: bool = False):
         # Create RAGPretrainedModel instance
         logger.info(f"Creating RAG index with {len(policies_content)} documents...")
         
-        # Set environment variables to prevent CUDA compilation issues in CI
-        os.environ['COLBERT_LOAD_TORCH_EXTENSION_VERBOSE'] = 'False'
-        
-        # In CI environments, force CPU usage and disable problematic extensions
+        # Log CI environment detection (environment variables already set at import time)
         if os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
-            os.environ['CUDA_VISIBLE_DEVICES'] = ''
-            os.environ['CUDA_HOME'] = ''
-            logger.info("CI environment detected, forcing CPU-only mode")
+            logger.info("CI GPU environment detected, ensuring proper CUDA environment setup")
         
         # Check if faiss is available for indexing
         import importlib.util
@@ -157,9 +166,16 @@ def init_policies_index(force_rebuild: bool = False):
                 logger.info("Successfully built index with PLAID")
             except Exception as plaid_e:
                 logger.error(f"PLAID indexing failed: {plaid_e}")
-                # In CI environments, don't fail the build - let tests use mock retrieval
+                # Check if this is the specific torch extension error
+                error_str = str(plaid_e)
+                if "decompress_residuals_cpp.so" in error_str or "torch_extensions" in error_str:
+                    logger.warning("Torch extension loading error detected - this may be due to CUDA environment issues in CI")
+                    logger.info("This could be caused by CUDA version mismatches or missing CUDA development libraries")
+                
+                # In CI environments, don't fail the build - let tests use empty retrieval
                 if os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
-                    logger.warning("Index creation failed in CI environment, tests will use mock retrieval")
+                    logger.warning("Index creation failed in CI GPU environment, tests will continue with empty retrieval")
+                    logger.info("Consider checking CUDA installation and torch extension compatibility")
                     return False
                 else:
                     raise Exception(f"Index creation failed: {plaid_e}")
