@@ -26,13 +26,19 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      automountServiceAccountToken: false
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- range .Values.agents.audit.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -45,8 +51,15 @@ spec:
             httpGet:
               path: /
               port: http
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -88,13 +101,19 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      automountServiceAccountToken: false
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- range .Values.agents.audit.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -107,8 +126,15 @@ spec:
             httpGet:
               path: /
               port: http
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -150,13 +176,19 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      automountServiceAccountToken: false
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- range .Values.agents.audit.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -169,8 +201,15 @@ spec:
             httpGet:
               path: /
               port: http
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -212,13 +251,19 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      automountServiceAccountToken: false
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- range .Values.agents.audit.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -231,8 +276,15 @@ spec:
             httpGet:
               path: /
               port: http
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -274,13 +326,19 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      automountServiceAccountToken: false
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- range .Values.agents.audit.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -293,8 +351,15 @@ spec:
             httpGet:
               path: /
               port: http
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -336,13 +401,19 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      automountServiceAccountToken: false
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- range .Values.agents.audit.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -355,8 +426,15 @@ spec:
             httpGet:
               path: /
               port: http
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -398,13 +476,19 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      automountServiceAccountToken: false
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- range .Values.agents.audit.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
@@ -417,8 +501,15 @@ spec:
             httpGet:
               path: /
               port: http
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
