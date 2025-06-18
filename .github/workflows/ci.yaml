@@ -132,6 +132,7 @@ jobs:
         working-directory: examples/multi_agent_human_chat
         run: |
           make setup
+          pip uninstall --y faiss-cpu & pip install faiss-gpu
 
       - name: Run integration tests
         working-directory: examples/multi_agent_human_chat
