@@ -2,24 +2,31 @@ agents:
   audit:
     enabled: true
     replicaCount: 1
+    environment: []
   billing:
     enabled: true
     replicaCount: 1
+    environment: []
   claims:
     enabled: true
     replicaCount: 1
+    environment: []
   escalation:
     enabled: true
     replicaCount: 1
+    environment: []
   frontend:
     enabled: true
     replicaCount: 1
+    environment: []
   policies:
     enabled: true
     replicaCount: 1
+    environment: []
   triage:
     enabled: true
     replicaCount: 1
+    environment: []
 
 image:
   repository: ghcr.io/eggai-tech/multi-agent-human-chat
@@ -37,7 +44,9 @@ resources:
   requests:
     cpu: "100m"
     memory: "128Mi"
-    ephemeral-storage: "2Gi"
+    ephemeral-storage: "10Gi"
+
+cacheVolumeSize: "10Gi"
 
 podAnnotations: {}
 
@@ -47,4 +56,4 @@ securityContext: {}
 
 service:
   type: ClusterIP
-  port: 80
+  port: 8000
