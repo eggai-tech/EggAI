@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policy-rag-temporal test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policy-documentation-worker start-all restart setup-and-run lint lint-fix build-policy-rag-index
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policy-rag-temporal test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policy-documentation-worker start-all restart setup-and-run lint lint-fix
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -81,8 +81,6 @@ test-frontend-agent:
 
 test-policies-agent:
 	@echo "Running tests for policies agent..."
-	@echo "Building Policy RAG index if needed..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python -c "from agents.policies.rag.indexing import ensure_index_built; ensure_index_built()"
 	@echo "Starting Policy Documentation Temporal Worker in background..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py & \
 	WORKER_PID=$$!; \
@@ -377,8 +375,3 @@ lint-fix:
 	@echo "Fixing lint issues..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/ruff check . --fix
 	@echo "Lint fixes applied."
-
-build-policy-rag-index:
-	@echo "Building Policy RAG index..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python -c "from agents.policies.rag.indexing import ensure_index_built; ensure_index_built()"
-	@echo "Policy RAG index built successfully."
