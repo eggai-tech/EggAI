@@ -45,14 +45,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -114,7 +106,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.billing.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -122,14 +114,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -191,7 +175,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.claims.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -199,14 +183,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -268,7 +244,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.escalation.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -276,14 +252,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -345,7 +313,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.frontend.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -361,6 +329,12 @@ spec:
             httpGet:
               path: /
               port: http
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            failureThreshold: 30
+            periodSeconds: 10
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -422,7 +396,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.policies.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -430,14 +404,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -499,7 +465,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.triage.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -507,14 +473,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
           volumeMounts:
           - mountPath: /cache
             name: cache
