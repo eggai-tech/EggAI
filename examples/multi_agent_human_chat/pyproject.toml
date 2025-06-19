@@ -50,4 +50,4 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 max-complexity = 10
 
 [tool.ruff.lint.isort]
-known-third-party = ["dspy", "ragatouille", "mlflow", "eggai", "pytest", "opentelemetry"]
+known-third-party = ["dspy", "vespa", "mlflow", "eggai", "pytest", "opentelemetry"]

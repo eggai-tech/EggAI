@@ -6,7 +6,7 @@ from temporalio import activity
 
 from libraries.logger import get_console_logger
 
-logger = get_console_logger("policies_agent.rag.document_chunking")
+logger = get_console_logger("ingestion.document_chunking")
 
 
 @activity.defn

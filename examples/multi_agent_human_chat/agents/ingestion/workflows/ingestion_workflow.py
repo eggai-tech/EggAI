@@ -5,16 +5,16 @@ from pydantic import BaseModel
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from agents.policies.rag.workflows.activities.document_chunking_activity import (
+    from agents.ingestion.workflows.activities.document_chunking_activity import (
         chunk_document_activity,
     )
-    from agents.policies.rag.workflows.activities.document_indexing_activity import (
+    from agents.ingestion.workflows.activities.document_indexing_activity import (
         index_document_activity,
     )
-    from agents.policies.rag.workflows.activities.document_loading_activity import (
+    from agents.ingestion.workflows.activities.document_loading_activity import (
         load_document_activity,
     )
-    from agents.policies.rag.workflows.activities.document_verification_activity import (
+    from agents.ingestion.workflows.activities.document_verification_activity import (
         verify_document_activity,
     )
 
@@ -158,7 +158,7 @@ class DocumentIngestionWorkflow:
                     skip_reason="No chunks generated from document",
                 )
             
-            # Step 4: Index chunks with RAGatouille
+            # Step 4: Index chunks with Vespa
             workflow.logger.info(f"Starting indexing of {len(chunk_result['chunks'])} chunks")
             indexing_result = await workflow.execute_activity(
                 index_document_activity,

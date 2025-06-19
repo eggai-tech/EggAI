@@ -14,16 +14,17 @@ import asyncio
 import signal
 import sys
 
-from agents.policies.rag.documentation_temporal_client import (
+from agents.ingestion.documentation_temporal_client import (
     DocumentationTemporalClient,
 )
-from agents.policies.rag.workflows.worker import (
+from agents.ingestion.scripts.deploy_vespa_schema import deploy_to_vespa
+from agents.ingestion.workflows.worker import (
     PolicyDocumentationWorkerSettings,
     run_policy_documentation_worker,
 )
 from libraries.logger import get_console_logger
 
-logger = get_console_logger("policies_agent.rag.start_worker")
+logger = get_console_logger("ingestion.start_worker")
 
 
 def parse_args():
@@ -62,10 +63,10 @@ async def trigger_initial_document_ingestion(
     # Select all 4 documents to ingest (auto, home, health, life)
     policy_ids = ["auto", "home", "health", "life"]
     
-    # Policies directory path (relative to the rag module)
+    # Documents directory path (relative to the ingestion module)
     from pathlib import Path
     current_dir = Path(__file__).parent
-    policies_dir = current_dir / "policies"
+    documents_dir = current_dir / "documents"
 
     try:
         # Create client with same settings as worker
@@ -80,7 +81,7 @@ async def trigger_initial_document_ingestion(
         total_indexed = 0
         
         for policy_id in policy_ids:
-            policy_file = policies_dir / f"{policy_id}.md"
+            policy_file = documents_dir / f"{policy_id}.md"
             
             if not policy_file.exists():
                 logger.warning(f"Policy file not found: {policy_file}")
@@ -153,8 +154,17 @@ async def main():
 
         logger.info("Policy Documentation worker is running. Press Ctrl+C to stop.")
 
-        # Trigger initial document ingestion for all 4 policies
-        await trigger_initial_document_ingestion(settings)
+        # Deploy Vespa schema before document ingestion
+        logger.info("Ensuring Vespa schema is deployed...")
+        schema_deployed = deploy_to_vespa()
+        
+        if schema_deployed:
+            logger.info("Vespa schema ready - proceeding with document ingestion")
+            # Trigger initial document ingestion for all 4 policies
+            await trigger_initial_document_ingestion(settings)
+        else:
+            logger.error("Failed to deploy Vespa schema - skipping document ingestion")
+            logger.error("Please check Vespa container status and try again")
 
         # Wait for shutdown signal
         await shutdown_event.wait()

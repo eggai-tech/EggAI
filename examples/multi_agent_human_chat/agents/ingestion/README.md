@@ -1,6 +1,6 @@
-# Multi-Agent Policy System: Temporal + RAG + ReAct Architecture
+# Multi-Agent Policy System: Temporal + Vespa + ReAct Architecture
 
-A sophisticated insurance policy system combining **Temporal workflows** for durable document ingestion, **RAGatouille/ColBERT** for semantic search, and **DSPy ReAct agents** for intelligent policy assistance.
+A sophisticated insurance policy system combining **Temporal workflows** for durable document ingestion, **Vespa** for semantic search, and **DSPy ReAct agents** for intelligent policy assistance.
 
 ## 🏗️ System Architecture Overview
 
@@ -11,7 +11,7 @@ graph TB
         B --> C[DocLing Loading Activity] 
         C --> D[Hierarchical Chunking Activity]
         D --> E[ColBERT Indexing Activity]
-        E --> F[RAGatouille Index]
+        E --> F[Vespa Index]
     end
     
     subgraph "Query Processing (DSPy ReAct)"
@@ -44,7 +44,7 @@ graph TB
 Document ingestion involves multiple complex steps that can fail:
 - **PDF parsing** with DocLing can timeout on large documents
 - **Chunking operations** require significant memory for hierarchical processing  
-- **ColBERT indexing** is CPU-intensive and can take minutes for large collections
+- **Vespa indexing** involves network operations and schema validation
 - **Network failures** during index uploads to distributed storage
 
 **Temporal provides:**
@@ -76,17 +76,17 @@ sequenceDiagram
     participant L as Loading Activity
     participant CH as Chunking Activity
     participant I as Indexing Activity
-    participant R as RAGatouille Index
+    participant R as Vespa Index
     
     C->>W: Start ingestion (file_path, category)
-    W->>V: Check existing documents
+    W->>V: Check existing documents in Vespa
     V-->>W: Skip if already exists
     W->>L: Load with DocLing
     L-->>W: Structured document
     W->>CH: Hierarchical chunking
     CH-->>W: Document chunks
-    W->>I: Index with ColBERT
-    I->>R: Store embeddings
+    W->>I: Index with Vespa
+    I->>R: Store documents
     I-->>W: Indexing complete
     W-->>C: Final result with metadata
 ```
@@ -95,10 +95,10 @@ sequenceDiagram
 
 #### 1. Document Verification Activity
 ```python
-# agents/policies/rag/workflows/activities/document_verification_activity.py
-def verify_document_activity(input: DocumentVerificationInput) -> DocumentVerificationResult:
+# agents/ingestion/workflows/activities/document_verification_activity.py
+def verify_document_activity(file_path: str, index_name: str, force_rebuild: bool) -> Dict[str, Any]:
     """
-    - Checks docid_metadata_map.json for existing chunks
+    - Checks Vespa index for existing documents by source_file
     - Supports force_rebuild to skip verification  
     - Prevents duplicate processing of same documents
     """
@@ -106,7 +106,7 @@ def verify_document_activity(input: DocumentVerificationInput) -> DocumentVerifi
 
 #### 2. Document Loading Activity  
 ```python
-# agents/policies/rag/workflows/activities/document_loading_activity.py  
+# agents/ingestion/workflows/activities/document_loading_activity.py  
 def load_document_activity(input: DocumentLoadingInput) -> DocumentLoadingResult:
     """
     - Uses DocLing DocumentConverter for PDF/markdown parsing
@@ -117,7 +117,7 @@ def load_document_activity(input: DocumentLoadingInput) -> DocumentLoadingResult
 
 #### 3. Document Chunking Activity
 ```python
-# agents/policies/rag/workflows/activities/document_chunking_activity.py
+# agents/ingestion/workflows/activities/document_chunking_activity.py
 def chunk_document_activity(input: DocumentChunkingInput) -> DocumentChunkingResult:
     """
     - DocLing HierarchicalChunker with GPT-2 tokenizer
@@ -128,12 +128,12 @@ def chunk_document_activity(input: DocumentChunkingInput) -> DocumentChunkingRes
 
 #### 4. Document Indexing Activity
 ```python
-# agents/policies/rag/workflows/activities/document_indexing_activity.py
-def index_document_activity(input: DocumentIndexingInput) -> DocumentIndexingResult:
+# agents/ingestion/workflows/activities/document_indexing_activity.py
+def index_document_activity(chunks_data: List[Dict], file_path: str, category: str) -> Dict[str, Any]:
     """
-    - RAGatouille with ColBERT-v2.0 dense retrieval
-    - Stores in .ragatouille/colbert/indexes/{index_name}
-    - Metadata: category, type, chunk_index, source, original_file
+    - Vespa search engine with BM25 text indexing
+    - Stores documents with schema: id, title, text, category, chunk_index, source_file
+    - Supports semantic search and category filtering
     """
 ```
 
@@ -151,7 +151,7 @@ graph LR
         C -->|General| E[search_policy_documentation]
         
         D --> F[(Policy Database)]
-        E --> G[RAG Search]
+        E --> G[Vespa Search]
         
         F --> H[Response Synthesis]
         G --> H
@@ -242,22 +242,22 @@ def get_personal_policy_details(policy_number: str) -> str:
 ```python
 def search_policy_documentation(query: str, category: str = None) -> str:
     """
-    - Calls RAGatouille via threading for async compatibility
-    - Searches indexed policy documents with semantic matching
-    - Returns top 2 results with content, scores, and metadata
+    - Calls Vespa search with BM25 text matching and optional category filtering
+    - Searches indexed policy documents with relevance scoring
+    - Returns top results with content, scores, and metadata
     - Used for: coverage questions, policy explanations, general info
     """
 ```
 
-## 🔍 RAG System: ColBERT Semantic Search
+## 🔍 Search System: Vespa BM25 Text Search
 
-### RAGatouille Integration
+### Vespa Integration
 
 ```mermaid
 graph TB
-    subgraph "RAG Search Process"
-        A[Query: 'fire damage coverage'] --> B[ColBERT Query Encoding]
-        B --> C[Late Interaction Matching]
+    subgraph "Vespa Search Process"
+        A[Query: 'fire damage coverage'] --> B[BM25 Text Matching]
+        B --> C[Relevance Scoring]
         C --> D[Ranked Document Chunks]
         D --> E[Category Filtering]
         E --> F[Top Results with Scores]
@@ -269,7 +269,7 @@ graph TB
         I[auto_chunk_1: Vehicle fire damage]
         J[life_chunk_1: Policy benefits]
         
-        G --> K[ColBERT Embeddings]
+        G --> K[Vespa Schema Fields]
         H --> K
         I --> K  
         J --> K
@@ -281,19 +281,18 @@ graph TB
 ### Retrieval Implementation
 
 ```python
-# agents/policies/rag/retrieving.py
+# agents/policies/retrieving.py
 def retrieve_policies(query: str, category: str = None) -> List[Dict]:
     """
-    ColBERT-powered semantic search:
+    Vespa-powered BM25 text search:
     
-    1. Lazy load RAGatouille index on first query
-    2. Execute semantic search with ColBERT late interaction  
-    3. Filter results by category if specified
-    4. Return ranked results with:
+    1. Connect to Vespa search engine
+    2. Execute BM25 text search with category filtering  
+    3. Return ranked results with:
        - content: Document chunk text
-       - score: Relevance score (0-100)  
+       - score: BM25 relevance score
        - document_id: Unique chunk identifier
-       - document_metadata: Category, type, source file
+       - document_metadata: Category, chunk_index, source_file
     """
 ```
 
@@ -302,16 +301,12 @@ def retrieve_policies(query: str, category: str = None) -> List[Dict]:
 [
   {
     "content": "The Insurer agrees to indemnify the Insured for loss or damage to the insured property arising from fire...",
-    "score": 19.55415153503418,
-    "rank": 1,
-    "document_id": "home_chunk_4", 
-    "passage_id": 38,
+    "score": 0.15,
+    "document_id": "home_chunk_4",
     "document_metadata": {
       "category": "home",
-      "type": "policy", 
       "chunk_index": 4,
-      "source": "document_converter",
-      "original_file": "home.md"
+      "source_file": "home.md"
     }
   }
 ]
@@ -333,7 +328,7 @@ This launches:
 ### 2. Verify System Health
 ```bash
 # Test ingestion workflow
-python agents/policies/rag/test_simple_documentation.py
+python agents/ingestion/start_worker.py
 
 # Test ReAct agent  
 python -c "
@@ -355,7 +350,7 @@ result = policies_model(chat_history=query)
 
 #### General Policy Questions
 ```python  
-# Query about coverage - uses RAG search
+# Query about coverage - uses Vespa search
 query = "User: What does fire damage cover in home insurance?"
 result = policies_model(chat_history=query)
 # Response: "According to our Standard Home Insurance Policy, the Insurer agrees to indemnify..."
@@ -394,14 +389,14 @@ with tracer.start_as_current_span("policies_react") as span:
 ### Key Metrics
 - **Ingestion Success Rate**: >99% with Temporal retries
 - **Tool Selection Accuracy**: Correct tool chosen for query type
-- **RAG Retrieval Latency**: 50-200ms for semantic search
-- **End-to-End Response Time**: <2s for database, <5s for RAG queries
+- **Vespa Search Latency**: 10-50ms for BM25 text search
+- **End-to-End Response Time**: <2s for database, <3s for Vespa queries
 
 ## 🏗️ Advanced Configuration
 
 ### Temporal Workflows
 ```python
-# agents/policies/rag/workflows/worker.py
+# agents/ingestion/workflows/worker.py
 class PolicyDocumentationWorkerSettings:
     temporal_server_url: str = "localhost:7233"
     temporal_namespace: str = "default"
@@ -414,15 +409,15 @@ class PolicyDocumentationWorkerSettings:
     indexing_timeout_seconds: int = 600
 ```
 
-### RAGatouille Index Configuration
+### Vespa Index Configuration
 ```python
-# ColBERT index settings in indexing activities
-index_config = {
-    "index_name": "policies_index",
+# Vespa schema settings in indexing activities
+vespa_config = {
+    "schema_name": "policy_document",
     "max_document_length": 500,  # tokens per chunk
     "overlap": 2,  # sentence overlap between chunks
-    "use_faiss": True,  # for faster search
-    "nbits": 2,  # compression level
+    "vespa_url": "http://localhost:8080",
+    "ranking_profile": "default"
 }
 ```
 
@@ -441,14 +436,14 @@ policies_model = TracedReAct(
 ## 🔧 Development & Extension
 
 ### Adding New Document Types
-1. **Create policy markdown** in `agents/policies/rag/policies/`
+1. **Create policy markdown** in `agents/ingestion/documents/`
 2. **Update category enum** in type definitions
 3. **Run ingestion** with new category parameter
 4. **Test retrieval** with category filtering
 
 ### Custom Activities
 ```python
-# agents/policies/rag/workflows/activities/custom_activity.py
+# agents/ingestion/workflows/activities/custom_activity.py
 @activity.defn(name="custom_processing")
 async def custom_activity(input: CustomInput) -> CustomResult:
     # Your custom document processing logic
@@ -476,9 +471,9 @@ policies_model = TracedReAct(
 
 - **Temporal Workflows**: [docs.temporal.io](https://docs.temporal.io/)
 - **DSPy ReAct Agents**: [dspy-docs.vercel.app](https://dspy-docs.vercel.app/)  
-- **RAGatouille/ColBERT**: [github.com/bclavie/RAGatouille](https://github.com/bclavie/RAGatouille)
+- **Vespa Search Engine**: [docs.vespa.ai](https://docs.vespa.ai/)
 - **DocLing Document AI**: [ds4sd.github.io/docling](https://ds4sd.github.io/docling/)
 
 ---
 
-This architecture demonstrates how **durable workflows**, **semantic search**, and **reasoning agents** can combine to create robust, observable, and intelligent document processing systems.
+This architecture demonstrates how **durable workflows**, **text search**, and **reasoning agents** can combine to create robust, observable, and intelligent document processing systems.

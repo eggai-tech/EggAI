@@ -4,19 +4,19 @@ from typing import Optional
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from agents.policies.rag.workflows.activities.document_chunking_activity import (
+from agents.ingestion.workflows.activities.document_chunking_activity import (
     chunk_document_activity,
 )
-from agents.policies.rag.workflows.activities.document_indexing_activity import (
+from agents.ingestion.workflows.activities.document_indexing_activity import (
     index_document_activity,
 )
-from agents.policies.rag.workflows.activities.document_loading_activity import (
+from agents.ingestion.workflows.activities.document_loading_activity import (
     load_document_activity,
 )
-from agents.policies.rag.workflows.activities.document_verification_activity import (
+from agents.ingestion.workflows.activities.document_verification_activity import (
     verify_document_activity,
 )
-from agents.policies.rag.workflows.ingestion_workflow import (
+from agents.ingestion.workflows.ingestion_workflow import (
     DocumentIngestionWorkflow,
 )
 
@@ -29,7 +29,7 @@ def _get_logger():
     if logger is None:
         from libraries.logger import get_console_logger
 
-        logger = get_console_logger("policies_agent.rag.worker")
+        logger = get_console_logger("ingestion.worker")
     return logger
 
 

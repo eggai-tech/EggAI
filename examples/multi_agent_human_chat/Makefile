@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policy-rag-temporal test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policy-documentation-worker start-all restart setup-and-run lint lint-fix build-policy-rag-index
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-ingestion start-policy-documentation-worker start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -81,10 +81,9 @@ test-frontend-agent:
 
 test-policies-agent:
 	@echo "Running tests for policies agent..."
-	@echo "Building Policy RAG index if needed..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python -c "from agents.policies.rag.indexing import ensure_index_built; ensure_index_built()"
+	@echo "Document indexing is handled by the ingestion service..."
 	@echo "Starting Policy Documentation Temporal Worker in background..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py & \
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/start_worker.py & \
 	WORKER_PID=$$!; \
 	sleep 3; \
 	echo "Running pytest with temporal worker running..."; \
@@ -99,10 +98,6 @@ test-policies-agent:
 	echo "Tests for policies agent completed."; \
 	exit $$TEST_EXIT_CODE
 
-test-policy-rag-temporal:
-	@echo "Running Policy RAG Temporal integration tests..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/test_temporal_integration.py
-	@echo "Policy RAG Temporal integration tests completed."
 
 
 test-triage-classifier-v0:
@@ -169,8 +164,6 @@ stop: docker-down
 	@echo "Environment and Docker Compose have been stopped."
 
 clean:
-	@echo "Cleaning up Policy RAG index..."
-	@rm -rf agents/policies/rag/.ragatouille
 	@echo "Cleaning up the environment..."
 	@rm -rf $(VENV_DIR)
 	@echo "Environment cleaned."
@@ -216,13 +209,15 @@ start-audit:
 	@echo "Starting Audit Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.audit.main
 
-start-policy-documentation-worker:
-	@echo "Starting Policy Documentation Temporal Worker..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/rag/start_worker.py
+start-ingestion:
+	@echo "Starting Document Ingestion Service..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/start_worker.py
+
+start-policy-documentation-worker: start-ingestion
 
 start-all:
 	@echo "Starting all agents and workers..."
-	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims start-policy-documentation-worker
+	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims start-ingestion
 
 restart: stop start
 	@echo "Environment and Docker Compose have been restarted."
@@ -379,6 +374,23 @@ lint-fix:
 	@echo "Lint fixes applied."
 
 build-policy-rag-index:
-	@echo "Building Policy RAG index..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python -c "from agents.policies.rag.indexing import ensure_index_built; ensure_index_built()"
-	@echo "Policy RAG index built successfully."
+	@echo "Building policy index..."
+	@echo "Starting ingestion worker to build index..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/start_worker.py &
+	@echo "Policy index built successfully."
+
+drop-vespa-index:
+	@echo "Dropping Vespa index..."
+	@echo "This will delete all documents from the Vespa search index."
+	@read -p "Are you sure you want to proceed? (y/n): " choice; \
+	if [ "$$choice" != "y" ]; then \
+		echo "Operation cancelled."; \
+		exit 1; \
+	fi
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/scripts/drop_vespa_index.py
+	@echo "Vespa index dropped successfully."
+
+deploy-vespa-schema:
+	@echo "Deploying Vespa schema using pyvespa..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/scripts/deploy_vespa_schema.py
+	@echo "Vespa schema deployment completed."
