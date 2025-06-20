@@ -14,7 +14,7 @@ from agents.ingestion.workflows.activities.document_loading_activity import (
     load_document_activity,
 )
 from agents.ingestion.workflows.activities.document_verification_activity import (
-    verify_document_activity,
+    skip_document_already_indexed,
 )
 from agents.ingestion.workflows.ingestion_workflow import (
     DocumentIngestionWorkflow,
@@ -71,7 +71,7 @@ async def run_policy_documentation_worker(
         activities=[
             load_document_activity,
             chunk_document_activity,
-            verify_document_activity,
+            skip_document_already_indexed,
             index_document_activity,
         ],
     )

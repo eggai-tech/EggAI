@@ -13,9 +13,7 @@ logger = get_console_logger("ingestion.document_indexing")
 async def index_document_activity(
     chunks_data: List[Dict[str, Any]], 
     file_path: str,
-    category: str = "general",
-    index_name: str = "policies_index",
-    force_rebuild: bool = False
+    category: str,
 ) -> Dict[str, Any]:
     """Index document chunks into Vespa search index.
     
@@ -23,9 +21,7 @@ async def index_document_activity(
         chunks_data: List of document chunks with text and metadata
         file_path: Original file path for metadata
         category: Document category for metadata
-        index_name: Index name (preserved for compatibility)
-        force_rebuild: Force rebuild flag (preserved for compatibility)
-        
+
     Returns:
         Dict with indexing results and statistics
     """

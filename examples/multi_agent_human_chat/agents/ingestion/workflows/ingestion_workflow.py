@@ -15,7 +15,7 @@ with workflow.unsafe.imports_passed_through():
         load_document_activity,
     )
     from agents.ingestion.workflows.activities.document_verification_activity import (
-        verify_document_activity,
+        skip_document_already_indexed,
     )
 
 
@@ -82,10 +82,9 @@ class DocumentIngestionWorkflow:
         try:
             # Step 1: Verify if file already exists in index
             verification_result = await workflow.execute_activity(
-                verify_document_activity,
+                skip_document_already_indexed,
                 args=[
                     input_data.file_path,
-                    input_data.index_name,
                     input_data.force_rebuild,
                 ],
                 start_to_close_timeout=timedelta(minutes=2),
@@ -166,8 +165,6 @@ class DocumentIngestionWorkflow:
                     chunk_result["chunks"],
                     input_data.file_path,
                     input_data.category,
-                    input_data.index_name,
-                    input_data.force_rebuild,
                 ],
                 start_to_close_timeout=timedelta(minutes=10),
             )
