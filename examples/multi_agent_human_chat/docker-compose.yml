@@ -6,6 +6,7 @@ volumes:
   redpanda: null
   postgres_temporal_data: null
   postgres_mlflow_data: null
+  vespa-data: null
 services:
   redpanda:
     command:
@@ -58,7 +59,7 @@ services:
             enabled: true
             urls: ["http://redpanda:9644"]
     ports:
-      - 8080:8080
+      - 8082:8080
     depends_on:
       redpanda:
         condition: service_healthy
@@ -290,4 +291,22 @@ services:
       --gunicorn-opts '--log-level debug'"
     networks:
       - eggai-example-network
+  vespa:
+    image: vespaengine/vespa
+    container_name: vespa-container
+    hostname: vespa-container
+    ports:
+      - 8080:8080
+      - 19071:19071
+    volumes:
+      - vespa-data:/opt/vespa/var
+    networks:
+      - eggai-example-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19071/ApplicationStatus"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 

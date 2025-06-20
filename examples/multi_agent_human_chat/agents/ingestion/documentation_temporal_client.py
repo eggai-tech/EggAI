@@ -5,14 +5,14 @@ from typing import Optional
 
 from temporalio.client import Client
 
-from agents.policies.rag.workflows.ingestion_workflow import (
+from agents.ingestion.workflows.ingestion_workflow import (
     DocumentIngestionResult,
     DocumentIngestionWorkflow,
     DocumentIngestionWorkflowInput,
 )
 from libraries.logger import get_console_logger
 
-logger = get_console_logger("policies_agent.rag.documentation_client")
+logger = get_console_logger("ingestion.documentation_client")
 
 
 class DocumentationTemporalClient:

@@ -40,12 +40,12 @@ class Settings(BaseSettings):
     @property
     def default_rag_index_path(self) -> str:
         if not self.rag_index_path:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            # Navigate from agents/policies to repo root
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            repo_root = os.path.dirname(os.path.dirname(base_dir))
             return os.path.join(
-                base_dir,
-                "policies",
-                "rag",
-                ".ragatouille",
+                repo_root,
+                ".cache",
                 "colbert",
                 "indexes",
                 "policies_index",

@@ -1,4 +1,3 @@
 agents/triage/dspy_modules/evaluation/reports/*.html
-agents/policies/rag/.ragatouille/*
 reports/
-**/.ragatouille/*
+tmp

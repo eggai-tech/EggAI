@@ -30,7 +30,7 @@ def search_policy_documentation(query: str, category: str = None) -> str:
         f"Tool called: search_policy_documentation(query='{query[:50]}...', category='{category}')"
     )
     try:
-        from agents.policies.rag.retrieving import retrieve_policies
+        from agents.policies.retrieving import retrieve_policies
 
         thread = ThreadWithResult(
             target=retrieve_policies, args=(query, category)
