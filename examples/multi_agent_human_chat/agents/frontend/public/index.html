@@ -99,7 +99,8 @@
         }, []);
 
         function initWebSocket() {
-          const uri = "ws://localhost:8000/ws";
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const uri = `${protocol}//${window.location.host}/ws`;
           const socket = new WebSocket(uri);
           wsRef.current = socket;
           socket.onopen = () => setConnectionStatus("Connected");
