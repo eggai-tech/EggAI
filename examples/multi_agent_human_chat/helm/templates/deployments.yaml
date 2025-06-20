@@ -114,7 +114,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.billing.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -191,7 +191,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.claims.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -268,7 +268,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.escalation.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -345,7 +345,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.frontend.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -422,7 +422,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.policies.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
@@ -499,7 +499,7 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
-            {{- range .Values.agents.audit.environment }}
+            {{- range .Values.agents.triage.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
