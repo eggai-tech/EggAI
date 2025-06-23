@@ -135,6 +135,14 @@ def create_policy_document_schema() -> Schema:
                     type="array<string>",
                     indexing=["summary", "attribute"],
                 ),
+                
+                # Embedding for vector search
+                Field(
+                    name="embedding",
+                    type="tensor<float>(x[384])",  # Using all-MiniLM-L6-v2 which outputs 384 dimensions
+                    indexing=["attribute", "index"],
+                    attribute=["distance-metric: angular"]
+                ),
             ]
         ),
         fieldsets=[FieldSet(name="default", fields=["title", "text"])],
@@ -146,6 +154,18 @@ def create_policy_document_schema() -> Schema:
             RankProfile(
                 name="with_position",
                 first_phase="nativeRank(title, text) * (1.0 - 0.3 * attribute(chunk_position))"
+            ),
+            RankProfile(
+                name="semantic",
+                first_phase="closeness(field, embedding)"
+            ),
+            RankProfile(
+                name="hybrid",
+                first_phase="(1.0 - query(alpha)) * nativeRank(title, text) + query(alpha) * closeness(field, embedding)",
+                inputs=[
+                    ("query(alpha)", "double", "0.7"),
+                    ("query(query_embedding)", "tensor<float>(x[384])")
+                ]
             )
         ]
     )

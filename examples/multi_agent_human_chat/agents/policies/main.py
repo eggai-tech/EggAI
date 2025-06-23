@@ -1,7 +1,7 @@
 """Main module for the Policies Agent with FastAPI endpoints for Vespa knowledge base."""
 
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import uvicorn
 from eggai import eggai_cleanup
@@ -16,6 +16,8 @@ from libraries.tracing import init_telemetry
 from libraries.vespa import VespaClient
 
 from .config import settings
+from .embeddings import generate_embedding
+from .full_document_retrieval import get_document_chunk_range, retrieve_full_document
 from .ingestion.documentation_temporal_client import DocumentationTemporalClient
 
 eggai_set_default_transport(
@@ -63,6 +65,31 @@ class SearchResponse(BaseModel):
     category: Optional[str]
     total_hits: int
     documents: List[PolicyDocument]
+
+
+class FullDocumentResponse(BaseModel):
+    """Full document response model."""
+    document_id: str
+    category: str
+    source_file: str
+    full_text: str
+    total_chunks: int
+    total_characters: int
+    total_tokens: int
+    headings: List[str]
+    page_numbers: List[int]
+    page_range: Optional[str]
+    chunk_ids: List[str]
+    metadata: Dict[str, Any]
+
+
+class VectorSearchRequest(BaseModel):
+    """Vector search request model."""
+    query: str
+    category: Optional[str] = None
+    max_hits: int = 10
+    search_type: str = "hybrid"  # "vector", "hybrid", or "keyword"
+    alpha: float = 0.7  # Weight for hybrid search
 
 
 class CategoryStats(BaseModel):
@@ -594,6 +621,152 @@ async def get_indexing_status():
             status_code=500, 
             detail=f"Failed to retrieve indexing status: {str(e)}"
         )
+
+
+@api.get("/kb/full-document/{document_id}", response_model=FullDocumentResponse)
+async def get_full_document(document_id: str):
+    """
+    Retrieve a complete document by reconstructing it from all its chunks.
+    
+    - **document_id**: The document identifier (e.g., "auto", "home", "life", "health")
+    
+    Returns the full document text and metadata.
+    """
+    try:
+        result = retrieve_full_document(document_id, vespa_client)
+        
+        if "error" in result:
+            raise HTTPException(status_code=404, detail=result["error"])
+        
+        return FullDocumentResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get full document error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve full document: {str(e)}")
+
+
+@api.get("/kb/document-range/{document_id}")
+async def get_document_range(
+    document_id: str,
+    start_chunk: int = Query(..., description="Starting chunk index (0-based)"),
+    end_chunk: Optional[int] = Query(None, description="Ending chunk index (inclusive)")
+):
+    """
+    Retrieve a specific range of chunks from a document.
+    
+    - **document_id**: The document identifier
+    - **start_chunk**: Starting chunk index (0-based)
+    - **end_chunk**: Ending chunk index (inclusive), defaults to start_chunk if not provided
+    """
+    try:
+        result = get_document_chunk_range(document_id, start_chunk, end_chunk, vespa_client)
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get document range error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve document range: {str(e)}")
+
+
+@api.post("/kb/vector-search", response_model=SearchResponse)
+async def vector_search(request: VectorSearchRequest):
+    """
+    Perform vector-based semantic search or hybrid search combining keyword and vector search.
+    
+    - **query**: The search query (will be converted to embedding)
+    - **category**: Optional category filter
+    - **max_hits**: Maximum number of results
+    - **search_type**: Type of search ("vector", "hybrid", or "keyword")
+    - **alpha**: Weight for hybrid search (0-1, higher = more vector influence)
+    """
+    try:
+        # Validate search type
+        valid_search_types = ["vector", "hybrid", "keyword"]
+        if request.search_type not in valid_search_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid search type. Must be one of: {', '.join(valid_search_types)}"
+            )
+        
+        # Generate embedding for the query
+        query_embedding = generate_embedding(request.query)
+        
+        if not query_embedding:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to generate embedding for query"
+            )
+        
+        # Perform search based on type
+        if request.search_type == "vector":
+            # Pure vector search
+            results = await vespa_client.vector_search(
+                query_embedding=query_embedding,
+                category=request.category,
+                max_hits=request.max_hits
+            )
+        elif request.search_type == "hybrid":
+            # Hybrid search combining keyword and vector
+            results = await vespa_client.hybrid_search(
+                query=request.query,
+                query_embedding=query_embedding,
+                category=request.category,
+                max_hits=request.max_hits,
+                alpha=request.alpha
+            )
+        else:
+            # Regular keyword search
+            results = await vespa_client.search_documents(
+                query=request.query,
+                category=request.category,
+                max_hits=request.max_hits
+            )
+        
+        # Format results
+        documents = []
+        for result in results:
+            citation = None
+            if result.get("page_range"):
+                citation = f"{result.get('source_file', 'Unknown')}, page {result['page_range']}"
+            
+            doc = PolicyDocument(
+                id=result.get("id", ""),
+                title=result.get("title", ""),
+                text=result.get("text", ""),
+                category=result.get("category", ""),
+                chunk_index=result.get("chunk_index", 0),
+                source_file=result.get("source_file", ""),
+                relevance=result.get("relevance", 0.0),
+                page_numbers=result.get("page_numbers", []),
+                page_range=result.get("page_range"),
+                headings=result.get("headings", []),
+                citation=citation,
+                document_id=result.get("document_id"),
+                previous_chunk_id=result.get("previous_chunk_id"),
+                next_chunk_id=result.get("next_chunk_id"),
+                chunk_position=result.get("chunk_position")
+            )
+            documents.append(doc)
+        
+        return SearchResponse(
+            query=request.query,
+            category=request.category,
+            total_hits=len(results),
+            documents=documents
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Vector search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Vector search failed: {str(e)}")
 
 
 if __name__ == "__main__":

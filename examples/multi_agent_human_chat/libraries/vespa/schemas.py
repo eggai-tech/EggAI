@@ -33,6 +33,9 @@ class PolicyDocument(BaseModel):
     # Additional context
     section_path: List[str] = Field(default_factory=list, description="Path of sections/subsections")
     
+    # Vector embedding for semantic search
+    embedding: Optional[List[float]] = Field(None, description="Text embedding vector")
+    
     def to_vespa_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format for Vespa indexing."""
         return {
@@ -51,7 +54,8 @@ class PolicyDocument(BaseModel):
             "previous_chunk_id": self.previous_chunk_id,
             "next_chunk_id": self.next_chunk_id,
             "chunk_position": self.chunk_position,
-            "section_path": self.section_path
+            "section_path": self.section_path,
+            "embedding": self.embedding
         }
 
 

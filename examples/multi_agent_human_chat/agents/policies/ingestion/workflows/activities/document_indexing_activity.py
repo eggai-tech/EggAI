@@ -4,6 +4,10 @@ from typing import Any, Dict, List, Optional
 
 from temporalio import activity
 
+from agents.policies.embeddings import (
+    combine_text_for_embedding,
+    generate_embeddings_batch,
+)
 from libraries.logger import get_console_logger
 from libraries.vespa import DocumentMetadata, PolicyDocument, VespaClient
 
@@ -53,9 +57,25 @@ async def index_document_activity(
         # Get document ID from first chunk or generate one
         document_id = chunks_data[0].get("document_id", os.path.splitext(os.path.basename(file_path))[0])
         
+        # Prepare texts for batch embedding generation
+        texts_for_embedding = []
+        for chunk_data in chunks_data:
+            # Combine text with metadata for richer embeddings
+            combined_text = combine_text_for_embedding(
+                text=chunk_data["text"],
+                title=f"Policy Document - {os.path.basename(file_path)}",
+                headings=chunk_data.get("headings", []),
+                category=category
+            )
+            texts_for_embedding.append(combined_text)
+        
+        # Generate embeddings for all chunks in batch
+        logger.info(f"Generating embeddings for {len(texts_for_embedding)} chunks")
+        embeddings = generate_embeddings_batch(texts_for_embedding)
+        
         # Convert chunks to enhanced PolicyDocument objects
         documents = []
-        for chunk_data in chunks_data:
+        for i, chunk_data in enumerate(chunks_data):
             doc = PolicyDocument(
                 # Core fields
                 id=chunk_data["id"],
@@ -79,7 +99,10 @@ async def index_document_activity(
                 chunk_position=chunk_data.get("chunk_position", 0.0),
                 
                 # Additional context
-                section_path=chunk_data.get("section_path", [])
+                section_path=chunk_data.get("section_path", []),
+                
+                # Vector embedding
+                embedding=embeddings[i] if i < len(embeddings) else None
             )
             documents.append(doc)
         
@@ -108,7 +131,12 @@ async def index_document_activity(
                     file_size=file_stats.st_size if file_stats else 0,
                     created_at=datetime.utcnow(),
                     last_modified=datetime.fromtimestamp(file_stats.st_mtime) if file_stats else None,
-                    outline=document_stats.get("outline", []),
+                    # Convert outline strings to dictionaries if needed
+                    outline=[
+                        {"heading": heading, "level": idx + 1} 
+                        for idx, heading in enumerate(document_stats.get("outline", []))
+                        if isinstance(heading, str)
+                    ] if document_stats.get("outline") else [],
                     key_sections=[]  # Could be enhanced with section detection
                 )
                 
