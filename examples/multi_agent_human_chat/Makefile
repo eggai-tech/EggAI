@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -97,6 +97,13 @@ test-policies-agent:
 	wait $$WORKER_PID 2>/dev/null || true; \
 	echo "Tests for policies agent completed."; \
 	exit $$TEST_EXIT_CODE
+
+test-policies-retrieval-performance:
+	@echo "Running retrieval performance evaluation for policies agent..."
+	@echo "This test evaluates search quality across different parameters using LLM judges and logs results to MLflow."
+	@echo "Ensure the policies API is running at http://localhost:8002 before starting."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/tests/test_retrieval_performance.py
+	@echo "Retrieval performance evaluation completed. Check MLflow UI at http://localhost:5001 for detailed results."
 
 
 

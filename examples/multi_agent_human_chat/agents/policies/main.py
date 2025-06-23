@@ -150,76 +150,6 @@ async def health_check():
     return {"status": "healthy", "service": "policies-agent"}
 
 
-@api.get("/kb/search", response_model=SearchResponse)
-async def search_knowledge_base(
-    query: str = Query(..., description="Search query"),
-    category: Optional[str] = Query(None, description="Filter by category (auto, home, life, health)"),
-    max_hits: int = Query(10, description="Maximum number of results", ge=1, le=100)
-):
-    """
-    Search the policy documents knowledge base.
-    
-    - **query**: The search query string
-    - **category**: Optional category filter (auto, home, life, health)
-    - **max_hits**: Maximum number of results to return (1-100)
-    """
-    try:
-        # Validate category if provided
-        valid_categories = ["auto", "home", "life", "health"]
-        if category and category not in valid_categories:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid category. Must be one of: {', '.join(valid_categories)}"
-            )
-        
-        # Search documents (await the async method)
-        results = await vespa_client.search_documents(
-            query=query,
-            category=category,
-            max_hits=max_hits
-        )
-        
-        # Format results (search_documents returns a list of dicts)
-        documents = []
-        for result in results:
-            # Generate citation
-            citation = None
-            if result.get("page_range"):
-                citation = f"{result.get('source_file', 'Unknown')}, page {result['page_range']}"
-            
-            doc = PolicyDocument(
-                id=result.get("id", ""),
-                title=result.get("title", ""),
-                text=result.get("text", ""),
-                category=result.get("category", ""),
-                chunk_index=result.get("chunk_index", 0),
-                source_file=result.get("source_file", ""),
-                relevance=result.get("relevance", 0.0),
-                # Enhanced metadata
-                page_numbers=result.get("page_numbers", []),
-                page_range=result.get("page_range"),
-                headings=result.get("headings", []),
-                citation=citation,
-                # Relationships
-                document_id=result.get("document_id"),
-                previous_chunk_id=result.get("previous_chunk_id"),
-                next_chunk_id=result.get("next_chunk_id"),
-                chunk_position=result.get("chunk_position")
-            )
-            documents.append(doc)
-        
-        return SearchResponse(
-            query=query,
-            category=category,
-            total_hits=len(results),
-            documents=documents
-        )
-        
-    except Exception as e:
-        logger.error(f"Search error: {e}")
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
-
-
 @api.get("/kb/documents", response_model=List[PolicyDocument])
 async def list_documents(
     category: Optional[str] = Query(None, description="Filter by category"),
@@ -680,7 +610,7 @@ async def get_document_range(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve document range: {str(e)}")
 
 
-@api.post("/kb/vector-search", response_model=SearchResponse)
+@api.post("/kb/search", response_model=SearchResponse)
 async def vector_search(request: VectorSearchRequest):
     """
     Perform vector-based semantic search or hybrid search combining keyword and vector search.
