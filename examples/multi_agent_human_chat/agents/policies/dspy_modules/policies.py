@@ -206,7 +206,7 @@ def policies_optimized_dspy(
 if __name__ == "__main__":
 
     async def run():
-        init_telemetry(settings.app_name)
+        init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
 
         # Test the policies DSPy module
         test_conversation = (

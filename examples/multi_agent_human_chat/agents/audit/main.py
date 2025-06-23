@@ -30,7 +30,7 @@ logger.setLevel(logging.INFO)
 async def main():
     logger.info(f"Starting {settings.app_name}")
 
-    init_telemetry(app_name=settings.app_name)
+    init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
     logger.info(f"Telemetry initialized for {settings.app_name}")
 
     logger.info(

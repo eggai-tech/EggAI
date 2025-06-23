@@ -203,7 +203,7 @@ if __name__ == "__main__":
         from libraries.dspy_set_language_model import dspy_set_language_model
         from libraries.tracing import init_telemetry
 
-        init_telemetry(settings.app_name)
+        init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
         dspy_set_language_model(settings)
 
         # Test the escalation DSPy module

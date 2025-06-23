@@ -54,7 +54,7 @@ def chatty(chat_history: str) -> AsyncIterable[Union[StreamResponse, Prediction]
 if __name__ == "__main__":
 
     async def openlit_async_stream_bug():
-        init_telemetry(app_name=settings.app_name)
+        init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
         import litellm
 
         chunks = await litellm.acompletion(

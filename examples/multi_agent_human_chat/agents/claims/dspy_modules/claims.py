@@ -271,7 +271,7 @@ if __name__ == "__main__":
     async def run():
         from libraries.tracing import init_telemetry
 
-        init_telemetry(settings.app_name)
+        init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
         # Initialize the DSPy model with the configured language model
         dspy_set_language_model(settings)
 

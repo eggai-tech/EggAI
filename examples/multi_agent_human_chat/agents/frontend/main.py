@@ -81,7 +81,7 @@ add_websocket_gateway(settings.websocket_path, api, frontend_server)
 if __name__ == "__main__":
     try:
         logger.info(f"Starting {settings.app_name}")
-        init_telemetry(app_name=settings.app_name)
+        init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
         logger.info(f"Telemetry initialized for {settings.app_name}")
 
         logger.info(f"Server starting at http://{settings.host}:{settings.port}")

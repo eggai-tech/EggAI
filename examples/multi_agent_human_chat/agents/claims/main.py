@@ -28,7 +28,7 @@ async def main():
     logger.info(f"Starting {settings.app_name}")
 
     # Initialize telemetry and language model
-    init_telemetry(app_name=settings.app_name)
+    init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
     dspy_set_language_model(settings)
 
     # Start the agent
