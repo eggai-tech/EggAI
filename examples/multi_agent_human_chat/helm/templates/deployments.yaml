@@ -496,7 +496,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           args:
-          - agents.policies.ingestion.main
+          - agents.policies.ingestion.start_worker
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
