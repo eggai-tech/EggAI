@@ -14,11 +14,11 @@ import asyncio
 import signal
 import sys
 
-from agents.ingestion.documentation_temporal_client import (
+from agents.policies.ingestion.documentation_temporal_client import (
     DocumentationTemporalClient,
 )
-from agents.ingestion.scripts.deploy_vespa_schema import deploy_to_vespa
-from agents.ingestion.workflows.worker import (
+from agents.policies.ingestion.scripts.deploy_vespa_schema import deploy_to_vespa
+from agents.policies.ingestion.workflows.worker import (
     PolicyDocumentationWorkerSettings,
     run_policy_documentation_worker,
 )

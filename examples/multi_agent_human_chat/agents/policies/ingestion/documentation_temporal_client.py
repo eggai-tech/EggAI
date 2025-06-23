@@ -5,7 +5,7 @@ from typing import Optional
 
 from temporalio.client import Client
 
-from agents.ingestion.workflows.ingestion_workflow import (
+from agents.policies.ingestion.workflows.ingestion_workflow import (
     DocumentIngestionResult,
     DocumentIngestionWorkflow,
     DocumentIngestionWorkflowInput,

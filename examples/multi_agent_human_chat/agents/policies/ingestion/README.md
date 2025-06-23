@@ -95,7 +95,7 @@ sequenceDiagram
 
 #### 1. Document Verification Activity
 ```python
-# agents/ingestion/workflows/activities/document_verification_activity.py
+# agents/policies/ingestion/workflows/activities/document_verification_activity.py
 def verify_document_activity(file_path: str, index_name: str, force_rebuild: bool) -> Dict[str, Any]:
     """
     - Checks Vespa index for existing documents by source_file
@@ -106,7 +106,7 @@ def verify_document_activity(file_path: str, index_name: str, force_rebuild: boo
 
 #### 2. Document Loading Activity  
 ```python
-# agents/ingestion/workflows/activities/document_loading_activity.py  
+# agents/policies/ingestion/workflows/activities/document_loading_activity.py  
 def load_document_activity(input: DocumentLoadingInput) -> DocumentLoadingResult:
     """
     - Uses DocLing DocumentConverter for PDF/markdown parsing
@@ -117,7 +117,7 @@ def load_document_activity(input: DocumentLoadingInput) -> DocumentLoadingResult
 
 #### 3. Document Chunking Activity
 ```python
-# agents/ingestion/workflows/activities/document_chunking_activity.py
+# agents/policies/ingestion/workflows/activities/document_chunking_activity.py
 def chunk_document_activity(input: DocumentChunkingInput) -> DocumentChunkingResult:
     """
     - DocLing HierarchicalChunker with GPT-2 tokenizer
@@ -128,7 +128,7 @@ def chunk_document_activity(input: DocumentChunkingInput) -> DocumentChunkingRes
 
 #### 4. Document Indexing Activity
 ```python
-# agents/ingestion/workflows/activities/document_indexing_activity.py
+# agents/policies/ingestion/workflows/activities/document_indexing_activity.py
 def index_document_activity(chunks_data: List[Dict], file_path: str, category: str) -> Dict[str, Any]:
     """
     - Vespa search engine with BM25 text indexing
@@ -328,7 +328,7 @@ This launches:
 ### 2. Verify System Health
 ```bash
 # Test ingestion workflow
-python agents/ingestion/start_worker.py
+python agents/policies/ingestion/start_worker.py
 
 # Test ReAct agent  
 python -c "
@@ -396,7 +396,7 @@ with tracer.start_as_current_span("policies_react") as span:
 
 ### Temporal Workflows
 ```python
-# agents/ingestion/workflows/worker.py
+# agents/policies/ingestion/workflows/worker.py
 class PolicyDocumentationWorkerSettings:
     temporal_server_url: str = "localhost:7233"
     temporal_namespace: str = "default"
@@ -436,14 +436,14 @@ policies_model = TracedReAct(
 ## 🔧 Development & Extension
 
 ### Adding New Document Types
-1. **Create policy markdown** in `agents/ingestion/documents/`
+1. **Create policy markdown** in `agents/policies/ingestion/documents/`
 2. **Update category enum** in type definitions
 3. **Run ingestion** with new category parameter
 4. **Test retrieval** with category filtering
 
 ### Custom Activities
 ```python
-# agents/ingestion/workflows/activities/custom_activity.py
+# agents/policies/ingestion/workflows/activities/custom_activity.py
 @activity.defn(name="custom_processing")
 async def custom_activity(input: CustomInput) -> CustomResult:
     # Your custom document processing logic

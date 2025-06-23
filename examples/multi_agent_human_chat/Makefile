@@ -81,9 +81,9 @@ test-frontend-agent:
 
 test-policies-agent:
 	@echo "Running tests for policies agent..."
-	@echo "Document indexing is handled by the ingestion service..."
+	@echo "Document indexing is handled by the policies ingestion service..."
 	@echo "Starting Policy Documentation Temporal Worker in background..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/start_worker.py & \
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/start_worker.py & \
 	WORKER_PID=$$!; \
 	sleep 3; \
 	echo "Running pytest with temporal worker running..."; \
@@ -211,7 +211,7 @@ start-audit:
 
 start-ingestion:
 	@echo "Starting Document Ingestion Service..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/start_worker.py
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/start_worker.py
 
 start-policy-documentation-worker: start-ingestion
 
@@ -376,7 +376,7 @@ lint-fix:
 build-policy-rag-index:
 	@echo "Building policy index..."
 	@echo "Starting ingestion worker to build index..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/start_worker.py &
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/start_worker.py &
 	@echo "Policy index built successfully."
 
 drop-vespa-index:
@@ -387,10 +387,10 @@ drop-vespa-index:
 		echo "Operation cancelled."; \
 		exit 1; \
 	fi
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/scripts/drop_vespa_index.py
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/scripts/drop_vespa_index.py
 	@echo "Vespa index dropped successfully."
 
 deploy-vespa-schema:
 	@echo "Deploying Vespa schema using pyvespa..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/ingestion/scripts/deploy_vespa_schema.py
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/scripts/deploy_vespa_schema.py
 	@echo "Vespa schema deployment completed."
