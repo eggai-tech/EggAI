@@ -168,6 +168,8 @@ class DocumentIngestionWorkflow:
                     input_data.category,
                     input_data.index_name,
                     input_data.force_rebuild,
+                    chunk_result.get("document_stats"),  # Pass document stats
+                    load_result.get("metadata"),  # Pass workflow metadata
                 ],
                 start_to_close_timeout=timedelta(minutes=10),
             )

@@ -24,7 +24,7 @@ def search_policy_documentation(query: str, category: str = None) -> str:
     """
     Search policy documentation and coverage information using RAG.
     Use this for general policy questions that don't require personal policy data.
-    Returns a JSON-formatted string with the retrieval results.
+    Returns a JSON-formatted string with the retrieval results including page citations.
     """
     logger.info(
         f"Tool called: search_policy_documentation(query='{query[:50]}...', category='{category}')"
@@ -33,16 +33,36 @@ def search_policy_documentation(query: str, category: str = None) -> str:
         from agents.policies.retrieving import retrieve_policies
 
         thread = ThreadWithResult(
-            target=retrieve_policies, args=(query, category)
+            target=retrieve_policies, args=(query, category, True)  # Include metadata
         )
         thread.start()
         results = thread.join()
 
         if results:
             logger.info(f"Found policy information via direct retrieval: {len(results)} results")
-            if len(results) >= 2:
-                return json.dumps([results[0], results[1]])
-            return json.dumps(results)
+            
+            # Enhanced formatting with citations
+            formatted_results = []
+            for result in results[:2]:  # Top 2 results
+                formatted_result = {
+                    "content": result["content"],
+                    "source": result["document_metadata"]["source_file"],
+                    "category": result["document_metadata"]["category"],
+                    "relevance_score": result.get("score", 0.0)
+                }
+                
+                # Add page citation if available
+                if "page_info" in result:
+                    formatted_result["citation"] = result["page_info"]["citation"]
+                    formatted_result["page_numbers"] = result["page_info"]["page_numbers"]
+                
+                # Add section info if available
+                if "structure_info" in result and result["structure_info"]["headings"]:
+                    formatted_result["section"] = " > ".join(result["structure_info"]["headings"])
+                
+                formatted_results.append(formatted_result)
+            
+            return json.dumps(formatted_results, indent=2)
 
         logger.warning(
             f"No policy information found for query: '{query}', category: '{category}'"

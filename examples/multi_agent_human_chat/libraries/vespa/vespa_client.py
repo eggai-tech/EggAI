@@ -144,7 +144,12 @@ class VespaClient:
         logger.info(f"Searching for: '{query}', category: '{category}', max_hits: {max_hits}")
         
         # Build YQL query
-        yql_conditions = ["userInput(@query)"]
+        if query:
+            yql_conditions = ["userInput(@query)"]
+        else:
+            # If no query provided, match all documents
+            yql_conditions = ["true"]
+        
         if category:
             yql_conditions.append(f'category contains "{category}"')
         
@@ -155,12 +160,18 @@ class VespaClient:
                 connections=1,
                 timeout=httpx.Timeout(self.config.vespa_timeout)
             ) as session:
-                response: VespaQueryResponse = await session.query(
-                    yql=yql,
-                    query=query,
-                    hits=max_hits,
-                    ranking=self.config.ranking_profile
-                )
+                # Build query parameters
+                query_params = {
+                    "yql": yql,
+                    "hits": max_hits,
+                    "ranking": self.config.ranking_profile
+                }
+                
+                # Only add query parameter if there's an actual query
+                if query:
+                    query_params["query"] = query
+                
+                response: VespaQueryResponse = await session.query(**query_params)
                 
                 if not response.is_successful():
                     logger.error(
@@ -177,13 +188,27 @@ class VespaClient:
                 for child in children:
                     fields = child.get("fields", {})
                     results.append({
+                        # Core fields
                         "id": fields.get("id", ""),
                         "title": fields.get("title", ""),
                         "text": fields.get("text", ""),
                         "category": fields.get("category", ""),
                         "chunk_index": fields.get("chunk_index", 0),
                         "source_file": fields.get("source_file", ""),
-                        "relevance": child.get("relevance", 0.0)
+                        "relevance": child.get("relevance", 0.0),
+                        # Enhanced metadata fields
+                        "page_numbers": fields.get("page_numbers", []),
+                        "page_range": fields.get("page_range"),
+                        "headings": fields.get("headings", []),
+                        "char_count": fields.get("char_count", 0),
+                        "token_count": fields.get("token_count", 0),
+                        # Relationship fields
+                        "document_id": fields.get("document_id"),
+                        "previous_chunk_id": fields.get("previous_chunk_id"),
+                        "next_chunk_id": fields.get("next_chunk_id"),
+                        "chunk_position": fields.get("chunk_position"),
+                        # Additional context
+                        "section_path": fields.get("section_path", [])
                     })
                 
                 logger.info(f"Found {len(results)} documents")

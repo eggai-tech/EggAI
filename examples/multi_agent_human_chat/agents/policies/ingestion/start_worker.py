@@ -156,15 +156,18 @@ async def main():
 
         # Deploy Vespa schema before document ingestion
         logger.info("Ensuring Vespa schema is deployed...")
-        schema_deployed = deploy_to_vespa()
+        # Try to deploy with force=True to handle schema updates
+        schema_deployed = deploy_to_vespa(force=True)
         
         if schema_deployed:
             logger.info("Vespa schema ready - proceeding with document ingestion")
             # Trigger initial document ingestion for all 4 policies
             await trigger_initial_document_ingestion(settings)
         else:
-            logger.error("Failed to deploy Vespa schema - skipping document ingestion")
-            logger.error("Please check Vespa container status and try again")
+            logger.warning("Schema deployment had issues - proceeding with document ingestion anyway")
+            logger.info("Note: If you're updating the schema, you may need to restart the Vespa container")
+            # Still try to ingest documents as the schema might already be correct
+            await trigger_initial_document_ingestion(settings)
 
         # Wait for shutdown signal
         await shutdown_event.wait()

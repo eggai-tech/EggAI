@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Script to deploy Vespa schema using pyvespa programmatic deployment.
+Script to deploy enhanced Vespa schema with metadata fields.
 
-This script creates a Vespa application package from the existing schema
-and deploys it to a VespaDocker instance without requiring vespa-cli
-or pre-built Docker images.
+This script creates a Vespa application package with the enhanced schema
+that includes page numbers, headings, relationships, and other metadata.
 
 Usage:
     python deploy_vespa_schema.py [--host HOST] [--port PORT]
@@ -24,7 +23,7 @@ sys.path.insert(0, str(project_root))
 
 from vespa.application import Vespa
 from vespa.deployment import VespaDocker
-from vespa.package import ApplicationPackage, Document, Field, FieldSet, Schema
+from vespa.package import ApplicationPackage, Document, Field, FieldSet, RankProfile, Schema
 
 from libraries.logger import get_console_logger
 
@@ -32,11 +31,12 @@ logger = get_console_logger("vespa_deployment")
 
 
 def create_policy_document_schema() -> Schema:
-    """Create the policy_document schema programmatically."""
+    """Create the enhanced policy_document schema with metadata fields."""
     return Schema(
         name="policy_document",
         document=Document(
             fields=[
+                # Core fields
                 Field(
                     name="id",
                     type="string",
@@ -72,26 +72,92 @@ def create_policy_document_schema() -> Schema:
                     type="string",
                     indexing=["summary", "attribute"],
                 ),
+                
+                # Enhanced metadata fields
+                Field(
+                    name="page_numbers",
+                    type="array<int>",
+                    indexing=["summary", "attribute"],
+                ),
+                Field(
+                    name="page_range",
+                    type="string",
+                    indexing=["summary", "attribute"],
+                ),
+                Field(
+                    name="headings",
+                    type="array<string>",
+                    indexing=["summary", "attribute"],
+                ),
+                Field(
+                    name="char_count",
+                    type="int",
+                    indexing=["summary", "attribute"],
+                ),
+                Field(
+                    name="token_count",
+                    type="int",
+                    indexing=["summary", "attribute"],
+                ),
+                
+                # Relationship fields
+                Field(
+                    name="document_id",
+                    type="string",
+                    indexing=["summary", "attribute"],
+                ),
+                Field(
+                    name="previous_chunk_id",
+                    type="string",
+                    indexing=["summary", "attribute"],
+                ),
+                Field(
+                    name="next_chunk_id",
+                    type="string",
+                    indexing=["summary", "attribute"],
+                ),
+                Field(
+                    name="chunk_position",
+                    type="float",
+                    indexing=["summary", "attribute"],
+                ),
+                
+                # Additional context
+                Field(
+                    name="section_path",
+                    type="array<string>",
+                    indexing=["summary", "attribute"],
+                ),
             ]
         ),
         fieldsets=[FieldSet(name="default", fields=["title", "text"])],
+        rank_profiles=[
+            RankProfile(
+                name="default",
+                first_phase="nativeRank(title, text)"
+            ),
+            RankProfile(
+                name="with_position",
+                first_phase="nativeRank(title, text) * (1.0 - 0.3 * attribute(chunk_position))"
+            )
+        ]
     )
 
 
 def create_application_package() -> ApplicationPackage:
-    """Create the complete Vespa application package."""
-    logger.info("Creating Vespa application package")
+    """Create the complete Vespa application package with enhanced schema."""
+    logger.info("Creating enhanced Vespa application package")
     
     # Create schema
     schema = create_policy_document_schema()
     
-    # Create application package - pyvespa will handle the XML configuration
+    # Create application package
     app_package = ApplicationPackage(
         name="policies",
         schema=[schema]
     )
     
-    logger.info("Application package created successfully")
+    logger.info("Enhanced application package created successfully")
     return app_package
 
 
@@ -116,21 +182,21 @@ def check_schema_exists(host: str = "localhost", port: int = 8080) -> bool:
         return False
 
 
-def deploy_to_vespa(host: str = "localhost", port: int = 8080) -> bool:
-    """Deploy the application package to Vespa using simplified deployment."""
-    logger.info(f"Starting Vespa deployment to {host}:{port}")
+def deploy_to_vespa(host: str = "localhost", port: int = 8080, force: bool = False) -> bool:
+    """Deploy the enhanced application package to Vespa."""
+    logger.info(f"Starting enhanced Vespa deployment to {host}:{port}")
     
     # Check if schema already exists
-    if check_schema_exists(host, port):
-        logger.info("Schema already deployed, skipping deployment")
-        return True
+    if check_schema_exists(host, port) and not force:
+        logger.warning("⚠️  Schema already exists. Attempting to update the schema...")
+        logger.info("Note: Schema updates in Vespa require compatible changes or container restart.")
     
     try:
         # Create application package
         app_package = create_application_package()
         
         # Deploy using simplified approach to existing container
-        logger.info("Deploying application package to existing container")
+        logger.info("Deploying enhanced application package to existing container")
         
         try:
             # First try: Connect to existing container by name
@@ -149,7 +215,7 @@ def deploy_to_vespa(host: str = "localhost", port: int = 8080) -> bool:
             return False
         
         # Verify deployment
-        logger.info("Verifying deployment...")
+        logger.info("Verifying enhanced deployment...")
         vespa_url = f"http://{host}:{port}"
         verification_app = Vespa(url=vespa_url)
         
@@ -157,12 +223,17 @@ def deploy_to_vespa(host: str = "localhost", port: int = 8080) -> bool:
             # Test basic connectivity and schema
             response = verification_app.query(yql="select * from policy_document where true limit 1")
             if response.is_successful():
-                logger.info("✅ Deployment successful! Schema is ready for use.")
+                logger.info("✅ Enhanced deployment successful! Schema is ready for use.")
                 logger.info(f"Application available at: {vespa_url}")
                 
-                # Log schema details
-                logger.info("Schema deployed with fields: id, title, text, category, chunk_index, source_file")
+                # Log enhanced schema details
+                logger.info("Enhanced schema deployed with fields:")
+                logger.info("  Core: id, title, text, category, chunk_index, source_file")
+                logger.info("  Metadata: page_numbers, page_range, headings, char_count, token_count")
+                logger.info("  Relationships: document_id, previous_chunk_id, next_chunk_id, chunk_position")
+                logger.info("  Context: section_path")
                 logger.info("BM25 indexing enabled on: title, text")
+                logger.info("Rank profiles: default, with_position")
                 
                 return True
             else:
@@ -181,7 +252,7 @@ def deploy_to_vespa(host: str = "localhost", port: int = 8080) -> bool:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Deploy Vespa schema using pyvespa",
+        description="Deploy enhanced Vespa schema with metadata support",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -199,26 +270,37 @@ def main():
         help="Vespa port (default: 8080)",
     )
     
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force deployment even if schema exists",
+    )
+    
     args = parser.parse_args()
     
-    print("🚀 Vespa Schema Deployment Tool")
+    print("🚀 Enhanced Vespa Schema Deployment Tool")
     print("=" * 50)
     print(f"Target: {args.host}:{args.port}")
     print()
     
     try:
-        success = deploy_to_vespa(args.host, args.port)
+        success = deploy_to_vespa(args.host, args.port, args.force)
         
         if success:
             print()
-            print("🎉 Deployment completed successfully!")
+            print("🎉 Enhanced deployment completed successfully!")
             print(f"   Vespa is ready at: http://{args.host}:{args.port}")
-            print("   Schema: policy_document")
-            print("   Fields: id, title, text, category, chunk_index, source_file")
+            print("   Schema: policy_document (enhanced)")
+            print("   Core fields: id, title, text, category, chunk_index, source_file")
+            print("   Metadata fields: page numbers, headings, citations, relationships")
+            print()
+            print("   Next steps:")
+            print("   1. Re-index your documents to populate the new metadata fields")
+            print("   2. Use the enhanced search API to get page citations")
             sys.exit(0)
         else:
             print()
-            print("❌ Deployment failed!")
+            print("❌ Deployment failed or skipped!")
             print("   Check the logs above for details.")
             sys.exit(1)
             
