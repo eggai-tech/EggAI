@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from eggai import Agent, Channel
-from eggai.transport import eggai_set_default_transport, KafkaTransport
+from eggai.transport import eggai_set_default_transport, InMemoryTransport
 
 agent = Agent("OrderAgent")
 channel = Channel()
@@ -28,7 +28,7 @@ async def handle_order_created(event):
 
 @pytest.mark.asyncio
 async def test_simple_scenario(capfd):
-    eggai_set_default_transport(lambda: KafkaTransport())
+    eggai_set_default_transport(lambda: InMemoryTransport())
 
     await agent.start()
     await channel.publish({
@@ -41,3 +41,4 @@ async def test_simple_scenario(capfd):
     assert hits.get("msg1") == 2
     assert hits.get("msg2") == 2
     await agent.stop()
+    await channel.stop()

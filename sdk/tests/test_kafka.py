@@ -3,9 +3,9 @@ import asyncio
 import pytest
 
 from eggai import Agent, Channel
-from eggai.transport import KafkaTransport, eggai_set_default_transport
+from eggai.transport import InMemoryTransport, eggai_set_default_transport
 
-eggai_set_default_transport(lambda: KafkaTransport())
+eggai_set_default_transport(lambda: InMemoryTransport())
 
 hits = {}
 
@@ -37,6 +37,9 @@ async def test_kafka(capfd):
     assert hits.get("order_requested") == 1
     assert hits.get("order_created") == 1
 
+    await agent.stop()
+    await default_channel.stop()
+
 
 @pytest.mark.asyncio
 async def test_channel_subscribe_multiple():
@@ -62,3 +65,7 @@ async def test_channel_subscribe_multiple():
     assert len(received_other_channel) == 1, (
         f"Expected 1 event for 'other_channel', got {len(received_other_channel)}"
     )
+
+    await channel1.stop()
+    await channel2.stop()
+    await other_channel.stop()

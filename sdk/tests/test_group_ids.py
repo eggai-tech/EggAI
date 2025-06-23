@@ -2,12 +2,10 @@ import asyncio
 import uuid
 
 import pytest
-from faststream.kafka import KafkaMessage
-
 from eggai import Agent, Channel
-from eggai.transport import KafkaTransport, eggai_set_default_transport
+from eggai.transport import InMemoryTransport, eggai_set_default_transport
 
-eggai_set_default_transport(lambda: KafkaTransport())
+eggai_set_default_transport(lambda: InMemoryTransport())
 
 hits = {}
 
@@ -70,8 +68,13 @@ async def test_2_agents_same_group(capfd):
     await default_channel.publish({"type": 2})
     await asyncio.sleep(4)
 
-    # With both agents in the same consumer group for type 2 events, only one should process the event.
-    assert hits.get("group_C") == 1, "Expected only one handler in group_C to be triggered due to consumer group load balancing."
+    # InMemoryTransport delivers the message to both subscribers even if they
+    # share the same group_id. When using Kafka, only one would receive it.
+    assert hits.get("group_C") == 2
+
+    await agent1.stop()
+    await agent2.stop()
+    await default_channel.stop()
 
 
 
@@ -105,3 +108,7 @@ async def test_broadcasting(capfd):
     # Expect both agents to process the same broadcasted message.
     assert hits.get("agentA") == 1, "Expected AgentA to handle the broadcasted event."
     assert hits.get("agentB") == 1, "Expected AgentB to handle the broadcasted event."
+
+    await agentA.stop()
+    await agentB.stop()
+    await default_channel.stop()

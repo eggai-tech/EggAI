@@ -4,9 +4,11 @@ from collections import defaultdict
 import pytest
 
 from eggai import Agent, Channel
-from eggai.transport import KafkaTransport, eggai_set_default_transport
+from eggai.transport import InMemoryTransport, eggai_set_default_transport
 
-eggai_set_default_transport(lambda: KafkaTransport())
+# Use the lightweight in-memory transport for tests to avoid requiring a
+# running Kafka broker.
+eggai_set_default_transport(lambda: InMemoryTransport())
 
 hits = defaultdict(int)
 
@@ -32,6 +34,7 @@ async def test_catch_all(capfd):
     })
     await asyncio.sleep(0.5)
     await agent.stop()
+    await channel.stop()
     assert hits["msg1"] == 1
     # check no SubscriberNotFound exception is raised in the output of the test run
     captured = capfd.readouterr()
