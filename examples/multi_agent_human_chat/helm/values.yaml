@@ -19,6 +19,10 @@ agents:
     enabled: true
     replicaCount: 1
     environment: []
+  policiesDocumentIngestion:
+    enabled: true
+    replicaCount: 1
+    environment: []
   policies:
     enabled: true
     replicaCount: 1

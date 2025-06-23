@@ -465,3 +465,68 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 {{- end }}
+{{- if .Values.agents.policiesDocumentIngestion.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eggai-multi-agent-chat.fullname" . }}-policies-document-ingestion
+  labels:
+    {{- include "eggai-multi-agent-chat.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.agents.policiesDocumentIngestion.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-policies-document-ingestion
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-policies-document-ingestion
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          args:
+          - agents.policies.ingestion.main
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- range .Values.agents.policiesDocumentIngestion.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
