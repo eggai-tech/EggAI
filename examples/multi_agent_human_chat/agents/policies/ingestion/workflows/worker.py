@@ -33,31 +33,20 @@ def _get_logger():
     return logger
 
 
-class PolicyDocumentationWorkerSettings:
-    """Settings for the Policy Documentation Temporal worker."""
-
-    def __init__(self):
-        self.temporal_server_url: str = "localhost:7233"
-        self.temporal_namespace: str = "default"
-        self.temporal_task_queue: str = "policy-rag"
-
-
 async def run_policy_documentation_worker(
     client: Optional[Client] = None,
-    settings: Optional[PolicyDocumentationWorkerSettings] = None,
 ) -> Worker:
     """
     Run the Policy Documentation Temporal worker.
 
     Args:
         client: Optional Temporal client instance
-        settings: Optional worker settings
 
     Returns:
         The running worker instance
     """
-    if settings is None:
-        settings = PolicyDocumentationWorkerSettings()
+    # Import settings here to avoid circular imports
+    from agents.policies.ingestion.config import settings
 
     if client is None:
         client = await Client.connect(

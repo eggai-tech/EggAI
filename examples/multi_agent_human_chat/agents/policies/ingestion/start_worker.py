@@ -8,7 +8,6 @@ from agents.policies.ingestion.documentation_temporal_client import (
 )
 from agents.policies.ingestion.scripts.deploy_vespa_schema import deploy_to_vespa
 from agents.policies.ingestion.workflows.worker import (
-    PolicyDocumentationWorkerSettings,
     run_policy_documentation_worker,
 )
 from libraries.logger import get_console_logger
@@ -17,9 +16,7 @@ from libraries.tracing import init_telemetry
 logger = get_console_logger("ingestion.start_worker")
 
 
-async def trigger_initial_document_ingestion(
-    settings: PolicyDocumentationWorkerSettings,
-):
+async def trigger_initial_document_ingestion():
     """Trigger initial document ingestion for all 4 policy documents using single-file approach."""
     logger.info("Starting initial document ingestion for all 4 policies...")
 
@@ -87,16 +84,10 @@ async def main():
     # Initialize telemetry
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
 
-    # Create worker settings from config
-    worker_settings = PolicyDocumentationWorkerSettings()
-    worker_settings.temporal_server_url = settings.temporal_server_url
-    worker_settings.temporal_namespace = settings.temporal_namespace
-    worker_settings.temporal_task_queue = settings.temporal_task_queue
-
     logger.info("Starting Policy Documentation Temporal worker with settings:")
-    logger.info(f"  Server URL: {worker_settings.temporal_server_url}")
-    logger.info(f"  Namespace: {worker_settings.temporal_namespace}")
-    logger.info(f"  Task Queue: {worker_settings.temporal_task_queue}")
+    logger.info(f"  Server URL: {settings.temporal_server_url}")
+    logger.info(f"  Namespace: {settings.temporal_namespace}")
+    logger.info(f"  Task Queue: {settings.temporal_task_queue}")
 
     # Create shutdown event
     shutdown_event = asyncio.Event()
@@ -114,7 +105,7 @@ async def main():
     worker = None
     try:
         # Start the worker
-        worker = await run_policy_documentation_worker(settings=worker_settings)
+        worker = await run_policy_documentation_worker()
 
         logger.info("Policy Documentation worker is running. Press Ctrl+C to stop.")
 
@@ -123,15 +114,14 @@ async def main():
         # Try to deploy with force=True to handle schema updates
         schema_deployed = deploy_to_vespa(force=True)
         
-        if schema_deployed:
-            logger.info("Vespa schema ready - proceeding with document ingestion")
-            # Trigger initial document ingestion for all 4 policies
-            await trigger_initial_document_ingestion(worker_settings)
-        else:
-            logger.warning("Schema deployment had issues - proceeding with document ingestion anyway")
-            logger.info("Note: If you're updating the schema, you may need to restart the Vespa container")
-            # Still try to ingest documents as the schema might already be correct
-            await trigger_initial_document_ingestion(settings)
+        if not schema_deployed:
+            logger.error("Vespa schema deployment failed - cannot proceed with document ingestion")
+            logger.error("Please check Vespa container status and try again")
+            raise Exception("Vespa schema deployment failed")
+        
+        logger.info("Vespa schema ready - proceeding with document ingestion")
+        # Trigger initial document ingestion for all 4 policies
+        await trigger_initial_document_ingestion()
 
         # Wait for shutdown signal
         await shutdown_event.wait()
