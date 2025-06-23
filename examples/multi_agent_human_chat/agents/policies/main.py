@@ -17,7 +17,7 @@ from libraries.vespa import VespaClient
 
 from .config import settings
 from .embeddings import generate_embedding
-from .full_document_retrieval import get_document_chunk_range, retrieve_full_document
+from .full_document_retrieval import get_document_chunk_range, retrieve_full_document, retrieve_full_document_async
 from .ingestion.documentation_temporal_client import DocumentationTemporalClient
 
 eggai_set_default_transport(
@@ -635,7 +635,7 @@ async def get_full_document(document_id: str):
     Returns the full document text and metadata.
     """
     try:
-        result = retrieve_full_document(document_id, vespa_client)
+        result = await retrieve_full_document_async(document_id, vespa_client)
         
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])

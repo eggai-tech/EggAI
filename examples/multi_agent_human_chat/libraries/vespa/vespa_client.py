@@ -278,18 +278,18 @@ class VespaClient:
                 connections=1,
                 timeout=httpx.Timeout(self.config.vespa_timeout)
             ) as session:
-                # Build query parameters
-                # Convert embedding to tensor format expected by Vespa
-                tensor_dict = {"values": query_embedding}
+                # Convert embedding to list format (following KYC-copilot pattern)
+                embedding_list = [float(val) for val in query_embedding]
                 
-                query_params = {
-                    "yql": yql,
-                    "hits": max_hits,
-                    "ranking": ranking_profile,
-                    "input.query(query_embedding)": tensor_dict
-                }
-                
-                response: VespaQueryResponse = await session.query(**query_params)
+                response = await session.query(
+                    yql=yql,
+                    ranking=ranking_profile,
+                    hits=max_hits,
+                    body={
+                        "input.query(query_embedding)": embedding_list,
+                        "presentation.timing": True
+                    }
+                )
                 
                 if not response.is_successful():
                     logger.error(
@@ -298,8 +298,37 @@ class VespaClient:
                     )
                     return []
                 
-                # Extract and return results
-                results = self._extract_search_results(response)
+                # Extract hits from response
+                results = []
+                root_data = response.json.get("root", {})
+                children = root_data.get("children", [])
+                
+                for child in children:
+                    fields = child.get("fields", {})
+                    results.append({
+                        # Core fields
+                        "id": fields.get("id", ""),
+                        "title": fields.get("title", ""),
+                        "text": fields.get("text", ""),
+                        "category": fields.get("category", ""),
+                        "chunk_index": fields.get("chunk_index", 0),
+                        "source_file": fields.get("source_file", ""),
+                        "relevance": child.get("relevance", 0.0),
+                        # Enhanced metadata fields
+                        "page_numbers": fields.get("page_numbers", []),
+                        "page_range": fields.get("page_range"),
+                        "headings": fields.get("headings", []),
+                        "char_count": fields.get("char_count", 0),
+                        "token_count": fields.get("token_count", 0),
+                        # Relationship fields
+                        "document_id": fields.get("document_id"),
+                        "previous_chunk_id": fields.get("previous_chunk_id"),
+                        "next_chunk_id": fields.get("next_chunk_id"),
+                        "chunk_position": fields.get("chunk_position"),
+                        # Additional context
+                        "section_path": fields.get("section_path", [])
+                    })
+                
                 logger.info(f"Vector search found {len(results)} documents")
                 return results
                 
@@ -332,44 +361,43 @@ class VespaClient:
         
         logger.info(f"Performing hybrid search: '{query}', alpha: {alpha}, category: '{category}'")
         
-        # Build YQL query combining text and vector search
-        yql_conditions = []
-        
-        if query:
-            yql_conditions.append("userInput(@query)")
-        
-        # Add nearest neighbor for vector search
-        yql_conditions.append(f"{{targetHits: {max_hits}}}nearestNeighbor(embedding, query_embedding)")
+        # Build YQL query for hybrid search
+        # In hybrid search, we use nearestNeighbor as the main query and let the ranking profile handle text matching
+        base_condition = f"{{targetHits: {max_hits * 2}}}nearestNeighbor(embedding, query_embedding)"
         
         if category:
-            yql_conditions.append(f'category contains "{category}"')
-        
-        yql = f"select * from {self.config.schema_name} where {' or '.join(yql_conditions[:2])}"
-        if category:
-            yql = f"select * from {self.config.schema_name} where ({' or '.join(yql_conditions[:2])}) and {yql_conditions[2]}"
+            yql = f"select * from {self.config.schema_name} where {base_condition} and category contains \"{category}\""
+        else:
+            yql = f"select * from {self.config.schema_name} where {base_condition}"
         
         try:
             async with self.vespa_app.asyncio(
                 connections=1,
                 timeout=httpx.Timeout(self.config.vespa_timeout)
             ) as session:
-                # Build query parameters
-                # Convert embedding to tensor format expected by Vespa
-                tensor_dict = {"values": query_embedding}
+                # Convert embedding to list format (following KYC-copilot pattern)
+                embedding_list = [float(val) for val in query_embedding]
                 
-                query_params = {
-                    "yql": yql,
-                    "hits": max_hits,
-                    "ranking": "hybrid",
+                # Build body with input.query() format
+                body = {
+                    "input.query(query_embedding)": embedding_list,
                     "input.query(alpha)": alpha,
-                    "input.query(query_embedding)": tensor_dict
+                    "presentation.timing": True
                 }
                 
-                # Only add text query if provided
+                # Prepare query parameters
+                query_params = {
+                    "yql": yql,
+                    "ranking": "hybrid",
+                    "hits": max_hits,
+                    "body": body
+                }
+                
+                # Add text query if provided
                 if query:
                     query_params["query"] = query
                 
-                response: VespaQueryResponse = await session.query(**query_params)
+                response = await session.query(**query_params)
                 
                 if not response.is_successful():
                     logger.error(
@@ -378,11 +406,36 @@ class VespaClient:
                     )
                     return []
                 
-                # Extract and return results
-                results = self._extract_search_results(response)
+                # Extract results using same format as vector search
+                results = []
+                root_data = response.json.get("root", {})
+                children = root_data.get("children", [])
+                
+                for child in children:
+                    fields = child.get("fields", {})
+                    results.append({
+                        "id": fields.get("id", ""),
+                        "title": fields.get("title", ""),
+                        "text": fields.get("text", ""),
+                        "category": fields.get("category", ""),
+                        "chunk_index": fields.get("chunk_index", 0),
+                        "source_file": fields.get("source_file", ""),
+                        "relevance": child.get("relevance", 0.0),
+                        "page_numbers": fields.get("page_numbers", []),
+                        "page_range": fields.get("page_range"),
+                        "headings": fields.get("headings", []),
+                        "char_count": fields.get("char_count", 0),
+                        "token_count": fields.get("token_count", 0),
+                        "document_id": fields.get("document_id"),
+                        "previous_chunk_id": fields.get("previous_chunk_id"),
+                        "next_chunk_id": fields.get("next_chunk_id"),
+                        "chunk_position": fields.get("chunk_position"),
+                        "section_path": fields.get("section_path", [])
+                    })
+                
                 logger.info(f"Hybrid search found {len(results)} documents")
                 return results
-                
+                    
         except Exception as e:
             logger.error(f"Hybrid search error: {e}")
             return []

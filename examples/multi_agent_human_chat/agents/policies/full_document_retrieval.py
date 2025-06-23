@@ -9,6 +9,112 @@ from libraries.vespa import VespaClient
 logger = get_console_logger("policies_agent.full_document")
 
 
+async def retrieve_full_document_async(
+    document_id: str, 
+    vespa_client: Optional[VespaClient] = None
+) -> Dict[str, Any]:
+    """
+    Async version of retrieve_full_document.
+    Retrieves all chunks for a document and reconstructs the full text.
+    
+    Args:
+        document_id: The document identifier (e.g., "auto", "home", "life", "health")
+        vespa_client: Optional VespaClient instance, creates new one if not provided
+        
+    Returns:
+        Dict containing the full document text and metadata
+    """
+    logger.info(f"Retrieving full document for ID: {document_id}")
+    
+    try:
+        # Get or create Vespa client
+        if vespa_client is None:
+            vespa_client = VespaClient()
+        
+        # Search for all chunks of this document
+        chunks = await vespa_client.search_documents(
+            query=f'document_id:"{document_id}"',
+            category=None,
+            max_hits=100  # Reasonable limit for chunks
+        )
+        
+        if not chunks:
+            logger.warning(f"No chunks found for document_id: {document_id}")
+            return {
+                "error": f"Document with ID '{document_id}' not found",
+                "document_id": document_id
+            }
+        
+        # Sort chunks by chunk_index
+        chunks.sort(key=lambda x: x.get('chunk_index', 0))
+        
+        # Reconstruct the full text
+        full_text = "\n\n".join(chunk.get('text', '') for chunk in chunks)
+        
+        # Collect metadata
+        total_chunks = len(chunks)
+        total_chars = sum(chunk.get('char_count', len(chunk.get('text', ''))) for chunk in chunks)
+        
+        # Get document-level metadata from first chunk
+        first_chunk = chunks[0]
+        title = first_chunk.get('title', f"Document {document_id}")
+        source_file = first_chunk.get('source_file', '')
+        category = first_chunk.get('category', '')
+        
+        # Collect all unique page numbers
+        all_page_numbers = []
+        for chunk in chunks:
+            page_nums = chunk.get('page_numbers', [])
+            all_page_numbers.extend(page_nums)
+        
+        # Remove duplicates and sort
+        unique_pages = sorted(list(set(all_page_numbers)))
+        
+        # Create page range string
+        page_range = None
+        if unique_pages:
+            if len(unique_pages) == 1:
+                page_range = f"p. {unique_pages[0]}"
+            else:
+                page_range = f"pp. {unique_pages[0]}-{unique_pages[-1]}"
+        
+        # Collect all headings in order
+        all_headings = []
+        seen_headings = set()
+        for chunk in chunks:
+            headings = chunk.get('headings', [])
+            for heading in headings:
+                if heading not in seen_headings:
+                    seen_headings.add(heading)
+                    all_headings.append(heading)
+        
+        logger.info(f"Successfully retrieved document {document_id}: {total_chunks} chunks, {total_chars} characters")
+        
+        return {
+            "document_id": document_id,
+            "full_text": full_text,
+            "total_chunks": total_chunks,
+            "chunks": chunks,  # Include individual chunks for reference
+            "metadata": {
+                "title": title,
+                "source_file": source_file,
+                "category": category,
+                "page_numbers": unique_pages,
+                "page_range": page_range,
+                "all_headings": all_headings,
+                "first_chunk_id": chunks[0].get('id'),
+                "last_chunk_id": chunks[-1].get('id')
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving full document: {e}")
+        return {
+            "error": f"Failed to retrieve document: {str(e)}",
+            "document_id": document_id
+        }
+
+
 def retrieve_full_document(
     document_id: str, 
     vespa_client: Optional[VespaClient] = None
@@ -30,27 +136,40 @@ def retrieve_full_document(
             vespa_client = VespaClient()
         
         # Build YQL query to get all chunks for this document
-        yql = f'select * from policy_document where document_id="{document_id}" order by chunk_index'
+        yql = f'select * from policy_document where document_id contains "{document_id}" order by chunk_index'
         
-        # Run async search in sync context
+        # Run async search in sync context with proper query
         try:
             asyncio.get_running_loop()
             # We're in an async context, use thread executor
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    asyncio.run,
-                    vespa_client.search_documents(query="", category=None, max_hits=1000)
-                )
-                all_results = future.result()
+                # Create a wrapper function that runs the async query properly
+                def run_query():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        return loop.run_until_complete(
+                            vespa_client.search_documents(
+                                query=f'document_id:"{document_id}"',
+                                category=None,
+                                max_hits=100  # Reasonable limit for chunks
+                            )
+                        )
+                    finally:
+                        loop.close()
+                
+                future = executor.submit(run_query)
+                chunks = future.result()
         except RuntimeError:
             # No running loop, we're in sync context
-            all_results = asyncio.run(
-                vespa_client.search_documents(query="", category=None, max_hits=1000)
+            chunks = asyncio.run(
+                vespa_client.search_documents(
+                    query=f'document_id:"{document_id}"',
+                    category=None,
+                    max_hits=100  # Reasonable limit for chunks
+                )
             )
-        
-        # Filter results for the specific document_id
-        chunks = [r for r in all_results if r.get('document_id') == document_id]
         
         if not chunks:
             logger.warning(f"No chunks found for document_id: {document_id}")

@@ -157,7 +157,10 @@ def create_policy_document_schema() -> Schema:
             ),
             RankProfile(
                 name="semantic",
-                first_phase="closeness(field, embedding)"
+                first_phase="closeness(field, embedding)",
+                inputs=[
+                    ("query(query_embedding)", "tensor<float>(x[384])")
+                ]
             ),
             RankProfile(
                 name="hybrid",

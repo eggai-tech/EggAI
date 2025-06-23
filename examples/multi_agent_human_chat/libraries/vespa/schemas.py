@@ -38,7 +38,7 @@ class PolicyDocument(BaseModel):
     
     def to_vespa_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format for Vespa indexing."""
-        return {
+        data = {
             "id": self.id,
             "title": self.title,
             "text": self.text,
@@ -54,9 +54,17 @@ class PolicyDocument(BaseModel):
             "previous_chunk_id": self.previous_chunk_id,
             "next_chunk_id": self.next_chunk_id,
             "chunk_position": self.chunk_position,
-            "section_path": self.section_path,
-            "embedding": self.embedding
+            "section_path": self.section_path
         }
+        
+        # Convert embedding to Vespa tensor format if present
+        if self.embedding:
+            data["embedding"] = {
+                "cells": [{"address": {"x": str(i)}, "value": float(v)} 
+                         for i, v in enumerate(self.embedding)]
+            }
+        
+        return data
 
 
 class DocumentMetadata(BaseModel):
