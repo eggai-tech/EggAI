@@ -19,11 +19,22 @@ def setup_openai_for_dspy():
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable is not set")
     
-    import mlflow
-    mlflow.dspy.autolog()
+    # Configure DSPy first
     lm = dspy.LM("openai/gpt-4o-mini")
     dspy.configure(lm=lm)
-    logger.info("Configured DSPy to use OpenAI GPT-4o-mini for evaluation")
+    
+    # Then enable MLflow tracing after DSPy is configured
+    import mlflow
+    mlflow.set_experiment("retrieval_performance_evaluation")
+    
+    # Enable autolog with explicit parameters - key insight from docs
+    mlflow.dspy.autolog(
+        log_traces=True,                    # Enable traces for normal inference
+        log_traces_from_compile=False,      # Disable for compilation (too many traces)
+        log_traces_from_eval=True           # Enable for evaluation
+    )
+    
+    logger.info("Configured DSPy to use OpenAI GPT-4o-mini for evaluation with MLflow tracing")
 
 
 class RetrievalQualitySignature(dspy.Signature):
