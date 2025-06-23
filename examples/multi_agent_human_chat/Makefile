@@ -205,7 +205,7 @@ start-policies:
 
 start-policies-document-ingestion:
 	@echo "Starting Policies Document Ingestion Service..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/start_worker.py
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.policies.ingestion.start_worker
 
 start-claims:
 	@echo "Starting Claims Agent..."
