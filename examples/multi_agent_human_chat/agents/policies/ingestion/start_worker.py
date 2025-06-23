@@ -1,19 +1,8 @@
-#!/usr/bin/env python3
-"""
-Standalone script to start the Policy RAG Temporal worker.
-
-Usage:
-    python start_worker.py [--server-url TEMPORAL_SERVER_URL] [--namespace NAMESPACE] [--task-queue TASK_QUEUE]
-
-Example:
-    python start_worker.py --server-url localhost:7233 --namespace default --task-queue policy-rag
-"""
-
-import argparse
 import asyncio
 import signal
 import sys
 
+from agents.policies.ingestion.config import settings
 from agents.policies.ingestion.documentation_temporal_client import (
     DocumentationTemporalClient,
 )
@@ -23,35 +12,9 @@ from agents.policies.ingestion.workflows.worker import (
     run_policy_documentation_worker,
 )
 from libraries.logger import get_console_logger
+from libraries.tracing import init_telemetry
 
 logger = get_console_logger("ingestion.start_worker")
-
-
-def parse_args():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Start the Policy RAG Temporal worker",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
-    )
-
-    parser.add_argument(
-        "--server-url",
-        default="localhost:7233",
-        help="Temporal server URL (default: localhost:7233)",
-    )
-
-    parser.add_argument(
-        "--namespace", default="default", help="Temporal namespace (default: default)"
-    )
-
-    parser.add_argument(
-        "--task-queue",
-        default="policy-rag",
-        help="Temporal task queue name (default: policy-rag)",
-    )
-
-    return parser.parse_args()
 
 
 async def trigger_initial_document_ingestion(
@@ -121,18 +84,19 @@ async def trigger_initial_document_ingestion(
 
 async def main():
     """Main function to start the worker."""
-    args = parse_args()
+    # Initialize telemetry
+    init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
 
-    # Create worker settings
-    settings = PolicyDocumentationWorkerSettings()
-    settings.temporal_server_url = args.server_url
-    settings.temporal_namespace = args.namespace
-    settings.temporal_task_queue = args.task_queue
+    # Create worker settings from config
+    worker_settings = PolicyDocumentationWorkerSettings()
+    worker_settings.temporal_server_url = settings.temporal_server_url
+    worker_settings.temporal_namespace = settings.temporal_namespace
+    worker_settings.temporal_task_queue = settings.temporal_task_queue
 
     logger.info("Starting Policy Documentation Temporal worker with settings:")
-    logger.info(f"  Server URL: {settings.temporal_server_url}")
-    logger.info(f"  Namespace: {settings.temporal_namespace}")
-    logger.info(f"  Task Queue: {settings.temporal_task_queue}")
+    logger.info(f"  Server URL: {worker_settings.temporal_server_url}")
+    logger.info(f"  Namespace: {worker_settings.temporal_namespace}")
+    logger.info(f"  Task Queue: {worker_settings.temporal_task_queue}")
 
     # Create shutdown event
     shutdown_event = asyncio.Event()
@@ -150,7 +114,7 @@ async def main():
     worker = None
     try:
         # Start the worker
-        worker = await run_policy_documentation_worker(settings=settings)
+        worker = await run_policy_documentation_worker(settings=worker_settings)
 
         logger.info("Policy Documentation worker is running. Press Ctrl+C to stop.")
 
@@ -162,7 +126,7 @@ async def main():
         if schema_deployed:
             logger.info("Vespa schema ready - proceeding with document ingestion")
             # Trigger initial document ingestion for all 4 policies
-            await trigger_initial_document_ingestion(settings)
+            await trigger_initial_document_ingestion(worker_settings)
         else:
             logger.warning("Schema deployment had issues - proceeding with document ingestion anyway")
             logger.info("Note: If you're updating the schema, you may need to restart the Vespa container")

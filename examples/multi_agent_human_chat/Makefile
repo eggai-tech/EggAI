@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-ingestion start-policy-documentation-worker start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -203,6 +203,10 @@ start-policies:
 	@echo "Starting Policies Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.policies.main
 
+start-policies-document-ingestion:
+	@echo "Starting Policies Document Ingestion Service..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/start_worker.py
+
 start-claims:
 	@echo "Starting Claims Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.claims.main
@@ -215,15 +219,9 @@ start-audit:
 	@echo "Starting Audit Agent..."
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.audit.main
 
-start-ingestion:
-	@echo "Starting Document Ingestion Service..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/start_worker.py
-
-start-policy-documentation-worker: start-ingestion
-
 start-all:
 	@echo "Starting all agents and workers..."
-	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims start-ingestion
+	@make -j start-frontend start-billing start-escalation start-policies start-triage start-audit start-claims start-policies-document-ingestion
 
 restart: stop start
 	@echo "Environment and Docker Compose have been restarted."
