@@ -45,7 +45,7 @@ spec:
           - mountPath: /cache
             name: cache
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.agents.audit.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
@@ -110,7 +110,7 @@ spec:
           - mountPath: /cache
             name: cache
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.agents.billing.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
@@ -175,7 +175,7 @@ spec:
           - mountPath: /cache
             name: cache
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.agents.claims.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
@@ -240,7 +240,7 @@ spec:
           - mountPath: /cache
             name: cache
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.agents.escalation.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
@@ -317,7 +317,7 @@ spec:
           - mountPath: /cache
             name: cache
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.agents.frontend.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
@@ -382,7 +382,7 @@ spec:
           - mountPath: /cache
             name: cache
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.agents.policies.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
@@ -447,7 +447,7 @@ spec:
           - mountPath: /cache
             name: cache
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.agents.triage.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
@@ -512,7 +512,7 @@ spec:
           - mountPath: /cache
             name: cache
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml (.Values.agents.policiesDocumentIngestion.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
