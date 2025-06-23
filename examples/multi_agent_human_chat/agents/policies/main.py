@@ -387,11 +387,12 @@ async def reindex_knowledge_base(request: ReindexRequest):
                 deleted_count = 0
                 for doc in existing_results:
                     try:
-                        # Delete document from Vespa
+                        # Delete document from Vespa using feed API
                         async with vespa_client.vespa_app.asyncio() as session:
-                            await session.delete(
+                            # Use feed_data_point with empty fields to delete
+                            response = await session.delete_data_point(
                                 schema="policy_document",
-                                id=doc["id"]
+                                data_id=doc["id"]
                             )
                         deleted_count += 1
                     except Exception as e:
@@ -539,9 +540,10 @@ async def clear_index():
         for doc in existing_results:
             try:
                 async with vespa_client.vespa_app.asyncio() as session:
-                    await session.delete(
+                    # Use delete_data_point to delete document
+                    response = await session.delete_data_point(
                         schema="policy_document",
-                        id=doc["id"]
+                        data_id=doc["id"]
                     )
                 deleted_count += 1
             except Exception as e:

@@ -279,15 +279,14 @@ class VespaClient:
                 timeout=httpx.Timeout(self.config.vespa_timeout)
             ) as session:
                 # Build query parameters
-                # Format embedding as tensor string for Vespa
-                tensor_values = ",".join([f"{{{i}:{v}}}" for i, v in enumerate(query_embedding)])
-                tensor_string = f"{{x:{tensor_values}}}"
+                # Convert embedding to tensor format expected by Vespa
+                tensor_dict = {"values": query_embedding}
                 
                 query_params = {
                     "yql": yql,
                     "hits": max_hits,
                     "ranking": ranking_profile,
-                    "ranking.features.query(query_embedding)": tensor_string
+                    "input.query(query_embedding)": tensor_dict
                 }
                 
                 response: VespaQueryResponse = await session.query(**query_params)
@@ -355,16 +354,15 @@ class VespaClient:
                 timeout=httpx.Timeout(self.config.vespa_timeout)
             ) as session:
                 # Build query parameters
-                # Format embedding as tensor string for Vespa
-                tensor_values = ",".join([f"{{{i}:{v}}}" for i, v in enumerate(query_embedding)])
-                tensor_string = f"{{x:{tensor_values}}}"
+                # Convert embedding to tensor format expected by Vespa
+                tensor_dict = {"values": query_embedding}
                 
                 query_params = {
                     "yql": yql,
                     "hits": max_hits,
                     "ranking": "hybrid",
-                    "ranking.features.query(alpha)": alpha,
-                    "ranking.features.query(query_embedding)": tensor_string
+                    "input.query(alpha)": alpha,
+                    "input.query(query_embedding)": tensor_dict
                 }
                 
                 # Only add text query if provided
