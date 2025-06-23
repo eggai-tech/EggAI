@@ -1,7 +1,5 @@
 """Main module for the Policies Agent with FastAPI endpoints for Vespa knowledge base."""
 
-import asyncio
-import os
 from contextlib import asynccontextmanager
 from typing import List, Optional
 

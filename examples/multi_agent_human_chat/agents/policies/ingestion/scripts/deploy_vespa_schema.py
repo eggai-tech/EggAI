@@ -23,7 +23,14 @@ sys.path.insert(0, str(project_root))
 
 from vespa.application import Vespa
 from vespa.deployment import VespaDocker
-from vespa.package import ApplicationPackage, Document, Field, FieldSet, RankProfile, Schema
+from vespa.package import (
+    ApplicationPackage,
+    Document,
+    Field,
+    FieldSet,
+    RankProfile,
+    Schema,
+)
 
 from libraries.logger import get_console_logger
 
