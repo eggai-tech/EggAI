@@ -10,7 +10,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: {{ $.Values.service.monitoring.port }}
+    - port: {{ $.Values.monitoring.port }}
       targetPort: metrics
       protocol: TCP
       name: metrics
