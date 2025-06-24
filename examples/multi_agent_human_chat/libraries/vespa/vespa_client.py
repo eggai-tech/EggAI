@@ -43,7 +43,7 @@ class VespaClient:
             ) as session:
                 # Try a simple query to test connectivity
                 response = await session.query(
-                    yql="select * from policy_document where true limit 1"
+                    yql=f"select * from {self.config.schema_name} where true limit 1"
                 )
                 logger.info("Vespa connectivity check successful")
                 return True

@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -32,25 +31,6 @@ class Settings(BaseSettings):
     prometheus_metrics_port: int = Field(
         default=9093, description="Port for Prometheus metrics server"
     )
-
-    # RAG settings
-    rag_max_documents: int = Field(default=5)
-    rag_index_path: str = Field(default="")
-
-    @property
-    def default_rag_index_path(self) -> str:
-        if not self.rag_index_path:
-            # Navigate from agents/policies to repo root
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            repo_root = os.path.dirname(os.path.dirname(base_dir))
-            return os.path.join(
-                repo_root,
-                ".cache",
-                "colbert",
-                "indexes",
-                "policies_index",
-            )
-        return self.rag_index_path
 
     model_config = SettingsConfigDict(
         env_prefix="POLICIES_", env_file=".env", env_ignore_empty=True, extra="ignore"
