@@ -471,7 +471,7 @@ spec:
   replicas: {{ .Values.agents.policiesDocumentIngestion.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-policies-document-ingestion
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-policiesdocumentingestion
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -479,7 +479,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-policies-document-ingestion
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-policiesdocumentingestion
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
