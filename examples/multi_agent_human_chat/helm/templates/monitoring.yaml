@@ -6,7 +6,8 @@ kind: Service
 metadata:
   name: {{ include "eggai-multi-agent-chat.fullname" $ }}-{{ lower $name }}
   labels:
-    {{- include "eggai-multi-agent-chat.labels" $ | nindent 4 }}
+    {{- include "eggai-multi-agent-chat.labels" $ | nindent 4 }}-{{ lower $name }}
+    app.kubernetes.io/component: monitoring
 spec:
   type: ClusterIP
   ports:
@@ -34,5 +35,6 @@ spec:
   selector:
     matchLabels:
       {{- include "eggai-multi-agent-chat.selectorLabels" $ | nindent 6 }}-{{ lower $name }}
+      app.kubernetes.io/component: monitoring
 {{- end }}
 {{- end }}
