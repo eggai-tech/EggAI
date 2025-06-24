@@ -1,0 +1,38 @@
+{{- if .Values.monitoring.enabled }}
+{{- range $name,$value := .Values.agents }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "eggai-multi-agent-chat.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "eggai-multi-agent-chat.labels" $ | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ $.Values.service.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "eggai-multi-agent-chat.selectorLabels" $ | nindent 4 }}-{{ $name }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "eggai-multi-agent-chat.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "eggai-multi-agent-chat.labels" $ | nindent 4 }}
+spec:
+  endpoints:
+  - honorLabels: true
+    interval: {{ $.Values.monitoring.serviceMonitor.interval | default "30s" }}
+    path: /metrics
+    port: metrics
+    scheme: http
+    scrapeTimeout: {{ $.Values.monitoring.serviceMonitor.scrapeTimeout | default "10s" }}
+  selector:
+    matchLabels:
+      {{- include "eggai-multi-agent-chat.selectorLabels" $ | nindent 6 }}-{{ $name }}
+{{- end }}
+{{- end }}

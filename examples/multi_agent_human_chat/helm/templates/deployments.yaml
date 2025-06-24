@@ -37,10 +37,20 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
+            {{- if .Values.monitoring.enabled }}
+            - name: AUDIT_PROMETHEUS_METRICS_PORT
+              value: "{{ .Values.monitoring.port }}"
+            {{- end }}
             {{- range .Values.agents.audit.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
+          {{- if .Values.monitoring.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+          {{- end }}
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -102,10 +112,20 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
+            {{- if .Values.monitoring.enabled }}
+            - name: BILLING_PROMETHEUS_METRICS_PORT
+              value: "{{ .Values.monitoring.port }}"
+            {{- end }}
             {{- range .Values.agents.billing.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
+          {{- if .Values.monitoring.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+          {{- end }}
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -167,10 +187,20 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
+            {{- if .Values.monitoring.enabled }}
+            - name: CLAIMS_PROMETHEUS_METRICS_PORT
+              value: "{{ .Values.monitoring.port }}"
+            {{- end }}
             {{- range .Values.agents.claims.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
+          {{- if .Values.monitoring.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+          {{- end }}
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -232,10 +262,20 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
+            {{- if .Values.monitoring.enabled }}
+            - name: ESCALATION_PROMETHEUS_METRICS_PORT
+              value: "{{ .Values.monitoring.port }}"
+            {{- end }}
             {{- range .Values.agents.escalation.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
+          {{- if .Values.monitoring.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+          {{- end }}
           volumeMounts:
           - mountPath: /cache
             name: cache
@@ -297,6 +337,10 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
+            {{- if .Values.monitoring.enabled }}
+            - name: FRONTEND_PROMETHEUS_METRICS_PORT
+              value: "{{ .Values.monitoring.port }}"
+            {{- end }}
             {{- range .Values.agents.frontend.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
@@ -305,6 +349,11 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          {{- if .Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+          {{- end }}
           livenessProbe:
             httpGet:
               path: /
@@ -374,80 +423,25 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
+            {{- if .Values.monitoring.enabled }}
+            - name: POLICIES_PROMETHEUS_METRICS_PORT
+              value: "{{ .Values.monitoring.port }}"
+            {{- end }}
             {{- range .Values.agents.policies.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
+          {{- if .Values.monitoring.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+          {{- end }}
           volumeMounts:
           - mountPath: /cache
             name: cache
           resources:
             {{- toYaml (.Values.agents.policies.resources | default .Values.resources) | nindent 12 }}
-      volumes:
-      - emptyDir:
-          sizeLimit: {{ .Values.cacheVolumeSize }}
-        name: cache
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-{{- end }}
-{{- if .Values.agents.triage.enabled }}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ include "eggai-multi-agent-chat.fullname" . }}-triage
-  labels:
-    {{- include "eggai-multi-agent-chat.labels" . | nindent 4 }}
-spec:
-  replicas: {{ .Values.agents.triage.replicaCount }}
-  selector:
-    matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-triage
-  template:
-    metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-triage
-    spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      containers:
-        - name: {{ .Chart.Name }}
-          args:
-          - agents.triage.main
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env:
-            - name: DSPY_CACHEDIR
-              value: /cache/dspy
-            {{- range .Values.agents.triage.environment }}
-            - name: {{ .name }}
-              value: {{ .value | quote }}
-            {{- end }}
-          volumeMounts:
-          - mountPath: /cache
-            name: cache
-          resources:
-            {{- toYaml (.Values.agents.triage.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
@@ -504,15 +498,100 @@ spec:
           env:
             - name: DSPY_CACHEDIR
               value: /cache/dspy
+            {{- if .Values.monitoring.enabled }}
+            - name: POLICIES_DOCUMENT_INGESTION_PROMETHEUS_METRICS_PORT
+              value: "{{ .Values.monitoring.port }}"
+            {{- end }}
             {{- range .Values.agents.policiesDocumentIngestion.environment }}
             - name: {{ .name }}
               value: {{ .value | quote }}
             {{- end }}
+          {{- if .Values.monitoring.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+          {{- end }}
           volumeMounts:
           - mountPath: /cache
             name: cache
           resources:
             {{- toYaml (.Values.agents.policiesDocumentIngestion.resources | default .Values.resources) | nindent 12 }}
+      volumes:
+      - emptyDir:
+          sizeLimit: {{ .Values.cacheVolumeSize }}
+        name: cache
+      {{- with .Values.gpuNodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.gpuTolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- if .Values.agents.triage.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eggai-multi-agent-chat.fullname" . }}-triage
+  labels:
+    {{- include "eggai-multi-agent-chat.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.agents.triage.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-triage
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-triage
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          args:
+          - agents.triage.main
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DSPY_CACHEDIR
+              value: /cache/dspy
+            {{- if .Values.monitoring.enabled }}
+            - name: TRIAGE_PROMETHEUS_METRICS_PORT
+              value: "{{ .Values.monitoring.port }}"
+            {{- end }}
+            {{- range .Values.agents.triage.environment }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          {{- if .Values.monitoring.enabled }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+          {{- end }}
+          volumeMounts:
+          - mountPath: /cache
+            name: cache
+          resources:
+            {{- toYaml (.Values.agents.triage.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
