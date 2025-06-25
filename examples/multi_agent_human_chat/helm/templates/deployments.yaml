@@ -10,7 +10,8 @@ spec:
   replicas: {{ .Values.agents.audit.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-audit
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}
+      egg-ai.com/agent: audit
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,7 +19,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-audit
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}
+        egg-ai.com/agent: audit
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -85,7 +87,8 @@ spec:
   replicas: {{ .Values.agents.billing.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-billing
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}
+      egg-ai.com/agent: billing
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -93,7 +96,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-billing
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}
+        egg-ai.com/agent: billing
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -160,7 +164,8 @@ spec:
   replicas: {{ .Values.agents.claims.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-claims
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}
+      egg-ai.com/agent: claims
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -168,7 +173,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-claims
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}
+        egg-ai.com/agent: claims
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -235,7 +241,8 @@ spec:
   replicas: {{ .Values.agents.escalation.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-escalation
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}
+      egg-ai.com/agent: escalation
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -243,7 +250,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-escalation
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}
+        egg-ai.com/agent: escalation
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -310,7 +318,8 @@ spec:
   replicas: {{ .Values.agents.frontend.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-frontend
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}
+      egg-ai.com/agent: frontend
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -318,7 +327,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-frontend
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}
+        egg-ai.com/agent: frontend
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -396,7 +406,8 @@ spec:
   replicas: {{ .Values.agents.policies.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-policies
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}
+      egg-ai.com/agent: policies
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -404,7 +415,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-policies
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}
+        egg-ai.com/agent: policies
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -471,7 +483,8 @@ spec:
   replicas: {{ .Values.agents.policiesDocumentIngestion.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-policiesdocumentingestion
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}
+      egg-ai.com/agent: policies-document-ingestion
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -479,7 +492,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-policiesdocumentingestion
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}
+        egg-ai.com/agent: policies-document-ingestion
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -546,7 +560,8 @@ spec:
   replicas: {{ .Values.agents.triage.replicaCount }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}-triage
+      {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 6 }}
+      egg-ai.com/agent: triage
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -554,7 +569,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}-triage
+        {{- include "eggai-multi-agent-chat.selectorLabels" . | nindent 8 }}
+        egg-ai.com/agent: triage
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
