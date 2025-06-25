@@ -111,10 +111,11 @@ async def main():
 
         # Deploy Vespa schema before document ingestion
         logger.info("Ensuring Vespa schema is deployed...")
+        
         # Try to deploy with force=True to handle schema updates
         schema_deployed = deploy_to_vespa(
-            host=settings.vespa_host,
-            port=settings.vespa_port,
+            config_server_url=settings.vespa_config_url,
+            query_url=settings.vespa_query_url,
             force=True
         )
         

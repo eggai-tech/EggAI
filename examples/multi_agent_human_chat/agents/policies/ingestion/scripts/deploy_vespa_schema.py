@@ -6,23 +6,34 @@ This script creates a Vespa application package with the enhanced schema
 that includes page numbers, headings, relationships, and other metadata.
 
 Usage:
-    python deploy_vespa_schema.py [--host HOST] [--port PORT]
+    python deploy_vespa_schema.py [--config-server URL] [--query-url URL] [--force]
 
 Examples:
+    # Local deployment
     python deploy_vespa_schema.py
-    python deploy_vespa_schema.py --host vespa-container --port 8080
+    
+    # Kubernetes deployment
+    python deploy_vespa_schema.py \
+        --config-server http://vespa-configserver-0.vespa-internal.tomcode-shared.svc.cluster.local:19071 \
+        --query-url http://vespa-query-0.vespa-internal.tomcode-shared.svc.cluster.local:8080
+        
+    # Force redeploy even if schema exists
+    python deploy_vespa_schema.py --force
 """
 
 import argparse
 import sys
+import tempfile
+import zipfile
 from pathlib import Path
+
+import httpx
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from vespa.application import Vespa
-from vespa.deployment import VespaDocker
 from vespa.package import (
     ApplicationPackage,
     Document,
@@ -191,11 +202,14 @@ def create_application_package() -> ApplicationPackage:
     return app_package
 
 
-def check_schema_exists(host: str = "localhost", port: int = 8080) -> bool:
-    """Check if the policy_document schema is already deployed."""
+def check_schema_exists(query_url: str) -> bool:
+    """Check if the policy_document schema is already deployed.
+    
+    Args:
+        query_url: Full URL of the Vespa query endpoint (e.g., http://localhost:8080)
+    """
     try:
-        vespa_url = f"http://{host}:{port}"
-        app = Vespa(url=vespa_url)
+        app = Vespa(url=query_url)
         
         # Try to query the schema to see if it exists
         response = app.query(yql="select * from policy_document where true limit 1")
@@ -212,49 +226,100 @@ def check_schema_exists(host: str = "localhost", port: int = 8080) -> bool:
         return False
 
 
-def deploy_to_vespa(host: str = "localhost", port: int = 8080, force: bool = False) -> bool:
-    """Deploy the enhanced application package to Vespa."""
-    logger.info(f"Starting enhanced Vespa deployment to {host}:{port}")
+def deploy_to_vespa(config_server_url: str, query_url: str, force: bool = False) -> bool:
+    """Deploy the enhanced application package to Vespa using the Deploy API.
     
-    # Check if schema already exists
-    if check_schema_exists(host, port) and not force:
-        logger.warning("⚠️  Schema already exists. Attempting to update the schema...")
-        logger.info("Note: Schema updates in Vespa require compatible changes or container restart.")
+    Args:
+        config_server_url: Full URL of the Vespa config server (e.g., http://localhost:19071)
+        query_url: Full URL of the Vespa query endpoint (e.g., http://localhost:8080)
+        force: Force deployment even if schema exists
+    """
+    logger.info("Starting enhanced Vespa deployment")
+    logger.info(f"Config server: {config_server_url}")
+    logger.info(f"Query endpoint: {query_url}")
+
+    # Check if schema exists
+    if not force and check_schema_exists(query_url):
+        logger.info("Schema already exists and is active. Skipping deployment.")
+        return True
     
     try:
         # Create application package
         app_package = create_application_package()
         
-        # Deploy using simplified approach to existing container
-        logger.info("Deploying enhanced application package to existing container")
-        
-        try:
-            # First try: Connect to existing container by name
-            vespa_container = VespaDocker.from_container_name_or_id("vespa-container")
-            vespa_connection = vespa_container.deploy(application_package=app_package)
-        except Exception as e:
-            logger.warning(f"Container name deployment failed: {e}")
-            logger.info("Trying simplified VespaDocker approach...")
+        # Create a temporary directory to save the application package
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
             
-            # Fallback: Use basic VespaDocker (will create new container)
-            vespa_container = VespaDocker()
-            vespa_connection = vespa_container.deploy(application_package=app_package)
-        
-        if vespa_connection is None:
-            logger.error("Deployment failed - vespa_connection is None")
-            return False
-        
-        # Verify deployment
-        logger.info("Verifying enhanced deployment...")
-        vespa_url = f"http://{host}:{port}"
-        verification_app = Vespa(url=vespa_url)
-        
-        try:
-            # Test basic connectivity and schema
-            response = verification_app.query(yql="select * from policy_document where true limit 1")
-            if response.is_successful():
-                logger.info("✅ Enhanced deployment successful! Schema is ready for use.")
-                logger.info(f"Application available at: {vespa_url}")
+            # Save the application package to files
+            logger.info("Saving application package to temporary directory")
+            app_package.to_files(temp_path)
+            
+            # Create a zip file of the application package
+            zip_path = temp_path / "application.zip"
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for file_path in temp_path.rglob('*'):
+                    if file_path.is_file() and file_path != zip_path:
+                        arcname = file_path.relative_to(temp_path)
+                        zipf.write(file_path, arcname)
+            
+            # Deploy using Vespa's Deploy API
+            logger.info(f"Deploying application package to Vespa config server at {config_server_url}")
+            
+            # Prepare the application package
+            prepare_url = f"{config_server_url}/application/v2/tenant/default/session"
+            
+            with open(zip_path, 'rb') as f:
+                zip_content = f.read()
+                
+            # Create session and upload application
+            headers = {'Content-Type': 'application/zip'}
+            response = httpx.post(prepare_url, content=zip_content, headers=headers, timeout=60.0)
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to prepare application: {response.status_code}")
+                logger.error(f"Response: {response.text}")
+                return False
+            
+            session_data = response.json()
+            session_id = session_data.get('session-id')
+            
+            if not session_id:
+                logger.error("No session ID returned from prepare")
+                return False
+            
+            logger.info(f"Application prepared with session ID: {session_id}")
+            
+            # Prepare the session
+            prepare_session_url = f"{config_server_url}/application/v2/tenant/default/session/{session_id}/prepared"
+            response = httpx.put(prepare_session_url, timeout=60.0)
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to prepare session: {response.status_code}")
+                logger.error(f"Response: {response.text}")
+                return False
+            
+            logger.info("Session prepared successfully")
+            
+            # Activate the session
+            activate_url = f"{config_server_url}/application/v2/tenant/default/session/{session_id}/active"
+            response = httpx.put(activate_url, timeout=60.0)
+            
+            if response.status_code != 200:
+                logger.error(f"Failed to activate application: {response.status_code}")
+                logger.error(f"Response: {response.text}")
+                return False
+            
+            logger.info("✅ Application activated successfully!")
+            
+            # Wait a bit for the application to be ready
+            logger.info("Waiting for schema to be ready...")
+            import time
+            time.sleep(3)
+            
+            # Verify the schema is actually queryable
+            if check_schema_exists(query_url):
+                logger.info("✅ Schema verified and ready for use!")
                 
                 # Log enhanced schema details
                 logger.info("Enhanced schema deployed with fields:")
@@ -263,17 +328,22 @@ def deploy_to_vespa(host: str = "localhost", port: int = 8080, force: bool = Fal
                 logger.info("  Relationships: document_id, previous_chunk_id, next_chunk_id, chunk_position")
                 logger.info("  Context: section_path")
                 logger.info("BM25 indexing enabled on: title, text")
-                logger.info("Rank profiles: default, with_position")
+                logger.info("Rank profiles: default, with_position, semantic, hybrid")
                 
                 return True
             else:
-                logger.error(f"Deployment verification failed: {response.status_code}")
-                return False
+                logger.warning("Schema deployment completed but verification failed")
+                logger.warning("The schema may still be initializing, waiting a bit more...")
+                time.sleep(5)
                 
-        except Exception as e:
-            logger.error(f"Deployment verification error: {e}")
-            return False
-            
+                # Try one more time
+                if check_schema_exists(query_url):
+                    logger.info("✅ Schema verified on second attempt!")
+                    return True
+                else:
+                    logger.error("Schema verification failed after deployment")
+                    return False
+                    
     except Exception as e:
         logger.error(f"Deployment failed: {e}", exc_info=True)
         return False
@@ -288,16 +358,15 @@ def main():
     )
     
     parser.add_argument(
-        "--host",
-        default="localhost",
-        help="Vespa host (default: localhost)",
+        "--config-server",
+        default="http://localhost:19071",
+        help="Vespa config server URL (default: http://localhost:19071)",
     )
     
     parser.add_argument(
-        "--port",
-        type=int,
-        default=8080,
-        help="Vespa port (default: 8080)",
+        "--query-url",
+        default="http://localhost:8080",
+        help="Vespa query endpoint URL (default: http://localhost:8080)",
     )
     
     parser.add_argument(
@@ -310,16 +379,23 @@ def main():
     
     print("🚀 Enhanced Vespa Schema Deployment Tool")
     print("=" * 50)
-    print(f"Target: {args.host}:{args.port}")
+    print(f"Config Server: {args.config_server}")
+    print(f"Query Endpoint: {args.query_url}")
+    print(f"Force: {args.force}")
     print()
     
     try:
-        success = deploy_to_vespa(args.host, args.port, args.force)
+        success = deploy_to_vespa(
+            config_server_url=args.config_server,
+            query_url=args.query_url,
+            force=args.force
+        )
         
         if success:
             print()
             print("🎉 Enhanced deployment completed successfully!")
-            print(f"   Vespa is ready at: http://{args.host}:{args.port}")
+            print(f"   Config Server: {args.config_server}")
+            print(f"   Query Endpoint: {args.query_url}")
             print("   Schema: policy_document (enhanced)")
             print("   Core fields: id, title, text, category, chunk_index, source_file")
             print("   Metadata fields: page numbers, headings, citations, relationships")

@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     otel_endpoint: str = Field(default="http://localhost:4318")
     
     # Vespa configuration
-    vespa_host: str = Field(default="localhost")
-    vespa_port: int = Field(default=8080)
+    vespa_config_url: str = Field(default="http://localhost:19071")
+    vespa_query_url: str = Field(default="http://localhost:8080")
 
     model_config = SettingsConfigDict(
         env_prefix="POLICIES_DOCUMENT_INGESTION_",

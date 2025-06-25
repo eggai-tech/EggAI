@@ -8,7 +8,7 @@ class VespaConfig(BaseSettings):
     """Configuration settings for Vespa integration."""
     
     # Vespa connection settings
-    vespa_url: str = Field(default="http://localhost:8083")
+    vespa_url: str = Field(default="http://localhost:8080")
     vespa_app_name: str = Field(default="policies")
     vespa_timeout: int = Field(default=120)
     vespa_connections: int = Field(default=5)
