@@ -4,10 +4,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "eggai-multi-agent-chat.fullname" $ }}-{{ lower $name }}
+  name: {{ include "eggai-multi-agent-chat.fullname" $ }}-{{ lower $name }}-metrics
   labels:
-    {{- include "eggai-multi-agent-chat.labels" $ | nindent 4 }}-{{ lower $name }}
+    {{- include "eggai-multi-agent-chat.labels" $ | nindent 4 }}
     app.kubernetes.io/component: monitoring
+    egg-ai.com/agent: {{ $name }}
 spec:
   type: ClusterIP
   ports:
@@ -16,7 +17,8 @@ spec:
       protocol: TCP
       name: metrics
   selector:
-    {{- include "eggai-multi-agent-chat.selectorLabels" $ | nindent 4 }}-{{ lower $name }}
+    {{- include "eggai-multi-agent-chat.selectorLabels" $ | nindent 4 }}
+    egg-ai.com/agent: {{ $name }}
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -34,7 +36,8 @@ spec:
     scrapeTimeout: {{ $.Values.monitoring.serviceMonitor.scrapeTimeout | default "10s" }}
   selector:
     matchLabels:
-      {{- include "eggai-multi-agent-chat.selectorLabels" $ | nindent 6 }}-{{ lower $name }}
+      {{- include "eggai-multi-agent-chat.selectorLabels" $ | nindent 6 }}
       app.kubernetes.io/component: monitoring
+      egg-ai.com/agent: {{ $name }}
 {{- end }}
 {{- end }}
