@@ -66,7 +66,7 @@ class RetrievalPerformanceTester:
     async def stage1_query_all(self) -> List[RetrievalResult]:
         """Stage 1: Execute all retrieval queries."""
         logger.info(
-            f"🔍 Stage 1: Starting retrieval for {len(self.combinations)} combinations"
+            f"Stage 1: Starting retrieval for {len(self.combinations)} combinations"
         )
 
         if self.config.parallel_queries:
@@ -76,7 +76,7 @@ class RetrievalPerformanceTester:
 
         successful = len([r for r in results if r.error is None])
         logger.info(
-            f"✅ Stage 1 completed: {successful}/{len(results)} queries successful"
+            f"Stage 1 completed: {successful}/{len(results)} queries successful"
         )
         return results
 
@@ -131,7 +131,7 @@ class RetrievalPerformanceTester:
     ) -> List[EvaluationResult]:
         """Stage 2: Evaluate all retrieval results using LLM judge."""
         logger.info(
-            f"🧠 Stage 2: Starting LLM evaluation for {len(retrieval_results)} results"
+            f"Stage 2: Starting LLM evaluation for {len(retrieval_results)} results"
         )
 
         if self.config.parallel_evaluations:
@@ -141,7 +141,7 @@ class RetrievalPerformanceTester:
 
         successful = len([r for r in results if r.error is None])
         logger.info(
-            f"✅ Stage 2 completed: {successful}/{len(results)} evaluations successful"
+            f"Stage 2 completed: {successful}/{len(results)} evaluations successful"
         )
         return results
 
@@ -234,16 +234,16 @@ class RetrievalPerformanceTester:
                 f"API at {self.base_url} is not available and could not be started"
             )
 
-        logger.info("🚀 Starting staged retrieval evaluation")
+        logger.info("Starting staged retrieval evaluation")
         logger.info(
-            f"📋 {len(self.test_cases)} test cases, {len(self.combinations)} total combinations"
+            f"{len(self.test_cases)} test cases, {len(self.combinations)} total combinations"
         )
 
         retrieval_results = await self.stage1_query_all()
         evaluation_results = await self.stage2_evaluate_all(retrieval_results)
         self.stage3_report_to_mlflow(retrieval_results, evaluation_results)
 
-        logger.info("🎉 Staged evaluation completed successfully")
+        logger.info("Staged evaluation completed successfully")
         return retrieval_results, evaluation_results
 
     def find_best_combination(
@@ -403,7 +403,7 @@ class RetrievalPerformanceTester:
         if best_combo:
             report_lines.extend(
                 [
-                    "## 🏆 Best Performing Combination",
+                    "## Best Performing Combination",
                     f"**{best_combo['search_type'].title()} search with {best_combo['max_hits']} max hits**",
                     f"- Quality Score: {best_combo['avg_quality']:.3f}",
                     f"- Pass Rate: {best_combo['pass_rate']:.1%}",
@@ -433,7 +433,7 @@ async def test_retrieval_quality_async():
 
 async def _run_retrieval_test():
     """Run the actual test logic using staged approach."""
-    logger.info("🚀 Starting staged retrieval test...")
+    logger.info("Starting staged retrieval test...")
 
     config = RetrievalTestConfiguration(
         search_types=["hybrid", "keyword", "vector"],
@@ -445,7 +445,7 @@ async def _run_retrieval_test():
     )
 
     tester = RetrievalPerformanceTester(config=config)
-    logger.info("✅ Tester initialized")
+    logger.info("Tester initialized")
 
     retrieval_results, evaluation_results = await tester.run_staged_evaluation()
 
@@ -459,7 +459,7 @@ async def _run_retrieval_test():
     best_combo = tester.find_best_combination(retrieval_results, evaluation_results)
     if best_combo:
         logger.info("=" * 60)
-        logger.info("🏆 BEST PERFORMING COMBINATION")
+        logger.info("BEST PERFORMING COMBINATION")
         logger.info("=" * 60)
         logger.info(f"Search Type: {best_combo['search_type'].upper()}")
         logger.info(f"Max Hits: {best_combo['max_hits']}")
@@ -472,19 +472,19 @@ async def _run_retrieval_test():
         # Recommendation
         if best_combo["avg_quality"] >= 0.8:
             logger.info(
-                "✅ RECOMMENDATION: This combination provides excellent retrieval quality!"
+                "RECOMMENDATION: This combination provides excellent retrieval quality!"
             )
         elif best_combo["avg_quality"] >= 0.7:
             logger.info(
-                "👍 RECOMMENDATION: This combination provides good retrieval quality."
+                "RECOMMENDATION: This combination provides good retrieval quality."
             )
         else:
             logger.info(
-                "⚠️ RECOMMENDATION: Consider tuning parameters for better quality."
+                "RECOMMENDATION: Consider tuning parameters for better quality."
             )
 
     # Assertions
-    logger.info("🔍 Performing assertions...")
+    logger.info("Performing assertions...")
     assert len(evaluation_results) > 0, "No evaluations were completed"
     assert len(retrieval_results) > 0, "No retrieval results were obtained"
 
@@ -504,15 +504,15 @@ async def _run_retrieval_test():
             successful_evals
         )
 
-        logger.info(f"📊 Overall average quality score: {avg_quality:.3f}")
-        logger.info(f"📊 Overall pass rate: {pass_rate:.1%}")
+        logger.info(f"Overall average quality score: {avg_quality:.3f}")
+        logger.info(f"Overall pass rate: {pass_rate:.1%}")
 
         if avg_quality < 0.6:
-            logger.warning(f"⚠️ Low average quality score: {avg_quality:.3f}")
+            logger.warning(f"Low average quality score: {avg_quality:.3f}")
         if pass_rate < 0.5:
-            logger.warning(f"⚠️ Low pass rate: {pass_rate:.1%}")
+            logger.warning(f"Low pass rate: {pass_rate:.1%}")
 
-    logger.info("🎉 Test completed successfully!")
+    logger.info("Test completed successfully!")
 
 
 async def main():

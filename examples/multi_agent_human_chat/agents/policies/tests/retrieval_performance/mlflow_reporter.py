@@ -23,10 +23,11 @@ class MLflowReporter:
         self,
         retrieval_results: List[RetrievalResult],
         evaluation_results: List[EvaluationResult],
+        config=None,
     ) -> None:
         """Report results with one run per parameter combination."""
         logger.info(
-            f"📊 Stage 3: Reporting {len(evaluation_results)} results to MLflow"
+            f"Stage 3: Reporting {len(evaluation_results)} results to MLflow"
         )
 
         try:
@@ -39,10 +40,10 @@ class MLflowReporter:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
             for combo_name, combo_data in combination_groups.items():
-                self._log_combination_run(combo_name, combo_data, timestamp)
+                self._log_combination_run(combo_name, combo_data, timestamp, config)
 
             logger.info(
-                f"✅ Stage 3 completed: {len(combination_groups)} runs logged to experiment '{experiment_name}'"
+                f"Stage 3 completed: {len(combination_groups)} runs logged to experiment '{experiment_name}'"
             )
 
         except Exception as e:
@@ -84,7 +85,7 @@ class MLflowReporter:
         return combination_groups
 
     def _log_combination_run(
-        self, combo_name: str, combo_data: dict, timestamp: str
+        self, combo_name: str, combo_data: dict, timestamp: str, config=None
     ) -> None:
         """Log a single combination run to MLflow."""
         try:
@@ -95,22 +96,26 @@ class MLflowReporter:
                 retrievals = combo_data["retrievals"]
 
                 if evaluations:
-                    self._log_parameters(evaluations[0])
+                    self._log_parameters(evaluations[0], config)
                     self._log_aggregate_metrics(evaluations, retrievals)
                     self._log_individual_metrics(evaluations, retrievals)
 
                 logger.info(
-                    f"✅ Logged run: {run_name} (tested {len(evaluations)} test cases)"
+                    f"Logged run: {run_name} (tested {len(evaluations)} test cases)"
                 )
 
         except Exception as e:
             logger.error(f"Failed to log run {combo_name}: {e}")
 
-    def _log_parameters(self, eval_sample):
+    def _log_parameters(self, eval_sample, config=None):
         """Log run parameters."""
         mlflow.log_param("search_type", eval_sample.combination.search_type)
         mlflow.log_param("max_hits", eval_sample.combination.max_hits)
         mlflow.log_param("test_run_timestamp", datetime.now().isoformat())
+        
+        # Log LLM judge configuration if provided
+        if config:
+            mlflow.log_param("llm_judge_enabled", config.enable_llm_judge)
 
     def _log_aggregate_metrics(
         self, evaluations: List[EvaluationResult], retrievals: List[RetrievalResult]

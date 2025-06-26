@@ -90,6 +90,33 @@ The test suite consists of three main stages:
 
 ## Configuration
 
+### Evaluation Modes
+
+#### LLM Judge Enabled (Default)
+```python
+config = RetrievalTestConfiguration(enable_llm_judge=True)
+evaluator = RetrievalEvaluator(enable_llm_judge=True)
+```
+- Uses GPT-4o-mini for quality assessment
+- Provides detailed reasoning and insights
+- Requires OpenAI API key
+- Higher evaluation cost and latency
+
+#### LLM Judge Disabled (Context-Only)
+```python
+config = RetrievalTestConfiguration(enable_llm_judge=False)
+evaluator = RetrievalEvaluator(enable_llm_judge=False)
+```
+- Uses only context similarity metrics
+- Faster evaluation with lower cost
+- No external API dependencies
+- LLM-specific metrics set to 0.0:
+  - `retrieval_quality_score` = 0.0 (not evaluated)
+  - `completeness_score` = 0.0 (not evaluated)
+  - `relevance_score` = 0.0 (not evaluated)
+  - `judgment` = False (not evaluated)
+- Focus on context-based metrics: `recall_score`, `precision_at_k`, `mrr_score`, `ndcg_score`, `context_coverage`
+
 ### Search Types
 - `hybrid` - Combines keyword and vector search
 - `keyword` - Traditional keyword-based search
@@ -108,18 +135,24 @@ The test suite consists of three main stages:
 
 ### Running Tests
 
+#### With LLM Judge (Default)
 ```python
 from agents.policies.tests.retrieval_performance.test_data import get_retrieval_test_cases
 from agents.policies.tests.retrieval_performance.evaluator import RetrievalEvaluator
+from agents.policies.tests.retrieval_performance.models import RetrievalTestConfiguration
 
-# Load test cases
+# Configure with LLM judge enabled
+config = RetrievalTestConfiguration(enable_llm_judge=True)
 test_cases = get_retrieval_test_cases()
+evaluator = RetrievalEvaluator(enable_llm_judge=True)
+```
 
-# Initialize evaluator
-evaluator = RetrievalEvaluator()
-
-# Run evaluation
-results = await evaluator.evaluate_single(retrieval_result, test_case)
+#### Context-Only Mode (No LLM)
+```python
+# Configure with LLM judge disabled
+config = RetrievalTestConfiguration(enable_llm_judge=False)
+test_cases = get_retrieval_test_cases()
+evaluator = RetrievalEvaluator(enable_llm_judge=False)
 ```
 
 ### Viewing Results
