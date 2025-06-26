@@ -17,11 +17,11 @@ from libraries.vespa import VespaClient
 
 from .config import settings
 from .embeddings import generate_embedding
-from .full_document_retrieval import (
+from .ingestion.documentation_temporal_client import DocumentationTemporalClient
+from .tools.retrieval.full_document_retrieval import (
     get_document_chunk_range,
     retrieve_full_document_async,
 )
-from .ingestion.documentation_temporal_client import DocumentationTemporalClient
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(
