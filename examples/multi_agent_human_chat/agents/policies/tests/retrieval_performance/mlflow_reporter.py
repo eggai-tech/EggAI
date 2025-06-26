@@ -26,9 +26,7 @@ class MLflowReporter:
         config=None,
     ) -> None:
         """Report results with one run per parameter combination."""
-        logger.info(
-            f"Stage 3: Reporting {len(evaluation_results)} results to MLflow"
-        )
+        logger.info(f"Stage 3: Reporting {len(evaluation_results)} results to MLflow")
 
         try:
             experiment_name = "retrieval_performance_evaluation"
@@ -112,7 +110,7 @@ class MLflowReporter:
         mlflow.log_param("search_type", eval_sample.combination.search_type)
         mlflow.log_param("max_hits", eval_sample.combination.max_hits)
         mlflow.log_param("test_run_timestamp", datetime.now().isoformat())
-        
+
         # Log LLM judge configuration if provided
         if config:
             mlflow.log_param("llm_judge_enabled", config.enable_llm_judge)

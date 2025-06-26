@@ -5,9 +5,9 @@ from typing import List, Optional
 
 from libraries.logger import get_console_logger
 
-from .models import EvaluationResult, RetrievalResult, RetrievalTestCase
 from .context_metrics import ContextMetrics
 from .llm_judge import LLMJudge
+from .models import EvaluationResult, RetrievalResult, RetrievalTestCase
 
 logger = get_console_logger("retrieval_evaluator")
 
@@ -15,9 +15,11 @@ logger = get_console_logger("retrieval_evaluator")
 class RetrievalEvaluator:
     """Evaluates retrieval quality using context similarity and optional LLM judges."""
 
-    def __init__(self, enable_llm_judge: bool = True, similarity_threshold: float = 0.5):
+    def __init__(
+        self, enable_llm_judge: bool = True, similarity_threshold: float = 0.5
+    ):
         """Initialize evaluator with configuration options.
-        
+
         Args:
             enable_llm_judge: Whether to use LLM-based evaluation
             similarity_threshold: Threshold for determining relevance in context metrics
@@ -25,7 +27,7 @@ class RetrievalEvaluator:
         self.enable_llm_judge = enable_llm_judge
         self.context_metrics = ContextMetrics(similarity_threshold=similarity_threshold)
         self.llm_judge: Optional[LLMJudge] = None
-        
+
         if self.enable_llm_judge:
             try:
                 self.llm_judge = LLMJudge()
@@ -41,11 +43,11 @@ class RetrievalEvaluator:
         self, retrieval_result: RetrievalResult, test_case: RetrievalTestCase
     ) -> EvaluationResult:
         """Evaluate a single retrieval result.
-        
+
         Args:
             retrieval_result: The retrieval result to evaluate
             test_case: The test case with expected context
-            
+
         Returns:
             EvaluationResult with all metrics
         """
@@ -64,7 +66,9 @@ class RetrievalEvaluator:
 
             # Run LLM evaluation if enabled
             if self.enable_llm_judge and self.llm_judge:
-                llm_results = await self._run_llm_evaluation(retrieval_result, test_case)
+                llm_results = await self._run_llm_evaluation(
+                    retrieval_result, test_case
+                )
                 return EvaluationResult(
                     combination=retrieval_result.combination,
                     retrieval_quality_score=llm_results["retrieval_quality_score"],
@@ -85,10 +89,10 @@ class RetrievalEvaluator:
                 return EvaluationResult(
                     combination=retrieval_result.combination,
                     retrieval_quality_score=0.0,  # No LLM evaluation
-                    completeness_score=0.0,       # No LLM evaluation
-                    relevance_score=0.0,          # No LLM evaluation
+                    completeness_score=0.0,  # No LLM evaluation
+                    relevance_score=0.0,  # No LLM evaluation
                     reasoning="LLM judge disabled - context metrics only",
-                    judgment=False,               # No LLM judgment
+                    judgment=False,  # No LLM judgment
                     evaluation_time_ms=evaluation_time_ms,
                     recall_score=context_metrics["recall_score"],
                     precision_at_k=context_metrics["precision_at_k"],
@@ -105,11 +109,11 @@ class RetrievalEvaluator:
         self, retrieval_result: RetrievalResult, test_case: RetrievalTestCase
     ) -> dict:
         """Run LLM-based evaluation.
-        
+
         Args:
             retrieval_result: The retrieval result
             test_case: The test case
-            
+
         Returns:
             Dictionary with LLM evaluation results
         """
@@ -120,36 +124,37 @@ class RetrievalEvaluator:
             retrieved_chunks=chunks_text,
         )
 
-
     def _format_chunks(self, chunks: List[dict]) -> str:
         """Format retrieved chunks for LLM evaluation.
-        
+
         Args:
             chunks: List of retrieved chunks
-            
+
         Returns:
             Formatted string representation of chunks
         """
         if not chunks:
             return "No chunks retrieved."
 
-        return "\n\n---\n\n".join([
-            f"Position: {i + 1}\n"
-            f"Title: {chunk.get('title', 'No title')}\n"
-            f"Text: {chunk.get('text', 'No text')}\n"
-            f"Category: {chunk.get('category', 'unknown')}\n"
-            f"Source: {chunk.get('source_file', 'unknown')}"
-            for i, chunk in enumerate(chunks)
-        ])
+        return "\n\n---\n\n".join(
+            [
+                f"Position: {i + 1}\n"
+                f"Title: {chunk.get('title', 'No title')}\n"
+                f"Text: {chunk.get('text', 'No text')}\n"
+                f"Category: {chunk.get('category', 'unknown')}\n"
+                f"Source: {chunk.get('source_file', 'unknown')}"
+                for i, chunk in enumerate(chunks)
+            ]
+        )
 
     def _create_error_result(
         self, retrieval_result: RetrievalResult
     ) -> EvaluationResult:
         """Create evaluation result for retrieval errors.
-        
+
         Args:
             retrieval_result: The failed retrieval result
-            
+
         Returns:
             EvaluationResult with error information
         """
@@ -174,18 +179,18 @@ class RetrievalEvaluator:
         self, retrieval_result: RetrievalResult, start_time: float, exception: Exception
     ) -> EvaluationResult:
         """Create evaluation result for evaluation exceptions.
-        
+
         Args:
             retrieval_result: The retrieval result
             start_time: Start time for timing calculation
             exception: The exception that occurred
-            
+
         Returns:
             EvaluationResult with exception information
         """
         evaluation_time_ms = (time.perf_counter() - start_time) * 1000
         error_msg = str(exception)
-        
+
         return EvaluationResult(
             combination=retrieval_result.combination,
             retrieval_quality_score=0.0,

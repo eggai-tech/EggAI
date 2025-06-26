@@ -2,7 +2,7 @@
 
 import math
 from difflib import SequenceMatcher
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 
 class ContextMetrics:
@@ -12,13 +12,15 @@ class ContextMetrics:
         """Initialize with configurable similarity threshold."""
         self.similarity_threshold = similarity_threshold
 
-    def calculate_context_similarity(self, expected_context: str, chunk_text: str) -> float:
+    def calculate_context_similarity(
+        self, expected_context: str, chunk_text: str
+    ) -> float:
         """Calculate similarity between expected context and chunk text.
-        
+
         Args:
             expected_context: The expected context text
             chunk_text: The retrieved chunk text
-            
+
         Returns:
             Similarity score between 0.0 and 1.0
         """
@@ -30,13 +32,15 @@ class ContextMetrics:
         matcher = SequenceMatcher(None, expected_norm, chunk_norm)
         return matcher.ratio()
 
-    def calculate_context_coverage(self, expected_context: str, retrieved_chunks: List[dict]) -> Tuple[float, List[float]]:
+    def calculate_context_coverage(
+        self, expected_context: str, retrieved_chunks: List[dict]
+    ) -> Tuple[float, List[float]]:
         """Calculate how much of the expected context is covered by retrieved chunks.
-        
+
         Args:
             expected_context: The expected context text
             retrieved_chunks: List of retrieved chunks
-            
+
         Returns:
             Tuple of (best_coverage_score, list_of_chunk_similarities)
         """
@@ -56,22 +60,26 @@ class ContextMetrics:
 
     def calculate_recall_score(self, similarities: List[float]) -> float:
         """Calculate recall score - whether relevant context was found.
-        
+
         Args:
             similarities: List of similarity scores for each chunk
-            
+
         Returns:
             1.0 if any similarity >= threshold, 0.0 otherwise
         """
-        return 1.0 if any(sim >= self.similarity_threshold for sim in similarities) else 0.0
+        return (
+            1.0
+            if any(sim >= self.similarity_threshold for sim in similarities)
+            else 0.0
+        )
 
     def calculate_precision_at_k(self, similarities: List[float], k: int = 5) -> float:
         """Calculate Precision@k score.
-        
+
         Args:
             similarities: List of similarity scores for each chunk
             k: Number of top results to consider
-            
+
         Returns:
             Precision@k score between 0.0 and 1.0
         """
@@ -84,10 +92,10 @@ class ContextMetrics:
 
     def calculate_mrr(self, similarities: List[float]) -> float:
         """Calculate Mean Reciprocal Rank.
-        
+
         Args:
             similarities: List of similarity scores for each chunk
-            
+
         Returns:
             MRR score between 0.0 and 1.0
         """
@@ -98,11 +106,11 @@ class ContextMetrics:
 
     def calculate_ndcg(self, similarities: List[float], k: int = 10) -> float:
         """Calculate Normalized Discounted Cumulative Gain.
-        
+
         Args:
             similarities: List of similarity scores for each chunk
             k: Number of top results to consider
-            
+
         Returns:
             nDCG score between 0.0 and 1.0
         """
@@ -130,10 +138,10 @@ class ContextMetrics:
 
     def find_best_match_position(self, similarities: List[float]) -> Optional[int]:
         """Find the position (1-indexed) of the best matching chunk.
-        
+
         Args:
             similarities: List of similarity scores for each chunk
-            
+
         Returns:
             1-indexed position of best match, or None if no match above threshold
         """
@@ -147,13 +155,15 @@ class ContextMetrics:
 
         return best_pos
 
-    def calculate_all_metrics(self, expected_context: str, retrieved_chunks: List[dict]) -> dict:
+    def calculate_all_metrics(
+        self, expected_context: str, retrieved_chunks: List[dict]
+    ) -> dict:
         """Calculate all context-based metrics in one call.
-        
+
         Args:
             expected_context: The expected context text
             retrieved_chunks: List of retrieved chunks
-            
+
         Returns:
             Dictionary with all calculated metrics
         """
