@@ -41,11 +41,36 @@ from vespa.package import (
     FieldSet,
     RankProfile,
     Schema,
+    Validation,
+    ValidationID,
 )
 
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("vespa_deployment")
+
+
+def create_validation_overrides() -> Validation:
+    """Create validation override to allow content cluster removal.
+
+    Returns:
+        Validation object for content cluster removal
+    """
+    # Set override until tomorrow for immediate deployment needs
+    from datetime import datetime, timedelta
+
+    future_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    validation = Validation(
+        validation_id=ValidationID.contentClusterRemoval,
+        until=future_date,
+        comment="Allow content cluster removal during schema updates",
+    )
+
+    logger.info(
+        f"Created validation override allowing content-cluster-removal until {future_date} (tomorrow)"
+    )
+    return validation
 
 
 def create_policy_document_schema() -> Schema:
@@ -183,8 +208,13 @@ def create_application_package() -> ApplicationPackage:
     # Create schema
     schema = create_policy_document_schema()
 
-    # Create application package
-    app_package = ApplicationPackage(name="policies", schema=[schema])
+    # Create validation override
+    validation = create_validation_overrides()
+
+    # Create application package with validation override
+    app_package = ApplicationPackage(
+        name="policies", schema=[schema], validations=[validation]
+    )
 
     logger.info("Enhanced application package created successfully")
     return app_package
@@ -244,6 +274,7 @@ def deploy_to_vespa(
             temp_path = Path(temp_dir)
 
             # Save the application package to files
+            # The validation overrides are automatically included by the ApplicationPackage
             logger.info("Saving application package to temporary directory")
             app_package.to_files(temp_path)
 
