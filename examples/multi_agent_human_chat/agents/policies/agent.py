@@ -6,9 +6,9 @@ from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
 from agents.policies.config import settings
-from agents.policies.dspy_modules.current_state import set_current_connection_id
-from agents.policies.dspy_modules.policies import policies_optimized_dspy
+from agents.policies.react import policies_react_dspy
 from agents.policies.types import ChatMessage, ModelConfig
+from agents.policies.utils.connection_state import set_current_connection_id
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
@@ -98,9 +98,7 @@ async def process_policy_request(
 
         # Call the model with streaming
         logger.info("Calling policies model with streaming")
-        chunks = policies_optimized_dspy(
-            chat_history=conversation_string, config=config
-        )
+        chunks = policies_react_dspy(chat_history=conversation_string, config=config)
         chunk_count = 0
 
         # Process the streaming chunks
@@ -241,7 +239,7 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for policies agent")
-        chunks = policies_optimized_dspy(chat_history=test_conversation)
+        chunks = policies_react_dspy(chat_history=test_conversation)
         async for chunk in chunks:
             if isinstance(chunk, StreamResponse):
                 logger.info(f"Chunk: {chunk.chunk}")

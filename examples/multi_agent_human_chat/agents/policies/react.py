@@ -1,4 +1,4 @@
-"""Policies Agent optimized DSPy module for production use."""
+"""DSPy ReAct implementation for the Policies Agent."""
 
 import json
 import os
@@ -10,6 +10,8 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 
 from agents.policies.config import settings
+from agents.policies.tools.database.policy_data import get_personal_policy_details
+from agents.policies.tools.retrieval.policy_search import search_policy_documentation
 from agents.policies.types import ModelConfig, PolicyCategory
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
@@ -20,7 +22,7 @@ from libraries.tracing import (
     traced_dspy_function,
 )
 
-logger = get_console_logger("policies_agent.dspy")
+logger = get_console_logger("policies_agent.react")
 
 # Create tracer for policies agent
 policies_tracer = create_tracer("policies_agent")
@@ -94,14 +96,10 @@ class PolicyAgentSignature(dspy.Signature):
     final_response: str = dspy.OutputField(desc="Final response message to the user.")
 
 
-# Import required tools
-from agents.policies.dspy_modules.policies_data import (
-    get_personal_policy_details,
-    search_policy_documentation,
-)
-
 # Path to the SIMBA optimized JSON file
-optimized_model_path = Path(__file__).resolve().parent / "optimized_policies_simba.json"
+optimized_model_path = (
+    Path(__file__).resolve().parent / "optimization" / "optimized_policies_simba.json"
+)
 
 # Create base model with tracing
 policies_model = TracedReAct(
@@ -183,11 +181,11 @@ def truncate_long_history(
     return result
 
 
-@traced_dspy_function(name="policies_dspy")
-def policies_optimized_dspy(
+@traced_dspy_function(name="policies_react_dspy")
+def policies_react_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
-    """Process a policies inquiry using the DSPy model with streaming output."""
+    """Process a policies inquiry using the DSPy ReAct model with streaming output."""
     config = config or ModelConfig()
 
     # Handle long conversations
@@ -207,6 +205,7 @@ def policies_optimized_dspy(
 
 
 if __name__ == "__main__":
+    import asyncio
 
     async def run():
         init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
@@ -218,7 +217,7 @@ if __name__ == "__main__":
             "User: My policy number is A12345\n"
         )
 
-        chunks = policies_optimized_dspy(test_conversation)
+        chunks = policies_react_dspy(test_conversation)
 
         async for chunk in chunks:
             if isinstance(chunk, StreamResponse):
@@ -232,7 +231,5 @@ if __name__ == "__main__":
                     print(f"Policy number: {result.policy_number}")
                 if result.documentation_reference:
                     print(f"Documentation reference: {result.documentation_reference}")
-
-    import asyncio
 
     asyncio.run(run())
