@@ -10,15 +10,15 @@ class Settings(BaseSettings):
     """Settings for the policies document ingestion service."""
 
     app_name: str = Field(default="policies_document_ingestion")
-    
+
     # Temporal configuration
     temporal_server_url: str = Field(default="localhost:7233")
     temporal_namespace: str = Field(default="default")
     temporal_task_queue: str = Field(default="policy-rag")
-    
+
     # OpenTelemetry configuration
     otel_endpoint: str = Field(default="http://localhost:4318")
-    
+
     # Vespa configuration
     vespa_config_url: str = Field(default="http://localhost:19071")
     vespa_query_url: str = Field(default="http://localhost:8080")
@@ -27,9 +27,9 @@ class Settings(BaseSettings):
         env_prefix="POLICIES_DOCUMENT_INGESTION_",
         env_file=".env",
         env_ignore_empty=True,
-        extra="ignore"
+        extra="ignore",
     )
 
 
 # Global settings instance
-settings = Settings() 
+settings = Settings()

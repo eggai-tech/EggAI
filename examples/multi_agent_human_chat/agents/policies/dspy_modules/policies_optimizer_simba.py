@@ -44,8 +44,6 @@ def take_policy_by_number_from_database(policy_number: str):
     )
 
 
-
-
 def precision_metric(example, pred, trace=None) -> float:
     """
     Calculate precision score by comparing expected and predicted responses.

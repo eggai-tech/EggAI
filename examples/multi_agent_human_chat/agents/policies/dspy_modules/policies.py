@@ -116,7 +116,10 @@ policies_model = TracedReAct(
 using_optimized_prompts = False
 
 # Try to load prompts from the optimized JSON file directly
-if optimized_model_path.exists() and os.environ.get("POLICIES_USE_OPTIMIZED_PROMPTS", "false").lower() == "true":
+if (
+    optimized_model_path.exists()
+    and os.environ.get("POLICIES_USE_OPTIMIZED_PROMPTS", "false").lower() == "true"
+):
     try:
         logger.info(f"Loading optimized prompts from {optimized_model_path}")
         with open(optimized_model_path, "r") as f:

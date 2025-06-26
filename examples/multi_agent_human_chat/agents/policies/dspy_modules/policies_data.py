@@ -18,6 +18,7 @@ PolicyCategory = Literal["auto", "life", "home", "health"]
 logger = get_console_logger("policies_agent.data")
 tracer = trace.get_tracer("policies_agent_data")
 
+
 # Tool for direct policy retrieval
 @tracer.start_as_current_span("search_policy_documentation")
 def search_policy_documentation(query: str, category: str = None) -> str:
@@ -33,14 +34,17 @@ def search_policy_documentation(query: str, category: str = None) -> str:
         from agents.policies.retrieving import retrieve_policies
 
         thread = ThreadWithResult(
-            target=retrieve_policies, args=(query, category, True)  # Include metadata
+            target=retrieve_policies,
+            args=(query, category, True),  # Include metadata
         )
         thread.start()
         results = thread.join()
 
         if results:
-            logger.info(f"Found policy information via direct retrieval: {len(results)} results")
-            
+            logger.info(
+                f"Found policy information via direct retrieval: {len(results)} results"
+            )
+
             # Enhanced formatting with citations
             formatted_results = []
             for result in results[:2]:  # Top 2 results
@@ -48,20 +52,24 @@ def search_policy_documentation(query: str, category: str = None) -> str:
                     "content": result["content"],
                     "source": result["document_metadata"]["source_file"],
                     "category": result["document_metadata"]["category"],
-                    "relevance_score": result.get("score", 0.0)
+                    "relevance_score": result.get("score", 0.0),
                 }
-                
+
                 # Add page citation if available
                 if "page_info" in result:
                     formatted_result["citation"] = result["page_info"]["citation"]
-                    formatted_result["page_numbers"] = result["page_info"]["page_numbers"]
-                
+                    formatted_result["page_numbers"] = result["page_info"][
+                        "page_numbers"
+                    ]
+
                 # Add section info if available
                 if "structure_info" in result and result["structure_info"]["headings"]:
-                    formatted_result["section"] = " > ".join(result["structure_info"]["headings"])
-                
+                    formatted_result["section"] = " > ".join(
+                        result["structure_info"]["headings"]
+                    )
+
                 formatted_results.append(formatted_result)
-            
+
             return json.dumps(formatted_results, indent=2)
 
         logger.warning(
@@ -113,8 +121,6 @@ class ThreadWithResult(threading.Thread):
         return self._result
 
 
-
-
 @tracer.start_as_current_span("get_personal_policy_details")
 def get_personal_policy_details(policy_number: str) -> str:
     """Retrieve specific policy details from database using policy number.
@@ -129,10 +135,14 @@ def get_personal_policy_details(policy_number: str) -> str:
         cleaned_policy_number = policy_number.strip()
         for policy in POLICIES_DATABASE:
             if policy["policy_number"] == cleaned_policy_number:
-                logger.info(f"Found policy: {policy['policy_number']} for {policy['name']}")
+                logger.info(
+                    f"Found policy: {policy['policy_number']} for {policy['name']}"
+                )
                 policy_copy = policy.copy()
                 if policy_copy.get("premium_amount"):
-                    policy_copy["premium_amount_usd"] = f"${policy_copy['premium_amount']:.2f}"
+                    policy_copy["premium_amount_usd"] = (
+                        f"${policy_copy['premium_amount']:.2f}"
+                    )
                 return json.dumps(policy_copy)
 
         logger.warning(f"Policy not found: '{policy_number}'")

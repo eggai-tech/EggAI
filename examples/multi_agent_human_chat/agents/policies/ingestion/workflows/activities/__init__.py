@@ -7,7 +7,7 @@ from .document_verification_activity import verify_document_activity
 
 __all__ = [
     "load_document_activity",
-    "chunk_document_activity", 
+    "chunk_document_activity",
     "verify_document_activity",
     "index_document_activity",
 ]

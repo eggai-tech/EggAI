@@ -37,7 +37,6 @@ class DocumentationTemporalClient:
             )
         return self._client
 
-
     async def ingest_document_async(
         self,
         file_path: str,
@@ -80,9 +79,9 @@ class DocumentationTemporalClient:
 
         try:
             filename = os.path.basename(file_path)
-            clean_filename = re.sub(r'[^a-zA-Z0-9]', '-', os.path.splitext(filename)[0])
-            clean_filename = re.sub(r'-+', '-', clean_filename).strip('-')
-            
+            clean_filename = re.sub(r"[^a-zA-Z0-9]", "-", os.path.splitext(filename)[0])
+            clean_filename = re.sub(r"-+", "-", clean_filename).strip("-")
+
             # Execute the workflow and wait for result
             result = await client.execute_workflow(
                 DocumentIngestionWorkflow.run,
@@ -113,7 +112,6 @@ class DocumentationTemporalClient:
                 index_name=index_name,
                 error_message=str(e),
             )
-
 
     async def close(self):
         """Close the Temporal client connection."""

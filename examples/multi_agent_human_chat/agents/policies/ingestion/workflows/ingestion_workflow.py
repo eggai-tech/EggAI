@@ -90,21 +90,25 @@ class DocumentIngestionWorkflow:
                 ],
                 start_to_close_timeout=timedelta(minutes=2),
             )
-            
+
             # If file should be skipped, return early
             if verification_result.get("should_skip", False):
-                workflow.logger.info(f"File verification indicates skip: {verification_result.get('reason')}")
+                workflow.logger.info(
+                    f"File verification indicates skip: {verification_result.get('reason')}"
+                )
                 return DocumentIngestionResult(
                     request_id=input_data.request_id,
                     success=True,
                     file_path=input_data.file_path,
                     documents_processed=0,
-                    total_documents_indexed=verification_result.get("existing_chunks", 0),
+                    total_documents_indexed=verification_result.get(
+                        "existing_chunks", 0
+                    ),
                     index_name=input_data.index_name,
                     skipped=True,
                     skip_reason=verification_result.get("reason"),
                 )
-            
+
             # Step 2: Load document with DocLing
             workflow.logger.info("Starting document loading")
             load_result = await workflow.execute_activity(
@@ -112,9 +116,11 @@ class DocumentIngestionWorkflow:
                 args=[input_data.file_path],
                 start_to_close_timeout=timedelta(minutes=5),
             )
-            
+
             if not load_result["success"]:
-                workflow.logger.error(f"Document loading failed: {load_result.get('error_message')}")
+                workflow.logger.error(
+                    f"Document loading failed: {load_result.get('error_message')}"
+                )
                 return DocumentIngestionResult(
                     request_id=input_data.request_id,
                     success=False,
@@ -124,7 +130,7 @@ class DocumentIngestionWorkflow:
                     index_name=input_data.index_name,
                     error_message=f"Document loading failed: {load_result.get('error_message')}",
                 )
-            
+
             # Step 3: Chunk document hierarchically
             workflow.logger.info("Starting document chunking")
             chunk_result = await workflow.execute_activity(
@@ -132,9 +138,11 @@ class DocumentIngestionWorkflow:
                 args=[load_result],
                 start_to_close_timeout=timedelta(minutes=5),
             )
-            
+
             if not chunk_result["success"]:
-                workflow.logger.error(f"Document chunking failed: {chunk_result.get('error_message')}")
+                workflow.logger.error(
+                    f"Document chunking failed: {chunk_result.get('error_message')}"
+                )
                 return DocumentIngestionResult(
                     request_id=input_data.request_id,
                     success=False,
@@ -144,7 +152,7 @@ class DocumentIngestionWorkflow:
                     index_name=input_data.index_name,
                     error_message=f"Document chunking failed: {chunk_result.get('error_message')}",
                 )
-            
+
             if not chunk_result["chunks"]:
                 workflow.logger.warning("No chunks generated from document")
                 return DocumentIngestionResult(
@@ -157,9 +165,11 @@ class DocumentIngestionWorkflow:
                     skipped=True,
                     skip_reason="No chunks generated from document",
                 )
-            
+
             # Step 4: Index chunks with Vespa
-            workflow.logger.info(f"Starting indexing of {len(chunk_result['chunks'])} chunks")
+            workflow.logger.info(
+                f"Starting indexing of {len(chunk_result['chunks'])} chunks"
+            )
             indexing_result = await workflow.execute_activity(
                 index_document_activity,
                 args=[
@@ -173,9 +183,11 @@ class DocumentIngestionWorkflow:
                 ],
                 start_to_close_timeout=timedelta(minutes=10),
             )
-            
+
             if not indexing_result["success"]:
-                workflow.logger.error(f"Final indexing failed: {indexing_result.get('error_message')}")
+                workflow.logger.error(
+                    f"Final indexing failed: {indexing_result.get('error_message')}"
+                )
                 return DocumentIngestionResult(
                     request_id=input_data.request_id,
                     success=False,
@@ -185,14 +197,14 @@ class DocumentIngestionWorkflow:
                     index_name=input_data.index_name,
                     error_message=f"Final indexing failed: {indexing_result.get('error_message')}",
                 )
-            
+
             # Success!
             workflow.logger.info(
                 f"Document ingestion workflow completed successfully. "
                 f"Processed {indexing_result['documents_processed']} document, "
                 f"indexed {indexing_result['total_documents_indexed']} chunks"
             )
-            
+
             return DocumentIngestionResult(
                 request_id=input_data.request_id,
                 success=True,
@@ -206,7 +218,9 @@ class DocumentIngestionWorkflow:
             )
 
         except Exception as e:
-            workflow.logger.error(f"Document ingestion workflow failed unexpectedly. Error: {str(e)}")
+            workflow.logger.error(
+                f"Document ingestion workflow failed unexpectedly. Error: {str(e)}"
+            )
 
             return DocumentIngestionResult(
                 request_id=input_data.request_id,

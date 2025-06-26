@@ -22,9 +22,10 @@ async def trigger_initial_document_ingestion():
 
     # Select all 4 documents to ingest (auto, home, health, life)
     policy_ids = ["auto", "home", "health", "life"]
-    
+
     # Documents directory path (relative to the ingestion module)
     from pathlib import Path
+
     current_dir = Path(__file__).parent
     documents_dir = current_dir / "documents"
 
@@ -39,16 +40,16 @@ async def trigger_initial_document_ingestion():
         # Process each policy file individually
         total_processed = 0
         total_indexed = 0
-        
+
         for policy_id in policy_ids:
             policy_file = documents_dir / f"{policy_id}.md"
-            
+
             if not policy_file.exists():
                 logger.warning(f"Policy file not found: {policy_file}")
                 continue
-                
+
             logger.info(f"Processing policy file: {policy_file}")
-            
+
             # Trigger single-file ingestion workflow
             result = await client.ingest_document_async(
                 file_path=str(policy_file),
@@ -63,11 +64,13 @@ async def trigger_initial_document_ingestion():
                 else:
                     logger.info(f"Policy {policy_id} ingested successfully!")
                     logger.info(f"  Chunks indexed: {result.total_documents_indexed}")
-                    
+
                 total_processed += result.documents_processed
                 total_indexed += result.total_documents_indexed
             else:
-                logger.error(f"Policy {policy_id} ingestion failed: {result.error_message}")
+                logger.error(
+                    f"Policy {policy_id} ingestion failed: {result.error_message}"
+                )
 
         logger.info("Initial document ingestion completed!")
         logger.info(f"Total files processed: {total_processed}")
@@ -111,19 +114,21 @@ async def main():
 
         # Deploy Vespa schema before document ingestion
         logger.info("Ensuring Vespa schema is deployed...")
-        
+
         # Try to deploy with force=True to handle schema updates
         schema_deployed = deploy_to_vespa(
             config_server_url=settings.vespa_config_url,
             query_url=settings.vespa_query_url,
-            force=True
+            force=True,
         )
-        
+
         if not schema_deployed:
-            logger.error("Vespa schema deployment failed - cannot proceed with document ingestion")
+            logger.error(
+                "Vespa schema deployment failed - cannot proceed with document ingestion"
+            )
             logger.error("Please check Vespa container status and try again")
             raise Exception("Vespa schema deployment failed")
-        
+
         logger.info("Vespa schema ready - proceeding with document ingestion")
         # Trigger initial document ingestion for all 4 policies
         await trigger_initial_document_ingestion()

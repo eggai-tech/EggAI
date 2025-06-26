@@ -8,10 +8,11 @@ from pydantic import BaseModel
 
 class RetrievalTestCase(BaseModel):
     """Test case for retrieval performance evaluation."""
+
     id: str
     question: str
     expected_answer: str
-    expected_chunk_ids: List[str]
+    expected_context: str
     category: Optional[str] = None
     description: str = ""
 
@@ -19,6 +20,7 @@ class RetrievalTestCase(BaseModel):
 @dataclass
 class ParameterCombination:
     """Test parameter combination."""
+
     test_case_id: str
     search_type: str
     max_hits: int
@@ -37,6 +39,7 @@ class ParameterCombination:
 @dataclass
 class RetrievalResult:
     """Stage 1 query results."""
+
     combination: ParameterCombination
     retrieved_chunks: List[Dict[str, Any]]
     retrieval_time_ms: float
@@ -47,6 +50,7 @@ class RetrievalResult:
 @dataclass
 class EvaluationResult:
     """Stage 2 LLM evaluation results."""
+
     combination: ParameterCombination
     retrieval_quality_score: float
     completeness_score: float
@@ -54,12 +58,21 @@ class EvaluationResult:
     reasoning: str
     judgment: bool
     evaluation_time_ms: float
+    recall_score: float  # Hit rate - was the context found in retrieved chunks?
+    precision_at_k: float  # Precision@k score
+    mrr_score: float  # Mean Reciprocal Rank
+    ndcg_score: float  # Normalized Discounted Cumulative Gain
+    context_coverage: float  # How much of expected context is covered
+    best_match_position: Optional[int] = (
+        None  # Position of best matching chunk (1-indexed)
+    )
     error: Optional[str] = None
 
 
 @dataclass
 class RetrievalTestConfiguration:
     """Test configuration."""
+
     search_types: List[str] = None
     max_hits_values: List[int] = None
     parallel_queries: bool = True
