@@ -1,4 +1,5 @@
 import asyncio
+import os
 from collections import defaultdict
 from typing import Dict, Any, Optional, Callable, Union
 
@@ -9,16 +10,16 @@ from .transport import get_default_transport
 from .transport.base import Transport
 
 HANDLERS_IDS = defaultdict(int)
-
+NAMESPACE = os.getenv("EGGAI_NAMESPACE", "eggai")
+DEFAULT_CHANNEL_NAME = "channel"
 
 class Channel:
     """
     A channel that publishes messages to a given 'name' on its own Transport.
-    The default name is "eggai.channel".
     Connection is established lazily on the first publish or subscription.
     """
 
-    def __init__(self, name: str = "eggai.channel", transport: Optional[Transport] = None):
+    def __init__(self, name: str = None, transport: Optional[Transport] = None):
         """
         Initialize a Channel instance.
 
@@ -26,7 +27,7 @@ class Channel:
             name (str): The channel (topic) name. Defaults to "eggai.channel".
             transport (Optional[Transport]): A concrete transport instance. If None, a default transport is used.
         """
-        self._name = name
+        self._name = f"{NAMESPACE}.{name or DEFAULT_CHANNEL_NAME}"
         self._transport = transport
         self._connected = False
         self._stop_registered = False
