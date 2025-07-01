@@ -13,11 +13,11 @@ import argparse
 import json
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, List, Dict
-import xml.etree.ElementTree as ET
+from typing import Dict, List, Optional
 from xml.dom import minidom
 
 # Add the project root to the Python path
