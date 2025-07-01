@@ -401,7 +401,45 @@ drop-vespa-index:
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/drop_index.py
 	@echo "Vespa index dropped successfully."
 
-deploy-vespa-schema:
-	@echo "Deploying Vespa schema using pyvespa..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/deploy_schema.py $(ARGS)
-	@echo "Vespa schema deployment completed."
+generate-vespa-package:
+	@echo "Generating Vespa application package..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/generate_package.py $(ARGS)
+	@echo "Vespa package generation completed."
+
+deploy-vespa-package:
+	@echo "Deploying Vespa package..."
+	@if [ -z "$(VESPA_CONFIG_SERVER)" ]; then \
+		echo "Using local Docker configuration"; \
+		source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/deploy_package.py \
+			--config-server http://localhost:19071 \
+			--query-url http://localhost:8080 \
+			--deployment-mode production \
+			--node-count 3 \
+			--hosts-config agents/policies/vespa/hosts-docker-local.json \
+			$(ARGS); \
+	else \
+		echo "Using environment configuration"; \
+		source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/deploy_package.py \
+			--config-server $(VESPA_CONFIG_SERVER) \
+			--query-url $(VESPA_QUERY_URL) \
+			--deployment-mode $(VESPA_DEPLOYMENT_MODE) \
+			--node-count $(VESPA_NODE_COUNT) \
+			$(if $(VESPA_HOSTS_CONFIG),--hosts-config $(VESPA_HOSTS_CONFIG),) \
+			$(ARGS); \
+	fi
+	@echo "Vespa package deployment completed."
+
+# Production deployment commands
+generate-vespa-package-prod:
+	@echo "Generating Vespa package for production deployment..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/generate_package.py --deployment-mode production $(ARGS)
+	@echo "Production package generation completed."
+
+deploy-vespa-package-prod:
+	@echo "Deploying Vespa package to production..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/deploy_package.py --deployment-mode production $(ARGS)
+	@echo "Production deployment completed."
+
+# Legacy command for backwards compatibility
+deploy-vespa-schema: deploy-vespa-package
+	@echo "Note: deploy-vespa-schema is deprecated. Use deploy-vespa-package instead."

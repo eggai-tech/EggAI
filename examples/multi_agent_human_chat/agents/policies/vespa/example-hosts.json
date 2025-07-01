@@ -1,0 +1,14 @@
+[
+    {
+        "name": "vespa-node-0.vespa-internal.svc.cluster.local",
+        "alias": "node0"
+    },
+    {
+        "name": "vespa-node-1.vespa-internal.svc.cluster.local",
+        "alias": "node1"
+    },
+    {
+        "name": "vespa-node-2.vespa-internal.svc.cluster.local",
+        "alias": "node2"
+    }
+]

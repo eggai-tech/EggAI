@@ -6,7 +6,10 @@ volumes:
   redpanda: null
   postgres_temporal_data: null
   postgres_mlflow_data: null
-  vespa-data: null
+  vespa-config-data: null
+  vespa-node0-data: null
+  vespa-node1-data: null
+  vespa-node2-data: null
 services:
   redpanda:
     command:
@@ -291,22 +294,101 @@ services:
       --gunicorn-opts '--log-level debug'"
     networks:
       - eggai-example-network
-  vespa:
+  # Vespa Config Server
+  vespa-configserver:
     image: vespaengine/vespa
-    container_name: vespa-container
-    hostname: vespa-container
-    ports:
-      - 8080:8080
-      - 19071:19071
-    volumes:
-      - vespa-data:/opt/vespa/var
+    container_name: vespa-configserver
+    hostname: vespa-configserver
     networks:
       - eggai-example-network
+    environment:
+      - VESPA_CONFIGSERVERS=vespa-configserver
+    ports:
+      - "19071:19071"
+      - "19050:19050"
+    volumes:
+      - vespa-config-data:/opt/vespa/var
+    command: configserver
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:19071/ApplicationStatus"]
+      test: ["CMD", "curl", "-f", "http://localhost:19071/state/v1/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 60s
+
+  # Vespa Node 0
+  vespa-node-0:
+    image: vespaengine/vespa
+    container_name: vespa-node-0
+    hostname: vespa-node-0
+    networks:
+      - eggai-example-network
+    environment:
+      - VESPA_CONFIGSERVERS=vespa-configserver
+    ports:
+      - "8080:8080"
+      - "19100:19100"
+    volumes:
+      - vespa-node0-data:/opt/vespa/var
+    command: services
+    depends_on:
+      vespa-configserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/state/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Vespa Node 1
+  vespa-node-1:
+    image: vespaengine/vespa
+    container_name: vespa-node-1
+    hostname: vespa-node-1
+    networks:
+      - eggai-example-network
+    environment:
+      - VESPA_CONFIGSERVERS=vespa-configserver
+    ports:
+      - "8081:8080"
+      - "19101:19100"
+    volumes:
+      - vespa-node1-data:/opt/vespa/var
+    command: services
+    depends_on:
+      vespa-configserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/state/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Vespa Node 2
+  vespa-node-2:
+    image: vespaengine/vespa
+    container_name: vespa-node-2
+    hostname: vespa-node-2
+    networks:
+      - eggai-example-network
+    environment:
+      - VESPA_CONFIGSERVERS=vespa-configserver
+    ports:
+      - "8082:8080"
+      - "19102:19100"
+    volumes:
+      - vespa-node2-data:/opt/vespa/var
+    command: services
+    depends_on:
+      vespa-configserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/state/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
 

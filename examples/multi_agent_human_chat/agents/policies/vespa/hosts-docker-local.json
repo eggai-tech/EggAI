@@ -1,0 +1,14 @@
+[
+    {
+        "name": "vespa-node-0",
+        "alias": "node0"
+    },
+    {
+        "name": "vespa-node-1", 
+        "alias": "node1"
+    },
+    {
+        "name": "vespa-node-2",
+        "alias": "node2"
+    }
+]
