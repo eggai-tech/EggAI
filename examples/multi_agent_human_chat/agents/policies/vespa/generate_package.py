@@ -40,25 +40,35 @@ from libraries.logger import get_console_logger
 logger = get_console_logger("vespa_package_generator")
 
 
-def create_validation_overrides() -> Validation:
-    """Create validation override to allow content cluster removal.
+def create_validation_overrides() -> List[Validation]:
+    """Create validation overrides for deployment.
 
     Returns:
-        Validation object for content cluster removal
+        List of Validation objects
     """
     # Set override until tomorrow for immediate deployment needs
     future_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    validation = Validation(
+    validations = []
+    
+    # Allow content cluster removal
+    validations.append(Validation(
         validation_id=ValidationID.contentClusterRemoval,
         until=future_date,
         comment="Allow content cluster removal during schema updates",
-    )
+    ))
+    
+    # Allow redundancy increase for multi-node setup
+    validations.append(Validation(
+        validation_id=ValidationID.redundancyIncrease,
+        until=future_date,
+        comment="Allow redundancy increase for multi-node deployment",
+    ))
 
     logger.info(
-        f"Created validation override allowing content-cluster-removal until {future_date} (tomorrow)"
+        f"Created validation overrides until {future_date} (tomorrow)"
     )
-    return validation
+    return validations
 
 
 def create_policy_document_schema() -> Schema:
@@ -196,12 +206,12 @@ def create_application_package() -> ApplicationPackage:
     # Create schema
     schema = create_policy_document_schema()
 
-    # Create validation override
-    validation = create_validation_overrides()
+    # Create validation overrides
+    validations = create_validation_overrides()
 
-    # Create application package with validation override
+    # Create application package with validation overrides
     app_package = ApplicationPackage(
-        name="policies", schema=[schema], validations=[validation]
+        name="policies", schema=[schema], validations=validations
     )
 
     logger.info("Enhanced application package created successfully")
@@ -241,15 +251,26 @@ def create_services_xml(node_count: int = 1, redundancy: int = 1) -> str:
     """
     root = ET.Element('services', version='1.0')
     
-    # Admin cluster (required for multi-node)
+    # Admin cluster
     admin = ET.SubElement(root, 'admin', version='2.0')
-    adminserver = ET.SubElement(admin, 'adminserver', hostalias='node0')
     
     if node_count > 1:
-        # Add cluster controllers for multi-node coordination
+        # For multi-node setup, add config servers, cluster controllers and slobroks
+        configservers = ET.SubElement(admin, 'configservers')
+        for i in range(min(3, node_count)):  # Use up to 3 config servers
+            ET.SubElement(configservers, 'configserver', hostalias=f'node{i}')
+        
         cluster_controllers = ET.SubElement(admin, 'cluster-controllers')
-        for i in range(min(node_count, 3)):  # Use up to 3 nodes as cluster controllers
+        for i in range(min(3, node_count)):  # Use up to 3 cluster controllers
             ET.SubElement(cluster_controllers, 'cluster-controller', hostalias=f'node{i}')
+        
+        slobroks = ET.SubElement(admin, 'slobroks')
+        for i in range(min(3, node_count)):  # Use up to 3 slobroks
+            ET.SubElement(slobroks, 'slobrok', hostalias=f'node{i}')
+    
+    # Admin server on first node (or separate node if enough nodes)
+    adminserver_node = 'node3' if node_count > 3 else 'node0'
+    ET.SubElement(admin, 'adminserver', hostalias=adminserver_node)
     
     # Container cluster
     container = ET.SubElement(root, 'container', id='policies_container', version='1.0')

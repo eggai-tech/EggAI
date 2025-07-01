@@ -199,8 +199,8 @@ def deploy_to_vespa(
                             # Kubernetes environment
                             host_name = f'{service_name}-{i}.{service_name}-internal.{namespace}.svc.cluster.local'
                         else:
-                            # Default to local Docker names
-                            host_name = f'vespa-node-{i}'
+                            # Default to local Docker names with network domain
+                            host_name = f'vespa-node-{i}.eggai-example-network'
                         
                         hosts.append({
                             'name': host_name,
