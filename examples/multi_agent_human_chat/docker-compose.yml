@@ -376,7 +376,7 @@ services:
     environment:
       - VESPA_CONFIGSERVERS=vespa-configserver
     ports:
-      - "8082:8080"
+      - "8084:8080"
       - "19102:19100"
     volumes:
       - vespa-node2-data:/opt/vespa/var
