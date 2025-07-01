@@ -119,19 +119,36 @@ jobs:
           compose-file: |
             examples/multi_agent_human_chat/docker-compose.yml
             examples/multi_agent_human_chat/docker-compose-lmstudio.yaml
-          up-flags: --no-build --wait
-        timeout-minutes: 10
+          up-flags: --no-build -d
+        timeout-minutes: 5
 
-      - name: Wait for Redpanda and MinIO to be healthy
+      - name: Wait for critical services to be healthy
         run: |
           echo "Waiting for Redpanda and MinIO to be healthy..."
           timeout 180 bash -c '
             until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
                   [ "$(docker inspect -f {{.State.Health.Status}} minio)" = "healthy" ]; do
-              echo "Waiting..."
+              echo "Waiting for Redpanda and MinIO..."
               sleep 5
             done
           '
+          echo "Redpanda and MinIO are healthy!"
+          
+      - name: Wait for Vespa nodes to start
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          echo "Waiting for Vespa nodes to start (this can take a few minutes)..."
+          sleep 60  # Give Vespa nodes time to start
+          
+          # Check if vespa-node-0 is responding (don't rely on health check)
+          timeout 300 bash -c '
+            until curl -s -f http://localhost:19071/state/v1/health > /dev/null 2>&1; do
+              echo "Waiting for Vespa config server..."
+              sleep 10
+            done
+          '
+          echo "Vespa config server is responding!"
+        timeout-minutes: 10
 
       - uses: actions/setup-python@v5
         with:
