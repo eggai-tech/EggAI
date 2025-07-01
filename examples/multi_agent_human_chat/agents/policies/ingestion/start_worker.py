@@ -117,13 +117,16 @@ async def main():
         logger.info("Ensuring Vespa schema is deployed...")
 
         # Try to deploy with force=True to handle schema updates
-        # Deployment mode and node count will be auto-detected from environment
+        # Use production mode with 3 nodes for Docker multi-node setup
+        deployment_mode = os.environ.get('VESPA_DEPLOYMENT_MODE', 'production')
+        node_count = int(os.environ.get('VESPA_NODE_COUNT', '3'))
+        
         schema_deployed = deploy_to_vespa(
             config_server_url=settings.vespa_config_url,
             query_url=settings.vespa_query_url,
             force=True,
-            deployment_mode='production' if 'KUBERNETES_SERVICE_HOST' in os.environ else 'local',
-            node_count=int(os.environ.get('VESPA_NODE_COUNT', '3')),
+            deployment_mode=deployment_mode,
+            node_count=node_count,
         )
 
         if not schema_deployed:
