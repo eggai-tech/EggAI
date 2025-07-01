@@ -60,6 +60,7 @@ jobs:
   integration:
     runs-on: gpu-runner-github-hosted
     name: Run integration tests
+    timeout-minutes: 45  # Increase timeout for pulling large images
     permissions:
       contents: read
       packages: write
@@ -105,23 +106,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Start services with Docker Compose
-        uses: hoverkraft-tech/compose-action@v2.2.0
-        with:
-          compose-file: |
-            examples/multi_agent_human_chat/docker-compose.yml
-            examples/multi_agent_human_chat/docker-compose-lmstudio.yaml
+      - name: Pre-pull Docker images
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          echo "Pre-pulling Docker images..."
+          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --quiet
+        timeout-minutes: 20
 
-      - name: Wait for Redpanda and MinIO to be healthy
+      - name: Start services with Docker Compose
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          echo "Starting Docker Compose services..."
+          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml up -d --no-build
+          echo "Services started in detached mode"
+          docker compose ps
+        timeout-minutes: 5
+
+      - name: Wait for critical services to be healthy
         run: |
           echo "Waiting for Redpanda and MinIO to be healthy..."
           timeout 180 bash -c '
             until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
                   [ "$(docker inspect -f {{.State.Health.Status}} minio)" = "healthy" ]; do
-              echo "Waiting..."
+              echo "Waiting for Redpanda and MinIO..."
               sleep 5
             done
           '
+          echo "Redpanda and MinIO are healthy!"
+          
+      - name: Wait for Vespa nodes to start
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          echo "Waiting for Vespa nodes to start (this can take a few minutes)..."
+          sleep 60  # Give Vespa nodes time to start
+          
+          # Check if vespa-node-0 is responding (don't rely on health check)
+          timeout 300 bash -c '
+            until curl -s -f http://localhost:19071/state/v1/health > /dev/null 2>&1; do
+              echo "Waiting for Vespa config server..."
+              sleep 10
+            done
+          '
+          echo "Vespa config server is responding!"
+        timeout-minutes: 10
 
       - uses: actions/setup-python@v5
         with:

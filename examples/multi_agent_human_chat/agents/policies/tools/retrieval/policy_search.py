@@ -1,12 +1,14 @@
 """Policy documentation search tool."""
 
+import asyncio
 import json
 import threading
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from opentelemetry import trace
 
 from libraries.logger import get_console_logger
+from libraries.vespa import VespaClient
 
 logger = get_console_logger("policies_agent.tools.retrieval")
 tracer = trace.get_tracer("policies_agent_tools_retrieval")
@@ -46,8 +48,6 @@ def search_policy_documentation(query: str, category: Optional[str] = None) -> s
         f"Tool called: search_policy_documentation(query='{query[:50]}...', category='{category}')"
     )
     try:
-        from agents.policies.retrieving import retrieve_policies
-
         thread = ThreadWithResult(
             target=retrieve_policies,
             args=(query, category, True),  # Include metadata
@@ -94,3 +94,139 @@ def search_policy_documentation(query: str, category: Optional[str] = None) -> s
     except Exception as e:
         logger.error(f"Error retrieving policy information: {e}", exc_info=True)
         return "Error retrieving policy information."
+
+
+_VESPA_CLIENT = None
+
+
+def _get_vespa_client() -> VespaClient:
+    """Get or create Vespa client singleton."""
+    global _VESPA_CLIENT
+    if _VESPA_CLIENT is None:
+        _VESPA_CLIENT = VespaClient()
+        logger.info("Vespa client initialized")
+    return _VESPA_CLIENT
+
+
+def format_citation(result: Dict[str, Any]) -> str:
+    """Format a citation with page numbers."""
+    source_file = result.get("source_file", "Unknown")
+    page_range = result.get("page_range", "")
+
+    if page_range:
+        return f"{source_file}, page {page_range}"
+    return source_file
+
+
+@tracer.start_as_current_span("retrieve_policies")
+def retrieve_policies(
+    query: str, category: Optional[str] = None, include_metadata: bool = True
+) -> List[Dict[str, Any]]:
+    """Retrieve policy information using Vespa search with enhanced metadata.
+
+    Args:
+        query: Search query string
+        category: Optional category filter
+        include_metadata: Whether to include enhanced metadata in results
+
+    Returns:
+        List of search results with enhanced metadata
+    """
+    logger.info(
+        f"Retrieving policy information for query: '{query}', category: '{category}'"
+    )
+
+    try:
+        # Get Vespa client
+        vespa_client = _get_vespa_client()
+
+        # Run async search in sync context
+        try:
+            # Try to get the current event loop
+            asyncio.get_running_loop()
+            # We're in an async context, use thread executor
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    asyncio.run, vespa_client.search_documents(query, category)
+                )
+                results = future.result()
+        except RuntimeError:
+            # No running loop, we're in sync context - use asyncio.run
+            results = asyncio.run(vespa_client.search_documents(query, category))
+
+        # Convert results to the expected format with enhanced metadata
+        formatted_results = []
+
+        logger.info(f"Found {len(results)} results for query.")
+        if not results:
+            logger.warning("No results found for the query.")
+            return []
+
+        for result in results:
+            # Base result structure
+            formatted_result = {
+                "content": result["text"],
+                "document_metadata": {
+                    "category": result["category"],
+                    "source_file": result["source_file"],
+                    "chunk_index": result["chunk_index"],
+                },
+                "document_id": result["id"],
+                "score": result.get("relevance", 0.0),
+            }
+
+            # Add enhanced metadata if requested
+            if include_metadata:
+                # Page information
+                formatted_result["page_info"] = {
+                    "page_numbers": result.get("page_numbers", []),
+                    "page_range": result.get("page_range", ""),
+                    "citation": format_citation(result),
+                }
+
+                # Document structure
+                formatted_result["structure_info"] = {
+                    "headings": result.get("headings", []),
+                    "section_path": result.get("section_path", []),
+                    "chunk_position": result.get("chunk_position", 0.0),
+                }
+
+                # Relationships
+                formatted_result["relationships"] = {
+                    "document_id": result.get("document_id", ""),
+                    "previous_chunk_id": result.get("previous_chunk_id"),
+                    "next_chunk_id": result.get("next_chunk_id"),
+                }
+
+                # Metrics
+                formatted_result["metrics"] = {
+                    "char_count": result.get("char_count", 0),
+                    "token_count": result.get("token_count", 0),
+                }
+
+                # Add to main document metadata for backward compatibility
+                formatted_result["document_metadata"].update(
+                    {
+                        "page_numbers": result.get("page_numbers", []),
+                        "page_range": result.get("page_range", ""),
+                        "headings": result.get("headings", []),
+                    }
+                )
+
+            formatted_results.append(formatted_result)
+
+        # Log sample metadata for verification
+        if formatted_results and include_metadata:
+            sample = formatted_results[0]
+            logger.info(
+                f"Sample result metadata - Pages: {sample['page_info']['page_range']}, "
+                f"Headings: {sample['structure_info']['headings'][:2] if sample['structure_info']['headings'] else 'None'}"
+            )
+
+        return formatted_results
+
+    except Exception as e:
+        logger.error(f"Error searching Vespa: {e}", exc_info=True)
+        return []

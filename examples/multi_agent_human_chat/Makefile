@@ -398,10 +398,32 @@ drop-vespa-index:
 		echo "Operation cancelled."; \
 		exit 1; \
 	fi
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/scripts/drop_vespa_index.py
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/drop_index.py
 	@echo "Vespa index dropped successfully."
 
-deploy-vespa-schema:
-	@echo "Deploying Vespa schema using pyvespa..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/scripts/deploy_vespa_schema.py $(ARGS)
-	@echo "Vespa schema deployment completed."
+generate-vespa-package:
+	@echo "Generating Vespa application package..."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/generate_package.py $(ARGS)
+	@echo "Vespa package generation completed."
+
+deploy-vespa-package:
+	@echo "Deploying Vespa package..."
+	@if [ -z "$(VESPA_CONFIG_SERVER)" ]; then \
+		echo "Using local Docker configuration"; \
+		source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/deploy_package.py \
+			--config-server http://localhost:19071 \
+			--query-url http://localhost:8080 \
+			--deployment-mode production \
+			--node-count 3 \
+			$(ARGS); \
+	else \
+		echo "Using environment configuration"; \
+		source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/deploy_package.py \
+			--config-server $(VESPA_CONFIG_SERVER) \
+			--query-url $(VESPA_QUERY_URL) \
+			--deployment-mode $(VESPA_DEPLOYMENT_MODE) \
+			--node-count $(VESPA_NODE_COUNT) \
+			$(if $(VESPA_HOSTS_CONFIG),--hosts-config $(VESPA_HOSTS_CONFIG),) \
+			$(ARGS); \
+	fi
+	@echo "Vespa package deployment completed."

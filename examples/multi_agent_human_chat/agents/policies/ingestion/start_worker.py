@@ -1,4 +1,5 @@
 import asyncio
+import os
 import signal
 import sys
 
@@ -6,10 +7,10 @@ from agents.policies.ingestion.config import settings
 from agents.policies.ingestion.documentation_temporal_client import (
     DocumentationTemporalClient,
 )
-from agents.policies.ingestion.scripts.deploy_vespa_schema import deploy_to_vespa
 from agents.policies.ingestion.workflows.worker import (
     run_policy_documentation_worker,
 )
+from agents.policies.vespa.deploy_package import deploy_to_vespa
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
@@ -116,10 +117,16 @@ async def main():
         logger.info("Ensuring Vespa schema is deployed...")
 
         # Try to deploy with force=True to handle schema updates
+        # Use production mode with 3 nodes for Docker multi-node setup
+        deployment_mode = os.environ.get('VESPA_DEPLOYMENT_MODE', 'production')
+        node_count = int(os.environ.get('VESPA_NODE_COUNT', '3'))
+        
         schema_deployed = deploy_to_vespa(
             config_server_url=settings.vespa_config_url,
             query_url=settings.vespa_query_url,
             force=True,
+            deployment_mode=deployment_mode,
+            node_count=node_count,
         )
 
         if not schema_deployed:
