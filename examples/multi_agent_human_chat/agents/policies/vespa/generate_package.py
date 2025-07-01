@@ -242,15 +242,14 @@ def create_services_xml(node_count: int = 1, redundancy: int = 1) -> str:
     root = ET.Element('services', version='1.0')
     
     # Admin cluster (required for multi-node)
+    admin = ET.SubElement(root, 'admin', version='2.0')
+    adminserver = ET.SubElement(admin, 'adminserver', hostalias='node0')
+    
     if node_count > 1:
-        admin = ET.SubElement(root, 'admin', version='2.0')
-        adminserver = ET.SubElement(admin, 'adminserver', hostalias='node0')
-        
-        # Add ZooKeeper servers for multi-node coordination
-        # Use all nodes as ZooKeeper servers for redundancy
-        zookeepers = ET.SubElement(admin, 'zookeepers')
-        for i in range(min(node_count, 3)):  # Use up to 3 nodes for ZooKeeper
-            ET.SubElement(zookeepers, 'zookeeper', hostalias=f'node{i}', id=str(i))
+        # Add cluster controllers for multi-node coordination
+        cluster_controllers = ET.SubElement(admin, 'cluster-controllers')
+        for i in range(min(node_count, 3)):  # Use up to 3 nodes as cluster controllers
+            ET.SubElement(cluster_controllers, 'cluster-controller', hostalias=f'node{i}')
     
     # Container cluster
     container = ET.SubElement(root, 'container', id='policies_container', version='1.0')
