@@ -5,7 +5,7 @@ This script optimizes the Policies Agent using SIMBA, which typically provides
 better performance than COPRO, especially for complex reasoning tasks.
 
 Usage:
-    python -m agents.policies.dspy_modules.policies_optimizer_simba
+    python -m agents.policies.optimization.policies_optimizer_simba
 """
 
 from pathlib import Path
@@ -15,7 +15,7 @@ import dspy
 from sklearn.model_selection import train_test_split
 
 from agents.policies.config import settings
-from agents.policies.dspy_modules.policies_dataset import (
+from agents.policies.optimization.policies_dataset import (
     as_dspy_examples,
     create_policies_dataset,
 )
@@ -31,7 +31,7 @@ logger = get_console_logger("policies_optimizer_simba")
 PolicyCategory = Literal["auto", "life", "home", "health"]
 
 # Import the signature from the main agent module
-from agents.policies.dspy_modules.policies import PolicyAgentSignature
+from agents.policies.react import PolicyAgentSignature
 
 
 # Mock tools for optimization

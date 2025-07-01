@@ -6,7 +6,7 @@ from agents.policies.ingestion.config import settings
 from agents.policies.ingestion.documentation_temporal_client import (
     DocumentationTemporalClient,
 )
-from agents.policies.ingestion.scripts.deploy_vespa_schema import deploy_to_vespa
+from agents.policies.vespa.deploy_schema import deploy_to_vespa
 from agents.policies.ingestion.workflows.worker import (
     run_policy_documentation_worker,
 )

@@ -398,10 +398,10 @@ drop-vespa-index:
 		echo "Operation cancelled."; \
 		exit 1; \
 	fi
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/scripts/drop_vespa_index.py
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/drop_index.py
 	@echo "Vespa index dropped successfully."
 
 deploy-vespa-schema:
 	@echo "Deploying Vespa schema using pyvespa..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/ingestion/scripts/deploy_vespa_schema.py $(ARGS)
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/deploy_schema.py $(ARGS)
 	@echo "Vespa schema deployment completed."

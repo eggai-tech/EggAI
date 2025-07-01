@@ -6,19 +6,19 @@ This script creates a Vespa application package with the enhanced schema
 that includes page numbers, headings, relationships, and other metadata.
 
 Usage:
-    python deploy_vespa_schema.py [--config-server URL] [--query-url URL] [--force]
+    python deploy_schema.py [--config-server URL] [--query-url URL] [--force]
 
 Examples:
     # Local deployment
-    python deploy_vespa_schema.py
+    python deploy_schema.py
     
     # Kubernetes deployment
-    python deploy_vespa_schema.py \
+    python deploy_schema.py \
         --config-server http://vespa-configserver-0.vespa-internal.tomcode-shared.svc.cluster.local:19071 \
         --query-url http://vespa-query-0.vespa-internal.tomcode-shared.svc.cluster.local:8080
         
     # Force redeploy even if schema exists
-    python deploy_vespa_schema.py --force
+    python deploy_schema.py --force
 """
 
 import argparse
@@ -30,7 +30,7 @@ from pathlib import Path
 import httpx
 
 # Add the project root to the Python path
-project_root = Path(__file__).parent.parent.parent.parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from vespa.application import Vespa
