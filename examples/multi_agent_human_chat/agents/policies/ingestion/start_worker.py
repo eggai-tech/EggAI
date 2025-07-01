@@ -1,4 +1,5 @@
 import asyncio
+import os
 import signal
 import sys
 
@@ -116,10 +117,13 @@ async def main():
         logger.info("Ensuring Vespa schema is deployed...")
 
         # Try to deploy with force=True to handle schema updates
+        # Deployment mode and node count will be auto-detected from environment
         schema_deployed = deploy_to_vespa(
             config_server_url=settings.vespa_config_url,
             query_url=settings.vespa_query_url,
             force=True,
+            deployment_mode='production' if 'KUBERNETES_SERVICE_HOST' in os.environ else 'local',
+            node_count=int(os.environ.get('VESPA_NODE_COUNT', '3')),
         )
 
         if not schema_deployed:
