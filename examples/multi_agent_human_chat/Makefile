@@ -428,18 +428,3 @@ deploy-vespa-package:
 			$(ARGS); \
 	fi
 	@echo "Vespa package deployment completed."
-
-# Production deployment commands
-generate-vespa-package-prod:
-	@echo "Generating Vespa package for production deployment..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/generate_package.py --deployment-mode production $(ARGS)
-	@echo "Production package generation completed."
-
-deploy-vespa-package-prod:
-	@echo "Deploying Vespa package to production..."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/vespa/deploy_package.py --deployment-mode production $(ARGS)
-	@echo "Production deployment completed."
-
-# Legacy command for backwards compatibility
-deploy-vespa-schema: deploy-vespa-package
-	@echo "Note: deploy-vespa-schema is deprecated. Use deploy-vespa-package instead."
