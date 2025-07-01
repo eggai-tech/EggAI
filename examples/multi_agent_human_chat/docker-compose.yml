@@ -334,8 +334,7 @@ services:
       - vespa-node1-data:/opt/vespa/var
     command: configserver,services
     depends_on:
-      vespa-node-0:
-        condition: service_healthy
+      - vespa-node-0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:19071/state/v1/health"]
       interval: 30s
@@ -360,8 +359,7 @@ services:
       - vespa-node2-data:/opt/vespa/var
     command: configserver,services
     depends_on:
-      vespa-node-0:
-        condition: service_healthy
+      - vespa-node-0
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:19071/state/v1/health"]
       interval: 30s
