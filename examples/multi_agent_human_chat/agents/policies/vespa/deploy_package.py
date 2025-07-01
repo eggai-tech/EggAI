@@ -14,8 +14,8 @@ Examples:
     
     # Kubernetes deployment
     python deploy_package.py \
-        --config-server http://vespa-configserver-0.vespa-internal.tomcode-shared.svc.cluster.local:19071 \
-        --query-url http://vespa-query-0.vespa-internal.tomcode-shared.svc.cluster.local:8080
+        --config-server http://vespa-configserver-0.vespa-internal.my-namespace.svc.cluster.local:19071 \
+        --query-url http://vespa-query-0.vespa-internal.my-namespace.svc.cluster.local:8080
         
     # Force redeploy even if schema exists
     python deploy_package.py --force
