@@ -60,6 +60,7 @@ jobs:
   integration:
     runs-on: gpu-runner-github-hosted
     name: Run integration tests
+    timeout-minutes: 45  # Increase timeout for pulling large images
     permissions:
       contents: read
       packages: write
@@ -105,12 +106,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Pre-pull Docker images
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          echo "Pre-pulling Docker images in parallel..."
+          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --parallel --quiet
+        timeout-minutes: 20
+
       - name: Start services with Docker Compose
         uses: hoverkraft-tech/compose-action@v2.2.0
         with:
           compose-file: |
             examples/multi_agent_human_chat/docker-compose.yml
             examples/multi_agent_human_chat/docker-compose-lmstudio.yaml
+          up-flags: --no-build --wait
+        timeout-minutes: 10
 
       - name: Wait for Redpanda and MinIO to be healthy
         run: |
