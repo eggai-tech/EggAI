@@ -109,8 +109,8 @@ jobs:
       - name: Pre-pull Docker images
         working-directory: examples/multi_agent_human_chat
         run: |
-          echo "Pre-pulling Docker images in parallel..."
-          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --parallel --quiet
+          echo "Pre-pulling Docker images..."
+          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --quiet
         timeout-minutes: 20
 
       - name: Start services with Docker Compose
