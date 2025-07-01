@@ -224,7 +224,7 @@ def deploy_to_vespa(
         
         # Wait a bit for the application to be ready
         logger.info("Waiting for schema to be ready...")
-        time.sleep(3)
+        time.sleep(10)  # Give more time for multi-node setup
 
         # Verify the schema is actually queryable
         if check_schema_exists(query_url):
@@ -251,7 +251,7 @@ def deploy_to_vespa(
             logger.warning(
                 "The schema may still be initializing, waiting a bit more..."
             )
-            time.sleep(5)
+            time.sleep(20)  # Give extra time for multi-node coordination
 
             # Try one more time
             if check_schema_exists(query_url):
