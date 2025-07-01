@@ -241,6 +241,11 @@ def create_services_xml(node_count: int = 1, redundancy: int = 1) -> str:
     """
     root = ET.Element('services', version='1.0')
     
+    # Admin cluster (required for multi-node)
+    if node_count > 1:
+        admin = ET.SubElement(root, 'admin', version='2.0')
+        adminserver = ET.SubElement(admin, 'adminserver', hostalias='node0')
+    
     # Container cluster
     container = ET.SubElement(root, 'container', id='policies_container', version='1.0')
     ET.SubElement(container, 'search')
