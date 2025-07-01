@@ -415,7 +415,6 @@ deploy-vespa-package:
 			--query-url http://localhost:8080 \
 			--deployment-mode production \
 			--node-count 3 \
-			--hosts-config agents/policies/vespa/hosts-docker-local.json \
 			$(ARGS); \
 	else \
 		echo "Using environment configuration"; \
