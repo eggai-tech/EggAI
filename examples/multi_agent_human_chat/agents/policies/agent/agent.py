@@ -6,8 +6,8 @@ from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
 from agents.policies.agent.react import policies_react_dspy
-from agents.policies.config import settings
-from agents.policies.types import ChatMessage, ModelConfig
+from agents.policies.agent.config import settings
+from agents.policies.agent.types import ChatMessage, ModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (

@@ -138,9 +138,9 @@ evaluator = RetrievalEvaluator(enable_llm_judge=False)
 #### With LLM Judge (Default)
 
 ```python
-from agents.policies.tests.retrieval_performance.data_utilities import get_retrieval_test_cases
-from agents.policies.tests.retrieval_performance.evaluator import RetrievalEvaluator
-from agents.policies.tests.retrieval_performance.models import RetrievalTestConfiguration
+from agents.policies.agent.tests.retrieval_performance.data_utilities import get_retrieval_test_cases
+from agents.policies.agent.tests.retrieval_performance.evaluator import RetrievalEvaluator
+from agents.policies.agent.tests.retrieval_performance import RetrievalTestConfiguration
 
 # Configure with LLM judge enabled
 config = RetrievalTestConfiguration(enable_llm_judge=True)

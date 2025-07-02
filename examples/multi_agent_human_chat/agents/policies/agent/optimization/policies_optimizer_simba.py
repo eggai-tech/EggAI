@@ -18,7 +18,7 @@ from agents.policies.agent.optimization.policies_dataset import (
     as_dspy_examples,
     create_policies_dataset,
 )
-from agents.policies.config import settings
+from agents.policies.agent.config import settings
 
 # Direct use of dspy.SIMBA
 from libraries.dspy_set_language_model import dspy_set_language_model

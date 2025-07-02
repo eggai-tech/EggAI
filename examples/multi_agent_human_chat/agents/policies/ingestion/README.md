@@ -208,7 +208,7 @@ trajectory = [
 ### Decision Logic Implementation
 
 ```python
-# agents/policies/dspy_modules/policies.py - PolicyAgentSignature
+# agents/policies/agent/react.py - PolicyAgentSignature
 class PolicyAgentSignature(dspy.Signature):
     """
     DECISION LOGIC - Choose the right tool:
@@ -229,7 +229,7 @@ class PolicyAgentSignature(dspy.Signature):
 
 #### Personal Policy Tool
 ```python
-# agents/policies/dspy_modules/policies_data.py
+# agents/policies/agent/tools/database/policy_data.py
 def get_personal_policy_details(policy_number: str) -> str:
     """
     - Retrieves specific policy data from in-memory database
@@ -281,7 +281,7 @@ graph TB
 ### Retrieval Implementation
 
 ```python
-# agents/policies/retrieving.py
+# agents/policies/agent/tools/retrieval/policy_search.py
 def retrieve_policies(query: str, category: str = None) -> List[Dict]:
     """
     Vespa-powered BM25 text search:
@@ -332,8 +332,8 @@ python agents/policies/ingestion/start_worker.py
 
 # Test ReAct agent  
 python -c "
-from agents.policies.dspy_modules.policies import policies_model
-result = policies_model(chat_history='User: What does fire damage cover?')
+from agents.policies.agent.react import policies_react_dspy
+result = policies_react_dspy(chat_history='User: What does fire damage cover?')
 print(result.final_response)
 "
 ```
@@ -423,7 +423,7 @@ vespa_config = {
 
 ### ReAct Agent Tuning
 ```python
-# agents/policies/dspy_modules/policies.py
+# agents/policies/agent/react.py
 policies_model = TracedReAct(
     PolicyAgentSignature,
     tools=[get_personal_policy_details, search_policy_documentation],

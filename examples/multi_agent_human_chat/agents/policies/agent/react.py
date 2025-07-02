@@ -13,8 +13,8 @@ from agents.policies.agent.tools.database.policy_data import get_personal_policy
 from agents.policies.agent.tools.retrieval.policy_search import (
     search_policy_documentation,
 )
-from agents.policies.config import settings
-from agents.policies.types import ModelConfig, PolicyCategory
+from agents.policies.agent.config import settings
+from agents.policies.agent.types import ModelConfig, PolicyCategory
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import (

@@ -19,8 +19,8 @@ The Policies Agent provides information about insurance policy details, coverage
 
 - **Agent Module** (`agent/agent.py`): Main implementation that handles policy-related requests
 - **ReAct Implementation** (`agent/react.py`): DSPy ReAct agent with tool calling capabilities  
-- **Config** (`config.py`): Configuration settings for the agent
-- **Types** (`types.py`): Type definitions for policies data
+- **Config** (`agent/config.py`): Configuration settings for the agent
+- **Types** (`agent/types.py`): Type definitions for policies data
 
 ### Document Ingestion (Temporal)
 
@@ -92,7 +92,7 @@ make test-policies-agent
 
 Run retrieval performance tests:
 ```bash
-python -m pytest agents/policies/tests/test_retrieval_performance.py
+python -m pytest agents/policies/agent/tests/retrieval_performance/test_retrieval_performance.py
 ```
 
 ### Document Ingestion
@@ -129,7 +129,7 @@ To add support for new policy types:
 For detailed information about specific components:
 
 - **Document Ingestion**: See [`ingestion/README.md`](ingestion/README.md) for comprehensive Temporal workflow documentation
-- **Retrieval Performance**: See [`tests/retrieval_performance/README.md`](tests/retrieval_performance/README.md) for testing and evaluation metrics
+- **Retrieval Performance**: See [`agent/tests/retrieval_performance/README.md`](agent/tests/retrieval_performance/README.md) for testing and evaluation metrics
 
 ## Architecture Highlights
 

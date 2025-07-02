@@ -13,8 +13,8 @@ from agents.policies.agent.tools.retrieval.full_document_retrieval import (
     get_document_chunk_range,
     retrieve_full_document_async,
 )
-from agents.policies.config import settings
-from agents.policies.embeddings import generate_embedding
+from agents.policies.agent.config import settings
+from agents.policies.utils.embeddings import generate_embedding
 from agents.policies.ingestion.documentation_temporal_client import (
     DocumentationTemporalClient,
 )

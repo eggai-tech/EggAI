@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from temporalio import activity
 
-from agents.policies.embeddings import (
+from agents.policies.utils.embeddings import (
     combine_text_for_embedding,
     generate_embeddings_batch,
 )

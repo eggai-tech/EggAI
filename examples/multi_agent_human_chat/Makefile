@@ -102,7 +102,7 @@ test-policies-retrieval-performance:
 	@echo "Running retrieval performance evaluation for policies agent..."
 	@echo "This test evaluates search quality across different parameters using LLM judges and logs results to MLflow."
 	@echo "Ensure the policies API is running at http://localhost:8002 before starting."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/tests/test_retrieval_performance.py
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/agent/tests/retrieval_performance/test_retrieval_performance.py
 	@echo "Retrieval performance evaluation completed. Check MLflow UI at http://localhost:5001 for detailed results."
 
 
@@ -315,13 +315,13 @@ compile-policies-optimizer:
 		exit 1; \
 	fi
 	
-	@if [ -f agents/policies/dspy_modules/optimized_policies_simba.json ]; then \
-		rm agents/policies/dspy_modules/optimized_policies_simba.json; \
+	@if [ -f agents/policies/agent/optimization/optimized_policies_simba.json ]; then \
+		rm agents/policies/agent/optimization/optimized_policies_simba.json; \
 		echo "Deleted existing optimization file"; \
 	else \
 		echo "No existing optimization file found, creating new one"; \
 	fi
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.policies.dspy_modules.policies_optimizer_simba
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.policies.agent.optimization.policies_optimizer_simba
 	@echo "Policies Agent optimization completed with SIMBA."
 
 compile-escalation-optimizer:
