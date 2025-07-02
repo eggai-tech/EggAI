@@ -1,15 +1,13 @@
 import asyncio
 from typing import List
 
-from dspy import Prediction
-from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry.propagators.textmap import TraceContextTextMapPropagator
 
 from agents.claims.config import settings
 from agents.claims.dspy_modules.claims import claims_optimized_dspy
 from agents.claims.types import ChatMessage, ModelConfig
-from libraries.channels import channels, clear_channels
+from libraries.channels import channels
 from libraries.logger import get_console_logger
 from libraries.streaming_agent import format_conversation, process_request_stream
 from libraries.tracing import (
@@ -202,28 +200,3 @@ async def handle_other_messages(msg: TracedMessage) -> None:
     logger.debug("Received non-claim message: %s", msg)
 
 
-if __name__ == "__main__":
-
-    async def run():
-        """Run a basic test when executing this module directly."""
-        from libraries.dspy_set_language_model import dspy_set_language_model
-
-        dspy_set_language_model(settings)
-
-        await clear_channels()
-
-        test_conversation = (
-            "User: Hi, I'd like to file a new claim.\n"
-            "ClaimsAgent: Certainly! Could you provide your policy number and incident details?\n"
-            "User: Policy A12345, my car was hit at a stop sign.\n"
-        )
-
-        logger.info("Running test query for claims agent")
-        chunks = claims_optimized_dspy(chat_history=test_conversation)
-        async for chunk in chunks:
-            if isinstance(chunk, StreamResponse):
-                logger.info(f"Chunk: {chunk.chunk}")
-            elif isinstance(chunk, Prediction):
-                logger.info(f"Final response: {chunk.final_response}")
-
-    asyncio.run(run())

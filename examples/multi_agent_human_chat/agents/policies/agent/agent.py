@@ -1,15 +1,13 @@
 import asyncio
 from typing import List
 
-from dspy import Prediction
-from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry.propagators.textmap import TraceContextTextMapPropagator
 
 from agents.policies.agent.react import policies_react_dspy
 from agents.policies.config import settings
 from agents.policies.types import ChatMessage, ModelConfig
-from libraries.channels import channels, clear_channels
+from libraries.channels import channels
 from libraries.logger import get_console_logger
 from libraries.streaming_agent import format_conversation, process_request_stream
 from libraries.tracing import (
@@ -174,27 +172,3 @@ async def handle_other_messages(msg: TracedMessage) -> None:
     logger.debug("Received non-policy message: %s", msg)
 
 
-if __name__ == "__main__":
-
-    async def run():
-        from libraries.dspy_set_language_model import dspy_set_language_model
-
-        dspy_set_language_model(settings)
-
-        await clear_channels()
-
-        test_conversation = (
-            "User: I need information about my policy.\n"
-            "PoliciesAgent: Sure, I can help with that. Could you please provide me with your policy number?\n"
-            "User: My policy number is A12345\n"
-        )
-
-        logger.info("Running test query for policies agent")
-        chunks = policies_react_dspy(chat_history=test_conversation)
-        async for chunk in chunks:
-            if isinstance(chunk, StreamResponse):
-                logger.info(f"Chunk: {chunk.chunk}")
-            elif isinstance(chunk, Prediction):
-                logger.info(f"Final response: {chunk.final_response}")
-
-    asyncio.run(run())

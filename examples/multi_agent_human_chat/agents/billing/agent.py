@@ -1,14 +1,12 @@
 import asyncio
 from typing import List
 
-from dspy import Prediction
-from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry.propagators.textmap import TraceContextTextMapPropagator
 
 from agents.billing.config import settings
 from agents.billing.types import ChatMessage, ModelConfig
-from libraries.channels import channels, clear_channels
+from libraries.channels import channels
 from libraries.logger import get_console_logger
 from libraries.streaming_agent import format_conversation, process_request_stream
 from libraries.tracing import (
@@ -203,28 +201,3 @@ async def handle_other_messages(msg: TracedMessage) -> None:
     logger.debug("Received non-billing message: %s", msg)
 
 
-if __name__ == "__main__":
-
-    async def run():
-        """Run a basic test when executing this module directly."""
-        from libraries.dspy_set_language_model import dspy_set_language_model
-
-        dspy_set_language_model(settings)
-
-        await clear_channels()
-
-        test_conversation = (
-            "User: How much is my premium?\n"
-            "BillingAgent: Could you please provide your policy number?\n"
-            "User: It's B67890.\n"
-        )
-
-        logger.info("Running test query for billing agent")
-        chunks = billing_optimized_dspy(chat_history=test_conversation)
-        async for chunk in chunks:
-            if isinstance(chunk, StreamResponse):
-                logger.info(f"Chunk: {chunk.chunk}")
-            elif isinstance(chunk, Prediction):
-                logger.info(f"Final response: {chunk.final_response}")
-
-    asyncio.run(run())
