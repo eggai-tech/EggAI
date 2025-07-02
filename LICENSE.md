@@ -1,5 +1,4 @@
 MIT License
-change
 
 Copyright (c) 2024 EggAI Technologies GmbH
 
