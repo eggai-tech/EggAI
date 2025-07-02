@@ -53,10 +53,10 @@ def validate_query(query: str) -> str:
             detail="Query cannot be empty"
         )
     
-    if len(query) > 1000:
+    if len(query) > 500:
         raise HTTPException(
             status_code=400,
-            detail="Query too long (max 1000 characters)"
+            detail="Query too long (max 500 characters)"
         )
     
     return query.strip()

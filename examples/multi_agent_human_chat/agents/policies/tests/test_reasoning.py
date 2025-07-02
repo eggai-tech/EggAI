@@ -114,11 +114,12 @@ class TestPoliciesReactDspy:
         # Mock the streamify function and model
         with patch("agents.policies.agent.reasoning.dspy.streamify") as mock_streamify:
             # Create mock stream response
-            async def mock_stream():
-                yield StreamResponse(chunk="I can help")
-                yield StreamResponse(chunk=" with that.")
+            async def mock_stream(**kwargs):
+                yield StreamResponse(predict_name="policies_model", signature_field_name="final_response", chunk="I can help")
+                yield StreamResponse(predict_name="policies_model", signature_field_name="final_response", chunk=" with that.")
                 yield Prediction(final_response="I can help with that.")
             
+            # streamify should return a function that when called with chat_history returns the stream
             mock_streamify.return_value = mock_stream
             
             # Execute
@@ -146,7 +147,7 @@ class TestPoliciesReactDspy:
                     "truncated_length": 100
                 }
                 
-                async def mock_stream():
+                async def mock_stream(**kwargs):
                     yield Prediction(final_response="Response")
                 
                 mock_streamify.return_value = mock_stream
@@ -165,10 +166,10 @@ class TestPoliciesReactDspy:
         with patch("agents.policies.agent.reasoning.dspy.streamify") as mock_streamify:
             chunks_received = []
             
-            async def mock_stream():
+            async def mock_stream(**kwargs):
                 chunks = ["Hello", " there", "!", " How", " can", " I", " help?"]
                 for chunk in chunks:
-                    yield StreamResponse(chunk=chunk)
+                    yield StreamResponse(predict_name="policies_model", signature_field_name="final_response", chunk=chunk)
                 yield Prediction(
                     final_response="Hello there! How can I help?",
                     policy_category="auto",

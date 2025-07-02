@@ -4,7 +4,6 @@ from typing import Optional
 
 from sentence_transformers import SentenceTransformer
 
-from agents.policies.agent.api.models import PolicyDocument, VectorSearchRequest
 from agents.policies.agent.services.embeddings import generate_embedding
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
@@ -19,7 +18,7 @@ class SearchService:
         self.vespa_client = vespa_client
         self._embedding_model = embedding_model
 
-    def create_policy_document(self, doc_data: dict) -> PolicyDocument:
+    def create_policy_document(self, doc_data: dict) -> "PolicyDocument":
         """Convert raw document data to PolicyDocument model.
         
         Args:
@@ -28,6 +27,8 @@ class SearchService:
         Returns:
             PolicyDocument instance
         """
+        from agents.policies.agent.api.models import PolicyDocument
+        
         # Generate citation
         citation = None
         if doc_data.get("page_range"):
@@ -53,7 +54,7 @@ class SearchService:
             chunk_position=doc_data.get("chunk_position"),
         )
 
-    async def vector_search(self, request: VectorSearchRequest) -> dict:
+    async def vector_search(self, request: "VectorSearchRequest") -> dict:
         """Perform vector-based semantic search.
         
         Args:
@@ -62,12 +63,14 @@ class SearchService:
         Returns:
             Search results dictionary
         """
+        from agents.policies.agent.api.models import VectorSearchRequest
+        
         try:
             results = []
 
             if request.search_type in ["vector", "hybrid"]:
                 # Generate embedding for the query
-                query_embedding = generate_embedding(request.query, self._embedding_model)
+                query_embedding = generate_embedding(request.query)
 
                 # Build YQL query based on search type
                 if request.search_type == "vector":
@@ -91,7 +94,7 @@ class SearchService:
                     query=request.query if request.search_type == "hybrid" else None,
                     ranking="semantic" if request.search_type == "vector" else "hybrid",
                     hits=request.max_hits,
-                    body={"input.query(query_embedding)": query_embedding.tolist()},
+                    body={"input.query(query_embedding)": query_embedding},
                 )
 
                 # Process results

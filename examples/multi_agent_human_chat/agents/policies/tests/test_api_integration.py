@@ -93,33 +93,39 @@ def create_mock_documents() -> List[dict]:
     return [
         {
             "id": "auto_policy_001",
+            "title": "Auto Insurance Policy - Coverage",
+            "text": "Auto insurance covers collision damage.",
             "document_id": "auto_policy",
             "category": "auto",
-            "content": "Auto insurance covers collision damage.",
             "chunk_index": 0,
-            "total_chunks": 3,
             "source_file": "auto.md",
-            "metadata": {"section": "Coverage", "page": 1}
         },
         {
-            "id": "auto_policy_002",
+            "id": "auto_policy_002", 
+            "title": "Auto Insurance Policy - Comprehensive",
+            "text": "Comprehensive coverage protects against theft.",
             "document_id": "auto_policy",
             "category": "auto",
-            "content": "Comprehensive coverage protects against theft.",
             "chunk_index": 1,
-            "total_chunks": 3,
             "source_file": "auto.md",
-            "metadata": {"section": "Coverage", "page": 2}
         },
         {
             "id": "home_policy_001",
+            "title": "Home Insurance Policy - Water Damage",
+            "text": "Home insurance covers water damage from burst pipes.",
             "document_id": "home_policy",
             "category": "home",
-            "content": "Home insurance covers water damage from burst pipes.",
             "chunk_index": 0,
-            "total_chunks": 2,
             "source_file": "home.md",
-            "metadata": {"section": "Water Damage", "page": 1}
+        },
+        {
+            "id": "home_policy_002",
+            "title": "Home Insurance Policy - Fire Protection",
+            "text": "Home insurance covers fire damage to your property.",
+            "document_id": "home_policy",
+            "category": "home",
+            "chunk_index": 1,
+            "source_file": "home.md",
         },
     ]
 
@@ -131,7 +137,7 @@ class TestDocumentEndpoints:
     def test_list_documents_success(self, test_client, mock_vespa_client):
         """Test successful document listing."""
         # Setup mock
-        mock_vespa_client.get_all_documents.return_value = create_mock_documents()
+        mock_vespa_client.search_documents.return_value = create_mock_documents()
         
         # Make request
         response = test_client.get("/api/v1/kb/documents")
@@ -139,7 +145,7 @@ class TestDocumentEndpoints:
         # Verify response
         assert response.status_code == 200
         documents = response.json()
-        assert len(documents) == 2  # Should group by document_id
+        assert len(documents) == 4  # All documents returned
         assert any(doc["document_id"] == "auto_policy" for doc in documents)
         assert any(doc["document_id"] == "home_policy" for doc in documents)
     
@@ -147,7 +153,7 @@ class TestDocumentEndpoints:
         """Test document listing with category filter."""
         # Setup mock
         all_docs = create_mock_documents()
-        mock_vespa_client.get_all_documents.return_value = [
+        mock_vespa_client.search_documents.return_value = [
             doc for doc in all_docs if doc["category"] == "auto"
         ]
         
@@ -157,8 +163,8 @@ class TestDocumentEndpoints:
         # Verify response
         assert response.status_code == 200
         documents = response.json()
-        assert len(documents) == 1
-        assert documents[0]["category"] == "auto"
+        assert len(documents) == 2  # 2 auto documents
+        assert all(doc["category"] == "auto" for doc in documents)
     
     def test_list_documents_invalid_category(self, test_client):
         """Test document listing with invalid category."""
@@ -170,7 +176,7 @@ class TestDocumentEndpoints:
     def test_list_documents_pagination(self, test_client, mock_vespa_client):
         """Test document listing with pagination."""
         # Setup mock
-        mock_vespa_client.get_all_documents.return_value = create_mock_documents()
+        mock_vespa_client.search_documents.return_value = create_mock_documents()
         
         # Make request with limit and offset
         response = test_client.get("/api/v1/kb/documents?limit=1&offset=1")
@@ -190,9 +196,15 @@ class TestDocumentEndpoints:
             mock_retrieve.return_value = FullDocumentResponse(
                 document_id=document_id,
                 category="auto",
-                title="Auto Insurance Policy",
-                content="Full auto insurance policy content...",
                 source_file="auto.md",
+                full_text="Full auto insurance policy content...",
+                total_chunks=3,
+                total_characters=1000,
+                total_tokens=250,
+                headings=["Coverage", "Claims", "Exclusions"],
+                page_numbers=[1, 2, 3],
+                page_range="1-3",
+                chunk_ids=["auto_001", "auto_002", "auto_003"],
                 metadata={"version": "1.0"}
             )
             
@@ -202,7 +214,7 @@ class TestDocumentEndpoints:
             data = response.json()
             assert data["document_id"] == document_id
             assert data["category"] == "auto"
-            assert "Full auto insurance" in data["content"]
+            assert "Full auto insurance" in data["full_text"]
     
     def test_get_full_document_not_found(self, test_client):
         """Test retrieving non-existent document."""
@@ -275,151 +287,167 @@ class TestSearchEndpoints:
         assert response.status_code == 400
         assert "Query too long" in response.json()["detail"]
     
-    def test_vector_search_success(self, test_client, mock_search_service):
+    def test_vector_search_success(self, test_client, mock_vespa_client):
         """Test vector search endpoint."""
-        # Setup mock
-        mock_search_service.vector_search.return_value = SearchResponse(
-            results=[
-                PolicyDocument(
-                    document_id="auto_policy",
-                    category="auto",
-                    content="Vector search result",
-                    chunk_index=0,
-                    total_chunks=1,
-                    source_file="auto.md",
-                    metadata={}
-                )
-            ],
-            total_results=1,
-            query="test query",
-            category=None
-        )
+        # Mock the underlying vespa operations for vector search
+        from unittest.mock import AsyncMock
+        
+        # Mock vespa query method for vector search
+        mock_vespa_client.app.query = AsyncMock()
+        mock_vespa_client.app.query.return_value = type('SearchResult', (), {
+            'hits': [type('Hit', (), {
+                'fields': {
+                    "id": "auto_policy_001",
+                    "title": "Auto Insurance Policy", 
+                    "text": "Vector search result",
+                    "document_id": "auto_policy",
+                    "category": "auto",
+                    "chunk_index": 0,
+                    "source_file": "auto.md"
+                },
+                'relevance': 0.95
+            })()]
+        })()
         
         response = test_client.post(
-            "/api/v1/kb/vector-search",
-            json={"query": "test query", "max_results": 5}
+            "/api/v1/kb/search/vector",
+            json={"query": "test query", "max_hits": 5}
         )
         
         assert response.status_code == 200
         data = response.json()
-        assert data["total_results"] == 1
-        assert "Vector search result" in data["results"][0]["content"]
+        assert data["total_hits"] == 1
+        assert "Vector search result" in data["documents"][0]["text"]
 
 
 class TestReindexEndpoints:
     """Test reindex-related endpoints."""
     
     @pytest.mark.asyncio
-    async def test_reindex_all_documents(self, test_client, mock_reindex_service):
+    async def test_reindex_all_documents(self, test_client, mock_vespa_client):
         """Test reindexing all documents."""
-        # Setup mock
-        mock_reindex_service.reindex_documents.return_value = ReindexResponse(
-            status="success",
-            workflow_id="workflow_123",
-            total_documents_submitted=4,
-            policy_ids=["auto", "home", "life", "health"]
-        )
+        # Mock vespa operations for reindex service
+        mock_vespa_client.search_documents.return_value = []  # No existing docs to clear
         
-        response = test_client.post(
-            "/api/v1/kb/reindex",
-            json={"force_rebuild": True}
-        )
+        # Mock the temporal client import
+        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+            mock_temporal = mock_temporal_cls.return_value
+            async def mock_ingest_result(*args, **kwargs):
+                return type('Result', (), {
+                    'success': True, 
+                    'workflow_id': 'workflow_123',
+                    'error_message': None
+                })()
+            mock_temporal.ingest_document_async = mock_ingest_result
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "success"
-        assert data["total_documents_submitted"] == 4
-        assert len(data["policy_ids"]) == 4
+            response = test_client.post(
+                "/api/v1/kb/reindex",
+                json={"force_rebuild": True}
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "success"
+            assert data["total_documents_submitted"] == 4
+            assert len(data["policy_ids"]) == 4
     
     @pytest.mark.asyncio
-    async def test_reindex_specific_policies(self, test_client, mock_reindex_service):
+    async def test_reindex_specific_policies(self, test_client, mock_vespa_client):
         """Test reindexing specific policy categories."""
-        # Setup mock
-        mock_reindex_service.reindex_documents.return_value = ReindexResponse(
-            status="success",
-            workflow_id="workflow_456",
-            total_documents_submitted=2,
-            policy_ids=["auto", "home"]
-        )
+        # Mock vespa operations for reindex service
+        mock_vespa_client.search_documents.return_value = []  # No existing docs to clear
         
-        response = test_client.post(
-            "/api/v1/kb/reindex",
-            json={"policy_ids": ["auto", "home"], "force_rebuild": False}
-        )
+        # Mock the temporal client import
+        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+            mock_temporal = mock_temporal_cls.return_value
+            async def mock_ingest_result(*args, **kwargs):
+                return type('Result', (), {
+                    'success': True, 
+                    'workflow_id': 'workflow_456',
+                    'error_message': None
+                })()
+            mock_temporal.ingest_document_async = mock_ingest_result
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["total_documents_submitted"] == 2
-        assert set(data["policy_ids"]) == {"auto", "home"}
+            response = test_client.post(
+                "/api/v1/kb/reindex",
+                json={"policy_ids": ["auto", "home"], "force_rebuild": False}
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["total_documents_submitted"] == 2
+            assert set(data["policy_ids"]) == {"auto", "home"}
     
     @pytest.mark.asyncio
-    async def test_reindex_failure(self, test_client, mock_reindex_service):
+    async def test_reindex_failure(self, test_client, mock_vespa_client):
         """Test reindex failure handling."""
-        # Setup mock to simulate failure
-        mock_reindex_service.reindex_documents.return_value = ReindexResponse(
-            status="failed",
-            workflow_id="none",
-            total_documents_submitted=0,
-            policy_ids=[]
-        )
+        # Mock vespa operations for reindex service
+        mock_vespa_client.search_documents.return_value = []  # No existing docs to clear
         
-        response = test_client.post(
-            "/api/v1/kb/reindex",
-            json={"force_rebuild": True}
-        )
+        # Mock the temporal client to simulate failure
+        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+            mock_temporal = mock_temporal_cls.return_value
+            async def mock_ingest_failure(*args, **kwargs):
+                return type('Result', (), {
+                    'success': False, 
+                    'workflow_id': 'none',
+                    'error_message': 'Simulated failure'
+                })()
+            mock_temporal.ingest_document_async = mock_ingest_failure
         
-        assert response.status_code == 200  # Still returns 200 but with failed status
-        data = response.json()
-        assert data["status"] == "failed"
-        assert data["total_documents_submitted"] == 0
+            response = test_client.post(
+                "/api/v1/kb/reindex",
+                json={"force_rebuild": True}
+            )
+            
+            assert response.status_code == 200  # Still returns 200 but with failed status
+            data = response.json()
+            assert data["status"] == "failed"
+            assert data["total_documents_submitted"] == 0
     
-    def test_get_indexing_status(self, test_client, mock_reindex_service):
+    def test_get_indexing_status(self, test_client, mock_vespa_client):
         """Test getting indexing status."""
-        # Setup mock
-        mock_reindex_service.get_indexing_status.return_value = {
-            "is_indexed": True,
-            "total_chunks": 10,
-            "total_documents": 4,
-            "categories": {
-                "auto": {"total_chunks": 3, "total_documents": 1},
-                "home": {"total_chunks": 2, "total_documents": 1},
-                "life": {"total_chunks": 3, "total_documents": 1},
-                "health": {"total_chunks": 2, "total_documents": 1}
-            },
-            "documents": [],
-            "status": "indexed"
-        }
+        # Mock vespa search_documents to return documents for status calculation
+        mock_documents = [
+            {"category": "auto", "id": "auto_1", "document_id": "auto_doc", "source_file": "auto.md"},
+            {"category": "auto", "id": "auto_2", "document_id": "auto_doc", "source_file": "auto.md"},
+            {"category": "auto", "id": "auto_3", "document_id": "auto_doc", "source_file": "auto.md"},
+            {"category": "home", "id": "home_1", "document_id": "home_doc", "source_file": "home.md"},
+            {"category": "home", "id": "home_2", "document_id": "home_doc", "source_file": "home.md"},
+        ]
+        mock_vespa_client.search_documents.return_value = mock_documents
         
-        response = test_client.get("/api/v1/kb/indexing-status")
+        response = test_client.get("/api/v1/kb/status")
         
         assert response.status_code == 200
         data = response.json()
         assert data["is_indexed"] is True
-        assert data["total_chunks"] == 10
-        assert data["total_documents"] == 4
-        assert len(data["categories"]) == 4
+        assert data["total_chunks"] == 5
+        assert data["total_documents"] == 2
+        assert len(data["categories"]) == 2
 
 
 class TestCategoryStats:
     """Test category statistics endpoint."""
     
-    def test_get_category_stats_success(self, test_client, mock_document_service):
+    def test_get_category_stats_success(self, test_client, mock_vespa_client):
         """Test retrieving category statistics."""
-        # Setup mock
-        mock_document_service.get_category_stats.return_value = [
-            CategoryStats(category="auto", document_count=2, chunk_count=5),
-            CategoryStats(category="home", document_count=1, chunk_count=3),
-            CategoryStats(category="life", document_count=1, chunk_count=4),
-            CategoryStats(category="health", document_count=1, chunk_count=2),
+        # Mock the underlying vespa client method to return appropriate data
+        mock_vespa_client.search_documents.return_value = [
+            {"category": "auto", "id": "1"},
+            {"category": "auto", "id": "2"},
+            {"category": "home", "id": "3"},
+            {"category": "life", "id": "4"},
+            {"category": "health", "id": "5"},
         ]
         
-        response = test_client.get("/api/v1/kb/categories/stats")
+        response = test_client.get("/api/v1/kb/categories")
         
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 4
-        assert any(cat["category"] == "auto" and cat["document_count"] == 2 for cat in data)
-        assert sum(cat["chunk_count"] for cat in data) == 14
+        assert any(cat["name"] == "auto" and cat["document_count"] == 2 for cat in data)
+        assert sum(cat["document_count"] for cat in data) == 5
 
 
 class TestErrorHandling:

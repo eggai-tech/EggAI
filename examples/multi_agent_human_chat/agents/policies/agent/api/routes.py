@@ -41,7 +41,7 @@ router = APIRouter()
 @router.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "service": "policies-agent"}
+    return {"status": "healthy", "service": "policies-agent", "version": "1.0.0"}
 
 
 @router.get("/kb/documents", response_model=List[PolicyDocument])
@@ -223,6 +223,33 @@ async def get_full_document(document_id: str):
         )
 
 
+@router.get("/kb/documents/{document_id}/chunks", response_model=List[PolicyDocument])
+async def get_document_chunks(
+    document_id: str,
+    document_service: DocumentService = Depends(get_document_service),
+):
+    """Get all chunks for a specific document."""
+    try:
+        # Validate document ID
+        validated_doc_id = validate_document_id(document_id)
+        
+        # Get all documents and filter by document_id
+        all_documents = await document_service.list_documents(limit=1000)
+        chunks = [doc for doc in all_documents if doc.document_id == validated_doc_id]
+        
+        if not chunks:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        return chunks
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get document chunks error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Internal server error while retrieving document chunks"
+        )
+
+
 @router.get("/kb/documents/{document_id}/range", response_model=FullDocumentResponse)
 async def get_document_range(
     document_id: str,
@@ -258,6 +285,61 @@ async def get_document_range(
         logger.error(f"Get document range error: {e}", exc_info=True)
         raise HTTPException(
             status_code=500, detail="Internal server error while retrieving document range"
+        )
+
+
+@router.get("/kb/search")
+async def search_documents(
+    query: str = Query(..., description="Search query"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    max_hits: int = Query(10, description="Maximum number of results", ge=1, le=100),
+    search_service: SearchService = Depends(get_search_service),
+):
+    """
+    Search policy documents using keyword search.
+    
+    - **query**: Search query string
+    - **category**: Optional category filter
+    - **max_hits**: Maximum number of results to return
+    """
+    try:
+        # Validate inputs
+        validated_query = validate_query(query)
+        validated_category = validate_category(category) if category else None
+        
+        # Create search request
+        request = VectorSearchRequest(
+            query=validated_query,
+            category=validated_category,
+            max_hits=max_hits,
+            search_type="keyword"
+        )
+        
+        result = await search_service.vector_search(request)
+        
+        return {
+            "query": result["query"],
+            "category": result["category"],
+            "total_results": result["total_hits"],
+            "results": [
+                {
+                    "id": doc.id,
+                    "title": doc.title,
+                    "content": doc.text,
+                    "category": doc.category,
+                    "source_file": doc.source_file,
+                    "document_id": doc.document_id,
+                    "relevance": doc.relevance
+                }
+                for doc in result["documents"]
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Search error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Internal server error during search"
         )
 
 

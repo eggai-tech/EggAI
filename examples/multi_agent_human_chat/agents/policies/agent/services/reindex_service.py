@@ -3,10 +3,6 @@
 from pathlib import Path
 from typing import List, Optional
 
-from agents.policies.agent.api.models import ReindexRequest, ReindexResponse
-from agents.policies.ingestion.documentation_temporal_client import (
-    DocumentationTemporalClient,
-)
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
 
@@ -156,7 +152,7 @@ class ReindexService:
     
     async def _queue_document_for_ingestion(
         self, 
-        temporal_client: DocumentationTemporalClient,
+        temporal_client: "DocumentationTemporalClient",
         config: dict,
         force_rebuild: bool
     ) -> tuple[bool, str, Optional[str]]:
@@ -204,7 +200,7 @@ class ReindexService:
     
     def _create_reindex_response(
         self, documents_queued: int, queued_policy_ids: List[str], errors: List[str]
-    ) -> ReindexResponse:
+    ) -> "ReindexResponse":
         """Create appropriate ReindexResponse based on operation results.
         
         Args:
@@ -215,6 +211,8 @@ class ReindexService:
         Returns:
             ReindexResponse with appropriate status
         """
+        from agents.policies.agent.api.models import ReindexResponse
+        
         if documents_queued == 0 and errors:
             return ReindexResponse(
                 status="failed",
@@ -237,7 +235,7 @@ class ReindexService:
                 policy_ids=queued_policy_ids,
             )
 
-    async def reindex_documents(self, request: ReindexRequest) -> ReindexResponse:
+    async def reindex_documents(self, request: "ReindexRequest") -> "ReindexResponse":
         """Reindex policy documents.
         
         Args:
@@ -246,6 +244,8 @@ class ReindexService:
         Returns:
             ReindexResponse with operation results
         """
+        from agents.policies.agent.api.models import ReindexRequest, ReindexResponse
+        
         errors = []
         documents_cleared = 0
 
@@ -260,6 +260,9 @@ class ReindexService:
                     errors.append(error_msg)
 
             # Step 2: Queue documents for re-ingestion
+            from agents.policies.ingestion.documentation_temporal_client import (
+                DocumentationTemporalClient,
+            )
             temporal_client = DocumentationTemporalClient()
             document_configs = self._get_document_configs(request.policy_ids)
             
