@@ -32,6 +32,11 @@ class Settings(BaseSettings):
         default=9093, description="Port for Prometheus metrics server"
     )
 
+    # Policy agent settings
+    min_conversation_length: int = Field(
+        default=5, description="Minimum length of chat history for processing"
+    )
+
     model_config = SettingsConfigDict(
         env_prefix="POLICIES_", env_file=".env", env_ignore_empty=True, extra="ignore"
     )
