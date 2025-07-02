@@ -70,7 +70,8 @@ def create_mock_documents(category: str = None, count: int = 3) -> List[dict]:
             "id": f"{cat}_policy_{i:03d}",
             "document_id": f"{cat}_policy",
             "category": cat,
-            "content": f"Content for {cat} policy chunk {i}",
+            "title": f"{cat.title()} Policy Document {i}",
+            "text": f"Content for {cat} policy chunk {i}",
             "chunk_index": i,
             "total_chunks": count,
             "source_file": f"{cat}.md",
@@ -88,14 +89,14 @@ class TestDocumentService:
     @pytest.mark.asyncio
     async def test_list_documents_all(self, document_service, mock_vespa_client):
         """Test listing all documents."""
-        # Setup mock
-        mock_vespa_client.get_all_documents.return_value = create_mock_documents()
+        # Setup mock - document_service uses search_documents, not get_all_documents
+        mock_vespa_client.search_documents.return_value = create_mock_documents()
         
         # Execute
         result = await document_service.list_documents()
         
         # Verify
-        assert len(result) == 4  # One document per category
+        assert len(result) == 12  # 3 documents per category * 4 categories
         assert all(isinstance(doc, PolicyDocument) for doc in result)
         assert {doc.category for doc in result} == {"auto", "home", "life", "health"}
     
@@ -104,7 +105,7 @@ class TestDocumentService:
         """Test listing documents filtered by category."""
         # Setup mock
         all_docs = create_mock_documents()
-        mock_vespa_client.get_all_documents.return_value = [
+        mock_vespa_client.search_documents.return_value = [
             doc for doc in all_docs if doc["category"] == "auto"
         ]
         
@@ -112,15 +113,15 @@ class TestDocumentService:
         result = await document_service.list_documents(category="auto")
         
         # Verify
-        assert len(result) == 1
-        assert result[0].category == "auto"
-        assert result[0].document_id == "auto_policy"
+        assert len(result) == 3  # 3 documents for auto category
+        assert all(doc.category == "auto" for doc in result)
+        assert all(doc.document_id == "auto_policy" for doc in result)
     
     @pytest.mark.asyncio
     async def test_list_documents_with_pagination(self, document_service, mock_vespa_client):
         """Test document listing with limit and offset."""
         # Setup mock
-        mock_vespa_client.get_all_documents.return_value = create_mock_documents()
+        mock_vespa_client.search_documents.return_value = create_mock_documents()
         
         # Execute
         result = await document_service.list_documents(limit=2, offset=1)
@@ -133,7 +134,7 @@ class TestDocumentService:
     async def test_list_documents_empty_result(self, document_service, mock_vespa_client):
         """Test handling of empty document list."""
         # Setup mock
-        mock_vespa_client.get_all_documents.return_value = []
+        mock_vespa_client.search_documents.return_value = []
         
         # Execute
         result = await document_service.list_documents()
