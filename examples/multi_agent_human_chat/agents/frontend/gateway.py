@@ -6,7 +6,7 @@ import uuid
 import uvicorn
 from fastapi import FastAPI, Query
 from opentelemetry import trace
-from opentelemetry.propagators.textmap import TraceContextTextMapPropagator
+from opentelemetry.propagate import TraceContextTextMapPropagator
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from libraries.tracing import TracedMessage

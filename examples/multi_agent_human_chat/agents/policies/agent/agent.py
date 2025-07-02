@@ -2,7 +2,7 @@ import asyncio
 from typing import List
 
 from eggai import Agent, Channel
-from opentelemetry.propagators.textmap import TraceContextTextMapPropagator
+from opentelemetry.propagate import TraceContextTextMapPropagator
 
 from agents.policies.agent.react import policies_react_dspy
 from agents.policies.config import settings

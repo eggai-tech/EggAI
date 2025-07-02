@@ -3,7 +3,7 @@ import asyncio
 import dspy.streaming
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
-from opentelemetry.propagators.textmap import TraceContextTextMapPropagator
+from opentelemetry.propagate import TraceContextTextMapPropagator
 
 from agents.triage.config import settings
 from agents.triage.dspy_modules.small_talk import chatty

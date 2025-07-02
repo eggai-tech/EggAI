@@ -2,7 +2,7 @@ import asyncio
 from typing import List
 
 from eggai import Agent, Channel
-from opentelemetry.propagators.textmap import TraceContextTextMapPropagator
+from opentelemetry.propagate import TraceContextTextMapPropagator
 
 from agents.billing.config import settings
 from agents.billing.types import ChatMessage, ModelConfig
