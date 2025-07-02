@@ -13,6 +13,7 @@ from agents.policies.ingestion.workflows.worker import (
 from agents.policies.vespa.deploy_package import deploy_to_vespa
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
+from pathlib import Path
 
 logger = get_console_logger("ingestion.start_worker")
 
@@ -25,8 +26,6 @@ async def trigger_initial_document_ingestion():
     policy_ids = ["auto", "home", "health", "life"]
 
     # Documents directory path (relative to the ingestion module)
-    from pathlib import Path
-
     current_dir = Path(__file__).parent
     documents_dir = current_dir / "documents"
 
@@ -120,13 +119,17 @@ async def main():
         # Use production mode with 3 nodes for Docker multi-node setup
         deployment_mode = os.environ.get("VESPA_DEPLOYMENT_MODE", "production")
         node_count = int(os.environ.get("VESPA_NODE_COUNT", "3"))
+        artifacts_dir = Path(os.environ.get("VESPA_ARTIFACTS_DIR")) if os.getenv("VESPA_ARTIFACTS_DIR") else None
+        hosts_config = Path(os.environ.get("VESPA_HOSTS_CONFIG")) if os.getenv("VESPA_HOSTS_CONFIG") else None
 
         schema_deployed = deploy_to_vespa(
             config_server_url=settings.vespa_config_url,
             query_url=settings.vespa_query_url,
             force=True,
+            artifacts_dir=artifacts_dir,
             deployment_mode=deployment_mode,
             node_count=node_count,
+            hosts_config=hosts_config,
         )
 
         if not schema_deployed:
