@@ -53,9 +53,16 @@ init_token_metrics(
 from . import handlers  # noqa: E402,F401
 from .gateway import add_websocket_gateway  # noqa: E402
 
+# Re-export handler functions for backwards compatibility
+handle_human_messages = handlers.handle_human_messages
+handle_human_stream_messages = handlers.handle_human_stream_messages
+
 __all__ = [
     "frontend_agent",
     "add_websocket_gateway",
     "human_channel",
     "human_stream_channel",
+    "handle_human_messages",
+    "handle_human_stream_messages",
+    "messages_cache",
 ]
