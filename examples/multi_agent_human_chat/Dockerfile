@@ -4,6 +4,7 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 COPY agents /app/agents
 COPY libraries /app/libraries
+COPY scripts /app/scripts
 
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r /app/requirements.txt

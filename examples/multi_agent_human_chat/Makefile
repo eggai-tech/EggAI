@@ -208,7 +208,7 @@ start-escalation:
 
 start-policies:
 	@echo "Starting Policies Agent..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.policies.agent.main
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m scripts.start_policies
 
 start-policies-document-ingestion:
 	@echo "Starting Policies Document Ingestion Service..."
