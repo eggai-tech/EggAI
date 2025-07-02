@@ -160,13 +160,13 @@ jobs:
         run: |
           make setup
 
-      - name: Run integration tests
+      - name: Run tests
         working-directory: examples/multi_agent_human_chat
         run: |
           make test-libraries
           make test-triage-agent
           make test-escalation-agent
-          # make test-policies-agent
+          make test-policies-agent
           make test-billing-agent
           make test-claims-agent
           make test-frontend-agent
