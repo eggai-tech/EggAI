@@ -3,15 +3,20 @@ import asyncio
 import dspy.streaming
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
-from opentelemetry import trace
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from agents.triage.config import settings
 from agents.triage.dspy_modules.small_talk import chatty
-from agents.triage.models import AGENT_REGISTRY, TargetAgent
+from agents.triage.models import (
+    AGENT_REGISTRY,
+    ClassifierVersion,
+    TargetAgent,
+)
 from libraries.channels import channels
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
+from libraries.streaming_agent import format_conversation, process_request_stream
+from libraries.tracing import TracedMessage, get_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
 
 init_token_metrics(
@@ -30,40 +35,111 @@ human_channel = Channel(channels.human)
 human_stream_channel = Channel(channels.human_stream)
 agents_channel = Channel(channels.agents)
 
-tracer = trace.get_tracer("triage_agent")
+tracer = get_tracer("triage_agent")
 logger = get_console_logger("triage_agent.handler")
 
 
 def get_current_classifier():
-    if settings.classifier_version == "v0":
+    if settings.classifier_version == ClassifierVersion.v0:
         from agents.triage.dspy_modules.classifier_v0 import classifier_v0
 
         return classifier_v0
-    if settings.classifier_version == "v1":
+    if settings.classifier_version == ClassifierVersion.v1:
         from agents.triage.dspy_modules.classifier_v1 import classifier_v1
 
         return classifier_v1
-    elif settings.classifier_version == "v2":
+    elif settings.classifier_version == ClassifierVersion.v2:
         from agents.triage.dspy_modules.classifier_v2.classifier_v2 import classifier_v2
 
         return classifier_v2
-    elif settings.classifier_version == "v3":
+    elif settings.classifier_version == ClassifierVersion.v3:
         from agents.triage.baseline_model.classifier_v3 import classifier_v3
 
         return classifier_v3
-    elif settings.classifier_version == "v4":
+    elif settings.classifier_version == ClassifierVersion.v4:
         from agents.triage.dspy_modules.classifier_v4 import classifier_v4
 
         return classifier_v4
-    elif settings.classifier_version == "v5":
+    elif settings.classifier_version == ClassifierVersion.v5:
         from agents.triage.attention_net.classifier_v5 import classifier_v5
 
         return classifier_v5
     else:
-        raise ValueError(f"Unknown classifier version: {settings.classifier_version}")
+        raise ValueError(
+            f"Unknown classifier version: {settings.classifier_version.value}"
+        )
 
 
 current_classifier = get_current_classifier()
+
+
+async def process_triage_request(
+    chat_messages: list[dict],
+    connection_id: str,
+    message_id: str,
+) -> None:
+    """Classify the conversation and either route or stream a response."""
+    formatted_messages = [
+        {"role": m.get("agent", m.get("role", "User")), "content": m.get("content", "")}
+        for m in chat_messages
+    ]
+    conversation_string = format_conversation(
+        formatted_messages, tracer=tracer, logger=logger
+    )
+
+    with tracer.start_as_current_span("process_triage_request") as span:
+        carrier = {}
+        TraceContextTextMapPropagator().inject(carrier)
+        child_traceparent = carrier.get("traceparent")
+        child_tracestate = carrier.get("tracestate", "")
+
+        response = current_classifier(chat_history=conversation_string)
+        target_agent = response.target_agent
+
+        logger.info(
+            "Classification completed in %.2f ms, target agent: %s, classifier version: %s",
+            response.metrics.latency_ms,
+            target_agent,
+            settings.classifier_version.value,
+        )
+
+        triage_to_agent_messages = [
+            {"role": "user", "content": f"{conversation_string} \n{target_agent}: "}
+        ]
+
+        if target_agent != TargetAgent.ChattyAgent:
+            with tracer.start_as_current_span("publish_to_agent") as publish_span:
+                carrier = {}
+                TraceContextTextMapPropagator().inject(carrier)
+                pub_parent = carrier.get("traceparent")
+                pub_state = carrier.get("tracestate", "")
+                await agents_channel.publish(
+                    TracedMessage(
+                        type=AGENT_REGISTRY[target_agent]["message_type"],
+                        source="TriageAgent",
+                        data={
+                            "chat_messages": triage_to_agent_messages,
+                            "message_id": message_id,
+                            "connection_id": connection_id,
+                        },
+                        traceparent=pub_parent,
+                        tracestate=pub_state,
+                    )
+                )
+        else:
+            chunks = chatty(chat_history=conversation_string)
+
+            await process_request_stream(
+                chunks,
+                agent_name="TriageAgent",
+                connection_id=connection_id,
+                message_id=message_id,
+                human_stream_channel=human_stream_channel,
+                tracer=tracer,
+                logger=logger,
+                child_traceparent=child_traceparent,
+                child_tracestate=child_tracestate,
+            )
 
 
 @triage_agent.subscribe(
@@ -79,114 +155,13 @@ async def handle_user_message(msg: TracedMessage):
         connection_id = msg.data.get("connection_id", "unknown")
 
         logger.info(f"Received message from connection {connection_id}")
-        conversation_string = ""
-        for chat in chat_messages:
-            user = chat.get("agent", "User")
-            content = chat.get("content", "")
-            if content:
-                conversation_string += f"{user}: {content}\n"
 
-        response = current_classifier(chat_history=conversation_string)
-        target_agent = response.target_agent
+        await process_triage_request(chat_messages, connection_id, str(msg.id))
 
-        logger.info(
-            f"Classification completed in {response.metrics.latency_ms:.2f} ms, target agent: {target_agent}, classifier version: {settings.classifier_version}"
-        )
-        triage_to_agent_messages = [
-            {
-                "role": "user",
-                "content": f"{conversation_string} \n{target_agent}: ",
-            }
-        ]
-
-        if target_agent != TargetAgent.ChattyAgent:
-            logger.info(f"Routing message to {target_agent}")
-
-            with tracer.start_as_current_span("publish_to_agent") as publish_span:
-                child_traceparent, child_tracestate = format_span_as_traceparent(
-                    publish_span
-                )
-                await agents_channel.publish(
-                    TracedMessage(
-                        type=AGENT_REGISTRY[target_agent]["message_type"],
-                        source="TriageAgent",
-                        data={
-                            "chat_messages": triage_to_agent_messages,
-                            "message_id": msg.id,
-                            "connection_id": connection_id,
-                        },
-                        traceparent=child_traceparent,
-                        tracestate=child_tracestate,
-                    )
-                )
-        else:
-            with tracer.start_as_current_span("chatty_stream_response") as stream_span:
-                child_traceparent, child_tracestate = format_span_as_traceparent(
-                    stream_span
-                )
-
-                stream_message_id = str(
-                    msg.id
-                )  # Use the same message ID for the stream
-
-                await human_stream_channel.publish(
-                    TracedMessage(
-                        type="agent_message_stream_start",
-                        source="TriageAgent",
-                        data={
-                            "message_id": stream_message_id,
-                            "connection_id": connection_id,
-                        },
-                        traceparent=child_traceparent,
-                        tracestate=child_tracestate,
-                    )
-                )
-
-                chunks = chatty(chat_history=conversation_string)
-                chunk_count = 0
-
-                async for chunk in chunks:
-                    if isinstance(chunk, dspy.streaming.StreamResponse):
-                        chunk_count += 1
-                        await human_stream_channel.publish(
-                            TracedMessage(
-                                type="agent_message_stream_chunk",
-                                source="TriageAgent",
-                                data={
-                                    "message_chunk": chunk.chunk,
-                                    "message_id": stream_message_id,
-                                    "chunk_index": chunk_count,
-                                    "connection_id": connection_id,
-                                },
-                                traceparent=child_traceparent,
-                                tracestate=child_tracestate,
-                            )
-                        )
-                        logger.info(f"Chunk {chunk_count} sent: {chunk.chunk}")
-                    elif isinstance(chunk, dspy.Prediction):
-                        # FIXME: with short prompts, sometime dspy is not trimming off the " [[ ## completed ## ]]", we will do it manually there
-                        chunk.response = chunk.response.replace(
-                            " [[ ## completed ## ]]", ""
-                        )
-
-                        await human_stream_channel.publish(
-                            TracedMessage(
-                                type="agent_message_stream_end",
-                                source="TriageAgent",
-                                data={
-                                    "message_id": stream_message_id,
-                                    "agent": "TriageAgent",
-                                    "connection_id": connection_id,
-                                    "message": chunk.response,
-                                },
-                                traceparent=child_traceparent,
-                                tracestate=child_tracestate,
-                            )
-                        )
-                        logger.info(
-                            f"Stream ended for message {stream_message_id}: {chunk.response}"
-                        )
-
+    except ValueError as exc:
+        logger.warning("Invalid triage message: %s", exc, exc_info=True)
+    except (ConnectionError, asyncio.TimeoutError) as exc:
+        logger.error("Network error in TriageAgent: %s", exc, exc_info=True)
     except Exception as e:
         logger.error(f"Error processing message: {e}", exc_info=True)
 

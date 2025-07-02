@@ -30,6 +30,9 @@ class Settings(BaseSettings):
 
     # Billing specific settings
     billing_database_path: str = Field(default="")
+    request_timeout_seconds: float = Field(
+        default=30.0, description="Timeout for model requests in seconds"
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="BILLING_", env_file=".env", env_ignore_empty=True, extra="ignore"

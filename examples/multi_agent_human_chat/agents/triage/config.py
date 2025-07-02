@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .models import ClassifierVersion
+
 load_dotenv()
 
 
@@ -29,7 +31,7 @@ class Settings(BaseSettings):
     )
 
     # baseline model settings
-    classifier_version: str = Field(default="v2")
+    classifier_version: ClassifierVersion = Field(default=ClassifierVersion.v2)
     classifier_v3_model_name: str = Field(default="fewshot_classifier_n_200")
     classifier_v3_model_version: str = Field(default="1")
 

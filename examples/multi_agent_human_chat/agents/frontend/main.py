@@ -65,6 +65,9 @@ async def read_root():
         logger.error(f"File not found: {str(fnf_error)}")
         raise HTTPException(status_code=404, detail=str(fnf_error))
 
+    except OSError as e:
+        logger.error(f"File error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
     except Exception as e:
         logger.error(f"Error reading HTML: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
@@ -88,5 +91,7 @@ if __name__ == "__main__":
         asyncio.run(frontend_server.serve())
     except KeyboardInterrupt:
         logger.info("Shutting down frontend agent")
+    except OSError as e:
+        logger.error(f"Server error: {e}", exc_info=True)
     except Exception as e:
         logger.error(f"Error in main: {e}", exc_info=True)
