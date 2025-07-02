@@ -38,6 +38,7 @@ eggai_set_default_transport(
 )
 
 frontend_agent = Agent("FrontendAgent")
+frontend_agent.logger = logger  # expose logger on the agent instance
 human_channel = Channel("human")
 human_stream_channel = Channel("human_stream")
 websocket_manager = WebSocketManager()
