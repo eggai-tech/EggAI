@@ -4,5 +4,5 @@ description: A Helm chart for EggAI multi-agent human chat example application
 
 type: application
 
-version: "0.5.6"
+version: "0.5.7"
 appVersion: "0.1.0"
