@@ -31,7 +31,7 @@ logger = get_console_logger("policies_optimizer_simba")
 PolicyCategory = Literal["auto", "life", "home", "health"]
 
 # Import the signature from the main agent module
-from agents.policies.agent.react import PolicyAgentSignature
+from agents.policies.agent.reasoning import PolicyAgentSignature
 
 
 # Mock tools for optimization

@@ -6,18 +6,13 @@ import uvicorn
 from eggai import eggai_cleanup
 from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI
-from sentence_transformers import SentenceTransformer
 
-from agents.policies.agent.api.routes import create_api_router
-from agents.policies.agent.services.document_service import DocumentService
-from agents.policies.agent.services.reindex_service import ReindexService
-from agents.policies.agent.services.search_service import SearchService
+from agents.policies.agent.api.routes import router as api_router
 from agents.policies.config import settings
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
-from libraries.vespa import VespaClient
 
 # Configure transport before importing agent
 eggai_set_default_transport(
@@ -32,25 +27,6 @@ from agents.policies.agent.agent import policies_agent
 
 logger = get_console_logger("policies_agent")
 
-# Global instances
-_VESPA_CLIENT = None
-_EMBEDDING_MODEL = None
-
-
-def get_vespa_client() -> VespaClient:
-    """Get or create Vespa client singleton."""
-    global _VESPA_CLIENT
-    if _VESPA_CLIENT is None:
-        _VESPA_CLIENT = VespaClient()
-    return _VESPA_CLIENT
-
-
-def get_embedding_model() -> SentenceTransformer:
-    """Get or create embedding model singleton."""
-    global _EMBEDDING_MODEL
-    if _EMBEDDING_MODEL is None:
-        _EMBEDDING_MODEL = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    return _EMBEDDING_MODEL
 
 
 @asynccontextmanager
@@ -64,13 +40,6 @@ async def lifespan(app: FastAPI):
     
     # Set up DSPy LM
     dspy_set_language_model(settings)
-    
-    # Initialize Vespa client
-    vespa_client = get_vespa_client()
-    
-    # Load embedding model
-    logger.info("Loading embedding model...")
-    get_embedding_model()
     
     # Start the agent
     logger.info("Starting agent...")
@@ -95,16 +64,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Create services
-vespa_client = get_vespa_client()
-embedding_model = get_embedding_model()
-
-document_service = DocumentService(vespa_client)
-search_service = SearchService(vespa_client, embedding_model)
-reindex_service = ReindexService(vespa_client)
-
-# Create and include API router
-api_router = create_api_router(document_service, search_service, reindex_service)
+# Include API router
 app.include_router(api_router, prefix="/api/v1", tags=["policies"])
 
 

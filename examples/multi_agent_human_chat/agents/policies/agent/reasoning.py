@@ -1,4 +1,4 @@
-"""DSPy ReAct implementation for the Policies Agent."""
+"""Policy reasoning module using DSPy ReAct implementation for the Policies Agent."""
 
 import json
 import os
@@ -24,7 +24,7 @@ from libraries.tracing import (
     traced_dspy_function,
 )
 
-logger = get_console_logger("policies_agent.react")
+logger = get_console_logger("policies_agent.reasoning")
 
 # Create tracer for policies agent
 policies_tracer = create_tracer("policies_agent")

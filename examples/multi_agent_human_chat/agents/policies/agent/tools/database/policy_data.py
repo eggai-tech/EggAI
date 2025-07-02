@@ -1,4 +1,12 @@
-"""Policy database access tool."""
+"""Policy database access tool.
+
+NOTE: This module currently uses example data for demonstration purposes.
+In production, the get_personal_policy_details function should be updated
+to query a real database (e.g., PostgreSQL, MongoDB, etc.).
+
+The USE_EXAMPLE_DATA flag in example_data.py controls whether to use
+the example policies or attempt a real database query.
+"""
 
 import json
 from typing import Dict, List
@@ -6,35 +14,10 @@ from typing import Dict, List
 from opentelemetry import trace
 
 from libraries.logger import get_console_logger
+from agents.policies.agent.tools.database.example_data import EXAMPLE_POLICIES, USE_EXAMPLE_DATA
 
 logger = get_console_logger("policies_agent.tools.database")
 tracer = trace.get_tracer("policies_agent_tools_database")
-
-
-# Sample in-memory policies database
-POLICIES_DATABASE: List[Dict] = [
-    {
-        "policy_number": "A12345",
-        "name": "John Doe",
-        "policy_category": "home",
-        "premium_amount": 500,
-        "due_date": "2026-03-01",
-    },
-    {
-        "policy_number": "B67890",
-        "name": "Jane Smith",
-        "policy_category": "life",
-        "premium_amount": 300,
-        "due_date": "2026-03-15",
-    },
-    {
-        "policy_number": "C24680",
-        "name": "Alice Johnson",
-        "policy_category": "auto",
-        "premium_amount": 400,
-        "due_date": "2026-03-01",
-    },
-]
 
 
 @tracer.start_as_current_span("get_personal_policy_details")
@@ -57,7 +40,17 @@ def get_personal_policy_details(policy_number: str) -> str:
 
     try:
         cleaned_policy_number = policy_number.strip()
-        for policy in POLICIES_DATABASE:
+        
+        # In production, this would query a real database
+        # For now, use example data if enabled
+        if USE_EXAMPLE_DATA:
+            policies_to_search = EXAMPLE_POLICIES
+        else:
+            # TODO: Replace with actual database query
+            logger.warning("Production database not configured, using empty dataset")
+            policies_to_search = []
+        
+        for policy in policies_to_search:
             if policy["policy_number"] == cleaned_policy_number:
                 logger.info(
                     f"Found policy: {policy['policy_number']} for {policy['name']}"

@@ -9,7 +9,7 @@ from agents.policies.agent.api.models import (
     SearchResponse,
     VectorSearchRequest,
 )
-from agents.policies.agent.api.routes import create_api_router
+from agents.policies.agent.api.routes import router
 from agents.policies.agent.api.validators import (
     validate_category,
     validate_document_id,
@@ -18,7 +18,7 @@ from agents.policies.agent.api.validators import (
 )
 
 __all__ = [
-    "create_api_router",
+    "router",
     "CategoryStats",
     "FullDocumentResponse",
     "PolicyDocument",
