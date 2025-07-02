@@ -160,10 +160,55 @@ async def handle_user_message(msg: TracedMessage):
 
     except ValueError as exc:
         logger.warning("Invalid triage message: %s", exc, exc_info=True)
+        carrier = {}
+        TraceContextTextMapPropagator().inject(carrier)
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="TriageAgent",
+                data={
+                    "message": str(exc),
+                    "connection_id": connection_id,
+                    "agent": "TriageAgent",
+                },
+                traceparent=carrier.get("traceparent"),
+                tracestate=carrier.get("tracestate", ""),
+            )
+        )
     except (ConnectionError, asyncio.TimeoutError) as exc:
         logger.error("Network error in TriageAgent: %s", exc, exc_info=True)
+        carrier = {}
+        TraceContextTextMapPropagator().inject(carrier)
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="TriageAgent",
+                data={
+                    "message": "I'm having network issues processing your request. Please try again.",
+                    "connection_id": connection_id,
+                    "agent": "TriageAgent",
+                },
+                traceparent=carrier.get("traceparent"),
+                tracestate=carrier.get("tracestate", ""),
+            )
+        )
     except Exception as e:
         logger.error(f"Error processing message: {e}", exc_info=True)
+        carrier = {}
+        TraceContextTextMapPropagator().inject(carrier)
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="TriageAgent",
+                data={
+                    "message": "I apologize, but I'm having trouble processing your request right now. Please try again.",
+                    "connection_id": connection_id,
+                    "agent": "TriageAgent",
+                },
+                traceparent=carrier.get("traceparent"),
+                tracestate=carrier.get("tracestate", ""),
+            )
+        )
 
 
 @triage_agent.subscribe(channel=human_channel)
