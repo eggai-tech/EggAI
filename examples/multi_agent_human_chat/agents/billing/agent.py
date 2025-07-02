@@ -127,9 +127,7 @@ async def handle_billing_request(msg: TracedMessage) -> None:
             )
             return
 
-        conversation_string = format_conversation(
-            chat_messages, tracer=tracer, logger=logger
-        )
+        conversation_string = get_conversation_string(chat_messages)
         logger.info(f"Processing billing request for connection {connection_id}")
 
         await process_billing_request(

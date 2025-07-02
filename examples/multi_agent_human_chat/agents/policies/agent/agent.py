@@ -29,6 +29,11 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
+
+def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
+    """Legacy wrapper for tests that formats chat history."""
+    return format_conversation(chat_messages, tracer=tracer, logger=logger)
+
 async def process_policy_request(
     conversation_string: str,
     connection_id: str,
@@ -104,9 +109,7 @@ async def handle_policy_request(msg: TracedMessage) -> None:
             )
             return
 
-        conversation_string = format_conversation(
-            chat_messages, tracer=tracer, logger=logger
-        )
+        conversation_string = get_conversation_string(chat_messages)
         logger.info(f"Processing policy request for connection {connection_id}")
 
         await process_policy_request(
