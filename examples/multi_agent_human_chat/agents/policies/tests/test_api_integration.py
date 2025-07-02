@@ -8,13 +8,12 @@ These tests cover the full API functionality including:
 """
 
 import asyncio
-from typing import List, Optional
+from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
 
 from agents.policies.agent.api.dependencies import (
     get_document_service,
@@ -26,7 +25,6 @@ from agents.policies.agent.api.models import (
     CategoryStats,
     FullDocumentResponse,
     PolicyDocument,
-    ReindexRequest,
     ReindexResponse,
     SearchResponse,
 )

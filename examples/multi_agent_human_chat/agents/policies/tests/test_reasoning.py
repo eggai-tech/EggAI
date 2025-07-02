@@ -1,9 +1,6 @@
 """Unit tests for Policies Agent reasoning module."""
 
-import asyncio
-import json
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
 from dspy import Prediction
@@ -200,7 +197,6 @@ class TestOptimizedPrompts:
     def test_optimized_prompts_not_loaded_by_default(self):
         """Test that optimized prompts are not loaded by default."""
         # The using_optimized_prompts flag should be False unless explicitly enabled
-        from agents.policies.agent.reasoning import using_optimized_prompts
         
         # By default, should not use optimized prompts unless env var is set
         assert using_optimized_prompts is False or using_optimized_prompts is True

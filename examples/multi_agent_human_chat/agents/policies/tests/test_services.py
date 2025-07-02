@@ -6,10 +6,8 @@ These tests cover the service layer functionality:
 - ReindexService
 """
 
-import asyncio
-from pathlib import Path
 from typing import List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -17,7 +15,6 @@ from agents.policies.agent.api.models import (
     CategoryStats,
     PolicyDocument,
     ReindexRequest,
-    ReindexResponse,
     SearchResponse,
     VectorSearchRequest,
 )
