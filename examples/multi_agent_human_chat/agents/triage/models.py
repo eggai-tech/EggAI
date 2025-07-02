@@ -11,6 +11,17 @@ class TargetAgent(str, Enum):
     ChattyAgent = "ChattyAgent"
 
 
+class ClassifierVersion(str, Enum):
+    """Supported classifier versions."""
+
+    v0 = "v0"
+    v1 = "v1"
+    v2 = "v2"
+    v3 = "v3"
+    v4 = "v4"
+    v5 = "v5"
+
+
 class ClassifierMetrics(BaseModel):
     total_tokens: int
     prompt_tokens: int
