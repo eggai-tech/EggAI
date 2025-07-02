@@ -26,7 +26,7 @@ eggai_set_default_transport(
     )
 )
 
-from ..agent import policies_agent
+from agents.policies.agent.agent import policies_agent
 
 logger = get_console_logger("policies_agent.tests")
 

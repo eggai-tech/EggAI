@@ -5,10 +5,9 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
+from agents.policies.agent.react import policies_react_dspy
 from agents.policies.config import settings
-from agents.policies.react import policies_react_dspy
 from agents.policies.types import ChatMessage, ModelConfig
-from agents.policies.utils.connection_state import set_current_connection_id
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
@@ -73,8 +72,6 @@ async def process_policy_request(
         safe_set_attribute(span, "message_id", message_id)
         safe_set_attribute(span, "conversation_length", len(conversation_string))
         safe_set_attribute(span, "timeout_seconds", config.timeout_seconds)
-
-        set_current_connection_id(connection_id)
 
         if not conversation_string or len(conversation_string.strip()) < 5:
             safe_set_attribute(span, "error", "Empty or too short conversation")

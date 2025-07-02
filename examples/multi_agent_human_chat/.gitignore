@@ -1,3 +1,4 @@
 agents/triage/dspy_modules/evaluation/reports/*.html
 reports/
 tmp
+/agents/policies/vespa/artifacts/*

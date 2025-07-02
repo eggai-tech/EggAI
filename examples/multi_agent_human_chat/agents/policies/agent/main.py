@@ -9,19 +9,20 @@ from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
+from agents.policies.agent.tools.retrieval.full_document_retrieval import (
+    get_document_chunk_range,
+    retrieve_full_document_async,
+)
+from agents.policies.config import settings
+from agents.policies.embeddings import generate_embedding
+from agents.policies.ingestion.documentation_temporal_client import (
+    DocumentationTemporalClient,
+)
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 from libraries.vespa import VespaClient
-
-from .config import settings
-from .embeddings import generate_embedding
-from .ingestion.documentation_temporal_client import DocumentationTemporalClient
-from .tools.retrieval.full_document_retrieval import (
-    get_document_chunk_range,
-    retrieve_full_document_async,
-)
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(
@@ -31,7 +32,7 @@ eggai_set_default_transport(
 )
 
 # Import agent after transport is configured
-from .agent import policies_agent
+from agents.policies.agent.agent import policies_agent
 
 logger = get_console_logger("policies_agent")
 
@@ -727,7 +728,7 @@ if __name__ == "__main__":
 
     # Always run with FastAPI and the agent together
     uvicorn.run(
-        "agents.policies.main:api",
+        "agents.policies.agent.main:api",
         host="0.0.0.0",
         port=8002,  # Different port from frontend
         reload=False,  # Set to False for production

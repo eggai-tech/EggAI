@@ -14,11 +14,11 @@ from typing import Literal
 import dspy
 from sklearn.model_selection import train_test_split
 
-from agents.policies.config import settings
-from agents.policies.optimization.policies_dataset import (
+from agents.policies.agent.optimization.policies_dataset import (
     as_dspy_examples,
     create_policies_dataset,
 )
+from agents.policies.config import settings
 
 # Direct use of dspy.SIMBA
 from libraries.dspy_set_language_model import dspy_set_language_model
@@ -31,7 +31,7 @@ logger = get_console_logger("policies_optimizer_simba")
 PolicyCategory = Literal["auto", "life", "home", "health"]
 
 # Import the signature from the main agent module
-from agents.policies.react import PolicyAgentSignature
+from agents.policies.agent.react import PolicyAgentSignature
 
 
 # Mock tools for optimization

@@ -9,9 +9,11 @@ import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 
+from agents.policies.agent.tools.database.policy_data import get_personal_policy_details
+from agents.policies.agent.tools.retrieval.policy_search import (
+    search_policy_documentation,
+)
 from agents.policies.config import settings
-from agents.policies.tools.database.policy_data import get_personal_policy_details
-from agents.policies.tools.retrieval.policy_search import search_policy_documentation
 from agents.policies.types import ModelConfig, PolicyCategory
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger

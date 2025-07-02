@@ -13,6 +13,9 @@ from typing import List, Tuple
 import pytest
 
 from agents.policies.tests.retrieval_performance.api_client import RetrievalAPIClient
+from agents.policies.tests.retrieval_performance.data_utilities import (
+    get_retrieval_test_cases,
+)
 from agents.policies.tests.retrieval_performance.evaluator import RetrievalEvaluator
 from agents.policies.tests.retrieval_performance.mlflow_reporter import MLflowReporter
 from agents.policies.tests.retrieval_performance.models import (
@@ -20,9 +23,6 @@ from agents.policies.tests.retrieval_performance.models import (
     ParameterCombination,
     RetrievalResult,
     RetrievalTestConfiguration,
-)
-from agents.policies.tests.retrieval_performance.test_data import (
-    get_retrieval_test_cases,
 )
 from libraries.logger import get_console_logger
 

@@ -81,7 +81,8 @@ class RetrievalAPIClient:
                 return False
 
             process = subprocess.Popen(
-                [sys.executable, "-m", "agents.policies.main"], cwd=str(project_root)
+                [sys.executable, "-m", "agents.policies.agent.main"],
+                cwd=str(project_root),
             )
 
             # Wait for server to start

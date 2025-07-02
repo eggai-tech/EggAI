@@ -427,7 +427,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           args:
-          - agents.policies.main
+          - agents.policies.agent.main
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
