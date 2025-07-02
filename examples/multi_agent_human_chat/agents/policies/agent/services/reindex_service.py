@@ -244,7 +244,7 @@ class ReindexService:
         Returns:
             ReindexResponse with operation results
         """
-        from agents.policies.agent.api.models import ReindexRequest, ReindexResponse
+        from agents.policies.agent.api.models import ReindexResponse
         
         errors = []
         documents_cleared = 0

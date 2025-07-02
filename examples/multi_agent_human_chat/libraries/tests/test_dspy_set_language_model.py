@@ -1,7 +1,6 @@
 """Tests for DSPy language model configuration."""
 
-import os
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

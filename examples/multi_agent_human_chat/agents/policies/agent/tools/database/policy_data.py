@@ -41,7 +41,7 @@ def get_personal_policy_details(policy_number: str) -> str:
         return "Policy not found."
 
     try:
-        cleaned_policy_number = policy_number.strip()
+        cleaned_policy_number = policy_number.strip().upper()
         
         # In production, this would query a real database
         # For now, use example data if enabled

@@ -1,18 +1,13 @@
 """Tests for OpenTelemetry tracing utilities."""
 
-import json
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
-from opentelemetry import trace
-from opentelemetry.trace import Status, StatusCode
+from unittest.mock import Mock, patch
 
 from libraries.tracing.otel import (
     create_tracer,
     extract_span_context,
     format_span_as_traceparent,
-    get_tracer,
     get_traceparent_from_connection_id,
+    get_tracer,
     init_telemetry,
     safe_set_attribute,
     traced_handler,

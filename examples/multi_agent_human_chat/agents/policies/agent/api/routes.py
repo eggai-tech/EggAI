@@ -268,7 +268,7 @@ async def get_document_range(
                 detail="End chunk must be greater than or equal to start chunk"
             )
         
-        doc_range = await get_document_chunk_range(
+        doc_range = get_document_chunk_range(
             validated_doc_id, start_chunk, end_chunk
         )
         
@@ -365,10 +365,11 @@ async def vector_search(
         result = await search_service.vector_search(request)
         
         return SearchResponse(
-            query=result["query"],
-            category=result["category"],
-            total_hits=result["total_hits"],
-            documents=result["documents"]
+            query=result.query,
+            category=result.category,
+            total_hits=result.total_hits,
+            documents=result.documents,
+            search_type=result.search_type
         )
     except HTTPException:
         raise

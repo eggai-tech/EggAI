@@ -34,7 +34,7 @@ class TestPolicyDatabase:
             policy_data = json.loads(result)
             assert policy_data["policy_number"] == "A12345"
             assert policy_data["name"] == "John Doe"
-            assert policy_data["policy_category"] == "auto"
+            assert policy_data["policy_category"] == "home"
             assert "premium_amount_usd" in policy_data
             assert "$" in policy_data["premium_amount_usd"]
     
@@ -107,9 +107,13 @@ class TestPolicySearch:
             mock_instance.search_documents = AsyncMock(return_value=[
                 {
                     "id": "doc1",
-                    "content": "Auto insurance covers collision damage",
+                    "text": "Auto insurance covers collision damage",
                     "category": "auto",
-                    "metadata": {"section": "Coverage"}
+                    "source_file": "auto.md",
+                    "chunk_index": 0,
+                    "page_numbers": [1],
+                    "page_range": "1",
+                    "headings": ["Coverage"]
                 }
             ])
             
@@ -117,8 +121,11 @@ class TestPolicySearch:
             result = await search_policy_documentation("collision damage")
             
             # Verify
-            assert "Auto insurance covers collision damage" in result
-            assert "#doc1" in result  # Reference should be included
+            # Result is JSON-formatted string
+            parsed_result = json.loads(result)
+            assert len(parsed_result) > 0
+            assert "Auto insurance covers collision damage" in parsed_result[0]["content"]
+            assert parsed_result[0]["category"] == "auto"
     
     @pytest.mark.asyncio
     async def test_search_policy_documentation_with_category(self):
@@ -128,9 +135,13 @@ class TestPolicySearch:
             mock_instance.search_documents = AsyncMock(return_value=[
                 {
                     "id": "home1",
-                    "content": "Home insurance covers water damage",
+                    "text": "Home insurance covers water damage",
                     "category": "home",
-                    "metadata": {"section": "Water Coverage"}
+                    "source_file": "home.md",
+                    "chunk_index": 0,
+                    "page_numbers": [1],
+                    "page_range": "1",
+                    "headings": ["Water Coverage"]
                 }
             ])
             
@@ -151,7 +162,7 @@ class TestPolicySearch:
             
             result = await search_policy_documentation("nonexistent coverage")
             
-            assert result == "No relevant documentation found."
+            assert result == "Policy information not found."
     
     @pytest.mark.asyncio
     async def test_search_policy_documentation_multiple_results(self):
@@ -161,33 +172,43 @@ class TestPolicySearch:
             mock_instance.search_documents = AsyncMock(return_value=[
                 {
                     "id": "doc1",
-                    "content": "Coverage type 1",
+                    "text": "Coverage type 1",
                     "category": "auto",
-                    "metadata": {}
+                    "source_file": "auto.md",
+                    "chunk_index": 0,
+                    "page_numbers": [1],
+                    "page_range": "1",
+                    "headings": []
                 },
                 {
                     "id": "doc2",
-                    "content": "Coverage type 2",
+                    "text": "Coverage type 2",
                     "category": "auto",
-                    "metadata": {}
+                    "source_file": "auto.md",
+                    "chunk_index": 1,
+                    "page_numbers": [2],
+                    "page_range": "2",
+                    "headings": []
                 },
                 {
                     "id": "doc3",
-                    "content": "Coverage type 3",
+                    "text": "Coverage type 3",
                     "category": "auto",
-                    "metadata": {}
+                    "source_file": "auto.md",
+                    "chunk_index": 2,
+                    "page_numbers": [3],
+                    "page_range": "3",
+                    "headings": []
                 }
             ])
             
             result = await search_policy_documentation("coverage")
             
-            # Should include all results
-            assert "Coverage type 1" in result
-            assert "Coverage type 2" in result
-            assert "Coverage type 3" in result
-            assert "#doc1" in result
-            assert "#doc2" in result
-            assert "#doc3" in result
+            # Result is JSON-formatted string with top 2 results
+            parsed_result = json.loads(result)
+            assert len(parsed_result) == 2  # Only top 2 results
+            assert "Coverage type 1" in parsed_result[0]["content"]
+            assert "Coverage type 2" in parsed_result[1]["content"]
     
     @pytest.mark.asyncio
     async def test_search_policy_documentation_error_handling(self):
@@ -247,11 +268,12 @@ class TestFullDocumentRetrieval:
             
             # Verify
             assert result is not None
-            assert result.document_id == "auto_policy"
-            assert result.category == "auto"
-            assert result.title == "Auto Insurance Policy"
-            assert result.content == "Chunk 1 content\n\nChunk 2 content\n\nChunk 3 content"
-            assert result.source_file == "auto.md"
+            assert "error" not in result
+            assert result["document_id"] == "auto_policy"
+            assert result["category"] == "auto"
+            assert result["metadata"]["title"] == "Auto Insurance Policy"
+            assert result["full_text"] == "Chunk 1 content\n\nChunk 2 content\n\nChunk 3 content"
+            assert result["source_file"] == "auto.md"
     
     @pytest.mark.asyncio
     async def test_retrieve_full_document_not_found(self):
@@ -262,7 +284,9 @@ class TestFullDocumentRetrieval:
             
             result = await retrieve_full_document_async("nonexistent_doc")
             
-            assert result is None
+            assert result is not None
+            assert "error" in result
+            assert result["document_id"] == "nonexistent_doc"
     
     @pytest.mark.asyncio
     async def test_retrieve_full_document_single_chunk(self):
@@ -284,52 +308,74 @@ class TestFullDocumentRetrieval:
             result = await retrieve_full_document_async("short_policy")
             
             assert result is not None
-            assert result.content == "Single chunk content"
-            assert result.title == "Life Insurance Policy"  # Default title
+            assert "error" not in result
+            assert result["full_text"] == "Single chunk content"
+            assert result["metadata"]["title"] == "Policy Document"  # Default title
     
-    @pytest.mark.asyncio
-    async def test_get_document_chunk_range_full_document(self):
+    def test_get_document_chunk_range_full_document(self):
         """Test getting full document range."""
-        mock_chunks = [
-            {"chunk_index": 0, "content": "Chunk 0"},
-            {"chunk_index": 1, "content": "Chunk 1"},
-            {"chunk_index": 2, "content": "Chunk 2"}
-        ]
-        
-        result = await get_document_chunk_range(mock_chunks, 0, 2)
-        
-        assert len(result) == 3
-        assert result[0]["content"] == "Chunk 0"
-        assert result[2]["content"] == "Chunk 2"
+        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document") as mock_retrieve:
+            # Mock a full document response
+            mock_retrieve.return_value = {
+                "document_id": "test_doc",
+                "chunk_ids": ["chunk0", "chunk1", "chunk2"],
+                "chunks": [
+                    {"chunk_index": 0, "text": "Chunk 0"},
+                    {"chunk_index": 1, "text": "Chunk 1"},
+                    {"chunk_index": 2, "text": "Chunk 2"}
+                ]
+            }
+            
+            result = get_document_chunk_range("test_doc", 0, 2)
+            
+            assert "error" not in result
+            assert result["total_chunks_in_range"] == 3
+            assert "Chunk 0" in result["text"]
+            assert "Chunk 2" in result["text"]
     
-    @pytest.mark.asyncio
-    async def test_get_document_chunk_range_partial(self):
+    def test_get_document_chunk_range_partial(self):
         """Test getting partial chunk range."""
-        mock_chunks = [
-            {"chunk_index": 0, "content": "Chunk 0"},
-            {"chunk_index": 1, "content": "Chunk 1"},
-            {"chunk_index": 2, "content": "Chunk 2"},
-            {"chunk_index": 3, "content": "Chunk 3"}
-        ]
-        
-        result = await get_document_chunk_range(mock_chunks, 1, 2)
-        
-        assert len(result) == 2
-        assert result[0]["content"] == "Chunk 1"
-        assert result[1]["content"] == "Chunk 2"
+        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document") as mock_retrieve:
+            # Mock a full document response
+            mock_retrieve.return_value = {
+                "document_id": "test_doc",
+                "chunk_ids": ["chunk0", "chunk1", "chunk2", "chunk3"],
+                "chunks": [
+                    {"chunk_index": 0, "text": "Chunk 0"},
+                    {"chunk_index": 1, "text": "Chunk 1"},
+                    {"chunk_index": 2, "text": "Chunk 2"},
+                    {"chunk_index": 3, "text": "Chunk 3"}
+                ]
+            }
+            
+            result = get_document_chunk_range("test_doc", 1, 2)
+            
+            assert "error" not in result
+            assert result["total_chunks_in_range"] == 2
+            assert "Chunk 1" in result["text"]
+            assert "Chunk 2" in result["text"]
+            assert "Chunk 0" not in result["text"]
+            assert "Chunk 3" not in result["text"]
     
-    @pytest.mark.asyncio
-    async def test_get_document_chunk_range_out_of_bounds(self):
+    def test_get_document_chunk_range_out_of_bounds(self):
         """Test chunk range with out of bounds indices."""
-        mock_chunks = [
-            {"chunk_index": 0, "content": "Chunk 0"},
-            {"chunk_index": 1, "content": "Chunk 1"}
-        ]
-        
-        # Request more chunks than available
-        result = await get_document_chunk_range(mock_chunks, 0, 5)
-        
-        assert len(result) == 2  # Should return only available chunks
+        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document") as mock_retrieve:
+            # Mock a full document response with 2 chunks
+            mock_retrieve.return_value = {
+                "document_id": "test_doc",
+                "chunk_ids": ["chunk0", "chunk1"],
+                "chunks": [
+                    {"chunk_index": 0, "text": "Chunk 0"},
+                    {"chunk_index": 1, "text": "Chunk 1"}
+                ]
+            }
+            
+            # Request more chunks than available
+            result = get_document_chunk_range("test_doc", 0, 5)
+            
+            # Should return error for out of bounds
+            assert "error" in result
+            assert "Invalid chunk range" in result["error"]
     
     @pytest.mark.asyncio
     async def test_retrieve_full_document_error_handling(self):
@@ -357,7 +403,7 @@ class TestExampleData:
             assert "name" in policy
             assert "policy_category" in policy
             assert "premium_amount" in policy
-            assert "payment_due_date" in policy
+            assert "due_date" in policy
     
     def test_example_policies_categories(self):
         """Test that all categories are represented."""

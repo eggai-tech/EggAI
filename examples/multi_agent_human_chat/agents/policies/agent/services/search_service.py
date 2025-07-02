@@ -54,16 +54,16 @@ class SearchService:
             chunk_position=doc_data.get("chunk_position"),
         )
 
-    async def vector_search(self, request: "VectorSearchRequest") -> dict:
+    async def vector_search(self, request: "VectorSearchRequest") -> "SearchResponse":
         """Perform vector-based semantic search.
         
         Args:
             request: Vector search request parameters
             
         Returns:
-            Search results dictionary
+            SearchResponse object
         """
-        from agents.policies.agent.api.models import VectorSearchRequest
+        from agents.policies.agent.api.models import SearchResponse
         
         try:
             results = []
@@ -114,13 +114,12 @@ class SearchService:
             # Convert to PolicyDocument models
             documents = [self.create_policy_document(result) for result in results]
 
-            return {
-                "query": request.query,
-                "category": request.category,
-                "search_type": request.search_type,
-                "total_hits": len(documents),
-                "documents": documents
-            }
+            return SearchResponse(
+                query=request.query,
+                category=request.category,
+                total_hits=len(documents),
+                documents=documents
+            )
 
         except Exception as e:
             logger.error(f"Vector search error: {e}")

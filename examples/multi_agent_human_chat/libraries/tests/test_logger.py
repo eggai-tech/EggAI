@@ -1,11 +1,7 @@
 """Tests for the logger module."""
 
 import logging
-import sys
-from io import StringIO
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import patch
 
 from libraries.logger import get_console_logger
 from libraries.logger.config import Settings, settings

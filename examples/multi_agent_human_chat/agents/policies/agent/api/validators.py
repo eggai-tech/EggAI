@@ -10,6 +10,10 @@ VALID_CATEGORIES = {"auto", "home", "health", "life"}
 # Policy number pattern (letter followed by numbers)
 POLICY_NUMBER_PATTERN = r"^[A-Z]\d+$"
 
+# Max lengths
+MAX_QUERY_LENGTH = 500
+MAX_DOCUMENT_ID_LENGTH = 200
+
 
 def validate_category(category: Optional[str]) -> Optional[str]:
     """Validate policy category.
@@ -53,10 +57,10 @@ def validate_query(query: str) -> str:
             detail="Query cannot be empty"
         )
     
-    if len(query) > 500:
+    if len(query) > MAX_QUERY_LENGTH:
         raise HTTPException(
             status_code=400,
-            detail="Query too long (max 500 characters)"
+            detail=f"Query too long (max {MAX_QUERY_LENGTH} characters)"
         )
     
     return query.strip()
@@ -79,10 +83,18 @@ def validate_policy_number(policy_number: Optional[str]) -> Optional[str]:
     
     import re
     
+    # Check basic format
     if not re.match(POLICY_NUMBER_PATTERN, policy_number.upper()):
         raise HTTPException(
             status_code=400,
             detail=f"Invalid policy number format '{policy_number}'. Expected format: letter followed by numbers (e.g., A12345)"
+        )
+    
+    # Check length (1 letter + at least 3 digits, max 6 digits)
+    if len(policy_number) < 4 or len(policy_number) > 7:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid policy number length '{policy_number}'. Must be 4-7 characters"
         )
     
     return policy_number.upper()
@@ -106,8 +118,15 @@ def validate_document_id(doc_id: str) -> str:
             detail="Document ID cannot be empty"
         )
     
+    # Check length
+    if len(doc_id) > MAX_DOCUMENT_ID_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Document ID too long (max {MAX_DOCUMENT_ID_LENGTH} characters)"
+        )
+    
     # Basic sanitization to prevent injection
-    if any(char in doc_id for char in ['<', '>', '"', "'", '&']):
+    if any(char in doc_id for char in ['<', '>', '"', "'", '&', '@', '#', '!']):
         raise HTTPException(
             status_code=400,
             detail="Document ID contains invalid characters"

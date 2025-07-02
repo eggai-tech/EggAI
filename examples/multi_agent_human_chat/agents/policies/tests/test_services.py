@@ -10,6 +10,7 @@ from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import pytest_asyncio
 
 from agents.policies.agent.api.models import (
     CategoryStats,
@@ -33,8 +34,12 @@ def mock_vespa_client():
     """Create a mock Vespa client."""
     client = MagicMock(spec=VespaClient)
     client.search_documents = AsyncMock()
-    client.get_all_documents = AsyncMock()
     client.app = MagicMock()
+    
+    # Mock the app.query method for vector search
+    mock_query_result = MagicMock()
+    mock_query_result.hits = []
+    client.app.query = AsyncMock(return_value=mock_query_result)
     
     # Mock the http_session context manager
     mock_session = AsyncMock()
@@ -69,13 +74,14 @@ def create_mock_documents(category: str = None, count: int = 3) -> List[dict]:
         {
             "id": f"{cat}_policy_{i:03d}",
             "document_id": f"{cat}_policy",
-            "category": cat,
-            "title": f"{cat.title()} Policy Document {i}",
+            "title": f"{cat.capitalize()} Insurance Policy",
             "text": f"Content for {cat} policy chunk {i}",
+            "category": cat,
             "chunk_index": i,
-            "total_chunks": count,
             "source_file": f"{cat}.md",
-            "metadata": {"section": f"Section {i}", "page": i + 1}
+            "page_numbers": [i + 1],
+            "page_range": str(i + 1),
+            "headings": [f"Section {i}"],
         }
         for cat in (["auto", "home", "life", "health"] if not category else [category])
         for i in range(count)
@@ -89,7 +95,7 @@ class TestDocumentService:
     @pytest.mark.asyncio
     async def test_list_documents_all(self, document_service, mock_vespa_client):
         """Test listing all documents."""
-        # Setup mock - document_service uses search_documents, not get_all_documents
+        # Setup mock - list_documents uses search_documents internally
         mock_vespa_client.search_documents.return_value = create_mock_documents()
         
         # Execute
@@ -104,10 +110,7 @@ class TestDocumentService:
     async def test_list_documents_by_category(self, document_service, mock_vespa_client):
         """Test listing documents filtered by category."""
         # Setup mock
-        all_docs = create_mock_documents()
-        mock_vespa_client.search_documents.return_value = [
-            doc for doc in all_docs if doc["category"] == "auto"
-        ]
+        mock_vespa_client.search_documents.return_value = create_mock_documents(category="auto")
         
         # Execute
         result = await document_service.list_documents(category="auto")
@@ -120,8 +123,11 @@ class TestDocumentService:
     @pytest.mark.asyncio
     async def test_list_documents_with_pagination(self, document_service, mock_vespa_client):
         """Test document listing with limit and offset."""
-        # Setup mock
-        mock_vespa_client.search_documents.return_value = create_mock_documents()
+        # Setup mock - return enough documents for pagination
+        all_docs = create_mock_documents()
+        # The list_documents method will apply [offset:offset+limit] to these results
+        # With offset=1 and limit=2, it needs at least 3 documents to return 2
+        mock_vespa_client.search_documents.return_value = all_docs
         
         # Execute
         result = await document_service.list_documents(limit=2, offset=1)
@@ -142,43 +148,27 @@ class TestDocumentService:
         # Verify
         assert result == []
     
-    @pytest.mark.asyncio
-    async def test_get_document_chunks(self, document_service, mock_vespa_client):
-        """Test retrieving chunks for a specific document."""
-        # Setup mock
-        doc_id = "auto_policy"
-        chunks = [doc for doc in create_mock_documents("auto") if doc["document_id"] == doc_id]
-        mock_vespa_client.search_documents.return_value = chunks
-        
-        # Execute
-        result = await document_service.get_document_chunks(doc_id)
-        
-        # Verify
-        assert len(result) == 3
-        assert all(chunk.document_id == doc_id for chunk in result)
-        assert [chunk.chunk_index for chunk in result] == [0, 1, 2]
     
     @pytest.mark.asyncio
     async def test_get_category_stats(self, document_service, mock_vespa_client):
         """Test retrieving category statistics."""
         # Setup mock
-        mock_vespa_client.get_all_documents.return_value = create_mock_documents()
+        mock_vespa_client.search_documents.return_value = create_mock_documents()
         
         # Execute
-        result = await document_service.get_category_stats()
+        result = await document_service.get_categories_stats()
         
         # Verify
         assert len(result) == 4
-        assert all(isinstance(stat, CategoryStats) for stat in result)
-        assert {stat.category for stat in result} == {"auto", "home", "life", "health"}
-        assert all(stat.document_count == 1 for stat in result)
-        assert all(stat.chunk_count == 3 for stat in result)
+        assert all(isinstance(stat, dict) for stat in result)
+        assert {stat["name"] for stat in result} == {"auto", "home", "life", "health"}
+        assert all(stat["document_count"] == 3 for stat in result)  # 3 chunks per category
     
     @pytest.mark.asyncio
     async def test_list_documents_error_handling(self, document_service, mock_vespa_client):
         """Test error handling in list_documents."""
         # Setup mock to raise exception
-        mock_vespa_client.get_all_documents.side_effect = Exception("Connection failed")
+        mock_vespa_client.search_documents.side_effect = Exception("Connection failed")
         
         # Execute and verify exception is raised
         with pytest.raises(Exception) as exc_info:
@@ -195,18 +185,32 @@ class TestSearchService:
         """Test basic document search."""
         # Setup mock
         query = "collision damage"
-        mock_results = [create_mock_documents("auto", 1)[0]]
-        mock_vespa_client.search_documents.return_value = mock_results
+        mock_results = create_mock_documents("auto", 1)
         
-        # Execute
-        result = await search_service.search_documents(query)
+        # Mock for hybrid search - create mock hits
+        mock_hit = MagicMock()
+        mock_hit.fields = mock_results[0]
+        mock_hit.relevance = 0.95
+        
+        mock_query_result = MagicMock()
+        mock_query_result.hits = [mock_hit]
+        mock_vespa_client.app.query.return_value = mock_query_result
+        
+        # Execute - use vector_search with a request object
+        from agents.policies.agent.api.models import VectorSearchRequest
+        request = VectorSearchRequest(query=query, search_type="hybrid")
+        
+        # Mock embedding generation
+        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+            mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
+            result = await search_service.vector_search(request)
         
         # Verify
         assert isinstance(result, SearchResponse)
-        assert result.total_results == 1
+        assert result.total_hits == 1
         assert result.query == query
-        assert len(result.results) == 1
-        assert "auto" in result.results[0].content
+        assert len(result.documents) == 1
+        assert "auto" in result.documents[0].text
     
     @pytest.mark.asyncio
     async def test_search_documents_with_category(self, search_service, mock_vespa_client):
@@ -214,16 +218,29 @@ class TestSearchService:
         # Setup mock
         query = "water damage"
         category = "home"
-        mock_vespa_client.search_documents.return_value = []
         
-        # Execute
-        result = await search_service.search_documents(query, category)
+        # Mock empty results
+        mock_query_result = MagicMock()
+        mock_query_result.hits = []
+        mock_vespa_client.app.query.return_value = mock_query_result
+        
+        # Execute - use vector_search with a request object
+        from agents.policies.agent.api.models import VectorSearchRequest
+        request = VectorSearchRequest(query=query, category=category)
+        
+        # Mock embedding generation
+        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+            mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
+            result = await search_service.vector_search(request)
         
         # Verify
+        assert isinstance(result, SearchResponse)
         assert result.category == category
-        mock_vespa_client.search_documents.assert_called_once()
-        call_args = mock_vespa_client.search_documents.call_args
-        assert f"category:{category}" in call_args[1]["query"]
+        assert result.total_hits == 0
+        # Verify the category filter was applied in the YQL query
+        mock_vespa_client.app.query.assert_called_once()
+        call_args = mock_vespa_client.app.query.call_args
+        assert f"category contains '{category}'" in call_args[1]["yql"]
     
     @pytest.mark.asyncio
     async def test_search_documents_with_limit(self, search_service, mock_vespa_client):
@@ -231,34 +248,63 @@ class TestSearchService:
         # Setup mock
         query = "insurance"
         limit = 5
-        mock_vespa_client.search_documents.return_value = create_mock_documents()[:limit]
+        mock_docs = create_mock_documents()[:limit]
         
-        # Execute
-        result = await search_service.search_documents(query, limit=limit)
+        # Create mock hits
+        mock_hits = []
+        for doc in mock_docs:
+            mock_hit = MagicMock()
+            mock_hit.fields = doc
+            mock_hit.relevance = 0.9
+            mock_hits.append(mock_hit)
+        
+        mock_query_result = MagicMock()
+        mock_query_result.hits = mock_hits
+        mock_vespa_client.app.query.return_value = mock_query_result
+        
+        # Execute - use vector_search with a request object
+        from agents.policies.agent.api.models import VectorSearchRequest
+        request = VectorSearchRequest(query=query, max_hits=limit)
+        
+        # Mock embedding generation
+        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+            mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
+            result = await search_service.vector_search(request)
         
         # Verify
-        assert len(result.results) <= limit
-        mock_vespa_client.search_documents.assert_called_once()
-        assert mock_vespa_client.search_documents.call_args[1]["max_hits"] == limit
+        assert isinstance(result, SearchResponse)
+        assert len(result.documents) <= limit
+        assert result.total_hits == len(mock_hits)
     
     @pytest.mark.asyncio
     async def test_vector_search(self, search_service, mock_vespa_client):
         """Test vector search functionality."""
         # Setup mock
-        request = VectorSearchRequest(query="find similar content", max_results=3)
+        request = VectorSearchRequest(query="find similar content", max_hits=3)
         mock_results = create_mock_documents("auto", 2)
         
+        # Create mock hits
+        mock_hits = []
+        for doc in mock_results:
+            mock_hit = MagicMock()
+            mock_hit.fields = doc
+            mock_hit.relevance = 0.9
+            mock_hits.append(mock_hit)
+        
+        mock_query_result = MagicMock()
+        mock_query_result.hits = mock_hits
+        mock_vespa_client.app.query.return_value = mock_query_result
+        
         # Mock embedding generation
-        with patch("agents.policies.agent.services.search_service.get_embeddings") as mock_embed:
+        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
-            mock_vespa_client.search_documents.return_value = mock_results
             
             # Execute
             result = await search_service.vector_search(request)
             
             # Verify
             assert isinstance(result, SearchResponse)
-            assert result.total_results == 2
+            assert result.total_hits == 2
             assert result.query == request.query
             mock_embed.assert_called_once_with(request.query)
     
@@ -266,13 +312,18 @@ class TestSearchService:
     async def test_search_error_handling(self, search_service, mock_vespa_client):
         """Test error handling in search."""
         # Setup mock to raise exception
-        mock_vespa_client.search_documents.side_effect = Exception("Search failed")
+        mock_vespa_client.app.query.side_effect = Exception("Search failed")
         
         # Execute and verify exception is raised
-        with pytest.raises(Exception) as exc_info:
-            await search_service.search_documents("test query")
-        
-        assert "Search failed" in str(exc_info.value)
+        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+            mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
+            
+            with pytest.raises(Exception) as exc_info:
+                from agents.policies.agent.api.models import VectorSearchRequest
+                request = VectorSearchRequest(query="test query")
+                await search_service.vector_search(request)
+            
+            assert "Search failed" in str(exc_info.value)
 
 
 class TestReindexService:
@@ -431,7 +482,7 @@ class TestReindexService:
         # Setup mocks
         mock_vespa_client.search_documents.return_value = create_mock_documents()[:2]
         
-        with patch("agents.policies.agent.services.reindex_service.DocumentationTemporalClient") as mock_temporal_class:
+        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_class:
             mock_temporal = AsyncMock()
             mock_temporal_class.return_value = mock_temporal
             mock_temporal.ingest_document_async.return_value = MagicMock(

@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class PolicyDocument(BaseModel):
@@ -36,6 +36,7 @@ class SearchResponse(BaseModel):
     category: Optional[str]
     total_hits: int
     documents: List[PolicyDocument]
+    search_type: Optional[str] = None
 
 
 class FullDocumentResponse(BaseModel):
@@ -58,10 +59,19 @@ class FullDocumentResponse(BaseModel):
 class VectorSearchRequest(BaseModel):
     """Vector search request model."""
 
-    query: str
+    query: str = Field(..., min_length=1, max_length=500)
     category: Optional[str] = None
-    max_hits: int = 10
-    search_type: str = "hybrid"  # "vector", "hybrid", or "keyword"
+    max_hits: int = Field(10, ge=1, le=100)
+    search_type: str = Field("hybrid", pattern="^(vector|hybrid|keyword)$")  # "vector", "hybrid", or "keyword"
+    
+    @field_validator('query')
+    @classmethod
+    def validate_query_length(cls, v):
+        if len(v) > 500:
+            raise ValueError("Query too long. Maximum 500 characters allowed.")
+        if not v.strip():
+            raise ValueError("Query cannot be empty.")
+        return v
 
 
 class CategoryStats(BaseModel):
