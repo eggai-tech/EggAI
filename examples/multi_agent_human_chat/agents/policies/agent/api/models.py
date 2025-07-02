@@ -76,6 +76,15 @@ class ReindexRequest(BaseModel):
 
     force_rebuild: bool = False
     policy_ids: Optional[List[str]] = None  # If None, reindex all
+    
+    def validate_policy_ids(self):
+        """Validate policy IDs are valid categories."""
+        if self.policy_ids:
+            valid_ids = {"auto", "home", "health", "life"}
+            invalid_ids = [pid for pid in self.policy_ids if pid not in valid_ids]
+            if invalid_ids:
+                raise ValueError(f"Invalid policy IDs: {invalid_ids}. Valid IDs are: {valid_ids}")
+        return self
 
 
 class ReindexResponse(BaseModel):

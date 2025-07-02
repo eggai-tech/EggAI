@@ -13,6 +13,11 @@ from agents.policies.agent.api.models import (
     SearchResponse,
     VectorSearchRequest,
 )
+from agents.policies.agent.api.validators import (
+    validate_category,
+    validate_document_id,
+    validate_query,
+)
 from agents.policies.agent.services.document_service import DocumentService
 from agents.policies.agent.services.reindex_service import ReindexService
 from agents.policies.agent.services.search_service import SearchService
@@ -61,16 +66,21 @@ def create_api_router(
         - **offset**: Offset for pagination
         """
         try:
+            # Validate category if provided
+            validated_category = validate_category(category)
+            
             documents = await document_service.list_documents(
-                category=category,
+                category=validated_category,
                 limit=limit,
                 offset=offset
             )
             return documents
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"List documents error: {e}")
+            logger.error(f"List documents error: {e}", exc_info=True)
             raise HTTPException(
-                status_code=500, detail=f"Failed to list documents: {str(e)}"
+                status_code=500, detail="Internal server error while listing documents"
             )
 
     @router.get("/kb/categories", response_model=List[CategoryStats])
@@ -80,16 +90,19 @@ def create_api_router(
             stats = await document_service.get_categories_stats()
             return [CategoryStats(**stat) for stat in stats]
         except Exception as e:
-            logger.error(f"Get categories error: {e}")
+            logger.error(f"Get categories error: {e}", exc_info=True)
             raise HTTPException(
-                status_code=500, detail=f"Failed to get categories: {str(e)}"
+                status_code=500, detail="Internal server error while retrieving categories"
             )
 
     @router.get("/kb/documents/{doc_id}", response_model=PolicyDocument)
     async def get_document(doc_id: str):
         """Get a specific document by ID."""
         try:
-            document = await document_service.get_document_by_id(doc_id)
+            # Validate document ID
+            validated_doc_id = validate_document_id(doc_id)
+            
+            document = await document_service.get_document_by_id(validated_doc_id)
             
             if not document:
                 raise HTTPException(
@@ -100,9 +113,9 @@ def create_api_router(
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Get document error: {e}")
+            logger.error(f"Get document error: {e}", exc_info=True)
             raise HTTPException(
-                status_code=500, detail=f"Failed to get document: {str(e)}"
+                status_code=500, detail="Internal server error while retrieving document"
             )
 
     @router.post("/kb/reindex", response_model=ReindexResponse)
@@ -123,12 +136,20 @@ def create_api_router(
         )
 
         try:
+            # Validate request
+            try:
+                request.validate_policy_ids()
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            
             response = await reindex_service.reindex_documents(request)
             return response
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Reindex operation failed: {e}")
+            logger.error(f"Reindex operation failed: {e}", exc_info=True)
             raise HTTPException(
-                status_code=500, detail=f"Reindex operation failed: {str(e)}"
+                status_code=500, detail="Internal server error during reindex operation"
             )
 
     @router.delete("/kb/clear")
@@ -195,8 +216,18 @@ def create_api_router(
     ):
         """Get a range of chunks from a document."""
         try:
+            # Validate document ID
+            validated_doc_id = validate_document_id(document_id)
+            
+            # Validate chunk range
+            if end_chunk is not None and end_chunk < start_chunk:
+                raise HTTPException(
+                    status_code=400,
+                    detail="End chunk must be greater than or equal to start chunk"
+                )
+            
             doc_range = await get_document_chunk_range(
-                document_id, start_chunk, end_chunk
+                validated_doc_id, start_chunk, end_chunk
             )
             
             if not doc_range:
@@ -225,6 +256,11 @@ def create_api_router(
         - **keyword**: Traditional keyword search
         """
         try:
+            # Validate request
+            request.query = validate_query(request.query)
+            if request.category:
+                request.category = validate_category(request.category)
+            
             result = await search_service.vector_search(request)
             
             return SearchResponse(
