@@ -529,12 +529,17 @@ spec:
           volumeMounts:
           - mountPath: /cache
             name: cache
+          - mountPath: /app/agents/policies/vespa/artifacts
+            name: vespa-artifacts
           resources:
             {{- toYaml (.Values.agents.policiesDocumentIngestion.resources | default .Values.resources) | nindent 12 }}
       volumes:
       - emptyDir:
           sizeLimit: {{ .Values.cacheVolumeSize }}
         name: cache
+      - emptyDir:
+          sizeLimit: 1Gi
+        name: vespa-artifacts
       {{- with .Values.gpuNodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
