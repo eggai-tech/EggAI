@@ -5,7 +5,7 @@ from typing import Optional
 from sentence_transformers import SentenceTransformer
 
 from agents.policies.agent.api.models import PolicyDocument, VectorSearchRequest
-from agents.policies.embeddings import generate_embedding
+from agents.policies.agent.services.embeddings import generate_embedding
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
 
