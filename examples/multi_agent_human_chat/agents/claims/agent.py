@@ -94,12 +94,11 @@ async def process_claims_request(
 
         # Call the model with streaming
         logger.info("Calling claims model with streaming")
-        chunks = claims_optimized_dspy(chat_history=conversation_string, config=config)
         chunk_count = 0
 
         # Process the streaming chunks
         try:
-            async for chunk in chunks:
+            async for chunk in claims_optimized_dspy(chat_history=conversation_string, config=config):
                 if isinstance(chunk, StreamResponse):
                     chunk_count += 1
                     await human_stream_channel.publish(

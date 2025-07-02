@@ -96,12 +96,11 @@ async def process_billing_request(
 
         # Call the model with streaming
         logger.info("Calling billing model with streaming")
-        chunks = billing_optimized_dspy(chat_history=conversation_string, config=config)
         chunk_count = 0
 
         # Process the streaming chunks
         try:
-            async for chunk in chunks:
+            async for chunk in billing_optimized_dspy(chat_history=conversation_string, config=config):
                 if isinstance(chunk, StreamResponse):
                     chunk_count += 1
                     await human_stream_channel.publish(
@@ -237,8 +236,7 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for billing agent")
-        chunks = billing_optimized_dspy(chat_history=test_conversation)
-        async for chunk in chunks:
+        async for chunk in billing_optimized_dspy(chat_history=test_conversation):
             if isinstance(chunk, StreamResponse):
                 logger.info(f"Chunk: {chunk.chunk}")
             elif isinstance(chunk, Prediction):

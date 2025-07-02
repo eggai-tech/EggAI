@@ -169,9 +169,8 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for billing agent")
-        chunks = billing_optimized_dspy(test_conversation)
 
-        async for chunk in chunks:
+        async for chunk in billing_optimized_dspy(test_conversation):
             if isinstance(chunk, StreamResponse):
                 print(f"Stream chunk: {chunk.chunk}")
             elif isinstance(chunk, Prediction):

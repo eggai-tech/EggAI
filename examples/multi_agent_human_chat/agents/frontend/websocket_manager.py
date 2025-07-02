@@ -54,12 +54,12 @@ class WebSocketManager:
 
         logger = get_console_logger("websocket_manager")
 
-        logger.info(f"Sending message to connection {connection_id}: {message_data}")
+        logger.debug(f"Sending message to connection {connection_id}: {message_data}")
         connection = self.active_connections.get(connection_id)
         if connection is not None:
             try:
                 await connection.send_json(message_data)
-                logger.info(f"Message sent successfully to connection {connection_id}")
+                logger.debug(f"Message sent successfully to connection {connection_id}")
             except Exception as e:
                 logger.error(
                     f"Error sending message to connection {connection_id}: {e}",
