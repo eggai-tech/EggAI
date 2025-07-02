@@ -35,7 +35,6 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
     """Legacy wrapper for tests that formats chat history."""
     return format_conversation(chat_messages, tracer=tracer, logger=logger)
 
-
 async def process_billing_request(
     conversation_string: str,
     connection_id: str,
