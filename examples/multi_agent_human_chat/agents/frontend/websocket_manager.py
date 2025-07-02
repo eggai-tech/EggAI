@@ -44,8 +44,11 @@ class WebSocketManager:
                     await connection.close(
                         code=1001, reason="Connection closed by server"
                     )
+            except ConnectionError:
+                # Ignore connection errors when closing sockets
+                pass
             except Exception:
-                # If closing fails, still remove from active connections
+                # If closing fails for unexpected reasons, remove from active connections
                 pass
         self.active_connections.pop(connection_id, None)
 
@@ -60,9 +63,14 @@ class WebSocketManager:
             try:
                 await connection.send_json(message_data)
                 logger.info(f"Message sent successfully to connection {connection_id}")
-            except Exception as e:
+            except ConnectionError as exc:
                 logger.error(
-                    f"Error sending message to connection {connection_id}: {e}",
+                    f"Connection error sending message to {connection_id}: {exc}",
+                    exc_info=True,
+                )
+            except Exception as exc:
+                logger.error(
+                    f"Error sending message to connection {connection_id}: {exc}",
                     exc_info=True,
                 )
         else:

@@ -51,5 +51,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Shutting down audit agent")
+    except OSError as e:
+        logger.error(f"Server error: {e}", exc_info=True)
     except Exception as e:
         logger.error(f"Error in main: {e}", exc_info=True)

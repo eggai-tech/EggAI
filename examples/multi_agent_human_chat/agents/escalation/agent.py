@@ -5,14 +5,18 @@ from typing import List
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
-from opentelemetry import trace
 
 from agents.escalation.config import settings
 from agents.escalation.dspy_modules.escalation import escalation_optimized_dspy
 from agents.escalation.types import ChatMessage, ModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
+from libraries.tracing import (
+    TracedMessage,
+    format_span_as_traceparent,
+    get_tracer,
+    traced_handler,
+)
 from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
@@ -22,7 +26,7 @@ logger.setLevel(logging.INFO)
 ticketing_agent = Agent(name="TicketingAgent")
 agents_channel = Channel(channels.agents)
 human_stream_channel = Channel(channels.human_stream)
-tracer = trace.get_tracer("ticketing_agent")
+tracer = get_tracer("ticketing_agent")
 
 init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
@@ -136,6 +140,22 @@ async def process_escalation_request(
                         )
                     )
                     logger.info(f"Stream ended for message {message_id}")
+        except (ConnectionError, asyncio.TimeoutError) as e:
+            logger.error("Network error in streaming response: %s", e, exc_info=True)
+            await human_stream_channel.publish(
+                TracedMessage(
+                    type="agent_message_stream_end",
+                    source="TicketingAgent",
+                    data={
+                        "message_id": message_id,
+                        "message": "Network issue during processing. Please try again.",
+                        "agent": "TicketingAgent",
+                        "connection_id": connection_id,
+                    },
+                    traceparent=child_traceparent,
+                    tracestate=child_tracestate,
+                )
+            )
         except Exception as e:
             logger.error(f"Error in streaming response: {e}", exc_info=True)
             await human_stream_channel.publish(
@@ -184,6 +204,16 @@ async def handle_ticketing_request(msg: TracedMessage) -> None:
             conversation_string, connection_id, str(msg.id), timeout_seconds=60.0
         )
 
+    except (ConnectionError, asyncio.TimeoutError) as e:
+        logger.error("Network error in TicketingAgent: %s", e, exc_info=True)
+        try:
+            connection_id = locals().get("connection_id", "unknown")
+            message_id = str(msg.id) if msg else "unknown"
+            await process_escalation_request(
+                "System: Network error occurred", connection_id, message_id, timeout_seconds=60.0
+            )
+        except Exception:
+            logger.error("Failed to send network error response", exc_info=True)
     except Exception as e:
         logger.error(f"Error in TicketingAgent: {e}", exc_info=True)
         try:
