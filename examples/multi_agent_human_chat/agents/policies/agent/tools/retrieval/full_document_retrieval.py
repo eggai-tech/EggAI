@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
+from agents.policies.agent.utils import run_async_safe
 
 logger = get_console_logger("policies_agent.full_document")
 
@@ -262,30 +263,8 @@ def retrieve_full_document(
     Returns:
         Dict containing the full document text and metadata or error information
     """
-    try:
-        # Try to get current event loop
-        asyncio.get_running_loop()
-        # We're in an async context, create a new thread
-        import concurrent.futures
-
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-
-            def run_async():
-                new_loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(new_loop)
-                try:
-                    return new_loop.run_until_complete(
-                        retrieve_full_document_async(document_id, vespa_client)
-                    )
-                finally:
-                    new_loop.close()
-
-            future = executor.submit(run_async)
-            return future.result()
-
-    except RuntimeError:
-        # No running loop, we're in sync context
-        return asyncio.run(retrieve_full_document_async(document_id, vespa_client))
+    # Use our utility to handle async/sync context
+    return run_async_safe(retrieve_full_document_async(document_id, vespa_client))
 
 
 def get_document_chunk_range(
