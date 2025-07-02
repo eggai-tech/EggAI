@@ -2,7 +2,7 @@ import asyncio
 from typing import List
 
 from eggai import Agent, Channel
-from opentelemetry.propagate import TraceContextTextMapPropagator
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 from agents.claims.config import settings
 from agents.claims.dspy_modules.claims import claims_optimized_dspy
