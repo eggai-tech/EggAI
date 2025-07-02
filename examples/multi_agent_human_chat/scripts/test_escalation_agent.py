@@ -1,8 +1,8 @@
 """Run tests for the Escalation Agent."""
 
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 
 def main() -> None:
