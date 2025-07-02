@@ -1,13 +1,12 @@
 """Full document retrieval functionality for policies agent."""
 
-import asyncio
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from pydantic import BaseModel
 
+from agents.policies.agent.utils import run_async_safe
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
-from agents.policies.agent.utils import run_async_safe
 
 logger = get_console_logger("policies_agent.full_document")
 

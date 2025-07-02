@@ -9,12 +9,14 @@ the example policies or attempt a real database query.
 """
 
 import json
-from typing import Dict, List
 
 from opentelemetry import trace
 
+from agents.policies.agent.tools.database.example_data import (
+    EXAMPLE_POLICIES,
+    USE_EXAMPLE_DATA,
+)
 from libraries.logger import get_console_logger
-from agents.policies.agent.tools.database.example_data import EXAMPLE_POLICIES, USE_EXAMPLE_DATA
 
 logger = get_console_logger("policies_agent.tools.database")
 tracer = trace.get_tracer("policies_agent_tools_database")

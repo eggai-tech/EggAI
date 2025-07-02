@@ -1,9 +1,14 @@
 """API routes for the Policies Agent."""
 
-from typing import Annotated, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from agents.policies.agent.api.dependencies import (
+    get_document_service,
+    get_reindex_service,
+    get_search_service,
+)
 from agents.policies.agent.api.models import (
     CategoryStats,
     FullDocumentResponse,
@@ -12,11 +17,6 @@ from agents.policies.agent.api.models import (
     ReindexResponse,
     SearchResponse,
     VectorSearchRequest,
-)
-from agents.policies.agent.api.dependencies import (
-    get_document_service,
-    get_reindex_service,
-    get_search_service,
 )
 from agents.policies.agent.api.validators import (
     validate_category,

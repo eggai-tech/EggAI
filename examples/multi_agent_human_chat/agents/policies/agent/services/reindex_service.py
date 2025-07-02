@@ -1,6 +1,5 @@
 """Service for handling reindexing operations."""
 
-import os
 from pathlib import Path
 from typing import List, Optional
 

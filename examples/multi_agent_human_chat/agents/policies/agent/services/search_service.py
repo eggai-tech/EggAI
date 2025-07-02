@@ -1,6 +1,6 @@
 """Service for handling search operations."""
 
-from typing import List, Optional
+from typing import Optional
 
 from sentence_transformers import SentenceTransformer
 
@@ -75,7 +75,7 @@ class SearchService:
                     yql = f"select * from policy_document where {{targetHits:{request.max_hits}}}nearestNeighbor(embedding,query_embedding)"
                 else:
                     # Hybrid search (combine vector and keyword)
-                    text_match = f"userQuery() or "
+                    text_match = "userQuery() or "
                     yql = f"select * from policy_document where ({text_match}({{targetHits:{request.max_hits}}}nearestNeighbor(embedding,query_embedding))) limit {request.max_hits}"
 
                 # Add category filter if specified

@@ -1,9 +1,10 @@
 """Middleware for the Policies Agent API."""
 
+import time
 from typing import Callable
+
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
-import time
 
 from libraries.logger import get_console_logger
 
