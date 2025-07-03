@@ -1,5 +1,4 @@
 import asyncio
-import os
 import signal
 import sys
 from pathlib import Path
@@ -116,22 +115,17 @@ async def main():
         logger.info("Ensuring Vespa schema is deployed...")
 
         # Try to deploy with force=True to handle schema updates
-        # Use production mode with 3 nodes for Docker multi-node setup
-        deployment_mode = os.environ.get("VESPA_DEPLOYMENT_MODE", "production")
-        node_count = int(os.environ.get("VESPA_NODE_COUNT", "3"))
-        artifacts_dir = Path(os.environ.get("VESPA_ARTIFACTS_DIR")) if os.getenv("VESPA_ARTIFACTS_DIR") else None
-        hosts_config = Path(os.environ.get("VESPA_HOSTS_CONFIG")) if os.getenv("VESPA_HOSTS_CONFIG") else None
-        services_xml = Path(os.environ.get("VESPA_SERVICES_XML")) if os.getenv("VESPA_SERVICES_XML") else None
+        # Use configuration from settings
 
         schema_deployed = deploy_to_vespa(
             config_server_url=settings.vespa_config_url,
             query_url=settings.vespa_query_url,
             force=True,
-            artifacts_dir=artifacts_dir,
-            deployment_mode=deployment_mode,
-            node_count=node_count,
-            hosts_config=hosts_config,
-            services_xml=services_xml,
+            artifacts_dir=settings.vespa_artifacts_dir,
+            deployment_mode=settings.vespa_deployment_mode,
+            node_count=settings.vespa_node_count,
+            hosts_config=settings.vespa_hosts_config,
+            services_xml=settings.vespa_services_xml,
         )
 
         if not schema_deployed:

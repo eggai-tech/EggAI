@@ -31,6 +31,16 @@ class Settings(BaseSettings):
     prometheus_metrics_port: int = Field(
         default=9093, description="Port for Prometheus metrics server"
     )
+    
+    # Embedding model settings
+    embedding_model: str = Field(
+        default="all-MiniLM-L6-v2",
+        description="Sentence transformer model for embeddings"
+    )
+    
+    # API settings
+    api_port: int = Field(default=8002, description="Port for the Policies API")
+    api_host: str = Field(default="0.0.0.0", description="Host for the Policies API")
 
     model_config = SettingsConfigDict(
         env_prefix="POLICIES_", env_file=".env", env_ignore_empty=True, extra="ignore"

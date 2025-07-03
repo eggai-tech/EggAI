@@ -1,10 +1,10 @@
 """Embedding generation and management for semantic search."""
 
-import os
 from typing import List, Optional
 
 from sentence_transformers import SentenceTransformer
 
+from agents.policies.config import settings
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.embeddings")
@@ -22,7 +22,7 @@ def get_embedding_model() -> SentenceTransformer:
     global _EMBEDDING_MODEL
 
     if _EMBEDDING_MODEL is None:
-        model_name = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+        model_name = settings.embedding_model
         logger.info(f"Initializing embedding model: {model_name}")
 
         try:
