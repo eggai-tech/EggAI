@@ -203,12 +203,15 @@ async def handle_claim_request(msg: TracedMessage) -> None:
                 type="agent_message",
                 source="ClaimsAgent",
                 data={
-                    "message": "I apologize, but I'm having trouble processing your request right now. Please try again.",
-                    "connection_id": locals().get("connection_id", "unknown"),
+                    "message": (
+                        "I apologize, but I'm having trouble processing your request right now. "
+                        "Please try again."
+                    ),
+                    "connection_id": connection_id,
                     "agent": "ClaimsAgent",
                 },
-                traceparent=msg.traceparent if "msg" in locals() else None,
-                tracestate=msg.tracestate if "msg" in locals() else None,
+                traceparent=msg.traceparent,
+                tracestate=msg.tracestate,
             )
         )
 
