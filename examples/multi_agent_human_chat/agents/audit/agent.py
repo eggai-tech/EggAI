@@ -11,7 +11,7 @@ from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
 from .config import settings
-from .types import AuditCategory, AuditConfig
+from .types import AuditCategory, AuditConfig, AuditEvent
 
 tracer = create_tracer("audit_agent")
 
@@ -134,7 +134,25 @@ async def audit_message(
                     f"type={message_type}, source={source}, id={message_id}"
                 )
 
-            await audit_logs_channel.publish(message)
+            # build standardized audit log
+            audit_event = AuditEvent(
+                message_id=message_id,
+                message_type=message_type,
+                message_source=source,
+                channel=channel,
+                category=category,
+                content=get_message_content(message),
+            )
+            data = audit_event.to_dict()
+
+            log_message = TracedMessage(
+                id=str(uuid4()),
+                type="audit_log",
+                source=audit_agent.name,
+                data=data,
+            )
+            propagate_trace_context(message, log_message)
+            await audit_logs_channel.publish(log_message)
 
         return message
 
