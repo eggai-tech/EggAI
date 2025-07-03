@@ -16,15 +16,39 @@ class TestMainConfig:
     
     def test_default_settings(self):
         """Test default configuration values."""
-        settings = MainSettings()
+        # Clear any environment variables that might affect the test
+        import os
+        env_vars_to_clear = [
+            "POLICIES_LANGUAGE_MODEL",
+            "POLICIES_LANGUAGE_MODEL_API_BASE",
+            "POLICIES_CACHE_ENABLED",
+            "POLICIES_EMBEDDING_MODEL",
+            "POLICIES_API_PORT",
+            "POLICIES_API_HOST",
+            "POLICIES_PROMETHEUS_METRICS_PORT"
+        ]
         
-        assert settings.app_name == "policies_agent"
-        assert settings.language_model == "openai/gpt-4o-mini"
-        assert settings.cache_enabled is False
-        assert settings.embedding_model == "all-MiniLM-L6-v2"
-        assert settings.api_port == 8002
-        assert settings.api_host == "0.0.0.0"
-        assert settings.prometheus_metrics_port == 9093
+        # Store original values
+        original_values = {}
+        for var in env_vars_to_clear:
+            if var in os.environ:
+                original_values[var] = os.environ[var]
+                del os.environ[var]
+        
+        try:
+            settings = MainSettings()
+            
+            assert settings.app_name == "policies_agent"
+            assert settings.language_model == "openai/gpt-4o-mini"
+            assert settings.cache_enabled is False
+            assert settings.embedding_model == "all-MiniLM-L6-v2"
+            assert settings.api_port == 8002
+            assert settings.api_host == "0.0.0.0"
+            assert settings.prometheus_metrics_port == 9093
+        finally:
+            # Restore original values
+            for var, value in original_values.items():
+                os.environ[var] = value
     
     def test_env_override(self):
         """Test environment variable override."""
@@ -56,10 +80,29 @@ class TestMainConfig:
     
     def test_optional_fields(self):
         """Test optional field handling."""
-        settings = MainSettings()
+        # Clear environment variables that might affect optional fields
+        import os
+        env_vars_to_clear = [
+            "POLICIES_LANGUAGE_MODEL_API_BASE",
+            "POLICIES_MAX_CONTEXT_WINDOW"
+        ]
         
-        assert settings.language_model_api_base is None
-        assert settings.max_context_window is None
+        # Store original values
+        original_values = {}
+        for var in env_vars_to_clear:
+            if var in os.environ:
+                original_values[var] = os.environ[var]
+                del os.environ[var]
+        
+        try:
+            settings = MainSettings()
+            
+            assert settings.language_model_api_base is None
+            assert settings.max_context_window is None
+        finally:
+            # Restore original values
+            for var, value in original_values.items():
+                os.environ[var] = value
     
     def test_model_config(self):
         """Test model configuration settings."""
