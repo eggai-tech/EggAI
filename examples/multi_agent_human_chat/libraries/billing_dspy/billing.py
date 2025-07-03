@@ -43,13 +43,41 @@ class BillingSignature(dspy.Signature):
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
 
 
-# Initialize tracer
+import json
+
+
+def load_optimized_instructions(path: Path) -> Optional[str]:
+    """
+    Load optimized instructions from a JSON file and return them if valid.
+    """
+    if not path.exists():
+        logger.info(f"Optimized model file not found at {path}")
+        return None
+
+    try:
+        logger.info(f"Loading optimized prompts from {path}")
+        with path.open("r") as f:
+            data = json.load(f)
+
+        react = data.get("react", {})
+        signature = react.get("signature", {})
+        instructions = signature.get("instructions")
+
+        if instructions:
+            logger.info(f"Successfully loaded optimized instructions from {path}")
+            return instructions
+
+        logger.warning(
+            "Optimized JSON file exists but missing 'react.signature.instructions'"
+        )
+    except Exception as e:
+        logger.error(f"Error loading optimized JSON: {e}", exc_info=True)
+
+    return None
+
+
+# Initialize tracer and DSPy model with (optional) optimized prompts
 tracer = create_tracer("billing_agent")
-
-# Path to the SIMBA optimized JSON file
-optimized_model_path = Path(__file__).resolve().parent / "optimized_billing_simba.json"
-
-# Create base model with tracing that we'll use
 billing_model = TracedReAct(
     BillingSignature,
     tools=[get_billing_info, update_billing_info],
@@ -58,40 +86,13 @@ billing_model = TracedReAct(
     max_iters=5,
 )
 
-# Flag to indicate if we're using optimized prompts (from JSON)
+optimized_path = Path(__file__).resolve().parent / "optimized_billing_simba.json"
+instructions = load_optimized_instructions(optimized_path)
 using_optimized_prompts = False
+if instructions:
+    BillingSignature.__doc__ = instructions
+    using_optimized_prompts = True
 
-# Try to load prompts from the optimized JSON file directly
-if optimized_model_path.exists():
-    try:
-        import json
-
-        logger.info(f"Loading optimized prompts from {optimized_model_path}")
-        with open(optimized_model_path, "r") as f:
-            optimized_data = json.load(f)
-
-            # Check if the JSON has the expected structure
-            if "react" in optimized_data and "signature" in optimized_data["react"]:
-                # Extract the optimized instructions
-                optimized_instructions = optimized_data["react"]["signature"].get(
-                    "instructions"
-                )
-                if optimized_instructions:
-                    logger.info("Successfully loaded optimized instructions")
-                    # Update the instructions in our signature class
-                    BillingSignature.__doc__ = optimized_instructions
-                    using_optimized_prompts = True
-
-            if not using_optimized_prompts:
-                logger.warning(
-                    "Optimized JSON file exists but doesn't have expected structure"
-                )
-    except Exception as e:
-        logger.error(f"Error loading optimized JSON: {e}")
-else:
-    logger.info(f"Optimized model file not found at {optimized_model_path}")
-
-# Log which prompts we're using
 logger.info(
     f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
 )
