@@ -13,10 +13,8 @@ class Settings(BaseSettings):
     language_model_api_base: Optional[str] = Field(default=None)
     cache_enabled: bool = Field(default=False)
 
-    # Kafka transport settings
+    # Kafka transport settings (used by create_kafka_transport)
     kafka_bootstrap_servers: str = Field(default="localhost:19092")
-    kafka_topic_prefix: str = Field(default="eggai")
-    kafka_rebalance_timeout_ms: int = Field(default=20000)
     kafka_ca_content: str = Field(default="")
 
     # Observability settings
@@ -26,8 +24,6 @@ class Settings(BaseSettings):
         default=9092, description="Port for Prometheus metrics server"
     )
 
-    # Claims specific settings
-    claims_database_path: str = Field(default="")
 
     model_config = SettingsConfigDict(
         env_prefix="CLAIMS_", env_file=".env", env_ignore_empty=True, extra="ignore"
