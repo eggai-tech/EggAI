@@ -43,10 +43,11 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
             return ""
 
         conversation_parts = []
-        for chat in chat_messages:
+        for idx, chat in enumerate(chat_messages):
             if "content" not in chat:
-                safe_set_attribute(span, "invalid_message", True)
-                continue
+                safe_set_attribute(span, "invalid_message_index", idx)
+                span.set_status(1, "Invalid chat message: missing content")
+                raise ValueError(f"Chat message at index {idx} is missing 'content'")
 
             role = chat.get("role", "User")
             conversation_parts.append(f"{role}: {chat['content']}")

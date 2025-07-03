@@ -137,11 +137,10 @@ def test_get_conversation_string_empty():
 
 
 def test_get_conversation_string_missing_content():
-    """Test get_conversation_string with missing content field."""
+    """Test get_conversation_string raises error when content is missing."""
     messages = [{"role": "user"}, {"role": "assistant", "content": "Hello"}]
-    result = get_conversation_string(messages)
-    assert "user:" not in result.lower()
-    assert "assistant: Hello" in result
+    with pytest.raises(ValueError, match="missing 'content'"):
+        get_conversation_string(messages)
 
 
 def test_get_conversation_string_normal():
