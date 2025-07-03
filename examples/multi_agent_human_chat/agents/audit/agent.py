@@ -1,3 +1,6 @@
+"""Audit Agent module for capturing messages from human and agent channels
+and publishing standardized audit logs."""
+
 from typing import Dict, Optional, Union
 from uuid import uuid4
 
