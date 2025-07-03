@@ -7,6 +7,7 @@ from eggai import Agent, Channel
 
 from agents.billing.config import settings
 from agents.billing.types import ChatMessage, ModelConfig
+from libraries.billing_dspy.billing import billing_optimized_dspy
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
@@ -17,8 +18,6 @@ from libraries.tracing import (
 )
 from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
-
-from libraries.billing_dspy.billing import billing_optimized_dspy
 
 billing_agent = Agent(name="BillingAgent")
 logger = get_console_logger("billing_agent.handler")

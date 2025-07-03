@@ -2,12 +2,6 @@
 
 import pytest
 
-from libraries.billing_dspy.billing import (
-    BillingSignature,
-    ModelConfig,
-    billing_optimized_dspy,
-    truncate_long_history,
-)
 from agents.shared_test_utils import (
     test_model_config_validation as shared_model_config,
 )
@@ -31,6 +25,12 @@ from agents.shared_test_utils import (
 )
 from agents.shared_test_utils import (
     test_truncate_long_history_with_config as shared_truncate_config,
+)
+from libraries.billing_dspy.billing import (
+    BillingSignature,
+    ModelConfig,
+    billing_optimized_dspy,
+    truncate_long_history,
 )
 
 

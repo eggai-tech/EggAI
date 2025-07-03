@@ -6,11 +6,11 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 
 from agents.billing.config import settings
+from agents.billing.types import ModelConfig
 from libraries.billing_dspy.billing_data import (
     get_billing_info,
     update_billing_info,
 )
-from agents.billing.types import ModelConfig
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
 
