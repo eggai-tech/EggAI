@@ -12,7 +12,10 @@ from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, create_tracer
 from libraries.tracing.otel import safe_set_attribute
 from libraries.tracing.init_metrics import init_token_metrics
-from libraries.channels import Channel
+from eggai import Channel
+from libraries.channels import channels
+
+default_human_stream_channel = Channel(channels.human_stream)
 
 logger = get_console_logger("billing_agent.utils")
 tracer = create_tracer("billing_agent.utils")
@@ -50,7 +53,7 @@ async def process_billing_request(
     conversation_string: str,
     connection_id: str,
     message_id: str,
-    human_stream_channel: Channel,
+    human_stream_channel: Channel = default_human_stream_channel,
     timeout_seconds: Optional[float] = None,
 ) -> None:
     """Generate a streaming response to a billing request."""
@@ -81,39 +84,76 @@ async def process_billing_request(
         chunks = billing_optimized_dspy(chat_history=conversation_string, config=config)
         count = 0
 
-        async for chunk in chunks:
-            if isinstance(chunk, StreamResponse):
-                count += 1
-                await human_stream_channel.publish(
-                    TracedMessage(
-                        type="agent_message_stream_chunk",
-                        source=tracer.name,
-                        data={
-                            "message_chunk": chunk.chunk,
-                            "message_id": message_id,
-                            "chunk_index": count,
-                            "connection_id": connection_id,
-                        },
-                        traceparent=tp,
-                        tracestate=ts,
+        try:
+            async for chunk in chunks:
+                if isinstance(chunk, StreamResponse):
+                    count += 1
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_chunk",
+                            source=tracer.name,
+                            data={
+                                "message_chunk": chunk.chunk,
+                                "message_id": message_id,
+                                "chunk_index": count,
+                                "connection_id": connection_id,
+                            },
+                            traceparent=tp,
+                            tracestate=ts,
+                        )
                     )
-                )
-            elif isinstance(chunk, Prediction):
-                resp = chunk.final_response or ""
-                resp = resp.replace(" [[ ## completed ## ]]", "")
-                await human_stream_channel.publish(
-                    TracedMessage(
-                        type="agent_message_stream_end",
-                        source=tracer.name,
-                        data={
-                            "message_id": message_id,
-                            "message": resp,
-                            "connection_id": connection_id,
-                        },
-                        traceparent=tp,
-                        tracestate=ts,
+                elif isinstance(chunk, Prediction):
+                    resp = chunk.final_response or ""
+                    resp = resp.replace(" [[ ## completed ## ]]", "")
+                    await human_stream_channel.publish(
+                        TracedMessage(
+                            type="agent_message_stream_end",
+                            source=tracer.name,
+                            data={
+                                "message_id": message_id,
+                                "message": resp,
+                                "connection_id": connection_id,
+                            },
+                            traceparent=tp,
+                            tracestate=ts,
+                        )
                     )
+        except asyncio.CancelledError:
+            raise
+        except ValueError as ve:
+            safe_set_attribute(span, "error", str(ve))
+            span.set_status(1, str(ve))
+            await human_stream_channel.publish(
+                TracedMessage(
+                    type="agent_message_stream_end",
+                    source=tracer.name,
+                    data={
+                        "message_id": message_id,
+                        "message": str(ve),
+                        "connection_id": connection_id,
+                    },
+                    traceparent=tp,
+                    tracestate=ts,
                 )
-
+            )
+            return
+        except Exception as e:
+            safe_set_attribute(span, "error", str(e))
+            span.set_status(1, str(e))
+            logger.error(f"Error during billing stream: {e}", exc_info=True)
+            await human_stream_channel.publish(
+                TracedMessage(
+                    type="agent_message_stream_end",
+                    source=tracer.name,
+                    data={
+                        "message_id": message_id,
+                        "message": f"Error processing billing request: {e}",
+                        "connection_id": connection_id,
+                    },
+                    traceparent=tp,
+                    tracestate=ts,
+                )
+            )
+            return
 
 __all__ = ["get_conversation_string", "process_billing_request"]

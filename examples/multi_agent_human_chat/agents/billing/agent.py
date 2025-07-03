@@ -65,7 +65,11 @@ async def handle_billing_request(msg: TracedMessage) -> None:
         logger.info(f"Processing billing request for connection {connection_id}")
 
         await process_billing_request(
-            conversation_string, connection_id, str(msg.id), timeout_seconds=30.0
+            conversation_string,
+            connection_id,
+            str(msg.id),
+            human_stream_channel,
+            timeout_seconds=30.0,
         )
 
     except Exception as e:
