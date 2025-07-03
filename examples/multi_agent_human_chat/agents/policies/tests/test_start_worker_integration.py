@@ -30,7 +30,7 @@ class TestTriggerInitialDocumentIngestion:
         
         # Mock successful results for each policy
         mock_results = []
-        for policy_id in ["auto", "home", "health", "life"]:
+        for _ in ["auto", "home", "health", "life"]:
             result = MagicMock()
             result.success = True
             result.skipped = False

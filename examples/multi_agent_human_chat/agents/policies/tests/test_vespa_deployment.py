@@ -4,9 +4,6 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
-import json
-
-import pytest
 
 from agents.policies.vespa.deploy_package import (
     check_schema_exists,
