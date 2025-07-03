@@ -2,11 +2,9 @@ from typing import Dict, Optional, Union
 from uuid import uuid4
 
 from eggai import Agent, Channel
-from eggai.transport import eggai_set_default_transport
 from faststream.kafka import KafkaMessage
 
 from libraries.channels import channels
-from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
@@ -15,12 +13,6 @@ from libraries.tracing.otel import safe_set_attribute
 from .config import settings
 from .types import AuditCategory, AuditConfig
 
-eggai_set_default_transport(
-    lambda: create_kafka_transport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content,
-    )
-)
 logger = get_console_logger("audit_agent")
 
 agents_channel = Channel("agents")
