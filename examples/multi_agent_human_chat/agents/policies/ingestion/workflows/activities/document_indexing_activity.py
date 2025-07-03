@@ -75,7 +75,7 @@ async def index_document_activity(
 
         # Generate embeddings for all chunks in batch
         logger.info(f"Generating embeddings for {len(texts_for_embedding)} chunks")
-        embeddings = generate_embeddings_batch(texts_for_embedding)
+        embeddings = await generate_embeddings_batch(texts_for_embedding)
 
         # Convert chunks to enhanced PolicyDocument objects
         documents = []

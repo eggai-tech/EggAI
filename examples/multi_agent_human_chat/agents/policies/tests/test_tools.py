@@ -328,9 +328,10 @@ class TestFullDocumentRetrieval:
             assert result["full_text"] == "Single chunk content"
             assert result["metadata"]["title"] == "Policy Document"  # Default title
     
-    def test_get_document_chunk_range_full_document(self):
+    @pytest.mark.asyncio
+    async def test_get_document_chunk_range_full_document(self):
         """Test getting full document range."""
-        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document") as mock_retrieve:
+        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document_async") as mock_retrieve:
             # Mock a full document response
             mock_retrieve.return_value = {
                 "document_id": "test_doc",
@@ -342,16 +343,17 @@ class TestFullDocumentRetrieval:
                 ]
             }
             
-            result = get_document_chunk_range("test_doc", 0, 2)
+            result = await get_document_chunk_range("test_doc", 0, 2)
             
             assert "error" not in result
             assert result["total_chunks_in_range"] == 3
             assert "Chunk 0" in result["text"]
             assert "Chunk 2" in result["text"]
     
-    def test_get_document_chunk_range_partial(self):
+    @pytest.mark.asyncio
+    async def test_get_document_chunk_range_partial(self):
         """Test getting partial chunk range."""
-        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document") as mock_retrieve:
+        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document_async") as mock_retrieve:
             # Mock a full document response
             mock_retrieve.return_value = {
                 "document_id": "test_doc",
@@ -364,7 +366,7 @@ class TestFullDocumentRetrieval:
                 ]
             }
             
-            result = get_document_chunk_range("test_doc", 1, 2)
+            result = await get_document_chunk_range("test_doc", 1, 2)
             
             assert "error" not in result
             assert result["total_chunks_in_range"] == 2
@@ -373,9 +375,10 @@ class TestFullDocumentRetrieval:
             assert "Chunk 0" not in result["text"]
             assert "Chunk 3" not in result["text"]
     
-    def test_get_document_chunk_range_out_of_bounds(self):
+    @pytest.mark.asyncio
+    async def test_get_document_chunk_range_out_of_bounds(self):
         """Test chunk range with out of bounds indices."""
-        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document") as mock_retrieve:
+        with patch("agents.policies.agent.tools.retrieval.full_document_retrieval.retrieve_full_document_async") as mock_retrieve:
             # Mock a full document response with 2 chunks
             mock_retrieve.return_value = {
                 "document_id": "test_doc",
@@ -387,7 +390,7 @@ class TestFullDocumentRetrieval:
             }
             
             # Request more chunks than available
-            result = get_document_chunk_range("test_doc", 0, 5)
+            result = await get_document_chunk_range("test_doc", 0, 5)
             
             # Should return error for out of bounds
             assert "error" in result

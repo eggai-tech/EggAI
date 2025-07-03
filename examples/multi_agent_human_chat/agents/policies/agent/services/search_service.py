@@ -79,7 +79,7 @@ class SearchService:
 
             if request.search_type in ["vector", "hybrid"]:
                 # Generate embedding for the query
-                query_embedding = generate_embedding(request.query)
+                query_embedding = await generate_embedding(request.query)
 
                 # Build YQL query based on search type
                 if request.search_type == "vector":

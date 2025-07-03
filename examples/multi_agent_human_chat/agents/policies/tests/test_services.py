@@ -199,7 +199,7 @@ class TestSearchService:
         request = VectorSearchRequest(query=query, search_type="hybrid")
         
         # Mock embedding generation
-        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+        with patch("agents.policies.agent.services.search_service.generate_embedding", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
             result = await search_service.vector_search(request)
         
@@ -227,7 +227,7 @@ class TestSearchService:
         request = VectorSearchRequest(query=query, category=category)
         
         # Mock embedding generation
-        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+        with patch("agents.policies.agent.services.search_service.generate_embedding", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
             result = await search_service.vector_search(request)
         
@@ -265,7 +265,7 @@ class TestSearchService:
         request = VectorSearchRequest(query=query, max_hits=limit)
         
         # Mock embedding generation
-        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+        with patch("agents.policies.agent.services.search_service.generate_embedding", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
             result = await search_service.vector_search(request)
         
@@ -294,7 +294,7 @@ class TestSearchService:
         mock_vespa_client.app.query.return_value = mock_query_result
         
         # Mock embedding generation
-        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+        with patch("agents.policies.agent.services.search_service.generate_embedding", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
             
             # Execute
@@ -313,7 +313,7 @@ class TestSearchService:
         mock_vespa_client.app.query.side_effect = Exception("Search failed")
         
         # Execute and verify exception is raised
-        with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
+        with patch("agents.policies.agent.services.search_service.generate_embedding", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
             
             with pytest.raises(Exception) as exc_info:

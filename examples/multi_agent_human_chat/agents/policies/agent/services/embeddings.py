@@ -1,5 +1,6 @@
 """Embedding generation and management for semantic search."""
 
+import asyncio
 import os
 from typing import List, Optional
 
@@ -37,7 +38,7 @@ def get_embedding_model() -> SentenceTransformer:
     return _EMBEDDING_MODEL
 
 
-def generate_embedding(text: str) -> List[float]:
+async def generate_embedding(text: str) -> List[float]:
     """Generate embedding for a single text.
 
     Args:
@@ -52,14 +53,18 @@ def generate_embedding(text: str) -> List[float]:
 
     try:
         model = get_embedding_model()
-        embedding = model.encode(text, convert_to_tensor=False)
+        # Run CPU-intensive encoding in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        embedding = await loop.run_in_executor(
+            None, model.encode, text, False
+        )
         return embedding.tolist()
     except Exception as e:
         logger.error(f"Error generating embedding: {e}")
         return []
 
 
-def generate_embeddings_batch(
+async def generate_embeddings_batch(
     texts: List[str], batch_size: int = 32
 ) -> List[List[float]]:
     """Generate embeddings for multiple texts in batches.
@@ -93,11 +98,16 @@ def generate_embeddings_batch(
         logger.info(
             f"Generating embeddings for {len(valid_texts)} texts in batches of {batch_size}"
         )
-        embeddings = model.encode(
+        
+        # Run CPU-intensive batch encoding in thread pool
+        loop = asyncio.get_event_loop()
+        embeddings = await loop.run_in_executor(
+            None,
+            model.encode,
             valid_texts,
-            batch_size=batch_size,
-            convert_to_tensor=False,
-            show_progress_bar=len(valid_texts) > 100,
+            batch_size,
+            False,  # convert_to_tensor
+            len(valid_texts) > 100,  # show_progress_bar
         )
 
         # Create result list with empty embeddings for invalid texts

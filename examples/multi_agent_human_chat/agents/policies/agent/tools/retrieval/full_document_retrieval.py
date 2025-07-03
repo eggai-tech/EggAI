@@ -266,7 +266,7 @@ def retrieve_full_document(
     return run_async_safe(retrieve_full_document_async(document_id, vespa_client))
 
 
-def get_document_chunk_range(
+async def get_document_chunk_range(
     document_id: str,
     start_chunk: int,
     end_chunk: Optional[int] = None,
@@ -292,7 +292,7 @@ def get_document_chunk_range(
         client = _get_vespa_client(vespa_client)
 
         # Get all chunks for the document
-        full_doc_result = retrieve_full_document(document_id, client)
+        full_doc_result = await retrieve_full_document_async(document_id, client)
 
         if "error" in full_doc_result:
             return full_doc_result
