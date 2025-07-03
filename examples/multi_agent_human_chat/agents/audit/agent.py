@@ -11,7 +11,7 @@ from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
 from .config import settings
-from .types import AuditCategory, AuditConfig, AuditEvent
+from .types import MESSAGE_CATEGORIES, AuditCategory, AuditConfig, AuditEvent
 from .utils import (
     get_message_content,
     get_message_id,
@@ -25,13 +25,6 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
-MESSAGE_CATEGORIES: Dict[str, AuditCategory] = {
-    "agent_message": "User Communication",
-    "billing_request": "Billing",
-    "policy_request": "Policies",
-    "escalation_request": "Escalation",
-    "triage_request": "Triage",
-}
 
 audit_config = AuditConfig(
     message_categories=MESSAGE_CATEGORIES,

@@ -15,6 +15,14 @@ AuditCategory = Literal[
     "Error",
 ]
 
+MESSAGE_CATEGORIES: Dict[str, AuditCategory] = {
+    "agent_message": "User Communication",
+    "billing_request": "Billing",
+    "policy_request": "Policies",
+    "escalation_request": "Escalation",
+    "triage_request": "Triage",
+}
+
 
 
 
