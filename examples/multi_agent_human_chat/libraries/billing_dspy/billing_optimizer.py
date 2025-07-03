@@ -32,10 +32,7 @@ from libraries.dspy_copro import SimpleCOPRO, save_and_log_optimized_instruction
 litellm.drop_params = True
 
 from agents.billing.config import settings
-from agents.billing.dspy_modules.billing_dataset import (
-    as_dspy_examples,
-    create_billing_dataset,
-)
+from libraries.billing_dspy.billing_dataset import as_dspy_examples, create_billing_dataset
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 

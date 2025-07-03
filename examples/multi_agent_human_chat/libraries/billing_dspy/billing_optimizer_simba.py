@@ -6,11 +6,8 @@ import dspy
 from sklearn.model_selection import train_test_split
 
 from agents.billing.config import settings
-from agents.billing.dspy_modules.billing import BillingSignature
-from agents.billing.dspy_modules.billing_dataset import (
-    as_dspy_examples,
-    create_billing_dataset,
-)
+from libraries.billing_dspy.billing import BillingSignature
+from libraries.billing_dspy.billing_dataset import as_dspy_examples, create_billing_dataset
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedReAct

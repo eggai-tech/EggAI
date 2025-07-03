@@ -46,9 +46,9 @@ The agent subscribes to the `agents` channel and filters for `billing_request` m
 
 The agent leverages DSPy for natural language understanding and generation:
 
-- `dspy_modules/billing.py`: Main DSPy models for processing billing queries
-- `dspy_modules/billing_optimizer.py`: Optimization for consistent responses
-- `dspy_modules/billing_data.py`: Data operations for billing information
+  - `libraries/billing_dspy/billing.py`: Main DSPy models for processing billing queries
+  - `libraries/billing_dspy/billing_optimizer.py`: Optimization for consistent responses
+  - `libraries/billing_dspy/billing_data.py`: Data operations for billing information
 
 ### Billing Capabilities
 
@@ -81,7 +81,7 @@ make test-billing-agent
 
 To add new billing capabilities:
 
-1. Update the DSPy modules in `dspy_modules/`
+1. Update the DSPy modules in `libraries/billing_dspy/`
 2. Add handling for new message types in `agent.py`
 3. Add test cases in `tests/test_agent.py`
 

@@ -2,7 +2,7 @@
 
 import dspy
 
-from agents.billing.dspy_modules.billing_dataset import (
+from libraries.billing_dspy.billing_dataset import (
     BillingExample,
     as_dspy_examples,
     create_billing_dataset,

@@ -18,7 +18,7 @@ from libraries.tracing import (
 from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
-from .dspy_modules.billing import billing_optimized_dspy
+from libraries.billing_dspy.billing import billing_optimized_dspy
 
 billing_agent = Agent(name="BillingAgent")
 logger = get_console_logger("billing_agent.handler")

@@ -6,7 +6,7 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 
 from agents.billing.config import settings
-from agents.billing.dspy_modules.billing_data import (
+from libraries.billing_dspy.billing_data import (
     get_billing_info,
     update_billing_info,
 )

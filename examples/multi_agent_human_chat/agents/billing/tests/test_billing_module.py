@@ -2,7 +2,7 @@
 
 import pytest
 
-from agents.billing.dspy_modules.billing import (
+from libraries.billing_dspy.billing import (
     BillingSignature,
     ModelConfig,
     billing_optimized_dspy,

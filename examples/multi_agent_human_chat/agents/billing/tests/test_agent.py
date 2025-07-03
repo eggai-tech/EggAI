@@ -23,7 +23,7 @@ eggai_set_default_transport(
 
 # Now that transport is configured, import the agent and other modules
 from agents.billing.agent import billing_agent
-from agents.billing.dspy_modules.evaluation.metrics import precision_metric
+from libraries.billing_dspy.evaluation.metrics import precision_metric
 from agents.billing.tests.utils import (
     get_test_cases,
     setup_mlflow_tracking,
@@ -176,7 +176,7 @@ async def test_billing_agent():
             mlflow.log_metric("success_rate", success_rate)
 
             # Log the final results table
-            from agents.billing.dspy_modules.evaluation.report import (
+            from libraries.billing_dspy.evaluation.report import (
                 generate_module_test_report,
             )
 
