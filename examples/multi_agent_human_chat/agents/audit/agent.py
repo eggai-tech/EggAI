@@ -43,51 +43,51 @@ audit_logs_channel = Channel(channels.audit_logs)
 
 
 def get_message_metadata(
-    message: Optional[Union[TracedMessage, Dict]],
+    message: Optional[Union[TracedMessage, Dict]]
 ) -> tuple[str, str]:
+    """Return (type, source) from a message, defaulting to 'unknown'."""
     if message is None:
         return "unknown", "unknown"
 
-    if hasattr(message, "type") and hasattr(message, "source"):
-        return message.type, message.source
+    mtype = getattr(message, "type", None)
+    msource = getattr(message, "source", None)
+    if mtype is not None or msource is not None:
+        return mtype or "unknown", msource or "unknown"
 
+    # Fallback to dict-like access
     try:
         return message.get("type", "unknown"), message.get("source", "unknown")
-    except (AttributeError, TypeError):
-        logger.warning("Message has no type or source attributes and is not dict-like")
+    except Exception:
+        logger.warning("Could not extract message type/source from %r", message)
         return "unknown", "unknown"
 
 
 def get_message_content(message: Optional[Union[TracedMessage, Dict]]) -> Optional[str]:
-    """Extract message content from various message formats."""
-    if message is None:
+    """Extract the primary message text or last chat history content."""
+    data = getattr(message, "data", None)
+    if not isinstance(data, dict):
         return None
 
-    try:
-        if hasattr(message, "data"):
-            data = message.data
-            if isinstance(data, dict):
-                if "message" in data:
-                    return data["message"]
-                if (
-                    "chat_messages" in data
-                    and isinstance(data["chat_messages"], list)
-                    and data["chat_messages"]
-                ):
-                    # Get the last user message from chat history
-                    last_msg = data["chat_messages"][-1]
-                    if isinstance(last_msg, dict) and "content" in last_msg:
-                        return last_msg["content"]
-        return None
-    except (AttributeError, TypeError, IndexError):
-        logger.warning("Could not extract message content", exc_info=True)
-        return None
+    content = data.get("message")
+    if isinstance(content, str):
+        return content
+
+    chat = data.get("chat_messages")
+    if isinstance(chat, list) and chat:
+        last = chat[-1]
+        if isinstance(last, dict):
+            return last.get("content")
+
+    return None
 
 
 def get_message_id(message: Optional[Union[TracedMessage, Dict]]) -> str:
+    """Return the message ID or a new UUID for unknown messages."""
     if message is None:
         return f"null_message_{uuid4()}"
-    return str(getattr(message, "id", uuid4()))
+
+    mid = getattr(message, "id", None)
+    return str(mid) if mid is not None else str(uuid4())
 
 
 def propagate_trace_context(
