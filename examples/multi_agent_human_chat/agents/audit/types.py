@@ -1,7 +1,7 @@
 """Type definitions for the Audit Agent."""
 
 from datetime import datetime
-from typing import Any, Dict, Literal, Optional, TypedDict
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -16,37 +16,6 @@ AuditCategory = Literal[
 ]
 
 
-class ChatMessage(TypedDict, total=False):
-    content: str
-    role: str
-
-
-class MessageData(TypedDict, total=False):
-    message_id: str
-    message_type: str
-    message_source: str
-    channel: str
-    category: AuditCategory
-    audit_timestamp: str
-    error: Optional[Dict[str, str]]
-
-
-class AuditLogMessage(TypedDict):
-    id: str
-    type: Literal["audit_log"]
-    source: Literal["AuditAgent"]
-    data: MessageData
-    traceparent: Optional[str]
-    tracestate: Optional[str]
-
-
-class TracedMessageDict(TypedDict, total=False):
-    id: str
-    type: str
-    source: str
-    data: Dict[str, Any]
-    traceparent: Optional[str]
-    tracestate: Optional[str]
 
 
 class AuditConfig(BaseModel):
