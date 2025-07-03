@@ -5,13 +5,13 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+import agents.policies.agent.services.embeddings as embeddings_module
 from agents.policies.agent.services.embeddings import (
     combine_text_for_embedding,
     generate_embedding,
     generate_embeddings_batch,
     get_embedding_model,
 )
-import agents.policies.agent.services.embeddings as embeddings_module
 
 
 class TestEmbeddingModel:
