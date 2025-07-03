@@ -8,7 +8,6 @@ from typing import Any, AsyncIterable, Dict, Optional, Union
 import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
-from pydantic import BaseModel, Field
 
 from agents.claims.config import settings
 from libraries.dspy_set_language_model import dspy_set_language_model
@@ -16,27 +15,12 @@ from libraries.logger import get_console_logger
 from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
 from libraries.tracing.otel import safe_set_attribute
 
+from agents.claims.types import ModelConfig
+
 logger = get_console_logger("claims_agent.dspy")
 
 
-class ModelConfig(BaseModel):
-    """Configuration for the claims DSPy model."""
-
-    name: str = Field("claims_react", description="Name of the model")
-    max_iterations: int = Field(
-        5, description="Maximum iterations for the model", ge=1, le=10
-    )
-    use_tracing: bool = Field(True, description="Whether to trace model execution")
-    cache_enabled: bool = Field(False, description="Whether to enable model caching")
-    truncation_length: int = Field(
-        15000, description="Maximum length for conversation history", ge=1000
-    )
-    timeout_seconds: float = Field(
-        30.0, description="Timeout for model inference in seconds", ge=1.0
-    )
-
-
-DEFAULT_CONFIG = ModelConfig()
+DEFAULT_CONFIG = ModelConfig(name="claims_react")
 
 
 class ClaimsSignature(dspy.Signature):
