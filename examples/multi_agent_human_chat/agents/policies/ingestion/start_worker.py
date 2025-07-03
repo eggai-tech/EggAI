@@ -2,6 +2,7 @@ import asyncio
 import os
 import signal
 import sys
+from pathlib import Path
 
 from agents.policies.ingestion.config import settings
 from agents.policies.ingestion.documentation_temporal_client import (
@@ -13,7 +14,6 @@ from agents.policies.ingestion.workflows.worker import (
 from agents.policies.vespa.deploy_package import deploy_to_vespa
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
-from pathlib import Path
 
 logger = get_console_logger("ingestion.start_worker")
 
