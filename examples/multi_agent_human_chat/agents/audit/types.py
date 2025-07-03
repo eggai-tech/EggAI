@@ -23,12 +23,18 @@ MESSAGE_CATEGORIES: Dict[str, AuditCategory] = {
     "triage_request": "Triage",
 }
 
-
+__all__ = [
+    "AuditCategory",
+    "MESSAGE_CATEGORIES",
+    "AuditConfig",
+    "AuditEvent",
+]
 
 
 class AuditConfig(BaseModel):
     message_categories: Dict[str, AuditCategory] = Field(
-        default_factory=dict, description="Mapping of message types to audit categories"
+        default_factory=dict,
+        description="Mapping of message types to audit categories",
     )
     default_category: AuditCategory = Field(
         default="Other",
@@ -39,7 +45,8 @@ class AuditConfig(BaseModel):
         description="Whether to enable debug logging for audited messages",
     )
     audit_channel_name: str = Field(
-        default="audit_logs", description="Channel name for audit log messages"
+        default="audit_logs",
+        description="Channel name for audit log messages",
     )
 
     model_config = {"validate_assignment": True, "extra": "forbid"}

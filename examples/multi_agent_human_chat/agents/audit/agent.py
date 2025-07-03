@@ -1,5 +1,9 @@
 """Audit Agent module for capturing messages from human and agent channels
 and publishing standardized audit logs."""
+__all__ = [
+    "audit_agent",
+    "audit_message",
+]
 
 from typing import Dict, Optional, Union
 from uuid import uuid4

@@ -1,4 +1,5 @@
 """Main module for the Audit Agent."""
+__all__ = ["main"]
 
 import asyncio
 import logging

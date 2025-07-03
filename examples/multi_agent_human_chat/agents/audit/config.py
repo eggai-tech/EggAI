@@ -1,4 +1,8 @@
 """Configuration settings for the Audit Agent."""
+__all__ = [
+    "Settings",
+    "settings",
+]
 
 
 from dotenv import load_dotenv
