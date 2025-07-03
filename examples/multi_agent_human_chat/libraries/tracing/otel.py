@@ -209,7 +209,9 @@ def create_tracer(name: str, component: Optional[str] = None) -> Tracer:
     tracer_name = (
         f"{normalized}.{_normalize_name(component)}" if component else normalized
     )
-    return get_tracer(tracer_name)
+    tracer = get_tracer(tracer_name)
+    tracer.name = tracer_name
+    return tracer
 
 
 def extract_span_context(

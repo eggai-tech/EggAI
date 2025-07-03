@@ -15,10 +15,11 @@ from libraries.tracing.otel import safe_set_attribute
 
 from .types import ChatMessage, ModelConfig
 
+# Default human stream channel for the Billing Agent
 default_human_stream_channel = Channel(channels.human_stream)
 
 logger = get_console_logger("billing_agent.utils")
-tracer = create_tracer("billing_agent.utils")
+tracer = create_tracer("billing_agent")
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
@@ -89,9 +90,9 @@ async def process_billing_request(
                 if isinstance(chunk, StreamResponse):
                     count += 1
                     await human_stream_channel.publish(
-                        TracedMessage(
-                            type="agent_message_stream_chunk",
-                            source=tracer.name,
+                    TracedMessage(
+                        type="agent_message_stream_chunk",
+                        source=tracer.name,
                             data={
                                 "message_chunk": chunk.chunk,
                                 "message_id": message_id,
@@ -106,9 +107,9 @@ async def process_billing_request(
                     resp = chunk.final_response or ""
                     resp = resp.replace(" [[ ## completed ## ]]", "")
                     await human_stream_channel.publish(
-                        TracedMessage(
-                            type="agent_message_stream_end",
-                            source=tracer.name,
+                    TracedMessage(
+                        type="agent_message_stream_end",
+                        source=tracer.name,
                             data={
                                 "message_id": message_id,
                                 "message": resp,
@@ -124,7 +125,7 @@ async def process_billing_request(
             safe_set_attribute(span, "error", str(ve))
             span.set_status(1, str(ve))
             await human_stream_channel.publish(
-                TracedMessage(
+            TracedMessage(
                     type="agent_message_stream_end",
                     source=tracer.name,
                     data={
