@@ -119,9 +119,6 @@ from agents.claims.dspy_modules.claims_data import (
 # Create tracer for the optimized claims module
 claims_tracer = create_tracer("claims_agent_optimized")
 
-# Path to the SIMBA optimized JSON file
-optimized_model_path = Path(__file__).resolve().parent / "optimized_claims_simba.json"
-
 # Create base model with tracing that we'll use
 claims_optimized = TracedReAct(
     ClaimsSignature,
@@ -131,41 +128,41 @@ claims_optimized = TracedReAct(
     max_iters=5,
 )
 
-# Flag to indicate if we're using optimized prompts (from JSON)
-using_optimized_prompts = False
 
-# Try to load prompts from the optimized JSON file directly
-if optimized_model_path.exists():
-    try:
-        logger.info(f"Loading optimized prompts from {optimized_model_path}")
-        with open(optimized_model_path, "r") as f:
-            optimized_data = json.load(f)
+def load_optimized_prompts() -> bool:
+    """Load optimized instructions from SIMBA JSON, updating ClaimsSignature doc.
 
-            # Check if the JSON has the expected structure
-            if "react" in optimized_data and "signature" in optimized_data["react"]:
-                # Extract the optimized instructions
-                optimized_instructions = optimized_data["react"]["signature"].get(
-                    "instructions"
-                )
-                if optimized_instructions:
-                    logger.info("Successfully loaded optimized instructions")
-                    # Update the instructions in our signature class
-                    ClaimsSignature.__doc__ = optimized_instructions
-                    using_optimized_prompts = True
+    Returns:
+        bool: True if optimized prompts were loaded, False otherwise.
+    """
+    optimized_model_path = Path(__file__).resolve().parent / "optimized_claims_simba.json"
+    using_optimized = False
 
-            if not using_optimized_prompts:
+    if optimized_model_path.exists():
+        try:
+            logger.info(f"Loading optimized prompts from {optimized_model_path}")
+            with open(optimized_model_path, "r") as f:
+                data = json.load(f)
+
+            instr = (
+                data.get("react", {}).get("signature", {}).get("instructions")
+            )
+            if instr:
+                ClaimsSignature.__doc__ = instr
+                using_optimized = True
+                logger.info("Successfully loaded optimized instructions")
+            else:
                 logger.warning(
-                    "Optimized JSON file exists but doesn't have expected structure"
+                    "Optimized JSON exists but missing 'react.signature.instructions'"
                 )
-    except Exception as e:
-        logger.error(f"Error loading optimized JSON: {e}")
-else:
-    logger.info(f"Optimized model file not found at {optimized_model_path}")
+        except Exception as e:
+            logger.error(f"Error loading optimized JSON: {e}")
+    else:
+        logger.info(f"Optimized model file not found at {optimized_model_path}")
 
-# Log which prompts we're using
-logger.info(
-    f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
-)
+    mode = 'optimized' if using_optimized else 'standard'
+    logger.info(f"Using {mode} prompts with tracer")
+    return using_optimized
 
 
 def get_prediction_from_model(model, chat_history: str):

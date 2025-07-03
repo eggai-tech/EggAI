@@ -30,6 +30,10 @@ async def main():
     # Initialize telemetry and language model
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
     dspy_set_language_model(settings)
+    # Load optimized DSPy prompts if available
+    from agents.claims.dspy_modules.claims import load_optimized_prompts
+
+    load_optimized_prompts()
 
     # Start the agent
     await claims_agent.start()
