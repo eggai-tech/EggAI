@@ -1,3 +1,6 @@
+"""
+Billing agent subscription handlers and entry point for processing billing requests.
+"""
 import asyncio
 from typing import List
 
@@ -93,6 +96,13 @@ async def handle_billing_request(msg: TracedMessage) -> None:
 async def handle_other_messages(msg: TracedMessage) -> None:
     """Handle non-billing messages received on the agent channel."""
     logger.debug("Received non-billing message: %s", msg)
+
+# Public API
+__all__ = [
+    "billing_agent",
+    "handle_billing_request",
+    "handle_other_messages",
+]
 
 
 if __name__ == "__main__":

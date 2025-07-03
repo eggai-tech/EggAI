@@ -83,4 +83,11 @@ class BillingRecord(BaseModel):
 
     model_config = {"extra": "forbid"}  # Prevent extra fields for security
 
+__all__ = [
+    "ChatMessage",
+    "ModelConfig",
+    "ModelResult",
+    "BillingRecord",
+]
+
 

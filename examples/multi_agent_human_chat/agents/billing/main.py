@@ -1,3 +1,4 @@
+"""Entry point for starting the BillingAgent via the EggAI framework."""
 import asyncio
 
 from eggai import eggai_main
@@ -39,6 +40,8 @@ async def main():
 
     # Wait indefinitely
     await asyncio.Future()
+
+__all__ = ["main"]
 
 
 if __name__ == "__main__":
