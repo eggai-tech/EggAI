@@ -419,6 +419,7 @@ class TestEmbeddingModelConfiguration:
         with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
             pass
     
+    @patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None)
     @patch("agents.policies.agent.services.embeddings.settings")
     @patch("agents.policies.agent.services.embeddings.SentenceTransformer")
     def test_custom_model_from_settings(self, mock_transformer, mock_settings):
