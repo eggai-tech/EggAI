@@ -33,12 +33,14 @@ The Billing Agent handles financial and payment-related inquiries for insurance 
 
 ### Message Handling
 
-The agent subscribes to the `agents` channel and filters for `billing_request` message types. It requires a valid policy number before disclosing any financial information, maintaining data privacy.
+The agent subscribes to the `agents` channel and filters for billing-request message types using a shared constant. It requires a valid policy number before disclosing any financial information, maintaining data privacy.
 
 ```python
+from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
+
 @billing_agent.subscribe(
-    channel=agents_channel, 
-    filter_by_message=lambda msg: msg.get("type") == "billing_request"
+    channel=agents_channel,
+    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_BILLING_REQUEST,
 )
 ```
 

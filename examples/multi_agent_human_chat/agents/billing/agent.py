@@ -15,7 +15,7 @@ from libraries.tracing import TracedMessage, create_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
 
 from .config import settings
-from .types import ChatMessage
+from .types import ChatMessage, MESSAGE_TYPE_BILLING_REQUEST
 from .utils import get_conversation_string, process_billing_request
 
 billing_agent = Agent(name="BillingAgent")
@@ -36,7 +36,7 @@ init_token_metrics(
 
 @billing_agent.subscribe(
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == "billing_request",
+    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_BILLING_REQUEST,
     auto_offset_reset="latest",
     group_id="billing_agent_group",
 )

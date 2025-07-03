@@ -13,6 +13,7 @@ from agents.billing.agent import (
     process_billing_request,
 )
 from libraries.tracing import TracedMessage
+from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
 
 
 @pytest.mark.asyncio
@@ -37,7 +38,7 @@ async def test_billing_agent_error_handling(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="billing_request",
+        type=MESSAGE_TYPE_BILLING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [{"role": "user", "content": "What's my bill?"}],
@@ -70,7 +71,7 @@ async def test_billing_empty_chat_messages(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="billing_request",
+        type=MESSAGE_TYPE_BILLING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [],
@@ -103,7 +104,7 @@ async def test_billing_missing_connection_id(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="billing_request",
+        type=MESSAGE_TYPE_BILLING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [{"role": "user", "content": "test"}],
@@ -179,7 +180,7 @@ async def test_billing_missing_data_fields(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="billing_request",
+        type=MESSAGE_TYPE_BILLING_REQUEST,
         source="TestAgent",
         data={},
     )

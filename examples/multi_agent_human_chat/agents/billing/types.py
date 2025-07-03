@@ -9,6 +9,9 @@ from typing import List, Optional, TypedDict
 
 from pydantic import BaseModel, Field
 
+# Message type constants
+MESSAGE_TYPE_BILLING_REQUEST: str = "billing_request"
+
 
 class ChatMessage(TypedDict, total=False):
     """Type definition for a chat message."""
@@ -88,6 +91,7 @@ __all__ = [
     "ModelConfig",
     "ModelResult",
     "BillingRecord",
+    "MESSAGE_TYPE_BILLING_REQUEST",
 ]
 
 

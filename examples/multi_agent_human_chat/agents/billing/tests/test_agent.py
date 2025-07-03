@@ -23,6 +23,7 @@ eggai_set_default_transport(
 
 # Now that transport is configured, import the agent and other modules
 from agents.billing.agent import billing_agent
+from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
 from agents.billing.tests.utils import (
     get_test_cases,
     setup_mlflow_tracking,
@@ -95,7 +96,7 @@ async def test_billing_agent():
                 await test_channel.publish(
                     TracedMessage(
                         id=message_id,
-                        type="billing_request",
+                        type=MESSAGE_TYPE_BILLING_REQUEST,
                         source="TestBillingAgent",
                         data={
                             "chat_messages": case["chat_messages"],
