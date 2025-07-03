@@ -15,7 +15,7 @@ from libraries.tracing import TracedMessage, create_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
 
 from .config import settings
-from .types import ChatMessage, MESSAGE_TYPE_BILLING_REQUEST
+from .types import MESSAGE_TYPE_BILLING_REQUEST, ChatMessage
 from .utils import get_conversation_string, process_billing_request
 
 billing_agent = Agent(name="BillingAgent")

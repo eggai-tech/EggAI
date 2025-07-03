@@ -5,15 +5,15 @@ from typing import List, Optional
 
 from dspy import Prediction
 from dspy.streaming import StreamResponse
+from eggai import Channel
+
+from libraries.billing_dspy.billing import billing_optimized_dspy
+from libraries.channels import channels
+from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage, create_tracer, format_span_as_traceparent
+from libraries.tracing.otel import safe_set_attribute
 
 from .types import ChatMessage, ModelConfig
-from libraries.billing_dspy.billing import billing_optimized_dspy
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, format_span_as_traceparent, create_tracer
-from libraries.tracing.otel import safe_set_attribute
-from libraries.tracing.init_metrics import init_token_metrics
-from eggai import Channel
-from libraries.channels import channels
 
 default_human_stream_channel = Channel(channels.human_stream)
 

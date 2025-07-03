@@ -5,7 +5,7 @@ This module contains all type definitions used throughout the billing agent code
 providing consistent typing and improving code maintainability.
 """
 
-from typing import List, Optional, TypedDict
+from typing import Optional, TypedDict
 
 from pydantic import BaseModel, Field
 

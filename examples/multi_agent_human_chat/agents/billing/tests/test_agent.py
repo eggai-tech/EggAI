@@ -23,12 +23,12 @@ eggai_set_default_transport(
 
 # Now that transport is configured, import the agent and other modules
 from agents.billing.agent import billing_agent
-from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
 from agents.billing.tests.utils import (
     get_test_cases,
     setup_mlflow_tracking,
     wait_for_agent_response,
 )
+from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
 from libraries.billing_dspy.evaluation.metrics import precision_metric
 from libraries.tracing import TracedMessage
 
