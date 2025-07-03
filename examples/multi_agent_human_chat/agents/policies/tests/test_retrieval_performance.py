@@ -420,14 +420,14 @@ class RetrievalPerformanceTester:
 class TestRetrievalPerformance(unittest.TestCase):
     """Test class for retrieval performance evaluation."""
 
-    @pytest.mark.skip(reason="Requires running API server on port 8002")
+    @pytest.mark.skip(reason="Requires API server running on port 8002")
     def test_retrieval_quality_across_search_parameters(self):
         """Comprehensive retrieval quality evaluation across search types and parameters."""
         asyncio.run(_run_retrieval_test())
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Requires running API server on port 8002")
+@pytest.mark.skip(reason="Requires API server running on port 8002")
 async def test_retrieval_quality_async():
     """Async pytest version of the retrieval performance test."""
     await _run_retrieval_test()

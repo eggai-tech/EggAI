@@ -92,7 +92,6 @@ class TestPolicyAgentSignature:
     
     def test_signature_fields(self):
         """Test that signature has required fields."""
-        from agents.policies.agent.reasoning import PolicyAgentSignature
         
         # DSPy signatures store fields differently
         # Check if the signature has the expected docstring and is a proper DSPy signature
@@ -109,7 +108,6 @@ class TestPolicyAgentSignature:
     def test_signature_docstring(self):
         """Test that signature has proper instructions."""
         # Import here to get fresh instance
-        from agents.policies.agent.reasoning import PolicyAgentSignature
         
         docstring = PolicyAgentSignature.__doc__
         assert docstring is not None

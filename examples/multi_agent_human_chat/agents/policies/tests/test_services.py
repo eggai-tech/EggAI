@@ -10,11 +10,8 @@ from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import pytest_asyncio
-from pytest_asyncio import fixture as async_fixture
 
 from agents.policies.agent.api.models import (
-    CategoryStats,
     PolicyDocument,
     ReindexRequest,
     SearchResponse,

@@ -1,10 +1,18 @@
 """Service for handling reindexing operations."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
+
+if TYPE_CHECKING:
+    from agents.policies.agent.api.models import ReindexRequest, ReindexResponse
+    from agents.policies.ingestion.documentation_temporal_client import (
+        DocumentationTemporalClient,
+    )
 
 logger = get_console_logger("reindex_service")
 
@@ -152,7 +160,7 @@ class ReindexService:
     
     async def _queue_document_for_ingestion(
         self, 
-        temporal_client: "DocumentationTemporalClient",
+        temporal_client: DocumentationTemporalClient,
         config: dict,
         force_rebuild: bool
     ) -> tuple[bool, str, Optional[str]]:
@@ -200,7 +208,7 @@ class ReindexService:
     
     def _create_reindex_response(
         self, documents_queued: int, queued_policy_ids: List[str], errors: List[str]
-    ) -> "ReindexResponse":
+    ) -> ReindexResponse:
         """Create appropriate ReindexResponse based on operation results.
         
         Args:
@@ -235,7 +243,7 @@ class ReindexService:
                 policy_ids=queued_policy_ids,
             )
 
-    async def reindex_documents(self, request: "ReindexRequest") -> "ReindexResponse":
+    async def reindex_documents(self, request: ReindexRequest) -> ReindexResponse:
         """Reindex policy documents.
         
         Args:

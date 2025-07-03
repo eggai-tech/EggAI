@@ -1,9 +1,14 @@
 """Service for handling document operations."""
 
-from typing import List, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, Optional
 
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
+
+if TYPE_CHECKING:
+    from agents.policies.agent.api.models import PolicyDocument
 
 logger = get_console_logger("document_service")
 
@@ -14,7 +19,7 @@ class DocumentService:
     def __init__(self, vespa_client: VespaClient):
         self.vespa_client = vespa_client
 
-    def create_policy_document(self, doc_data: dict) -> "PolicyDocument":
+    def create_policy_document(self, doc_data: dict) -> PolicyDocument:
         """Convert raw document data to PolicyDocument model.
         
         Args:
@@ -55,7 +60,7 @@ class DocumentService:
         category: Optional[str] = None,
         limit: int = 20,
         offset: int = 0
-    ) -> List["PolicyDocument"]:
+    ) -> List[PolicyDocument]:
         """List all documents with optional filtering and pagination.
         
         Args:
@@ -92,7 +97,7 @@ class DocumentService:
             logger.error(f"List documents error: {e}")
             raise
 
-    async def get_document_by_id(self, doc_id: str) -> Optional["PolicyDocument"]:
+    async def get_document_by_id(self, doc_id: str) -> Optional[PolicyDocument]:
         """Get a specific document by ID.
         
         Args:

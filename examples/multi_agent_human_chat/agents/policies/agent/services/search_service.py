@@ -1,12 +1,21 @@
 """Service for handling search operations."""
 
-from typing import Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
 
 from sentence_transformers import SentenceTransformer
 
 from agents.policies.agent.services.embeddings import generate_embedding
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
+
+if TYPE_CHECKING:
+    from agents.policies.agent.api.models import (
+        PolicyDocument,
+        SearchResponse,
+        VectorSearchRequest,
+    )
 
 logger = get_console_logger("search_service")
 
@@ -18,7 +27,7 @@ class SearchService:
         self.vespa_client = vespa_client
         self._embedding_model = embedding_model
 
-    def create_policy_document(self, doc_data: dict) -> "PolicyDocument":
+    def create_policy_document(self, doc_data: dict) -> PolicyDocument:
         """Convert raw document data to PolicyDocument model.
         
         Args:
@@ -54,7 +63,7 @@ class SearchService:
             chunk_position=doc_data.get("chunk_position"),
         )
 
-    async def vector_search(self, request: "VectorSearchRequest") -> "SearchResponse":
+    async def vector_search(self, request: VectorSearchRequest) -> SearchResponse:
         """Perform vector-based semantic search.
         
         Args:
