@@ -572,15 +572,17 @@ class TestDeployToVespa:
         mock_generate.assert_called_once()
         mock_deploy_zip.assert_called_once()
     
+    @patch("agents.policies.vespa.deploy_package.time.sleep")
     @patch("agents.policies.vespa.deploy_package.json.load")
     @patch("builtins.open", new_callable=mock_open)
     @patch("agents.policies.vespa.deploy_package.check_schema_exists")
     @patch("agents.policies.vespa.deploy_package.deploy_package_from_zip")
     def test_deploy_to_vespa_production_with_hosts(self, mock_deploy_zip, mock_check_schema, 
-                                                  mock_file, mock_json_load):
+                                                  mock_file, mock_json_load, mock_sleep):
         """Test production deployment with hosts configuration."""
         # Setup
-        mock_check_schema.return_value = False
+        # First call returns False (no schema), second returns True (schema deployed)
+        mock_check_schema.side_effect = [False, True]
         mock_deploy_zip.return_value = (True, "123")
         hosts_data = [{"name": "host1", "alias": "node0"}]
         mock_json_load.return_value = hosts_data

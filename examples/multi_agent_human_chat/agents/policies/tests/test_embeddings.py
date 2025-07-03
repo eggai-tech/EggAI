@@ -11,6 +11,7 @@ from agents.policies.agent.services.embeddings import (
     generate_embeddings_batch,
     get_embedding_model,
 )
+import agents.policies.agent.services.embeddings as embeddings_module
 
 
 class TestEmbeddingModel:
@@ -18,9 +19,8 @@ class TestEmbeddingModel:
     
     def setup_method(self):
         """Reset global model before each test."""
-        # Mock resetting the global model
-        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
-            pass
+        # Force reset the global model
+        embeddings_module._EMBEDDING_MODEL = None
     
     @patch("agents.policies.agent.services.embeddings.settings")
     @patch("agents.policies.agent.services.embeddings.SentenceTransformer")
@@ -47,6 +47,7 @@ class TestEmbeddingModel:
         # Setup
         mock_settings.embedding_model = "test-model"
         mock_model = MagicMock()
+        mock_model.get_sentence_embedding_dimension.return_value = 384
         mock_transformer.return_value = mock_model
         
         # Execute
@@ -57,9 +58,10 @@ class TestEmbeddingModel:
         assert model1 is model2
         mock_transformer.assert_called_once()  # Only called once
     
+    @patch("agents.policies.agent.services.embeddings.logger")
     @patch("agents.policies.agent.services.embeddings.settings")
     @patch("agents.policies.agent.services.embeddings.SentenceTransformer")
-    def test_get_embedding_model_initialization_error(self, mock_transformer, mock_settings):
+    def test_get_embedding_model_initialization_error(self, mock_transformer, mock_settings, mock_logger):
         """Test error handling during model initialization."""
         # Setup
         mock_settings.embedding_model = "invalid-model"
@@ -68,6 +70,9 @@ class TestEmbeddingModel:
         # Execute and verify
         with pytest.raises(Exception, match="Model not found"):
             get_embedding_model()
+            
+        # Verify error was logged
+        mock_logger.error.assert_called_with("Failed to initialize embedding model: Model not found")
     
     @patch("agents.policies.agent.services.embeddings.logger")
     @patch("agents.policies.agent.services.embeddings.settings")
@@ -95,9 +100,8 @@ class TestGenerateEmbedding:
     
     def setup_method(self):
         """Reset global model before each test."""
-        # Mock resetting the global model
-        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
-            pass
+        # Force reset the global model
+        embeddings_module._EMBEDDING_MODEL = None
     
     @patch("agents.policies.agent.services.embeddings.get_embedding_model")
     def test_generate_embedding_valid_text(self, mock_get_model):
@@ -149,9 +153,8 @@ class TestGenerateEmbeddingsBatch:
     
     def setup_method(self):
         """Reset global model before each test."""
-        # Mock resetting the global model
-        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
-            pass
+        # Force reset the global model
+        embeddings_module._EMBEDDING_MODEL = None
     
     @patch("agents.policies.agent.services.embeddings.get_embedding_model")
     def test_generate_embeddings_batch_valid_texts(self, mock_get_model):
@@ -353,20 +356,16 @@ class TestEmbeddingIntegration:
     
     def setup_method(self):
         """Reset global model before each test."""
-        # Mock resetting the global model
-        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
-            pass
+        # Force reset the global model
+        embeddings_module._EMBEDDING_MODEL = None
     
-    @patch("agents.policies.agent.services.embeddings.settings")
-    @patch("agents.policies.agent.services.embeddings.SentenceTransformer")
-    def test_end_to_end_embedding_generation(self, mock_transformer, mock_settings):
+    @patch("agents.policies.agent.services.embeddings.get_embedding_model")
+    def test_end_to_end_embedding_generation(self, mock_get_model):
         """Test complete flow from settings to embedding."""
         # Setup
-        mock_settings.embedding_model = "sentence-transformers/all-MiniLM-L6-v2"
         mock_model = MagicMock()
-        mock_model.get_sentence_embedding_dimension.return_value = 384
         mock_model.encode.return_value = np.array([0.1, 0.2, 0.3])
-        mock_transformer.return_value = mock_model
+        mock_get_model.return_value = mock_model
         
         # Execute
         text = combine_text_for_embedding(
@@ -381,19 +380,17 @@ class TestEmbeddingIntegration:
         assert embedding == [0.1, 0.2, 0.3]
         mock_model.encode.assert_called_with(text, convert_to_tensor=False)
     
-    @patch("agents.policies.agent.services.embeddings.settings")
-    @patch("agents.policies.agent.services.embeddings.SentenceTransformer")
-    def test_batch_embedding_with_combined_text(self, mock_transformer, mock_settings):
+    @patch("agents.policies.agent.services.embeddings.get_embedding_model")
+    def test_batch_embedding_with_combined_text(self, mock_get_model):
         """Test batch embedding with combined text features."""
         # Setup
-        mock_settings.embedding_model = "all-MiniLM-L6-v2"
         mock_model = MagicMock()
         mock_embeddings = np.array([
             [0.1, 0.2, 0.3],
             [0.4, 0.5, 0.6]
         ])
         mock_model.encode.return_value = mock_embeddings
-        mock_transformer.return_value = mock_model
+        mock_get_model.return_value = mock_model
         
         # Create combined texts
         texts = [
@@ -415,9 +412,8 @@ class TestEmbeddingModelConfiguration:
     
     def setup_method(self):
         """Reset global model before each test."""
-        # Mock resetting the global model
-        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
-            pass
+        # Force reset the global model
+        embeddings_module._EMBEDDING_MODEL = None
     
     @patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None)
     @patch("agents.policies.agent.services.embeddings.settings")
