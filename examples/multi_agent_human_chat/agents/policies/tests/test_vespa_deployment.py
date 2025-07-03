@@ -1,27 +1,27 @@
 """Tests for Vespa deployment with custom configurations."""
 
-import json
 import xml.etree.ElementTree as ET
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch, mock_open
 from datetime import datetime, timedelta
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+import json
 
 import pytest
 
-from agents.policies.vespa.generate_package import (
-    create_validation_overrides,
-    create_policy_document_schema,
-    create_application_package,
-    create_hosts_xml,
-    create_services_xml,
-    save_package_to_zip,
-    save_package_metadata,
-    generate_package_artifacts,
-)
 from agents.policies.vespa.deploy_package import (
     check_schema_exists,
     deploy_package_from_zip,
     deploy_to_vespa,
+)
+from agents.policies.vespa.generate_package import (
+    create_application_package,
+    create_hosts_xml,
+    create_policy_document_schema,
+    create_services_xml,
+    create_validation_overrides,
+    generate_package_artifacts,
+    save_package_metadata,
+    save_package_to_zip,
 )
 
 
@@ -37,12 +37,12 @@ class TestValidationOverrides:
         assert len(validations) == 2
         
         # Check content cluster removal override
-        content_removal = next((v for v in validations if v.validation_id.value == "content-cluster-removal"), None)
+        content_removal = next((v for v in validations if str(v.id) == "content-cluster-removal"), None)
         assert content_removal is not None
         assert "content cluster removal" in content_removal.comment
         
         # Check redundancy increase override
-        redundancy_increase = next((v for v in validations if v.validation_id.value == "redundancy-increase"), None)
+        redundancy_increase = next((v for v in validations if str(v.id) == "redundancy-increase"), None)
         assert redundancy_increase is not None
         assert "redundancy increase" in redundancy_increase.comment
         
@@ -626,7 +626,6 @@ class TestDeploymentWithSettings:
         mock_settings.vespa_services_xml = Path("/custom/services.xml")
         
         # Import deploy function with mocked settings
-        from agents.policies.vespa.deploy_package import deploy_to_vespa
         
         # Verify settings are accessible
         from agents.policies.ingestion.config import settings

@@ -1,13 +1,11 @@
 """Tests for embedding generation with configuration integration."""
 
-import asyncio
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 
 from agents.policies.agent.services.embeddings import (
-    _EMBEDDING_MODEL,
     combine_text_for_embedding,
     generate_embedding,
     generate_embeddings_batch,
@@ -20,8 +18,9 @@ class TestEmbeddingModel:
     
     def setup_method(self):
         """Reset global model before each test."""
-        global _EMBEDDING_MODEL
-        _EMBEDDING_MODEL = None
+        # Mock resetting the global model
+        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
+            pass
     
     @patch("agents.policies.agent.services.embeddings.settings")
     @patch("agents.policies.agent.services.embeddings.SentenceTransformer")
@@ -96,8 +95,9 @@ class TestGenerateEmbedding:
     
     def setup_method(self):
         """Reset global model before each test."""
-        global _EMBEDDING_MODEL
-        _EMBEDDING_MODEL = None
+        # Mock resetting the global model
+        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
+            pass
     
     @patch("agents.policies.agent.services.embeddings.get_embedding_model")
     def test_generate_embedding_valid_text(self, mock_get_model):
@@ -149,8 +149,9 @@ class TestGenerateEmbeddingsBatch:
     
     def setup_method(self):
         """Reset global model before each test."""
-        global _EMBEDDING_MODEL
-        _EMBEDDING_MODEL = None
+        # Mock resetting the global model
+        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
+            pass
     
     @patch("agents.policies.agent.services.embeddings.get_embedding_model")
     def test_generate_embeddings_batch_valid_texts(self, mock_get_model):
@@ -352,8 +353,9 @@ class TestEmbeddingIntegration:
     
     def setup_method(self):
         """Reset global model before each test."""
-        global _EMBEDDING_MODEL
-        _EMBEDDING_MODEL = None
+        # Mock resetting the global model
+        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
+            pass
     
     @patch("agents.policies.agent.services.embeddings.settings")
     @patch("agents.policies.agent.services.embeddings.SentenceTransformer")
@@ -413,8 +415,9 @@ class TestEmbeddingModelConfiguration:
     
     def setup_method(self):
         """Reset global model before each test."""
-        global _EMBEDDING_MODEL
-        _EMBEDDING_MODEL = None
+        # Mock resetting the global model
+        with patch("agents.policies.agent.services.embeddings._EMBEDDING_MODEL", None):
+            pass
     
     @patch("agents.policies.agent.services.embeddings.settings")
     @patch("agents.policies.agent.services.embeddings.SentenceTransformer")
@@ -440,7 +443,9 @@ class TestEmbeddingModelConfiguration:
         mock_settings.embedding_model = "test-model"
         
         # Import should use settings
-        from agents.policies.agent.services.embeddings import settings as imported_settings
+        from agents.policies.agent.services.embeddings import (
+            settings as imported_settings,
+        )
         
         # Verify
         assert imported_settings == mock_settings

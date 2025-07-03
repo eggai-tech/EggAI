@@ -1,15 +1,14 @@
 """Tests for start_worker integration with configuration settings."""
 
 import asyncio
-import signal
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
 from agents.policies.ingestion.start_worker import (
-    trigger_initial_document_ingestion,
     main,
+    trigger_initial_document_ingestion,
 )
 
 
