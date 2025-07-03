@@ -13,11 +13,6 @@ from libraries.tracing.otel import safe_set_attribute
 from .config import settings
 from .types import AuditCategory, AuditConfig
 
-logger = get_console_logger("audit_agent")
-
-agents_channel = Channel("agents")
-human_channel = Channel("human")
-audit_logs_channel = Channel("audit_logs")
 tracer = create_tracer("audit_agent")
 
 init_token_metrics(
