@@ -121,6 +121,7 @@ async def main():
         node_count = int(os.environ.get("VESPA_NODE_COUNT", "3"))
         artifacts_dir = Path(os.environ.get("VESPA_ARTIFACTS_DIR")) if os.getenv("VESPA_ARTIFACTS_DIR") else None
         hosts_config = Path(os.environ.get("VESPA_HOSTS_CONFIG")) if os.getenv("VESPA_HOSTS_CONFIG") else None
+        services_xml = Path(os.environ.get("VESPA_SERVICES_XML")) if os.getenv("VESPA_SERVICES_XML") else None
 
         schema_deployed = deploy_to_vespa(
             config_server_url=settings.vespa_config_url,
@@ -130,6 +131,7 @@ async def main():
             deployment_mode=deployment_mode,
             node_count=node_count,
             hosts_config=hosts_config,
+            services_xml=services_xml,
         )
 
         if not schema_deployed:
