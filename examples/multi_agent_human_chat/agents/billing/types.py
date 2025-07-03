@@ -5,7 +5,7 @@ This module contains all type definitions used throughout the billing agent code
 providing consistent typing and improving code maintainability.
 """
 
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import List, Optional, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -17,34 +17,6 @@ class ChatMessage(TypedDict, total=False):
     role: str  # Typically "User" or "BillingAgent", optional with default "User"
 
 
-class MessageData(TypedDict, total=False):
-    """Type definition for message data in billing requests."""
-
-    chat_messages: List[ChatMessage]  # The conversation history
-    connection_id: str  # Unique identifier for the conversation
-    message_id: str  # Unique identifier for the message
-
-
-class BillingRequestMessage(TypedDict):
-    """Type definition for a billing request message."""
-
-    id: str  # Unique message identifier
-    type: Literal["billing_request"]  # Message type
-    source: str  # Source of the message
-    data: MessageData  # Message data with chat history and IDs
-    traceparent: Optional[str]  # OpenTelemetry traceparent header
-    tracestate: Optional[str]  # OpenTelemetry tracestate header
-
-
-class TracedMessageDict(TypedDict, total=False):
-    """Type definition for traced message dictionary."""
-
-    id: str  # Message ID
-    type: str  # Message type
-    source: str  # Message source
-    data: Dict[str, Any]  # Message data
-    traceparent: Optional[str]  # Trace parent
-    tracestate: Optional[str]  # Trace state
 
 
 class ModelConfig(BaseModel):
@@ -112,10 +84,3 @@ class BillingRecord(BaseModel):
     model_config = {"extra": "forbid"}  # Prevent extra fields for security
 
 
-class TruncationResult(TypedDict):
-    """Result of truncating a conversation history."""
-
-    history: str  # Truncated or original history
-    truncated: bool  # Whether truncation was performed
-    original_length: int  # Original length of the history
-    truncated_length: int  # Length after truncation (same as original if not truncated)

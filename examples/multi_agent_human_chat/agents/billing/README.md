@@ -52,12 +52,9 @@ The agent leverages DSPy for natural language understanding and generation:
 
 ### Billing Capabilities
 
-The agent implements a DSPy-based solution using the ReAct module:
-
-- **Signature**: BillingSignature defines the business logic for handling billing interactions
-- **Tools**: Provides two specialized tools for billing operations:
-  - `get_billing_info`: Retrieves billing information for policies
-  - `update_billing_info`: Updates payment information and billing records
+The agent implements a DSPy-based ReAct solution.  See the `BillingSignature` in
+`libraries/billing_dspy/billing.py` for its full docstring (including available
+tools and guidelines).
 
 ### OpenTelemetry Integration
 
