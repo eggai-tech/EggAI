@@ -28,7 +28,7 @@ async def test_billing_agent_error_handling(monkeypatch):
         return error_generator()
 
     monkeypatch.setattr(
-        "agents.billing.agent.billing_optimized_dspy", mock_billing_error
+        "agents.billing.utils.billing_optimized_dspy", mock_billing_error
     )
 
     from agents.billing.agent import human_stream_channel
