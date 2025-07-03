@@ -94,7 +94,7 @@ async def audit_message(
             log_message = TracedMessage(
                 id=str(uuid4()),
                 type="audit_log",
-                source=audit_agent.name,
+                source=audit_agent._name,
                 data=data,
             )
             propagate_trace_context(message, log_message)
@@ -112,7 +112,7 @@ async def audit_message(
         )
         data_err = error_event.to_dict()
         log_error = TracedMessage(
-            id=str(uuid4()), type="audit_log", source=audit_agent.name, data=data_err
+            id=str(uuid4()), type="audit_log", source=audit_agent._name, data=data_err
         )
         propagate_trace_context(message, log_error)
         await audit_logs_channel.publish(log_error)
