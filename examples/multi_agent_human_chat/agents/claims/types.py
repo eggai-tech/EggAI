@@ -5,10 +5,12 @@ This module contains all type definitions used throughout the claims agent code,
 providing consistent typing and improving code maintainability.
 """
 
+import json
+import re
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ChatMessage(TypedDict, total=False):
@@ -128,6 +130,30 @@ class ClaimRecord(BaseModel):
     contact_email: Optional[str] = Field(None, description="Contact email address")
 
     model_config = {"extra": "forbid"}  # Prevent extra fields for security
+
+    @field_validator("estimate_date")
+    @classmethod
+    def validate_date_format(cls, v):
+        if v is None:
+            return v
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
+            raise ValueError("Date must be in YYYY-MM-DD format")
+        return v
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v):
+        if v is None:
+            return v
+        if not re.match(r"^\+?[\d\-\(\) ]{7,}$", v):
+            raise ValueError("Invalid phone number format")
+        return v
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {k: v for k, v in self.model_dump().items() if v is not None}
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
 
 
 class TruncationResult(TypedDict):
