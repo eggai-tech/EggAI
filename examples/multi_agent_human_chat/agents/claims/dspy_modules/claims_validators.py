@@ -1,6 +1,5 @@
 """Field validators and registry for the Claims Agent."""
 
-import re
 from typing import List, Optional, Tuple, Union
 
 

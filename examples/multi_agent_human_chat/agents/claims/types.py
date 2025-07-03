@@ -58,7 +58,9 @@ ValidatorFunction = Callable[[str], ValidatorResult]
 class ModelConfig(BaseModel):
     """Configuration for the claims DSPy model."""
 
-    name: str = Field(..., description="Name of the model")
+    name: str = Field(
+        "claims_react", description="Name of the model"
+    )
     max_iterations: int = Field(
         5, description="Maximum iterations for the model", ge=1, le=10
     )

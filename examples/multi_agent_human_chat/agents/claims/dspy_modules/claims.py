@@ -10,12 +10,11 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 
 from agents.claims.config import settings
+from agents.claims.types import ModelConfig
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
 from libraries.tracing.otel import safe_set_attribute
-
-from agents.claims.types import ModelConfig
 
 logger = get_console_logger("claims_agent.dspy")
 
