@@ -27,6 +27,3 @@ class VespaConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="VESPA_", env_file=".env", env_ignore_empty=True, extra="ignore"
     )
-
-
-vespa_config = VespaConfig()
