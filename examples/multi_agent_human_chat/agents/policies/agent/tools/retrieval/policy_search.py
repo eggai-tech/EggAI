@@ -1,33 +1,19 @@
 """Policy documentation search tool."""
 
-import asyncio
 import json
-import threading
 from typing import Any, Dict, List, Optional
 
 from opentelemetry import trace
 
+from agents.policies.agent.utils import run_async_safe
 from libraries.logger import get_console_logger
 from libraries.vespa import VespaClient
 
 logger = get_console_logger("policies_agent.tools.retrieval")
 tracer = trace.get_tracer("policies_agent_tools_retrieval")
 
-
-class ThreadWithResult(threading.Thread):
-    """Thread that returns a result."""
-
-    def __init__(self, target, args=(), kwargs=None):
-        super().__init__(target=target, args=args, kwargs=kwargs or {})
-        self._result = None
-
-    def run(self):
-        if self._target:
-            self._result = self._target(*self._args, **self._kwargs)
-
-    def join(self, *args):
-        super().join(*args)
-        return self._result
+# Global Vespa client instance to reuse connections
+_VESPA_CLIENT = None
 
 
 @tracer.start_as_current_span("search_policy_documentation")
@@ -48,12 +34,8 @@ def search_policy_documentation(query: str, category: Optional[str] = None) -> s
         f"Tool called: search_policy_documentation(query='{query[:50]}...', category='{category}')"
     )
     try:
-        thread = ThreadWithResult(
-            target=retrieve_policies,
-            args=(query, category, True),  # Include metadata
-        )
-        thread.start()
-        results = thread.join()
+        # Call retrieve_policies directly - it handles async/sync internally
+        results = retrieve_policies(query, category, include_metadata=True)
 
         if results:
             logger.info(
@@ -94,9 +76,6 @@ def search_policy_documentation(query: str, category: Optional[str] = None) -> s
     except Exception as e:
         logger.error(f"Error retrieving policy information: {e}", exc_info=True)
         return "Error retrieving policy information."
-
-
-_VESPA_CLIENT = None
 
 
 def _get_vespa_client() -> VespaClient:
@@ -140,21 +119,8 @@ def retrieve_policies(
         # Get Vespa client
         vespa_client = _get_vespa_client()
 
-        # Run async search in sync context
-        try:
-            # Try to get the current event loop
-            asyncio.get_running_loop()
-            # We're in an async context, use thread executor
-            import concurrent.futures
-
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    asyncio.run, vespa_client.search_documents(query, category)
-                )
-                results = future.result()
-        except RuntimeError:
-            # No running loop, we're in sync context - use asyncio.run
-            results = asyncio.run(vespa_client.search_documents(query, category))
+        # Run async search using our utility
+        results = run_async_safe(vespa_client.search_documents(query, category))
 
         # Convert results to the expected format with enhanced metadata
         formatted_results = []

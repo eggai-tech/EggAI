@@ -1,4 +1,4 @@
-"""DSPy ReAct implementation for the Policies Agent."""
+"""Policy reasoning module using DSPy ReAct implementation for the Policies Agent."""
 
 import json
 import os
@@ -24,7 +24,7 @@ from libraries.tracing import (
     traced_dspy_function,
 )
 
-logger = get_console_logger("policies_agent.react")
+logger = get_console_logger("policies_agent.reasoning")
 
 # Create tracer for policies agent
 policies_tracer = create_tracer("policies_agent")
@@ -166,13 +166,15 @@ def truncate_long_history(
         "truncated_length": len(chat_history),
     }
 
-    # Check if truncation needed
-    if len(chat_history) <= max_length:
+    # Check if truncation needed based on both character count and line count
+    lines = chat_history.split("\n")
+    max_lines = 30
+    
+    if len(chat_history) <= max_length and len(lines) <= max_lines:
         return result
 
     # Perform truncation - keep the last 30 lines like the claims agent
-    lines = chat_history.split("\n")
-    truncated_lines = lines[-30:]  # Keep last 30 lines
+    truncated_lines = lines[-max_lines:]  # Keep last 30 lines
     truncated_history = "\n".join(truncated_lines)
 
     # Update result

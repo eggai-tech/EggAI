@@ -1,5 +1,5 @@
 [run]
-source = agents
+source = agents, libraries
 omit = 
     */tests/*
     */test_*.py

@@ -5,7 +5,7 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
-from agents.policies.agent.react import policies_react_dspy
+from agents.policies.agent.reasoning import policies_react_dspy
 from agents.policies.config import settings
 from agents.policies.types import ChatMessage, ModelConfig
 from libraries.channels import channels, clear_channels
@@ -19,7 +19,15 @@ from libraries.tracing import (
 from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
-policies_agent = Agent(name="PoliciesAgent")
+# Constants
+AGENT_NAME = "PoliciesAgent"
+CONSUMER_GROUP_ID = "policies_agent_group"  # Kafka consumer group for this agent
+MESSAGE_TYPE_POLICY_REQUEST = "policy_request"  # Message type filter
+MESSAGE_TYPE_AGENT_MESSAGE = "agent_message"
+MESSAGE_TYPE_STREAM_CHUNK = "agent_message_stream_chunk"
+MESSAGE_TYPE_STREAM_END = "agent_message_stream_end"
+
+policies_agent = Agent(name=AGENT_NAME)
 logger = get_console_logger("policies_agent.handler")
 agents_channel = Channel(channels.agents)
 human_channel = Channel(channels.human)
@@ -105,8 +113,8 @@ async def process_policy_request(
                     chunk_count += 1
                     await human_stream_channel.publish(
                         TracedMessage(
-                            type="agent_message_stream_chunk",
-                            source="PoliciesAgent",
+                            type=MESSAGE_TYPE_STREAM_CHUNK,
+                            source=AGENT_NAME,
                             data={
                                 "message_chunk": chunk.chunk,
                                 "message_id": message_id,
@@ -121,6 +129,9 @@ async def process_policy_request(
                     # Get the complete response
                     response = chunk.final_response
                     if response:
+                        # Remove DSPy's internal completion marker that sometimes appears in responses
+                        # This marker is used internally by DSPy to signal completion but should not
+                        # be shown to users
                         response = response.replace(" [[ ## completed ## ]]", "")
 
                     logger.info(
@@ -128,12 +139,12 @@ async def process_policy_request(
                     )
                     await human_stream_channel.publish(
                         TracedMessage(
-                            type="agent_message_stream_end",
-                            source="PoliciesAgent",
+                            type=MESSAGE_TYPE_STREAM_END,
+                            source=AGENT_NAME,
                             data={
                                 "message_id": message_id,
                                 "message": response,
-                                "agent": "PoliciesAgent",
+                                "agent": AGENT_NAME,
                                 "connection_id": connection_id,
                             },
                             traceparent=child_traceparent,
@@ -151,7 +162,7 @@ async def process_policy_request(
                     data={
                         "message_id": message_id,
                         "message": "I'm sorry, I encountered an error while processing your request.",
-                        "agent": "PoliciesAgent",
+                        "agent": AGENT_NAME,
                         "connection_id": connection_id,
                     },
                     traceparent=child_traceparent,
@@ -162,9 +173,9 @@ async def process_policy_request(
 
 @policies_agent.subscribe(
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == "policy_request",
+    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_POLICY_REQUEST,
     auto_offset_reset="latest",
-    group_id="policies_agent_group",
+    group_id=CONSUMER_GROUP_ID,
 )
 @traced_handler("handle_policy_request")
 async def handle_policy_request(msg: TracedMessage) -> None:
@@ -177,12 +188,12 @@ async def handle_policy_request(msg: TracedMessage) -> None:
             logger.warning(f"Empty chat history for connection: {connection_id}")
             await human_channel.publish(
                 TracedMessage(
-                    type="agent_message",
-                    source="PoliciesAgent",
+                    type=MESSAGE_TYPE_AGENT_MESSAGE,
+                    source=AGENT_NAME,
                     data={
                         "message": "I apologize, but I didn't receive any message content to process.",
                         "connection_id": connection_id,
-                        "agent": "PoliciesAgent",
+                        "agent": AGENT_NAME,
                     },
                     traceparent=msg.traceparent,
                     tracestate=msg.tracestate,
@@ -201,12 +212,12 @@ async def handle_policy_request(msg: TracedMessage) -> None:
         logger.error(f"Error in PoliciesAgent: {e}", exc_info=True)
         await human_channel.publish(
             TracedMessage(
-                type="agent_message",
-                source="PoliciesAgent",
+                type=MESSAGE_TYPE_AGENT_MESSAGE,
+                source=AGENT_NAME,
                 data={
                     "message": "I apologize, but I'm having trouble processing your request right now. Please try again.",
                     "connection_id": locals().get("connection_id", "unknown"),
-                    "agent": "PoliciesAgent",
+                    "agent": AGENT_NAME,
                 },
                 traceparent=msg.traceparent if "msg" in locals() else None,
                 tracestate=msg.tracestate if "msg" in locals() else None,
