@@ -143,6 +143,7 @@ def deploy_to_vespa(
     deployment_mode: str = "local",
     node_count: int = 1,
     hosts_config: Path = None,
+    services_xml: Path = None,
 ) -> bool:
     """Deploy the enhanced application package to Vespa.
 
@@ -212,6 +213,7 @@ def deploy_to_vespa(
                 deployment_mode=deployment_mode,
                 node_count=node_count,
                 hosts=hosts,
+                services_xml=services_xml,
             )
 
         # Deploy the package
@@ -315,6 +317,12 @@ def main():
         help="JSON file with host configurations for production deployment",
     )
 
+    parser.add_argument(
+        "--services-xml",
+        type=Path,
+        help="XML file with services configurations for production deployment",
+    )
+
     args = parser.parse_args()
 
     print("🚀 Enhanced Vespa Package Deployment Tool")
@@ -340,6 +348,7 @@ def main():
             deployment_mode=args.deployment_mode,
             node_count=args.node_count,
             hosts_config=args.hosts_config,
+            services_xml=args.services_xml,
         )
 
         if success:

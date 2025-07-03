@@ -1,7 +1,7 @@
 import asyncio
-import os
 import signal
 import sys
+from pathlib import Path
 
 from agents.policies.ingestion.config import settings
 from agents.policies.ingestion.documentation_temporal_client import (
@@ -25,8 +25,6 @@ async def trigger_initial_document_ingestion():
     policy_ids = ["auto", "home", "health", "life"]
 
     # Documents directory path (relative to the ingestion module)
-    from pathlib import Path
-
     current_dir = Path(__file__).parent
     documents_dir = current_dir / "documents"
 
@@ -117,16 +115,17 @@ async def main():
         logger.info("Ensuring Vespa schema is deployed...")
 
         # Try to deploy with force=True to handle schema updates
-        # Use production mode with 3 nodes for Docker multi-node setup
-        deployment_mode = os.environ.get("VESPA_DEPLOYMENT_MODE", "production")
-        node_count = int(os.environ.get("VESPA_NODE_COUNT", "3"))
+        # Use configuration from settings
 
         schema_deployed = deploy_to_vespa(
             config_server_url=settings.vespa_config_url,
             query_url=settings.vespa_query_url,
             force=True,
-            deployment_mode=deployment_mode,
-            node_count=node_count,
+            artifacts_dir=settings.vespa_artifacts_dir,
+            deployment_mode=settings.vespa_deployment_mode,
+            node_count=settings.vespa_node_count,
+            hosts_config=settings.vespa_hosts_config,
+            services_xml=settings.vespa_services_xml,
         )
 
         if not schema_deployed:
