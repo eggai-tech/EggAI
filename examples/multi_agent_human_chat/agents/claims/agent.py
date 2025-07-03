@@ -56,6 +56,82 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
         return conversation
 
 
+async def _publish_agent_message(
+    message: str, connection_id: str, traceparent: str, tracestate: str
+) -> None:
+    await human_channel.publish(
+        TracedMessage(
+            type="agent_message",
+            source="ClaimsAgent",
+            data={
+                "message": message,
+                "connection_id": connection_id,
+                "agent": "ClaimsAgent",
+            },
+            traceparent=traceparent,
+            tracestate=tracestate,
+        )
+    )
+
+async def _publish_stream_start(
+    message_id: str, connection_id: str, traceparent: str, tracestate: str
+) -> None:
+    await human_stream_channel.publish(
+        TracedMessage(
+            type="agent_message_stream_start",
+            source="ClaimsAgent",
+            data={"message_id": message_id, "connection_id": connection_id},
+            traceparent=traceparent,
+            tracestate=tracestate,
+        )
+    )
+
+async def _publish_stream_chunk(
+    chunk: str,
+    idx: int,
+    message_id: str,
+    connection_id: str,
+    traceparent: str,
+    tracestate: str,
+) -> None:
+    await human_stream_channel.publish(
+        TracedMessage(
+            type="agent_message_stream_chunk",
+            source="ClaimsAgent",
+            data={
+                "message_chunk": chunk,
+                "message_id": message_id,
+                "chunk_index": idx,
+                "connection_id": connection_id,
+            },
+            traceparent=traceparent,
+            tracestate=tracestate,
+        )
+    )
+
+async def _publish_stream_end(
+    message_id: str,
+    message: str,
+    connection_id: str,
+    traceparent: str,
+    tracestate: str,
+) -> None:
+    await human_stream_channel.publish(
+        TracedMessage(
+            type="agent_message_stream_end",
+            source="ClaimsAgent",
+            data={
+                "message_id": message_id,
+                "message": message,
+                "agent": "ClaimsAgent",
+                "connection_id": connection_id,
+            },
+            traceparent=traceparent,
+            tracestate=tracestate,
+        )
+    )
+
+
 async def process_claims_request(
     conversation_string: str,
     connection_id: str,
@@ -77,18 +153,8 @@ async def process_claims_request(
             span.set_status(1, "Invalid input")
             raise ValueError("Conversation history is too short to process")
 
-        # Start the stream
-        await human_stream_channel.publish(
-            TracedMessage(
-                type="agent_message_stream_start",
-                source="ClaimsAgent",
-                data={
-                    "message_id": message_id,
-                    "connection_id": connection_id,
-                },
-                traceparent=child_traceparent,
-                tracestate=child_tracestate,
-            )
+        await _publish_stream_start(
+            message_id, connection_id, child_traceparent, child_tracestate
         )
         logger.info(f"Stream started for message {message_id}")
 
@@ -102,19 +168,13 @@ async def process_claims_request(
             async for chunk in chunks:
                 if isinstance(chunk, StreamResponse):
                     chunk_count += 1
-                    await human_stream_channel.publish(
-                        TracedMessage(
-                            type="agent_message_stream_chunk",
-                            source="ClaimsAgent",
-                            data={
-                                "message_chunk": chunk.chunk,
-                                "message_id": message_id,
-                                "chunk_index": chunk_count,
-                                "connection_id": connection_id,
-                            },
-                            traceparent=child_traceparent,
-                            tracestate=child_tracestate,
-                        )
+                    await _publish_stream_chunk(
+                        chunk.chunk,
+                        chunk_count,
+                        message_id,
+                        connection_id,
+                        child_traceparent,
+                        child_tracestate,
                     )
                 elif isinstance(chunk, Prediction):
                     # Get the complete response
@@ -125,37 +185,23 @@ async def process_claims_request(
                     logger.info(
                         f"Sending stream end with response: {response[:100] if response else 'EMPTY'}"
                     )
-                    await human_stream_channel.publish(
-                        TracedMessage(
-                            type="agent_message_stream_end",
-                            source="ClaimsAgent",
-                            data={
-                                "message_id": message_id,
-                                "message": response,
-                                "agent": "ClaimsAgent",
-                                "connection_id": connection_id,
-                            },
-                            traceparent=child_traceparent,
-                            tracestate=child_tracestate,
-                        )
+                    await _publish_stream_end(
+                        message_id,
+                        response,
+                        connection_id,
+                        child_traceparent,
+                        child_tracestate,
                     )
                     logger.info(f"Stream ended for message {message_id}")
         except Exception as e:
             logger.error(f"Error in streaming response: {e}", exc_info=True)
             # Send an error message to end the stream
-            await human_stream_channel.publish(
-                TracedMessage(
-                    type="agent_message_stream_end",
-                    source="ClaimsAgent",
-                    data={
-                        "message_id": message_id,
-                        "message": "I'm sorry, I encountered an error while processing your request.",
-                        "agent": "ClaimsAgent",
-                        "connection_id": connection_id,
-                    },
-                    traceparent=child_traceparent,
-                    tracestate=child_tracestate,
-                )
+            await _publish_stream_end(
+                message_id,
+                "I'm sorry, I encountered an error while processing your request.",
+                connection_id,
+                child_traceparent,
+                child_tracestate,
             )
 
 
@@ -174,18 +220,11 @@ async def handle_claim_request(msg: TracedMessage) -> None:
 
         if not chat_messages:
             logger.warning(f"Empty chat history for connection: {connection_id}")
-            await human_channel.publish(
-                TracedMessage(
-                    type="agent_message",
-                    source="ClaimsAgent",
-                    data={
-                        "message": "I apologize, but I didn't receive any message content to process.",
-                        "connection_id": connection_id,
-                        "agent": "ClaimsAgent",
-                    },
-                    traceparent=msg.traceparent,
-                    tracestate=msg.tracestate,
-                )
+            await _publish_agent_message(
+                "I apologize, but I didn't receive any message content to process.",
+                connection_id,
+                msg.traceparent,
+                msg.tracestate,
             )
             return
 
@@ -195,24 +234,13 @@ async def handle_claim_request(msg: TracedMessage) -> None:
         await process_claims_request(
             conversation_string, connection_id, str(msg.id), timeout_seconds=30.0
         )
-
     except Exception as e:
         logger.error(f"Error in ClaimsAgent: {e}", exc_info=True)
-        await human_channel.publish(
-            TracedMessage(
-                type="agent_message",
-                source="ClaimsAgent",
-                data={
-                    "message": (
-                        "I apologize, but I'm having trouble processing your request right now. "
-                        "Please try again."
-                    ),
-                    "connection_id": connection_id,
-                    "agent": "ClaimsAgent",
-                },
-                traceparent=msg.traceparent,
-                tracestate=msg.tracestate,
-            )
+        await _publish_agent_message(
+            "I apologize, but I'm having trouble processing your request right now. Please try again.",
+            connection_id,
+            msg.traceparent,
+            msg.tracestate,
         )
 
 
