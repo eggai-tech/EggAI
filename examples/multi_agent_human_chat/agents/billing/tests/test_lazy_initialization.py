@@ -33,8 +33,9 @@ class TestLazyInitialization:
         
         mock_path = MagicMock()
         mock_path.exists.return_value = True
-        mock_path.open.return_value.__enter__ = mock_open(read_data=json.dumps(valid_json)).__enter__
-        mock_path.open.return_value.__exit__ = MagicMock()
+        # Create a proper context manager mock
+        mock_file = mock_open(read_data=json.dumps(valid_json))()
+        mock_path.open.return_value = mock_file
         
         result = load_optimized_instructions(mock_path)
         assert result == "Test optimized instructions"
@@ -173,7 +174,7 @@ class TestBillingModelFunctionality:
     @pytest.mark.asyncio
     async def test_billing_optimized_dspy_with_config(self):
         """Test billing_optimized_dspy with custom config."""
-        from dspy.streaming import StreamResponse
+        from dspy import Prediction
 
         from agents.billing.dspy_modules.billing import (
             ModelConfig,
@@ -187,10 +188,10 @@ class TestBillingModelFunctionality:
         with patch("agents.billing.dspy_modules.billing._initialize_billing_model") as mock_init:
             with patch("agents.billing.dspy_modules.billing.dspy.streamify") as mock_streamify:
                 # Create a mock async generator
-                async def mock_generator():
-                    yield StreamResponse(chunk="Test chunk")
+                async def mock_generator(**kwargs):
+                    yield Prediction(final_response="Test response")
                 
-                mock_streamify.return_value = lambda **kwargs: mock_generator()
+                mock_streamify.return_value = mock_generator
                 mock_init.return_value = MagicMock()
                 
                 chunks = []
@@ -198,5 +199,5 @@ class TestBillingModelFunctionality:
                     chunks.append(chunk)
                 
                 assert len(chunks) == 1
-                assert isinstance(chunks[0], StreamResponse)
-                assert chunks[0].chunk == "Test chunk"
+                assert isinstance(chunks[0], Prediction)
+                assert chunks[0].final_response == "Test response"
