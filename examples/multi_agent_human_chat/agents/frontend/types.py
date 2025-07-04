@@ -85,21 +85,6 @@ class WebSocketConfig(BaseModel):
     model_config = {"validate_assignment": True}
 
 
-class GuardrailsConfig(BaseModel):
-    """Configuration for content guardrails."""
-
-    enabled: bool = Field(default=False, description="Whether guardrails are enabled")
-    toxic_language_threshold: float = Field(
-        default=0.5,
-        description="Threshold for toxic language detection",
-        ge=0.0,
-        le=1.0,
-    )
-    validation_method: Literal["sentence", "document"] = Field(
-        default="sentence", description="Method to use for validation"
-    )
-
-    model_config = {"validate_assignment": True}
 
 
 class FrontendConfig(BaseModel):
@@ -114,9 +99,6 @@ class FrontendConfig(BaseModel):
         default="/ws", description="Path for websocket connections"
     )
     public_dir: str = Field(default="", description="Directory for static files")
-    guardrails: GuardrailsConfig = Field(
-        default_factory=GuardrailsConfig, description="Guardrails configuration"
-    )
     websocket: WebSocketConfig = Field(
         default_factory=WebSocketConfig, description="Websocket configuration"
     )
