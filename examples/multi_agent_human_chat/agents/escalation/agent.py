@@ -8,7 +8,6 @@ This module defines the Escalation Agent's processing workflow:
   - Handling incoming ticketing_request messages via subscription
 """
 import asyncio
-import logging
 from typing import List
 
 from dspy import Prediction
@@ -22,11 +21,8 @@ from .types import ChatMessage, DspyModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
-from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
-logger = get_console_logger("escalation_agent")
-logger.setLevel(logging.INFO)
 
 from .constants import (
     AGENT_NAME,
@@ -42,9 +38,6 @@ agents_channel = Channel(channels.agents)
 human_stream_channel = Channel(channels.human_stream)
 tracer = trace.get_tracer(AGENT_NAME)
 
-init_token_metrics(
-    port=settings.prometheus_metrics_port, application_name=settings.app_name
-)
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:

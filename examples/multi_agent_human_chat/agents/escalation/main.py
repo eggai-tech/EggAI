@@ -6,17 +6,18 @@ It sets up the language model, transport, telemetry, and starts the agent.
 """
 
 import asyncio
-import logging
 
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport
 
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
+from libraries.logger import configure_logging, get_console_logger
 from libraries.tracing import init_telemetry
+from libraries.tracing.init_metrics import init_token_metrics
 
 from .config import settings
+from .constants import AGENT_NAME
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(
@@ -28,9 +29,8 @@ eggai_set_default_transport(
 # Import agent after transport is configured
 from .agent import ticketing_agent
 
-# Configure logger
-logger = get_console_logger("escalation_agent")
-logger.setLevel(logging.INFO)
+configure_logging()
+logger = get_console_logger(AGENT_NAME)
 
 
 @eggai_main
@@ -38,9 +38,12 @@ async def main():
     """Main entry point for the escalation agent."""
     logger.info(f"Starting {settings.app_name}")
 
-    # Initialize OpenTelemetry
+    # Initialize OpenTelemetry and Prometheus metrics
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
-    logger.info(f"Telemetry initialized for {settings.app_name}")
+    init_token_metrics(
+        port=settings.prometheus_metrics_port, application_name=settings.app_name
+    )
+    logger.info(f"Telemetry and metrics initialized for {settings.app_name}")
 
     # Configure language model
     dspy_set_language_model(settings)
