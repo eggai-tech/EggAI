@@ -7,9 +7,9 @@ from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry import trace
 
-from agents.escalation.config import settings
-from agents.escalation.dspy_modules.escalation import escalation_optimized_dspy
-from agents.escalation.types import ChatMessage, DspyModelConfig
+from .config import settings
+from .dspy_modules.escalation import escalation_optimized_dspy
+from .types import ChatMessage, DspyModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler

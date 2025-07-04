@@ -14,11 +14,7 @@ import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 
-from agents.escalation.types import (
-    DspyModelConfig,
-    TicketDepartment,
-    TicketInfo,
-)
+from ..types import DspyModelConfig, TicketDepartment, TicketInfo
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedReAct,
