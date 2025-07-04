@@ -1,7 +1,6 @@
 """Triage agent handler: classify user messages and route or stream responses."""
 import dspy.streaming
 from eggai import Agent, Channel
-from eggai.transport import eggai_set_default_transport
 from opentelemetry import trace
 
 from agents.triage.config import settings
@@ -10,10 +9,8 @@ from agents.triage.models import AGENT_REGISTRY, TargetAgent
 import importlib
 from typing import Callable, Any, List, Dict
 from libraries.channels import channels
-from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
-from libraries.tracing.init_metrics import init_token_metrics
 
 # Lazy-loaded classifier registry: maps version to (module path, function name)
 _CLASSIFIER_PATHS = {
@@ -122,16 +119,6 @@ async def _stream_chatty_response(
                 )
                 logger.info(
 
-init_token_metrics(
-    port=settings.prometheus_metrics_port, application_name=settings.app_name
-)
-
-eggai_set_default_transport(
-    lambda: create_kafka_transport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content,
-    )
-)
 
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel(channels.human)
