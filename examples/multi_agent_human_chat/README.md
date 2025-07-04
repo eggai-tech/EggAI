@@ -14,69 +14,160 @@ Users interact with the system through a WebSocket-enabled chat interface.
 
 ![Chat UI Screenshot](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/support-chat.png)
 
-## Architecture Overview
+## Quick Start
 
-![architecture-getting-started.svg](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-multi-agent-insurance-support-system.svg)
+### Prerequisites
 
-## Agents Overview
+- **Python** 3.11+
+- **Docker** and **Docker Compose**
+- **LM Studio** (for local models) or OpenAI API key (for cloud models)
 
-Agents collaborate with clear defined roles, objectives, and skills.
+### 1. Setup
 
-### **FrontendAgent**
+```bash
+# Clone the repository
+git clone git@github.com:eggai-tech/EggAI.git
+cd examples/multi_agent_human_chat
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/>
+# Create virtual environment and install dependencies
+make setup
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-**Role**: Serve the frontend and bridge WebSocket communication between the web frontend and human communication channel.  
-**Objective**: Enable seamless interactions between users and agents through a WebSocket-enabled chat interface.  
-**Skill**: Frontend service delivery, real-time communication, session management, message handling, and agent communication bridge.
+# Copy environment configuration
+cp .env.example .env
 
-### **TriageAgent**
+# (Optional) Configure Guardrails for content moderation
+# guardrails configure --token $GUARDRAILS_TOKEN
+# guardrails hub install hub://guardrails/toxic_language
+```
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-5.jpeg" width="40"/>
+### 2. Configure Language Models
 
-**Role**: Classify incoming messages and route them to the appropriate agent based on content.  
-**Objective**: Ensure that user inquiries are efficiently assigned to the right agent.  
-**Skill**: Content classification and routing.
+#### Option A: Local Models (Default - No API Keys Required)
+1. Download and install [LM Studio](https://lmstudio.ai/)
+2. Launch LM Studio and load a compatible model (e.g., gemma-3-12b-it-qat)
+3. Start the local server (should run on http://localhost:1234)
 
-### **PoliciesAgent**
+#### Option B: OpenAI Models
+Edit `.env` and uncomment the OpenAI model lines:
+```bash
+# Uncomment these lines in .env
+# TRIAGE_LANGUAGE_MODEL=openai/gpt-4o-mini
+# OPENAI_API_KEY=your-api-key-here
+```
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-3.jpeg" width="40"/>
+### 3. Start Infrastructure
 
-**Role**: Handle policy-related inquiries using a mock `policies_database`.  
-**Objective**: Provide accurate and detailed information about user policies.  
-**Skill**: Policy management expertise.
+```bash
+make docker-up
+```
 
-### **ClaimsAgent**
+This starts:
+- **Redpanda** - Kafka-compatible messaging
+- **Redpanda Console** - Web UI for topics and messages (http://localhost:8082)
+- **Grafana** - Monitoring dashboards (http://localhost:3000)
+- **MLflow** - Experiment tracking (http://localhost:5001)
+- **MinIO** - S3-compatible object storage (http://localhost:9001)
+- **PostgreSQL** - Databases for MLflow and Temporal
+- **Temporal** - Workflow orchestration for document ingestion
+- **Temporal UI** - Workflow monitoring (http://localhost:8081)
+- **Vespa** - Vector search engine for Policies agent (http://localhost:19071)
+- **OTEL Collector** - OpenTelemetry metrics and traces collection
+- **Tempo** - Distributed tracing backend
+- **Prometheus** - Metrics storage and querying
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-4.jpeg" width="40"/>
+### 4. Run the System
 
-**Role**: Handle insurance claims inquiries and processing for customers.  
-**Objective**: Retrieve claim status, file new claims, update existing claims, and answer claims-related questions.  
-**Skill**: Claims processing, claim information management, and status reporting.
+```bash
+make start-all
+```
 
-### **BillingAgent**
+Open http://localhost:8000 to start chatting!
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-2.jpeg" width="40"/>
+> **Note**: The first time you run the system, Vespa will take a few minutes to initialize and the Policies agent will ingest documents via Temporal workflows. You can monitor the progress at:
+> - Vespa status: http://localhost:19071
+> - Temporal workflows: http://localhost:8081
 
-**Role**: Assist customers with billing-related inquiries such as due amounts, billing cycles, and payment statuses.  
-**Objective**: Resolve billing-related questions efficiently and provide updates to billing records as needed.  
-**Skill**: Billing expertise and data management.
+Example queries:
+- "What's my premium for policy B67890?"
+- "I want to file a claim"
+- "What does my home insurance cover?"
+- "I have a complaint about my service"
 
-### **EscalationAgent**
+## Architecture
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-3.jpeg" width="40"/>
+![Architecture](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-multi-agent-insurance-support-system.svg)
 
-**Role**: Manage support ticket creation and retrieval for escalated issues that other agents cannot resolve.  
-**Objective**: Ensure unresolved issues are properly documented and assigned to the correct human support teams.  
-**Skill**: Escalation management and ticket tracking.
+The system consists of specialized agents that collaborate:
+- **Frontend** - WebSocket gateway
+- **Triage** - Routes messages to appropriate agents
+- **Billing** - Handles payment inquiries
+- **Claims** - Manages claims processing
+- **Policies** - Answers coverage questions (RAG)
+- **Escalation** - Handles complex issues
+- **Audit** - Logs all interactions
 
-### **AuditAgent**
+See [Agent Overview](docs/agents-overview.md) for detailed descriptions.
 
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-1.jpeg" width="40"/>
+## Development
 
-**Role**: Monitor all message traffic across channels for logging and auditing purposes.  
-**Objective**: Provide visibility into agent communication by logging messages for debugging, analytics, and compliance.  
-**Skill**: Channel-wide subscription, message auditing, log management, and extensibility for database or monitoring integration.  
+### Testing
+
+```bash
+# Run all tests
+make test
+
+# Test specific agent
+make test-billing-agent
+make test-claims-agent
+make test-audit-agent
+# ... and others
+
+# Run with coverage
+make test
+```
+
+### Code Quality
+
+```bash
+make lint        # Check for issues
+make lint-fix    # Auto-fix issues
+make format      # Format code
+```
+
+### Agent Optimization
+
+Optimize agent prompts using DSPy COPRO:
+
+```bash
+make compile-billing-optimizer   # Optimize billing agent
+make compile-all                # Optimize all agents
+```
+
+### Custom Model Training
+
+Train custom classifiers for improved performance:
+
+```bash
+# Train baseline classifier
+make train-triage-classifier-v3
+
+# Train attention-based classifier
+make train-triage-classifier-v5
+```
+
+View results in MLflow at http://localhost:5001
+
+## Documentation
+
+- [System Architecture](docs/system-architecture.md) - High-level design and component interactions
+- [Agent Overview](docs/agents-overview.md) - Detailed agent descriptions
+- [Ingestion Pipeline](docs/ingestion-pipeline.md) - Temporal workflows and Vespa integration
+- [Vespa Search Guide](docs/vespa-search-guide.md) - Search types, ranking profiles, and data exploration
+- [Model Training](docs/model-training.md) - Custom classifier training
+- [Retrieval Performance Testing](docs/retrieval-performance-testing.md) - Evaluation metrics and benchmarks
+- [Communication Flow](#communication-flow-example) - Message routing diagram
+- [Testing Guide](docs/agents-overview.md#testing) - How to test agents
 
 ## Communication Flow Example
 
@@ -124,297 +215,9 @@ sequenceDiagram
     FrontendAgent-->>User: Display response
 ```
 
-## Getting Started
-
-### Prerequisites
-
-Ensure you have the following dependencies installed:
-
-- **Python** 3.11
-- **Docker** and **Docker Compose**
-
-### Setup Instructions
-
-Clone the EggAI repository:
+## Cleaning Up
 
 ```bash
-git clone git@github.com:eggai-tech/EggAI.git
+make docker-down  # Stop infrastructure
+make clean       # Remove virtual environment
 ```
-
-Move into the `examples/multi_agent_human_chat` folder:
-
-```bash
-cd examples/multi_agent_human_chat
-```
-
-Create and activate a virtual environment and install required dependencies:
-
-```bash
-make setup
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-
-Configure Guardrails (Optional):
-
-```bash
-guardrails configure --token $GUARDRAILS_TOKEN
-guardrails hub install hub://guardrails/toxic_language
-```
-
-Start the infrastructure components using Docker Compose:
-
-```bash
-make docker-up
-```
-
-This command starts the following services:
-- Redpanda - Kafka compatible messaging platform for inter-agent communication
-- Redpanda Console - Web UI for inspecting topics and messages
-- OTEL Collector, Tempo, Prometheus - Telemetry and tracing infrastructure
-- Grafana - Visualization dashboards for observability
-- MinIO - S3-compatible object storage for MLflow artifacts
-- MLflow - Experiment tracking and model registry
-- PostgreSQL - Database for MLflow
-
-You can access:
-- Redpanda Console at http://localhost:8080
-- Grafana at http://localhost:3000
-- MLflow UI at http://localhost:5001
-- MinIO at http://localhost:9001/
-
-### Model Configuration
-
-The system supports both cloud and local language models:
-
-#### Using Local Models (Default)
-By default, the system uses LM Studio as the local model server.
-
-##### Setup Instructions:
-
-1. Start a local model server with LM Studio:
-   ```bash
-   # Download and install LM Studio from https://lmstudio.ai/
-   # Launch LM Studio and load the gemma-3-12b-it-qat model (or another compatible model)
-   # Click "Local Server" in the sidebar and start the server
-   # Ensure it's running on http://localhost:1234
-   ```
-
-2. Copy the `.env.example` file to create your `.env` file:
-   ```bash
-   cp .env.example .env
-   ```
-
-   The example configuration is already set up for LM Studio with the following settings:
-   ```
-   TRIAGE_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   TRIAGE_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
-
-   POLICIES_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   POLICIES_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
-
-   CLAIMS_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   CLAIMS_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
-
-   BILLING_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   BILLING_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
-
-   ESCALATION_LANGUAGE_MODEL_API_BASE=http://localhost:1234/v1/
-   ESCALATION_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it-qat
-
-   LM_STUDIO_API_BASE=http://localhost:1234/v1/
-   LM_STUDIO_API_KEY=lm-studio
-   ```
-
-Each agent can use a different model. All LiteLLM providers are supported, allowing you to mix local and cloud models as needed.
-
-#### Using OpenAI (Alternative)
-You can also use OpenAI models by uncommenting the relevant lines in your `.env` file:
-```
-# TRIAGE_LANGUAGE_MODEL=openai/gpt-4o-mini
-# POLICIES_LANGUAGE_MODEL=openai/gpt-4o-mini
-# CLAIMS_LANGUAGE_MODEL=openai/gpt-4o-mini
-# BILLING_LANGUAGE_MODEL=openai/gpt-4o-mini
-# ESCALATION_LANGUAGE_MODEL=openai/gpt-4o-mini
-```
-
-Don't forget to also set your OpenAI API key:
-```
-OPENAI_API_KEY=your-api-key-here
-```
-
-
-### Run the Example
-
-```bash
-make start-all
-```
-
-Upon running the example and accessing the chat interface at [http://localhost:8000](http://localhost:8000), you should see a web-based chat UI.
-
-### Code Quality and Testing
-
-#### Linting
-
-The project uses Ruff for linting to ensure code quality. You can run the linter using:
-
-```bash
-make lint        # Check for linting errors
-make lint-fix    # Fix auto-fixable linting issues
-```
-
-#### Testing
-
-You can execute tests to validate the behavior of different agents using evaluation methods like LLM-as-a-Judge.
-
-To run all tests:
-
-```bash
-make test
-```
-
-Running Specific Agent Tests:
-
-```bash
-make test-audit-agent        # Runs tests for the Audit Agent
-make test-billing-agent      # Runs tests for the Billing Agent
-make test-escalation-agent   # Runs tests for the Escalation Agent
-make test-frontend-agent     # Runs tests for the Frontend Agent
-make test-policies-agent     # Runs tests for the Policies Agent
-make test-triage-agent       # Runs tests for the Triage Agent
-```
-
-You can optimize agents using DSPy evaluation and optimization techniques.
-You can find an optimization setup [here](https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/tests/test_dspy_modules.py).
-
-When running the tests for the Triage Agent, a DSPy performance report will be generated in the `agents/triage/dspy_modules/evaluation/reports` folder ([example report](https://github.com/eggai-tech/EggAI/blob/main/examples/multi_agent_human_chat/agents/triage/dspy_modules/evaluation/reports/classifier_v1.html)).
-
-#### DSPy COPRO Optimization
-
-You can use COPRO (Constrained PROmpt optimization) to optimize agent prompts:
-
-```bash
-# Optimize Individual Components
-make compile-triage-classifier-v2  # Optimizes the Triage Classifier v2
-make compile-triage-classifier-v4  # Optimizes the Triage Classifier v4 (zero-shot)
-make compile-billing-optimizer     # Optimizes the Billing Agent prompt
-make compile-claims-optimizer      # Optimizes the Claims Agent prompt
-make compile-policies-optimizer    # Optimizes the Policies Agent prompt
-
-# Optimize All Components at Once
-make compile-all                   # Runs all optimizers sequentially with automatic confirmation
-```
-
-These commands use COPRO to optimize agent prompts based on synthetic datasets and precision metrics. The optimization results are stored as JSON files and logged to MLflow. Once optimized, agents will automatically load and use these optimized prompts when running.
-
-Once optimized, the agents will automatically load and use these optimized prompts to improve their performance.
-
-### Custom Model Training and Evaluation
-In order to improve the response latency and cost of the Triage Agent, you can train a custom classifier to classify the incoming messages. 
-The training and test data has been generated via our data generation scripts.
-A short exploratory data analysis consisting train/test class distribution and data visualization can be found in [exploratory_data_analysis.ipynb](agents/triage/notebooks/exploratory_data_analysis.ipynb).
-
-One can play around with the notebook by running the Jupyter server:
-
-```
-make start-eda-notebook
-```
-
-Here are two plots showing the t-SNE projection of the message embeddings and the class distribution of the training and test data:
-
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/train_tsne.png" width="600"/>
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/test_tsne.png" width="600"/>
-
-#### Baseline Model Architecture, Training and Evaluation
-
-Specifically, our custom model is a simple few-shot logistic regression model trained on the message embeddings. The embeddings
-were computed using the `sentence-transformers/all-MiniLM-L6-v2` model. See [Sentence Transformers](https://www.sbert.net/) for more details.
-
-In order to train the model:
-
-1. Create the `.env` file containing the following variables:
-
-```
-FEWSHOT_N_EXAMPLES=100
-AWS_ACCESS_KEY_ID=user
-AWS_SECRET_ACCESS_KEY=password
-MLFLOW_TRACKING_URI=http://localhost:5001
-MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
-```
-One can train several models with different number of examples per class by setting the `FEWSHOT_N_EXAMPLES` variable to the desired number of examples.
-For each `FEWSHOT_N_EXAMPLES` we used 3 different random seeds to sample the examples.
-This means that each model is an ensemble of 3 models trained on different random samples of the training set.
-The average of the predictions of the 3 models is used as the final prediction.
-
-
-If you want to train the model with **all training data**, just remove the `FEWSHOT_N_EXAMPLES` variable from the `.env` file.
-
-2. Run the training script:
-
-```bash
-make train-triage-classifier-v3
-```
-
-Ideally run this command several times with different `FEWSHOT_N_EXAMPLES` values to train several models with different number of examples per class and compare the results in [MLFlow UI](http://localhost:5001).
-Here's a screenshot from the MLFlow UI comparing 3 models trained with `n=10`, `n=100` and `n=all` examples per class:
-
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-custom-classifier-training.png" width="1600"/>
-
-3. Test the baseline model:
-
-```bash
-make test-triage-classifier-v3
-```
-
-### Attention-based Classifier Training and Evaluation
-The attention-based classifier is a more complex version of the triage message classifier developed to tackle
-the "intent change" use-case that the baseline model struggles with. The problem with the baseline model is that
-the input embedding is compute on the whole chat history, which means that if the chat is dominated by a single topic,
-e.g. "billing", the model will classify the whole chat as "billing" even if the user is asking about a different topic
-in the las message. 
-To tackle this problem we compute the embeddings for each message in the chat history and then use an attention 
-pooling layer to combine the embeddings into a single embedding. 
-The attention pooling layer should be able to figure out which messages are important for the final classification
-and should be able to easily tackle the "intent change" use-case.
-Additionally, we gain an extra benefit of being able to use the attention weights to explain the model's predictions.
-
-In order to train the attention-based classifier with the default parameters, run the following:
-
-1. Create the `.env` file containing the following variables:
-
-```
-AWS_ACCESS_KEY_ID=user
-AWS_SECRET_ACCESS_KEY=password
-MLFLOW_TRACKING_URI=http://localhost:5001
-MLFLOW_S3_ENDPOINT_URL=http://localhost:9000
-```
-
-2. Run the training script:
-
-```bash
-make train-triage-classifier-v5
-```
-
-and watch the training process in the MLFlow UI at [http://localhost:5001](http://localhost:5001).
-
-3. Test the attention-based model:
-
-```bash 
-make test-triage-classifier-v5
-```
-
-### Cleaning Up
-
-Stop and remove Docker containers and delete venv:
-
-```bash
-make docker-down
-make clean
-```
-
-## Next Steps
-
-- **Extend Functionality**: Add new agents or tools to handle more complex workflows.
-- **Connect Real Data**: Integrate the system with external databases or APIs.
-- **Enhance UI**: Improve the chat interface with features like authentication and message history.
-- **Learn More**: Explore other examples in the `examples` folder for advanced patterns.
-- **Contribute**: Share feedback or improvements with the EggAI community.

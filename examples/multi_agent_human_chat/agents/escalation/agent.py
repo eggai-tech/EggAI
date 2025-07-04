@@ -1,12 +1,4 @@
-"""
-Core logic and handlers for the Escalation Agent.
-
-This module defines the Escalation Agent's processing workflow:
-  - Converting chat messages into a single conversation string
-  - Streaming responses from the DSPy-based escalation model
-  - Publishing start, chunk, and end events back to the human channel
-  - Handling incoming ticketing_request messages via subscription
-"""
+"""Core logic and handlers for the Escalation Agent."""
 import asyncio
 from typing import List
 
@@ -30,7 +22,6 @@ from .constants import (
     MSG_TYPE_TICKETING_REQUEST,
 )
 
-# Configure per-module logger
 logger = get_console_logger(AGENT_NAME)
 from .dspy_modules.escalation import escalation_optimized_dspy
 from .types import ChatMessage, DspyModelConfig

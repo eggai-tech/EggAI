@@ -1,9 +1,4 @@
-"""
-Type definitions for the Billing Agent.
-
-This module contains all type definitions used throughout the billing agent code,
-providing consistent typing and improving code maintainability.
-"""
+"""Type definitions for the Billing Agent."""
 
 from typing import Optional, TypedDict
 
@@ -14,16 +9,14 @@ MESSAGE_TYPE_BILLING_REQUEST: str = "billing_request"
 
 
 class ChatMessage(TypedDict, total=False):
-    """Type definition for a chat message."""
 
-    content: str  # Required message content
-    role: str  # Typically "User" or "BillingAgent", optional with default "User"
+    content: str
+    role: str
 
 
 
 
 class ModelConfig(BaseModel):
-    """Configuration for the billing DSPy model."""
 
     name: str = Field("billing_react", description="Name of the model")
     max_iterations: int = Field(
@@ -84,7 +77,7 @@ class BillingRecord(BaseModel):
     contact_email: Optional[str] = Field(None, description="Contact email address")
     contact_phone: Optional[str] = Field(None, description="Contact phone number")
 
-    model_config = {"extra": "forbid"}  # Prevent extra fields for security
+    model_config = {"extra": "forbid"}
 
 __all__ = [
     "ChatMessage",
@@ -93,5 +86,4 @@ __all__ = [
     "BillingRecord",
     "MESSAGE_TYPE_BILLING_REQUEST",
 ]
-
 

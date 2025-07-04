@@ -25,7 +25,6 @@ from .websocket_manager import WebSocketManager
 
 logger = get_console_logger("frontend_agent")
 
-# Load environment variable
 GUARDRAILS_ENABLED = os.getenv("GUARDRAILS_TOKEN") is not None
 
 if GUARDRAILS_ENABLED:

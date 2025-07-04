@@ -42,9 +42,7 @@ AGENT_REGISTRY = {
 
 
 def formatted_agent_registry():
-    """
-    Formats the AGENT_REGISTRY dictionary into a string representation for display.
-    """
+    """Formats the AGENT_REGISTRY dictionary into a string representation for display."""
     formatted_str = ""
     for agent, details in AGENT_REGISTRY.items():
         formatted_str += f"{agent.value}: {details['description']}\n"

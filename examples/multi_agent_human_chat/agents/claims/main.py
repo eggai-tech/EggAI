@@ -17,7 +17,6 @@ eggai_set_default_transport(
     )
 )
 
-# Import agent after transport is configured
 from .agent import claims_agent
 
 logger = get_console_logger("claims_agent")
@@ -27,19 +26,15 @@ logger = get_console_logger("claims_agent")
 async def main():
     logger.info(f"Starting {settings.app_name}")
 
-    # Initialize telemetry and language model
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
     dspy_set_language_model(settings)
-    # Load optimized DSPy prompts if available
     from agents.claims.dspy_modules.claims import load_optimized_prompts
 
     load_optimized_prompts()
 
-    # Start the agent
     await claims_agent.start()
     logger.info(f"{settings.app_name} started successfully")
 
-    # Wait indefinitely
     await asyncio.Future()
 
 

@@ -1,4 +1,4 @@
-"""Configuration settings for the Audit Agent."""
+"""Configuration for audit agent."""
 __all__ = [
     "Settings",
     "settings",
@@ -15,18 +15,11 @@ load_dotenv()
 class Settings(BaseSettings):
     app_name: str = Field(default="audit_agent")
 
-    # Kafka transport settings
     kafka_bootstrap_servers: str = Field(default="localhost:19092")
     kafka_ca_content: str = Field(default="")
-
-    # Observability settings
     otel_endpoint: str = Field(default="http://localhost:4318")
     debug_logging_enabled: bool = Field(default=False)
-    prometheus_metrics_port: int = Field(
-        default=9096, description="Port for Prometheus metrics server"
-    )
-
-    # Audit specific settings
+    prometheus_metrics_port: int = Field(default=9096)
     audit_channel_name: str = Field(default="audit_logs")
 
     model_config = SettingsConfigDict(

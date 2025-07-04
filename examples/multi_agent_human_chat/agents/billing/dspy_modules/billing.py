@@ -132,16 +132,13 @@ def truncate_long_history(
         "truncated_length": len(chat_history),
     }
 
-    # Check if truncation needed
     if len(chat_history) <= max_length:
         return result
 
-    # Perform truncation - keep the last 30 lines like the other agents
     lines = chat_history.split("\n")
-    truncated_lines = lines[-30:]  # Keep last 30 lines
+    truncated_lines = lines[-30:]
     truncated_history = "\n".join(truncated_lines)
 
-    # Update result
     result["history"] = truncated_history
     result["truncated"] = True
     result["truncated_length"] = len(truncated_history)
@@ -155,7 +152,6 @@ async def billing_optimized_dspy(
     """Process a billing inquiry using the DSPy model with streaming output."""
     config = config or ModelConfig()
 
-    # Handle long conversations
     truncation_result = truncate_long_history(chat_history, config)
     chat_history = truncation_result["history"]
 
@@ -184,7 +180,6 @@ if __name__ == "__main__":
 
         init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
 
-        # Test the billing DSPy module
         test_conversation = (
             "User: How much is my premium?\n"
             "BillingAgent: Could you please provide your policy number?\n"

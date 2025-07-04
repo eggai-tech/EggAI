@@ -1,19 +1,15 @@
-import asyncio  # noqa: I001 - agents import should be in specific order
+import asyncio
 
 from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport
 
-# Metrics, transport, and telemetry setup
-from libraries.tracing.init_metrics import init_token_metrics
+from agents.triage.config import settings
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
+from libraries.tracing.init_metrics import init_token_metrics
 
-# Import settings first
-from agents.triage.config import settings
-
-# Configure transport and token metrics before importing the agent
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -32,7 +28,6 @@ async def main():
 
     logger.info(f"Starting {settings.app_name}")
 
-    # Initialize tracing, telemetry, and language model
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
     logger.info(f"Telemetry initialized for {settings.app_name}")
     dspy_set_language_model(settings)

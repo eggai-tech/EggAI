@@ -14,7 +14,6 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
-# Configure transport before importing agent
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -22,7 +21,6 @@ eggai_set_default_transport(
     )
 )
 
-# Import agent after transport is configured
 from agents.policies.agent.agent import policies_agent
 
 logger = get_console_logger("policies_agent")
@@ -32,16 +30,12 @@ logger = get_console_logger("policies_agent")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle application lifecycle events."""
-    # Startup
     logger.info("Starting Policies Agent...")
     
-    # Initialize telemetry
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
     
-    # Set up DSPy LM
     dspy_set_language_model(settings)
     
-    # Start the agent
     logger.info("Starting agent...")
     await policies_agent.start()
     
@@ -49,14 +43,12 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    # Shutdown
     logger.info("Shutting down Policies Agent...")
     policies_agent.stop()
     await eggai_cleanup()
     logger.info("Policies Agent shutdown complete")
 
 
-# Create FastAPI app
 app = FastAPI(
     title="Policies Agent API",
     description="API for querying and managing insurance policy documents",
@@ -64,7 +56,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Include API router
 app.include_router(api_router, prefix="/api/v1", tags=["policies"])
 
 

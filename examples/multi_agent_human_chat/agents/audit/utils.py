@@ -1,4 +1,4 @@
-"""Helper functions for the Audit Agent."""
+"""Audit agent utilities."""
 
 from typing import Dict, Optional, Union
 from uuid import uuid4
@@ -55,7 +55,6 @@ def get_message_content(message: Optional[Union[TracedMessage, Dict]]) -> Option
 
 
 def get_message_id(message: Optional[Union[TracedMessage, Dict]]) -> str:
-    """Return the message ID or a new UUID for unknown messages."""
     if message is None:
         return f"null_message_{uuid4()}"
 
@@ -66,7 +65,6 @@ def get_message_id(message: Optional[Union[TracedMessage, Dict]]) -> str:
 def propagate_trace_context(
     source_message: Optional[Union[TracedMessage, Dict]], target_message: TracedMessage
 ) -> None:
-    """Copy traceparent/tracestate from source_message into target_message."""
     if source_message is None:
         return
 

@@ -18,25 +18,21 @@ logger = get_console_logger("ingestion.start_worker")
 
 
 async def trigger_initial_document_ingestion():
-    """Trigger initial document ingestion for all 4 policy documents using single-file approach."""
+    """Trigger initial document ingestion for all 4 policy documents."""
     logger.info("Starting initial document ingestion for all 4 policies...")
 
-    # Select all 4 documents to ingest (auto, home, health, life)
     policy_ids = ["auto", "home", "health", "life"]
 
-    # Documents directory path (relative to the ingestion module)
     current_dir = Path(__file__).parent
     documents_dir = current_dir / "documents"
 
     try:
-        # Create client with same settings as worker
         client = DocumentationTemporalClient(
             temporal_server_url=settings.temporal_server_url,
             temporal_namespace=settings.temporal_namespace,
             temporal_task_queue=settings.temporal_task_queue,
         )
 
-        # Process each policy file individually
         total_processed = 0
         total_indexed = 0
 

@@ -1,9 +1,4 @@
-"""
-Main module for the Escalation Agent.
-
-This module contains the main entry point for the escalation agent.
-It sets up the language model, transport, telemetry, and starts the agent.
-"""
+"""Main module for the Escalation Agent."""
 
 import asyncio
 
@@ -26,7 +21,6 @@ eggai_set_default_transport(
     )
 )
 
-# Import agent after transport is configured
 from .agent import ticketing_agent
 
 configure_logging()
@@ -35,25 +29,20 @@ logger = get_console_logger(AGENT_NAME)
 
 @eggai_main
 async def main() -> None:
-    """Main entry point for the escalation agent."""
     logger.info(f"Starting {settings.app_name}")
 
-    # Initialize OpenTelemetry and Prometheus metrics
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
     init_token_metrics(
         port=settings.prometheus_metrics_port, application_name=settings.app_name
     )
     logger.info(f"Telemetry and metrics initialized for {settings.app_name}")
 
-    # Configure language model
     dspy_set_language_model(settings)
     logger.info(f"Using language model: {settings.language_model}")
 
-    # Start the agent
     await ticketing_agent.start()
     logger.info(f"{settings.app_name} started successfully")
 
-    # Keep the agent running
     try:
         await asyncio.Future()
     except asyncio.CancelledError:

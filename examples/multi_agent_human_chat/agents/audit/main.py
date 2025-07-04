@@ -1,4 +1,4 @@
-"""Main module for the Audit Agent."""
+"""Entry point for audit agent."""
 __all__ = ["main"]
 
 import asyncio
@@ -20,7 +20,6 @@ eggai_set_default_transport(
     )
 )
 
-# Import agent after transport is configured
 from .agent import audit_agent
 
 logger = get_console_logger("audit_agent")

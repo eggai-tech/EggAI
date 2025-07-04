@@ -19,10 +19,9 @@ from libraries.tracing import (
 from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
-# Constants
 AGENT_NAME = "PoliciesAgent"
-CONSUMER_GROUP_ID = "policies_agent_group"  # Kafka consumer group for this agent
-MESSAGE_TYPE_POLICY_REQUEST = "policy_request"  # Message type filter
+CONSUMER_GROUP_ID = "policies_agent_group"
+MESSAGE_TYPE_POLICY_REQUEST = "policy_request"
 MESSAGE_TYPE_AGENT_MESSAGE = "agent_message"
 MESSAGE_TYPE_STREAM_CHUNK = "agent_message_stream_chunk"
 MESSAGE_TYPE_STREAM_END = "agent_message_stream_end"
@@ -72,7 +71,6 @@ async def process_policy_request(
     timeout_seconds: float = None,
 ) -> None:
     """Generate a response to a policy request with streaming output."""
-    # Create model config with timeout value
     config = ModelConfig(timeout_seconds=timeout_seconds or 30.0)
     with tracer.start_as_current_span("process_policy_request") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
@@ -86,7 +84,6 @@ async def process_policy_request(
             span.set_status(1, "Invalid input")
             raise ValueError("Conversation history is too short to process")
 
-        # Start the stream
         await human_stream_channel.publish(
             TracedMessage(
                 type="agent_message_stream_start",
@@ -101,12 +98,10 @@ async def process_policy_request(
         )
         logger.info(f"Stream started for message {message_id}")
 
-        # Call the model with streaming
         logger.info("Calling policies model with streaming")
         chunks = policies_react_dspy(chat_history=conversation_string, config=config)
         chunk_count = 0
 
-        # Process the streaming chunks
         try:
             async for chunk in chunks:
                 if isinstance(chunk, StreamResponse):
@@ -126,12 +121,8 @@ async def process_policy_request(
                         )
                     )
                 elif isinstance(chunk, Prediction):
-                    # Get the complete response
                     response = chunk.final_response
                     if response:
-                        # Remove DSPy's internal completion marker that sometimes appears in responses
-                        # This marker is used internally by DSPy to signal completion but should not
-                        # be shown to users
                         response = response.replace(" [[ ## completed ## ]]", "")
 
                     logger.info(
@@ -154,7 +145,6 @@ async def process_policy_request(
                     logger.info(f"Stream ended for message {message_id}")
         except Exception as e:
             logger.error(f"Error in streaming response: {e}", exc_info=True)
-            # Send an error message to end the stream
             await human_stream_channel.publish(
                 TracedMessage(
                     type="agent_message_stream_end",

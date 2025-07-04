@@ -9,7 +9,6 @@ from libraries.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.embeddings")
 
-# Global model instance
 _EMBEDDING_MODEL: Optional[SentenceTransformer] = None
 
 
@@ -77,7 +76,6 @@ def generate_embeddings_batch(
     try:
         model = get_embedding_model()
 
-        # Filter out empty texts but keep track of indices
         valid_texts = []
         valid_indices = []
         for i, text in enumerate(texts):
@@ -89,7 +87,6 @@ def generate_embeddings_batch(
             logger.warning("No valid texts to embed")
             return [[] for _ in texts]
 
-        # Generate embeddings in batches
         logger.info(
             f"Generating embeddings for {len(valid_texts)} texts in batches of {batch_size}"
         )
@@ -100,7 +97,6 @@ def generate_embeddings_batch(
             show_progress_bar=len(valid_texts) > 100,
         )
 
-        # Create result list with empty embeddings for invalid texts
         result = [[] for _ in texts]
         for i, idx in enumerate(valid_indices):
             result[idx] = embeddings[i].tolist()
@@ -131,19 +127,15 @@ def combine_text_for_embedding(
     """
     parts = []
 
-    # Add category as context
     if category:
         parts.append(f"Category: {category}")
 
-    # Add title
     if title:
         parts.append(f"Title: {title}")
 
-    # Add headings as context
     if headings:
         parts.append(f"Sections: {' > '.join(headings)}")
 
-    # Add main text
     parts.append(text)
 
     return " ".join(parts)

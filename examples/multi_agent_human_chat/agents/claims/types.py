@@ -1,9 +1,4 @@
-"""
-Type definitions for the Claims Agent.
-
-This module contains all type definitions used throughout the claims agent code,
-providing consistent typing and improving code maintainability.
-"""
+"""Type definitions for the Claims Agent."""
 
 import json
 import re
@@ -14,53 +9,45 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class ChatMessage(TypedDict, total=False):
-    """Type definition for a chat message."""
 
-    content: str  # Required message content
-    role: str  # Typically "User" or "ClaimsAgent", optional with default "User"
+    content: str
+    role: str
 
 
 class MessageData(TypedDict, total=False):
-    """Type definition for message data in claims requests."""
 
-    chat_messages: List[ChatMessage]  # The conversation history
-    connection_id: str  # Unique identifier for the conversation
-    message_id: str  # Unique identifier for the message
+    chat_messages: List[ChatMessage]
+    connection_id: str
+    message_id: str
 
 
 class ClaimsRequestMessage(TypedDict):
-    """Type definition for a claims request message."""
 
-    id: str  # Unique message identifier
-    type: Literal["claim_request"]  # Message type
-    source: str  # Source of the message
-    data: MessageData  # Message data with chat history and IDs
-    traceparent: Optional[str]  # OpenTelemetry traceparent header
-    tracestate: Optional[str]  # OpenTelemetry tracestate header
+    id: str
+    type: Literal["claim_request"]
+    source: str
+    data: MessageData
+    traceparent: Optional[str]
+    tracestate: Optional[str]
 
 
 class TracedMessageDict(TypedDict, total=False):
-    """Type definition for traced message dictionary."""
 
-    id: str  # Message ID
-    type: str  # Message type
-    source: str  # Message source
-    data: Dict[str, Any]  # Message data
-    traceparent: Optional[str]  # Trace parent
-    tracestate: Optional[str]  # Trace state
+    id: str
+    type: str
+    source: str
+    data: Dict[str, Any]
+    traceparent: Optional[str]
+    tracestate: Optional[str]
 
 
-# Type for field validation functions
 ValidatorResult = Tuple[bool, Any]
 ValidatorFunction = Callable[[str], ValidatorResult]
 
 
 class ModelConfig(BaseModel):
-    """Configuration for the claims DSPy model."""
 
-    name: str = Field(
-        "claims_react", description="Name of the model"
-    )
+    name: str = Field("claims_react", description="Name of the model")
     max_iterations: int = Field(
         5, description="Maximum iterations for the model", ge=1, le=10
     )
@@ -131,7 +118,7 @@ class ClaimRecord(BaseModel):
     )
     contact_email: Optional[str] = Field(None, description="Contact email address")
 
-    model_config = {"extra": "forbid"}  # Prevent extra fields for security
+    model_config = {"extra": "forbid"}
 
     @field_validator("estimate_date")
     @classmethod
@@ -159,9 +146,8 @@ class ClaimRecord(BaseModel):
 
 
 class TruncationResult(TypedDict):
-    """Result of truncating a conversation history."""
 
-    history: str  # Truncated or original history
-    truncated: bool  # Whether truncation was performed
-    original_length: int  # Original length of the history
-    truncated_length: int  # Length after truncation (same as original if not truncated)
+    history: str
+    truncated: bool
+    original_length: int
+    truncated_length: int
