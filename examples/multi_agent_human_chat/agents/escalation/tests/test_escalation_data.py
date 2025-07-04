@@ -42,14 +42,15 @@ def test_get_tickets_by_policy_nonexistent():
 
 
 def test_get_tickets_by_policy_with_whitespace():
-    """Test getting tickets with whitespace in policy number."""
+    """Test getting tickets with whitespace in policy number (normalized)."""
     result = get_tickets_by_policy("  A12345  ")
     data = json.loads(result)
 
-    # Whitespace should not match - this is expected behavior
+    # Leading/trailing whitespace should be stripped before matching
     assert isinstance(data, dict)
-    assert data["found"] is False
-    assert len(data["tickets"]) == 0
+    assert data["found"] is True
+    assert len(data["tickets"]) >= 1
+    assert data["tickets"][0]["policy_number"] == "A12345"
 
 
 def test_create_ticket_success():
