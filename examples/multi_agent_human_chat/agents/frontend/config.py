@@ -1,3 +1,5 @@
+"""Configuration settings for the Frontend Agent, loaded via Pydantic BaseSettings."""
+
 import os
 
 from pydantic import Field

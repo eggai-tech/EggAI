@@ -15,7 +15,7 @@ _toxic_language_guard = AsyncGuard().use(
 )
 
 
-async def toxic_language_guard(text: str):
+async def toxic_language_guard(text: str) -> str | None:
     result = await _toxic_language_guard.validate(text)
     if result.validation_passed is False:
         return None

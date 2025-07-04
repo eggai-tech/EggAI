@@ -1,3 +1,5 @@
+"""Frontend Agent: WebSocket gateway, tracing, and message routing module."""
+
 import asyncio
 import os
 import uuid
@@ -45,7 +47,7 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
-def _extract_trace_context(connection_id: str):
+def _extract_trace_context(connection_id: str) -> tuple[str, str, trace.SpanContext]:
     with tracer.start_as_current_span("frontend_chat", context=None) as root_span:
         root_ctx = root_span.get_span_context()
         traceparent = (
@@ -58,14 +60,20 @@ def _extract_trace_context(connection_id: str):
     return traceparent, tracestate, parent_ctx
 
 
-async def _initialize_connection(websocket: WebSocket, connection_id: str):
+async def _initialize_connection(websocket: WebSocket, connection_id: str) -> None:
     await websocket_manager.connect(websocket, connection_id)
     await websocket_manager.send_message_to_connection(
         connection_id, {"connection_id": connection_id}
     )
 
 
-async def _process_user_messages(server, websocket: WebSocket, connection_id: str, traceparent: str, tracestate: str):
+async def _process_user_messages(
+    server: uvicorn.Server,
+    websocket: WebSocket,
+    connection_id: str,
+    traceparent: str,
+    tracestate: str,
+) -> None:
     while True:
         try:
             data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
@@ -122,7 +130,7 @@ async def _process_user_messages(server, websocket: WebSocket, connection_id: st
 
 
 @tracer.start_as_current_span("add_websocket_gateway")
-def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
+def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server) -> None:
     @app.websocket(route)
     async def websocket_handler(
         websocket: WebSocket, connection_id: str = Query(None, alias="connection_id")
