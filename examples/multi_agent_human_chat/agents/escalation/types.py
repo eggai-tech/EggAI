@@ -81,8 +81,6 @@ class DspyModelConfig(BaseModel):
     )
 
 
-# SessionData no longer needed with simplified intelligent agent approach
-
 
 class TicketInfo(BaseModel):
     """Data structure for ticket information with validation."""
