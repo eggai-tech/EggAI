@@ -18,6 +18,110 @@ _CLASSIFIER_PATHS = {
     "v5": ("agents.triage.attention_net.classifier_v5", "classifier_v5"),
 }
 
+def build_conversation_string(chat_messages: list[dict[str, str]]) -> str:
+    """
+    Build a conversation history string from a list of chat entries.
+    Each entry is formatted as 'AgentName: content' on its own line.
+    Only entries with non-empty content are included, and a trailing newline
+    is added if there is at least one message.
+    """
+    lines: list[str] = []
+    for chat in chat_messages:
+        user = chat.get("agent", "User")
+        content = chat.get("content", "")
+        if content:
+            lines.append(f"{user}: {content}")
+    return "\n".join(lines) + ("\n" if lines else "")
+
+async def _publish_to_agent(
+    conversation_string: str, target_agent: TargetAgent, msg: TracedMessage
+) -> None:
+    logger.info(f"Routing message to {target_agent}")
+    with tracer.start_as_current_span("publish_to_agent") as span:
+        child_traceparent, child_tracestate = format_span_as_traceparent(span)
+        triage_to_agent_messages = [
+            {
+                "role": "user",
+                "content": f"{conversation_string} \n{target_agent}: ",
+            }
+        ]
+        await agents_channel.publish(
+            TracedMessage(
+                type=AGENT_REGISTRY[target_agent]["message_type"],
+                source="TriageAgent",
+                data={
+                    "chat_messages": triage_to_agent_messages,
+                    "message_id": msg.id,
+                    "connection_id": msg.data.get("connection_id", "unknown"),
+                },
+                traceparent=child_traceparent,
+                tracestate=child_tracestate,
+            )
+        )
+
+async def _stream_chatty_response(
+    conversation_string: str, msg: TracedMessage
+) -> None:
+    with tracer.start_as_current_span("chatty_stream_response") as span:
+        child_traceparent, child_tracestate = format_span_as_traceparent(span)
+        stream_message_id = str(msg.id)
+
+        await human_stream_channel.publish(
+            TracedMessage(
+                type="agent_message_stream_start",
+                source="TriageAgent",
+                data={
+                    "message_id": stream_message_id,
+                    "connection_id": msg.data.get("connection_id", "unknown"),
+                },
+                traceparent=child_traceparent,
+                tracestate=child_tracestate,
+            )
+        )
+
+        chunks = chatty(chat_history=conversation_string)
+        chunk_count = 0
+
+        async for chunk in chunks:
+            if isinstance(chunk, dspy.streaming.StreamResponse):
+                chunk_count += 1
+                await human_stream_channel.publish(
+                    TracedMessage(
+                        type="agent_message_stream_chunk",
+                        source="TriageAgent",
+                        data={
+                            "message_chunk": chunk.chunk,
+                            "message_id": stream_message_id,
+                            "chunk_index": chunk_count,
+                            "connection_id": msg.data.get("connection_id", "unknown"),
+                        },
+                        traceparent=child_traceparent,
+                        tracestate=child_tracestate,
+                    )
+                )
+                logger.info(f"Chunk {chunk_count} sent: {chunk.chunk}")
+            elif isinstance(chunk, dspy.Prediction):
+                # FIXME: with short prompts, dspy sometimes leaves the suffix untrimmed
+                chunk.response = chunk.response.replace(" [[ ## completed ## ]]", "")
+
+                await human_stream_channel.publish(
+                    TracedMessage(
+                        type="agent_message_stream_end",
+                        source="TriageAgent",
+                        data={
+                            "message_id": stream_message_id,
+                            "agent": "TriageAgent",
+                            "connection_id": msg.data.get("connection_id", "unknown"),
+                            "message": chunk.response,
+                        },
+                        traceparent=child_traceparent,
+                        tracestate=child_tracestate,
+                    )
+                )
+                logger.info(
+                    f"Stream ended for message {stream_message_id}: {chunk.response}"
+                )
+
 
 def build_conversation_string(chat_messages: list[dict[str, str]]) -> str:
     """
@@ -92,100 +196,10 @@ async def handle_user_message(msg: TracedMessage):
         logger.info(
             f"Classification completed in {response.metrics.latency_ms:.2f} ms, target agent: {target_agent}, classifier version: {settings.classifier_version}"
         )
-        triage_to_agent_messages = [
-            {
-                "role": "user",
-                "content": f"{conversation_string} \n{target_agent}: ",
-            }
-        ]
-
         if target_agent != TargetAgent.ChattyAgent:
-            logger.info(f"Routing message to {target_agent}")
-
-            with tracer.start_as_current_span("publish_to_agent") as publish_span:
-                child_traceparent, child_tracestate = format_span_as_traceparent(
-                    publish_span
-                )
-                await agents_channel.publish(
-                    TracedMessage(
-                        type=AGENT_REGISTRY[target_agent]["message_type"],
-                        source="TriageAgent",
-                        data={
-                            "chat_messages": triage_to_agent_messages,
-                            "message_id": msg.id,
-                            "connection_id": connection_id,
-                        },
-                        traceparent=child_traceparent,
-                        tracestate=child_tracestate,
-                    )
-                )
+            await _publish_to_agent(conversation_string, target_agent, msg)
         else:
-            with tracer.start_as_current_span("chatty_stream_response") as stream_span:
-                child_traceparent, child_tracestate = format_span_as_traceparent(
-                    stream_span
-                )
-
-                stream_message_id = str(
-                    msg.id
-                )  # Use the same message ID for the stream
-
-                await human_stream_channel.publish(
-                    TracedMessage(
-                        type="agent_message_stream_start",
-                        source="TriageAgent",
-                        data={
-                            "message_id": stream_message_id,
-                            "connection_id": connection_id,
-                        },
-                        traceparent=child_traceparent,
-                        tracestate=child_tracestate,
-                    )
-                )
-
-                chunks = chatty(chat_history=conversation_string)
-                chunk_count = 0
-
-                async for chunk in chunks:
-                    if isinstance(chunk, dspy.streaming.StreamResponse):
-                        chunk_count += 1
-                        await human_stream_channel.publish(
-                            TracedMessage(
-                                type="agent_message_stream_chunk",
-                                source="TriageAgent",
-                                data={
-                                    "message_chunk": chunk.chunk,
-                                    "message_id": stream_message_id,
-                                    "chunk_index": chunk_count,
-                                    "connection_id": connection_id,
-                                },
-                                traceparent=child_traceparent,
-                                tracestate=child_tracestate,
-                            )
-                        )
-                        logger.info(f"Chunk {chunk_count} sent: {chunk.chunk}")
-                    elif isinstance(chunk, dspy.Prediction):
-                        # FIXME: with short prompts, sometime dspy is not trimming off the " [[ ## completed ## ]]", we will do it manually there
-                        chunk.response = chunk.response.replace(
-                            " [[ ## completed ## ]]", ""
-                        )
-
-                        await human_stream_channel.publish(
-                            TracedMessage(
-                                type="agent_message_stream_end",
-                                source="TriageAgent",
-                                data={
-                                    "message_id": stream_message_id,
-                                    "agent": "TriageAgent",
-                                    "connection_id": connection_id,
-                                    "message": chunk.response,
-                                },
-                                traceparent=child_traceparent,
-                                tracestate=child_tracestate,
-                            )
-                        )
-                        logger.info(
-                            f"Stream ended for message {stream_message_id}: {chunk.response}"
-                        )
+            await _stream_chatty_response(conversation_string, msg)
 
     except Exception as e:
         logger.error(f"Error processing message: {e}", exc_info=True)
