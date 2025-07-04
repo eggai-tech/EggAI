@@ -1,28 +1,38 @@
 """Guardrails for content moderation."""
 
+"""Optional content moderation using Guardrails."""
+
 from guardrails import AsyncGuard
-from guardrails.hub import ToxicLanguage
 
 from libraries.logger import get_console_logger
 
-from .types import GuardrailsConfig
-
 logger = get_console_logger("frontend_agent")
 
-# Default configuration
-default_config = GuardrailsConfig(
-    enabled=True, toxic_language_threshold=0.5, validation_method="sentence"
-)
+try:
+    from guardrails.hub import ToxicLanguage
+except ImportError:
+    logger.warning("ToxicLanguage validator not found in guardrails.hub; disabling guardrails")
+    ToxicLanguage = None
 
-_toxic_language_guard = AsyncGuard().use(
-    ToxicLanguage,
-    threshold=default_config.toxic_language_threshold,
-    validation_method=default_config.validation_method,
-    on_fail="noop",
-)
+_toxic_language_guard = None
+if ToxicLanguage:
+    _toxic_language_guard = AsyncGuard().use(
+        ToxicLanguage,
+        threshold=0.5,
+        validation_method="sentence",
+        on_fail="noop",
+    )
 
 
-async def toxic_language_guard(text: str):
+async def toxic_language_guard(text: str) -> str | None:
+    """
+    Validate and filter text via ToxicLanguage guardrail.
+
+    Returns the sanitized text if passed, otherwise None.
+    If ToxicLanguage is unavailable, returns text unchanged.
+    """
+    if _toxic_language_guard is None:
+        return text
     result = await _toxic_language_guard.validate(text)
     if result.validation_passed is False:
         return None

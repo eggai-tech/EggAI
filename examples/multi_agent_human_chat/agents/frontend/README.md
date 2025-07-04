@@ -71,6 +71,26 @@ Optional content moderation can be enabled through the Guardrails module:
 - Content filtering for harmful content
 - Response appropriateness checks
 
+## Environment Variables
+
+The Frontend Agent supports the following environment variables (all with the `FRONTEND_` prefix):
+
+- `HOST` (default: `127.0.0.1`)
+- `PORT` (default: `8000`)
+- `LOG_LEVEL` (default: `info`)
+- `WEBSOCKET_PATH` (default: `/ws`)
+- `WEBSOCKET_PING_INTERVAL` (default: `30.0`)
+- `WEBSOCKET_PING_TIMEOUT` (default: `10.0`)
+- `KAFKA_BOOTSTRAP_SERVERS` (default: `localhost:19092`)
+- `KAFKA_TOPIC_PREFIX` (default: `eggai`)
+- `KAFKA_REBALANCE_TIMEOUT_MS` (default: `20000`)
+- `KAFKA_CA_CONTENT` (default: empty)
+- `OTEL_ENDPOINT` (default: `http://localhost:4318`)
+- `TRACING_ENABLED` (default: `True`)
+- `PROMETHEUS_METRICS_PORT` (default: `9097`)
+- `PUBLIC_DIR` (default: `<path to public directory>`)
+- `GUARDRAILS_TOKEN` (no default; enables Guardrails moderation when set)
+
 ## Development
 
 ### Testing

@@ -1,36 +1,40 @@
 """Frontend agent tests."""
 
+# Standard library imports
 import asyncio
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
+# Third-party imports
 import pytest
 from eggai import Channel
 from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI
 from starlette.websockets import WebSocket, WebSocketState
 
-# Set up Kafka transport before any agents or channels are created
-from agents.frontend.config import settings
+from agents.frontend.types import MessageType
 from libraries.kafka_transport import create_kafka_transport
+from libraries.tracing import TracedMessage
 
+from ..agent import (
+    add_websocket_gateway,
+    frontend_agent,
+    handle_human_messages,
+    handle_human_stream_messages,
+    websocket_manager,
+)
+
+# Internal imports
+from ..config import settings
+from ..websocket_manager import WebSocketManager
+
+# Initialize default transport for tests
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
         ssl_cert=settings.kafka_ca_content,
     )
 )
-
-from agents.frontend.agent import (
-    add_websocket_gateway,
-    handle_human_messages,
-    handle_human_stream_messages,
-    messages_cache,
-)
-from agents.frontend.websocket_manager import WebSocketManager
-from libraries.tracing import TracedMessage
-
-from ..agent import frontend_agent, websocket_manager
 
 pytestmark = pytest.mark.asyncio
 
@@ -94,7 +98,7 @@ async def test_frontend_agent():
     # Create a test message
     test_message = TracedMessage(
         id=message_id,
-        type="agent_message",
+        type=MessageType.AGENT_MESSAGE.value,
         source="triage_agent",
         data={
             "message": "Hello, how can I help you?",
@@ -115,7 +119,7 @@ async def test_frontend_agent():
         {
             "sender": "TriageAgent",
             "content": "Hello, how can I help you?",
-            "type": "assistant_message",
+            "type": MessageType.ASSISTANT_MESSAGE.value,
         },
     )
 
@@ -135,7 +139,7 @@ async def test_handle_human_stream_messages_start():
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message_stream_start",
+            type=MessageType.AGENT_MESSAGE_STREAM_START.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -150,7 +154,7 @@ async def test_handle_human_stream_messages_start():
             {
                 "sender": "TestAgent",
                 "content": "",
-                "type": "assistant_message_stream_start",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_START.value,
             },
         )
 
@@ -166,7 +170,7 @@ async def test_handle_human_stream_messages_chunk():
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message_stream_chunk",
+            type=MessageType.AGENT_MESSAGE_STREAM_CHUNK.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -184,7 +188,7 @@ async def test_handle_human_stream_messages_chunk():
                 "sender": "TestAgent",
                 "content": "Hello",
                 "chunk_index": 1,
-                "type": "assistant_message_stream_chunk",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_CHUNK.value,
             },
         )
 
@@ -195,15 +199,15 @@ async def test_handle_human_stream_messages_end():
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
 
-    # Initialize messages cache
-    messages_cache[connection_id] = []
+    # Initialize chat history cache
+    websocket_manager.chat_messages[connection_id] = []
 
     with patch.object(
         websocket_manager, "send_message_to_connection", new_callable=AsyncMock
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message_stream_end",
+            type=MessageType.AGENT_MESSAGE_STREAM_END.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -214,17 +218,17 @@ async def test_handle_human_stream_messages_end():
 
         await handle_human_stream_messages(message)
 
-        # Check message was added to cache
-        assert len(messages_cache[connection_id]) == 1
-        assert messages_cache[connection_id][0]["content"] == "Complete response"
-        assert messages_cache[connection_id][0]["agent"] == "TestAgent"
+        # Check message was added to chat history
+        assert len(websocket_manager.chat_messages[connection_id]) == 1
+        assert websocket_manager.chat_messages[connection_id][0]["content"] == "Complete response"
+        assert websocket_manager.chat_messages[connection_id][0]["agent"] == "TestAgent"
 
         mock_send.assert_called_once_with(
             connection_id,
             {
                 "sender": "TestAgent",
                 "content": "Complete response",
-                "type": "assistant_message_stream_end",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_END.value,
             },
         )
 
@@ -240,7 +244,7 @@ async def test_handle_human_stream_messages_waiting():
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message_stream_waiting_message",
+            type=MessageType.AGENT_MESSAGE_STREAM_WAITING_MESSAGE.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -256,7 +260,7 @@ async def test_handle_human_stream_messages_waiting():
             {
                 "sender": "TestAgent",
                 "content": "Please wait...",
-                "type": "assistant_message_stream_waiting_message",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_WAITING_MESSAGE.value,
             },
         )
 
@@ -267,15 +271,15 @@ async def test_handle_human_messages():
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
 
-    # Initialize messages cache
-    messages_cache[connection_id] = []
+    # Initialize chat history cache
+    websocket_manager.chat_messages[connection_id] = []
 
     with patch.object(
         websocket_manager, "send_message_to_connection", new_callable=AsyncMock
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message",
+            type=MessageType.AGENT_MESSAGE.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -287,17 +291,17 @@ async def test_handle_human_messages():
 
         await handle_human_messages(message)
 
-        # Check message was added to cache
-        assert len(messages_cache[connection_id]) == 1
-        assert messages_cache[connection_id][0]["content"] == "Hello user"
-        assert messages_cache[connection_id][0]["agent"] == "TestAgent"
+        # Check message was added to chat history
+        assert len(websocket_manager.chat_messages[connection_id]) == 1
+        assert websocket_manager.chat_messages[connection_id][0]["content"] == "Hello user"
+        assert websocket_manager.chat_messages[connection_id][0]["agent"] == "TestAgent"
 
         mock_send.assert_called_once_with(
             connection_id,
             {
                 "sender": "TestAgent",
                 "content": "Hello user",
-                "type": "assistant_message",
+                "type": MessageType.ASSISTANT_MESSAGE.value,
             },
         )
 
@@ -308,9 +312,8 @@ async def test_handle_human_messages_new_connection():
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
 
-    # Ensure connection not in cache
-    if connection_id in messages_cache:
-        del messages_cache[connection_id]
+    # Ensure chat history is empty for new connection
+    websocket_manager.chat_messages.pop(connection_id, None)
 
     with patch.object(
         websocket_manager, "send_message_to_connection", new_callable=AsyncMock
@@ -329,10 +332,10 @@ async def test_handle_human_messages_new_connection():
 
         await handle_human_messages(message)
 
-        # Check cache was initialized and message added
-        assert connection_id in messages_cache
-        assert len(messages_cache[connection_id]) == 1
-        assert messages_cache[connection_id][0]["content"] == "Welcome"
+        # Check chat history cache was initialized and message added
+        assert connection_id in websocket_manager.chat_messages
+        assert len(websocket_manager.chat_messages[connection_id]) == 1
+        assert websocket_manager.chat_messages[connection_id][0]["content"] == "Welcome"
 
 
 def test_add_websocket_gateway(test_app, mock_server):
@@ -568,5 +571,5 @@ def test_websocket_manager_initialization():
     assert isinstance(manager.active_connections, dict)
     assert isinstance(manager.message_buffers, dict)
     assert isinstance(manager.message_ids, dict)
-    assert isinstance(manager.streaming_messages, dict)
+    assert isinstance(manager.chat_messages, dict)
     assert len(manager.active_connections) == 0
