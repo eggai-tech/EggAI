@@ -26,13 +26,17 @@ eggai_set_default_transport(
     )
 )
 
+from agents.escalation.constants import (
+    AGENT_NAME,
+    MSG_TYPE_STREAM_END,
+    MSG_TYPE_TICKETING_REQUEST,
+)
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
 
 from ..agent import ticketing_agent as escalation_agent
 from ..types import ChatMessage
-from agents.escalation.constants import MSG_TYPE_STREAM_END, AGENT_NAME, MSG_TYPE_TICKETING_REQUEST
 
 # Configure logger
 logger = get_console_logger("escalation_agent.tests")

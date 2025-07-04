@@ -14,13 +14,14 @@ import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 
-from ..types import DspyModelConfig, TicketDepartment, TicketInfo
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedReAct,
     create_tracer,
     traced_dspy_function,
 )
+
+from ..types import DspyModelConfig, TicketDepartment, TicketInfo
 
 logger = get_console_logger("escalation_agent.dspy")
 

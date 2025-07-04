@@ -15,23 +15,25 @@ from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry import trace
 
-from .config import settings
-from .dspy_modules.escalation import escalation_optimized_dspy
-from .types import ChatMessage, DspyModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
 from libraries.tracing.otel import safe_set_attribute
 
-
+from .config import settings
 from .constants import (
     AGENT_NAME,
-    MSG_TYPE_TICKETING_REQUEST,
-    MSG_TYPE_STREAM_START,
+    GROUP_ID,
     MSG_TYPE_STREAM_CHUNK,
     MSG_TYPE_STREAM_END,
-    GROUP_ID,
+    MSG_TYPE_STREAM_START,
+    MSG_TYPE_TICKETING_REQUEST,
 )
+
+# Configure per-module logger
+logger = get_console_logger(AGENT_NAME)
+from .dspy_modules.escalation import escalation_optimized_dspy
+from .types import ChatMessage, DspyModelConfig
 
 ticketing_agent = Agent(name=AGENT_NAME)
 agents_channel = Channel(channels.agents)
@@ -139,7 +141,7 @@ async def process_escalation_request(
                             data={
                                 "message_id": message_id,
                                 "message": response,
-                                "agent": "TicketingAgent",
+                                "agent": AGENT_NAME,
                                 "connection_id": connection_id,
                             },
                             traceparent=child_traceparent,
@@ -156,7 +158,7 @@ async def process_escalation_request(
                     data={
                         "message_id": message_id,
                         "message": "I'm sorry, I encountered an error while processing your request.",
-                        "agent": "TicketingAgent",
+                        "agent": AGENT_NAME,
                         "connection_id": connection_id,
                     },
                     traceparent=child_traceparent,
