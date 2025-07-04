@@ -10,16 +10,16 @@ from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
 from agents.billing.config import settings
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
+from agents.billing.dspy_modules.evaluation.metrics import precision_metric
 from agents.billing.tests.utils import (
     get_test_cases,
     setup_mlflow_tracking,
     wait_for_agent_response,
 )
 from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
-from agents.billing.dspy_modules.evaluation.metrics import precision_metric
+from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
 
 logger = get_console_logger("billing_agent.tests.agent")

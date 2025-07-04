@@ -8,13 +8,13 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
-from .dspy_modules.billing import billing_optimized_dspy
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
 
 from .config import settings
+from .dspy_modules.billing import billing_optimized_dspy
 from .types import MESSAGE_TYPE_BILLING_REQUEST, ChatMessage
 from .utils import get_conversation_string, process_billing_request
 

@@ -7,12 +7,12 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Channel
 
-from .dspy_modules.billing import billing_optimized_dspy
 from libraries.channels import channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, format_span_as_traceparent
 from libraries.tracing.otel import safe_set_attribute
 
+from .dspy_modules.billing import billing_optimized_dspy
 from .types import ChatMessage, ModelConfig
 
 # Default human stream channel for the Billing Agent
