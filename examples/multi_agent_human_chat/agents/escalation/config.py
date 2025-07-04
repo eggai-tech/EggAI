@@ -6,12 +6,9 @@ This module contains settings and configuration parameters for the escalation ag
 
 from typing import Optional
 
-from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Load environment variables at module level
-load_dotenv()
 
 
 class Settings(BaseSettings):
