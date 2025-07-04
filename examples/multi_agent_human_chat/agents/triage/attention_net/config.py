@@ -5,7 +5,6 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-
 class AttentionNetSettings(BaseSettings):
     # Model configuration
     n_classes: int = Field(default=5)

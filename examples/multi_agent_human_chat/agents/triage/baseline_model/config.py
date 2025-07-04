@@ -6,7 +6,6 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-
 class FewshotSettings(BaseSettings):
     # Model configuration
     n_classes: int = Field(default=5)

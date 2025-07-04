@@ -1,4 +1,7 @@
 """Triage agent handler: classify user messages and route or stream responses."""
+import importlib
+from typing import Any, Callable, Dict, List
+
 import dspy.streaming
 from eggai import Agent, Channel
 from opentelemetry import trace
@@ -6,8 +9,6 @@ from opentelemetry import trace
 from agents.triage.config import settings
 from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import AGENT_REGISTRY, TargetAgent
-import importlib
-from typing import Callable, Any, List, Dict
 from libraries.channels import channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
@@ -22,6 +23,21 @@ _CLASSIFIER_PATHS = {
     "v4": ("agents.triage.dspy_modules.classifier_v4", "classifier_v4"),
     "v5": ("agents.triage.attention_net.classifier_v5", "classifier_v5"),
 }
+
+def build_conversation_string(chat_messages: List[Dict[str, str]]) -> str:
+    """
+    Build a conversation history string from a list of chat entries.
+    Each entry is formatted as 'AgentName: content' on its own line.
+    Only entries with non-empty content are included, and a trailing newline
+    is added if there is at least one message.
+    """
+    lines: List[str] = []
+    for chat in chat_messages:
+        user = chat.get("agent", "User")
+        content = chat.get("content", "")
+        if content:
+            lines.append(f"{user}: {content}")
+    return "\n".join(lines) + ("\n" if lines else "")
 
 async def _publish_to_agent(
     conversation_string: str, target_agent: TargetAgent, msg: TracedMessage
@@ -121,9 +137,7 @@ async def _stream_chatty_response(
                         tracestate=child_tracestate,
                     )
                 )
-                logger.info(
-
-
+                # end of streaming logic
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel(channels.human)
 human_stream_channel = Channel(channels.human_stream)
