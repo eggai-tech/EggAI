@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 import json
+import shutil
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
@@ -315,6 +316,7 @@ def save_package_to_zip(
     deployment_mode: str = "local",
     node_count: int = 1,
     hosts: Optional[List[Dict[str, str]]] = None,
+    services_xml: Optional[Path] = None,
 ) -> Path:
     """Save the application package as a zip file with deployment configurations.
 
@@ -342,12 +344,21 @@ def save_package_to_zip(
             redundancy = min(node_count, 2)  # Max redundancy of 2 for small clusters
 
             # Override services.xml with multi-node configuration
-            services_xml = create_services_xml(node_count, redundancy)
-            services_path = temp_path / "services.xml"
-            services_path.write_text(services_xml)
-            logger.info(
-                f"Created custom services.xml for {node_count} nodes with redundancy {redundancy}"
-            )
+            if services_xml and services_xml.exists():
+                # Use provided services.xml path if available
+                logger.info(f"Using provided services.xml from {services_xml}")
+                shutil.copy(services_xml, temp_path / "services.xml")
+            else:
+                # Create a custom services.xml based on node count and redundancy
+                logger.info(
+                    f"Creating custom services.xml for {node_count} nodes with redundancy {redundancy}"
+                )
+                services_xml = create_services_xml(node_count, redundancy)
+                services_path = temp_path / "services.xml"
+                services_path.write_text(services_xml)
+                logger.info(
+                    f"Created custom services.xml for {node_count} nodes with redundancy {redundancy}"
+                )
 
             # Create hosts.xml if hosts are provided
             if hosts:
@@ -394,6 +405,7 @@ def generate_package_artifacts(
     deployment_mode: str = "local",
     node_count: int = 1,
     hosts: Optional[List[Dict[str, str]]] = None,
+    services_xml: Optional[Path] = None,
 ) -> tuple[Path, Path]:
     """Generate Vespa package artifacts.
 
@@ -416,7 +428,7 @@ def generate_package_artifacts(
 
     # Save as zip file with deployment configurations
     zip_path = save_package_to_zip(
-        app_package, output_dir, deployment_mode, node_count, hosts
+        app_package, output_dir, deployment_mode, node_count, hosts, services_xml
     )
 
     # Create metadata
@@ -503,6 +515,12 @@ def main():
         help="JSON file with host configurations for production deployment",
     )
 
+    parser.add_argument(
+        "--services-xml",
+        type=Path,
+        help="XML file with services configurations for production deployment",
+    )
+
     args = parser.parse_args()
 
     # Load hosts configuration if provided
@@ -534,6 +552,7 @@ def main():
             deployment_mode=args.deployment_mode,
             node_count=args.node_count,
             hosts=hosts,
+            services_xml=args.services_xml,
         )
 
         print()

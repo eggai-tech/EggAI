@@ -32,7 +32,7 @@ The agent monitors system communication and generates audit logs:
 MESSAGE_CATEGORIES = {
     "agent_message": "User Communication",
     "billing_request": "Billing",
-    "policy_request": "Policies", 
+    "policy_request": "Policies",
     "escalation_request": "Escalation",
     "triage_request": "Triage",
 }
