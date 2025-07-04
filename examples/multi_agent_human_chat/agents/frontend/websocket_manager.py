@@ -1,13 +1,16 @@
 """WebSocket connection manager for the frontend agent."""
 
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, Any
 
 from starlette.websockets import WebSocket, WebSocketState
 
+from libraries.logger import get_console_logger
+
 
 class WebSocketManager:
-    def __init__(self):
+    def __init__(self) -> None:
+        self.logger = get_console_logger("websocket_manager")
         self.active_connections: Dict[str, WebSocket] = {}
         self.message_buffers: Dict[str, list] = defaultdict(list)
         self.message_ids: Dict[str, str] = defaultdict(str)
@@ -60,23 +63,20 @@ class WebSocketManager:
         self, connection_id: str, message_data: dict
     ) -> None:
         """Send a JSON message to a connection, buffering if it's not active."""
-        from libraries.logger import get_console_logger
 
-        logger = get_console_logger("websocket_manager")
-
-        logger.info(f"Sending message to connection {connection_id}: {message_data}")
+        self.logger.info(f"Sending message to connection {connection_id}: {message_data}")
         connection = self.active_connections.get(connection_id)
         if connection is not None:
             try:
                 await connection.send_json(message_data)
-                logger.info(f"Message sent successfully to connection {connection_id}")
+                self.logger.info(f"Message sent successfully to connection {connection_id}")
             except Exception as e:
-                logger.error(
+                self.logger.error(
                     f"Error sending message to connection {connection_id}: {e}",
                     exc_info=True,
                 )
         else:
-            logger.warning(f"Connection {connection_id} not found, buffering message")
+            self.logger.warning(f"Connection {connection_id} not found, buffering message")
             self.message_buffers[connection_id].append(message_data)
 
     async def attach_message_id(self, message_id: str, connection_id: str) -> None:
