@@ -6,6 +6,17 @@ from opentelemetry import trace
 from agents.triage.config import settings
 from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import AGENT_REGISTRY, TargetAgent
+import importlib
+
+# Lazy-loaded classifier registry: maps version to (module path, function name)
+_CLASSIFIER_PATHS = {
+    "v0": ("agents.triage.dspy_modules.classifier_v0", "classifier_v0"),
+    "v1": ("agents.triage.dspy_modules.classifier_v1", "classifier_v1"),
+    "v2": ("agents.triage.dspy_modules.classifier_v2.classifier_v2", "classifier_v2"),
+    "v3": ("agents.triage.baseline_model.classifier_v3", "classifier_v3"),
+    "v4": ("agents.triage.dspy_modules.classifier_v4", "classifier_v4"),
+    "v5": ("agents.triage.attention_net.classifier_v5", "classifier_v5"),
+}
 from libraries.channels import channels
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
@@ -33,32 +44,12 @@ logger = get_console_logger("triage_agent.handler")
 
 
 def get_current_classifier():
-    if settings.classifier_version == "v0":
-        from agents.triage.dspy_modules.classifier_v0 import classifier_v0
-
-        return classifier_v0
-    if settings.classifier_version == "v1":
-        from agents.triage.dspy_modules.classifier_v1 import classifier_v1
-
-        return classifier_v1
-    elif settings.classifier_version == "v2":
-        from agents.triage.dspy_modules.classifier_v2.classifier_v2 import classifier_v2
-
-        return classifier_v2
-    elif settings.classifier_version == "v3":
-        from agents.triage.baseline_model.classifier_v3 import classifier_v3
-
-        return classifier_v3
-    elif settings.classifier_version == "v4":
-        from agents.triage.dspy_modules.classifier_v4 import classifier_v4
-
-        return classifier_v4
-    elif settings.classifier_version == "v5":
-        from agents.triage.attention_net.classifier_v5 import classifier_v5
-
-        return classifier_v5
-    else:
+    try:
+        module_path, fn_name = _CLASSIFIER_PATHS[settings.classifier_version]
+    except KeyError:
         raise ValueError(f"Unknown classifier version: {settings.classifier_version}")
+    module = importlib.import_module(module_path)
+    return getattr(module, fn_name)
 
 
 current_classifier = get_current_classifier()
