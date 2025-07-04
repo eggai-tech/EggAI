@@ -1,5 +1,3 @@
-import asyncio
-
 import dspy.streaming
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
@@ -196,16 +194,3 @@ async def handle_others(msg: TracedMessage):
     logger.debug("Received message: %s", msg)
 
 
-if __name__ == "__main__":
-
-    async def run():
-        print("Testing chunked chatty:")
-        chunks = chatty(chat_history="User: Hello!")
-        async for chunk in chunks:
-            if isinstance(chunk, dspy.streaming.StreamResponse):
-                print(chunk.chunk, end="")
-            elif isinstance(chunk, dspy.Prediction):
-                print("")
-                print(chunk.get_lm_usage())
-
-    asyncio.run(run())
