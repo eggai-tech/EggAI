@@ -1,7 +1,7 @@
 """Tests for test fixtures and setup functions to improve coverage."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
 from eggai import Agent, Channel
 
 from agents.billing.tests.test_agent import setup_kafka_transport, test_components
