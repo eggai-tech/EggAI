@@ -1,76 +1,20 @@
 """Claims data store and tools for claim operations."""
 
 import json
-import re
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Tuple
 
-from pydantic import BaseModel, Field, field_validator
+from agents.claims.types import ClaimRecord
 
+# Logging and tracing setup
 from libraries.logger import get_console_logger
 from libraries.tracing import create_tracer
 from libraries.tracing.otel import safe_set_attribute
 
 from .claims_errors import ErrorCategory, ErrorResponse, get_user_friendly_error
+from .claims_validators import ALLOWED_FIELDS, FIELD_VALIDATORS, FieldValidators
 
 logger = get_console_logger("claims_agent.data")
 tracer = create_tracer("claims_agent_data")
-
-
-class ClaimRecord(BaseModel):
-    """Data structure for an insurance claim record with validation."""
-
-    claim_number: str = Field(..., description="Unique identifier for the claim")
-    policy_number: str = Field(
-        ..., description="Policy number associated with the claim"
-    )
-    status: str = Field(..., description="Current status of the claim")
-    next_steps: str = Field(..., description="Next steps required for claim processing")
-    outstanding_items: List[str] = Field(
-        default_factory=list, description="Items pending for claim processing"
-    )
-    estimate: Optional[float] = Field(None, description="Estimated payout amount", gt=0)
-    estimate_date: Optional[str] = Field(
-        None, description="Estimated date for payout (YYYY-MM-DD)"
-    )
-    details: Optional[str] = Field(
-        None, description="Detailed description of the claim"
-    )
-    address: Optional[str] = Field(None, description="Address related to the claim")
-    phone: Optional[str] = Field(None, description="Contact phone number")
-    damage_description: Optional[str] = Field(
-        None, description="Description of damage or loss"
-    )
-    contact_email: Optional[str] = Field(None, description="Contact email address")
-
-    @field_validator("estimate_date")
-    @classmethod
-    def validate_date_format(cls, v):
-        """Validate date is in YYYY-MM-DD format."""
-        if v is None:
-            return v
-        if not re.match(r"^\d{4}-\d{2}-\d{2}$", v):
-            raise ValueError("Date must be in YYYY-MM-DD format")
-        return v
-
-    @field_validator("phone")
-    @classmethod
-    def validate_phone(cls, v):
-        """Validate phone number format."""
-        if v is None:
-            return v
-        # Simple validation - could be enhanced with country-specific patterns
-        if not re.match(r"^\+?[\d\-\(\) ]{7,}$", v):
-            raise ValueError("Invalid phone number format")
-        return v
-
-    def to_dict(self) -> Dict:
-        """Convert claim record to dictionary, excluding None values."""
-        return {k: v for k, v in self.model_dump().items() if v is not None}
-
-    def to_json(self) -> str:
-        """Convert claim record to JSON string."""
-        return json.dumps(self.to_dict())
-
 
 # Sample in-memory claims database
 CLAIMS_DATABASE = [
@@ -216,77 +160,6 @@ def file_claim(policy_number: str, claim_details: str) -> str:
         return format_error_response(ErrorResponse.GENERIC_ERROR)
 
 
-# Field validators registry
-class FieldValidators:
-    """Validation functions for claim fields."""
-
-    @staticmethod
-    def validate_estimate(value: str) -> Tuple[bool, Optional[Union[str, float]]]:
-        """Validate estimate field value."""
-        try:
-            amount = float(value)
-            if amount < 0:
-                return False, "Estimate cannot be negative"
-            return True, amount
-        except ValueError:
-            return False, "Estimate must be a valid number"
-
-    @staticmethod
-    def validate_date(value: str) -> Tuple[bool, Optional[str]]:
-        """Validate date field value."""
-        if not (value.count("-") == 2 and len(value) >= 8):
-            return False, "Date must be in YYYY-MM-DD format"
-        try:
-            # Basic validation that could be expanded
-            year, month, day = value.split("-")
-            if not (
-                1900 <= int(year) <= 2100
-                and 1 <= int(month) <= 12
-                and 1 <= int(day) <= 31
-            ):
-                return False, "Date values out of range"
-            return True, value
-        except ValueError:
-            return False, "Invalid date format, use YYYY-MM-DD"
-
-    @staticmethod
-    def validate_items_list(value: str) -> Tuple[bool, Optional[List[str]]]:
-        """Validate a comma-separated list of items."""
-        if not value or not value.strip():
-            return False, "Please provide at least one item"
-        items = [item.strip() for item in value.split(",") if item.strip()]
-        if not items:
-            return False, "Please provide at least one item"
-        return True, items
-
-    @staticmethod
-    def validate_text(value: str) -> Tuple[bool, Optional[str]]:
-        """Validate and sanitize text fields."""
-        clean_value = value.strip()
-        if not clean_value:
-            return False, "Value cannot be empty"
-        if len(clean_value) > 1000:  # Set reasonable limit
-            return False, "Value is too long (max 1000 characters)"
-        return True, clean_value
-
-
-# Field validation registry
-FIELD_VALIDATORS = {
-    "estimate": FieldValidators.validate_estimate,
-    "estimate_date": FieldValidators.validate_date,
-    "outstanding_items": FieldValidators.validate_items_list,
-    "policy_number": FieldValidators.validate_text,
-    "status": FieldValidators.validate_text,
-    "details": FieldValidators.validate_text,
-    "address": FieldValidators.validate_text,
-    "phone": FieldValidators.validate_text,
-    "damage_description": FieldValidators.validate_text,
-    "contact_email": FieldValidators.validate_text,
-    "next_steps": FieldValidators.validate_text,
-}
-
-# Explicitly allowed fields to update
-ALLOWED_FIELDS = list(FIELD_VALIDATORS.keys())
 
 
 @tracer.start_as_current_span("update_field_value")
