@@ -156,31 +156,104 @@ current_classifier = get_current_classifier()
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage) -> None:
     """
-    Handle incoming user messages: classify and route or stream chatty responses.
+    Main handler for user messages: classify and route or stream chatty responses.
 
-    Extracts the chat history, invokes the current classifier, and delegates to
-    publishing or streaming helpers based on the target agent.
+    Validates input, invokes the selected classifier, and delegates to single-message
+    or streaming helpers. Errors are caught per stage and result in a user-friendly
+    agent_message or stream-end message.
     """
-    try:
-        chat_messages = msg.data.get("chat_messages", [])
-        connection_id = msg.data.get("connection_id", "unknown")
+    chat_messages: List[Dict[str, Any]] = msg.data.get("chat_messages", [])
+    connection_id: str = msg.data.get("connection_id", "unknown")
 
-        logger.info(f"Received message from connection {connection_id}")
-        conversation_string = build_conversation_string(chat_messages)
-
-        response = current_classifier(chat_history=conversation_string)
-        target_agent = response.target_agent
-
-        logger.info(
-            f"Classification completed in {response.metrics.latency_ms:.2f} ms, target agent: {target_agent}, classifier version: {settings.classifier_version}"
+    logger.info(f"Received message from connection {connection_id}")
+    if not chat_messages:
+        logger.warning("Empty chat history for connection %s", connection_id)
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="TriageAgent",
+                data={
+                    "message": "Sorry, I didn't receive any message to process.",
+                    "connection_id": connection_id,
+                    "agent": "TriageAgent",
+                },
+            )
         )
-        if target_agent != TargetAgent.ChattyAgent:
-            await _publish_to_agent(conversation_string, target_agent, msg)
-        else:
-            await _stream_chatty_response(conversation_string, msg)
+        return
 
+    conversation_string = build_conversation_string(chat_messages)
+
+    try:
+        response = current_classifier(chat_history=conversation_string)
+    except ValueError as e:
+        logger.error("Classifier configuration error: %s", e)
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="TriageAgent",
+                data={
+                    "message": f"Configuration error: {e}",
+                    "connection_id": connection_id,
+                    "agent": "TriageAgent",
+                },
+            )
+        )
+        return
     except Exception as e:
-        logger.error(f"Error processing message: {e}", exc_info=True)
+        logger.error("Error during classification: %s", e, exc_info=True)
+        await human_channel.publish(
+            TracedMessage(
+                type="agent_message",
+                source="TriageAgent",
+                data={
+                    "message": "Sorry, I encountered an error while classifying your message.",
+                    "connection_id": connection_id,
+                    "agent": "TriageAgent",
+                },
+            )
+        )
+        return
+
+    target_agent = response.target_agent
+    logger.info(
+        f"Classification completed in {response.metrics.latency_ms:.2f} ms, "
+        f"target agent: {target_agent}, classifier: {settings.classifier_version}"
+    )
+
+    if target_agent != TargetAgent.ChattyAgent:
+        try:
+            await _publish_to_agent(conversation_string, target_agent, msg)
+        except Exception as e:
+            logger.error("Error routing to agent %s: %s", target_agent, e, exc_info=True)
+            await human_channel.publish(
+                TracedMessage(
+                    type="agent_message",
+                    source="TriageAgent",
+                    data={
+                        "message": "Sorry, I couldn't route your request due to an internal error.",
+                        "connection_id": connection_id,
+                        "agent": "TriageAgent",
+                    },
+                )
+            )
+    else:
+        try:
+            await _stream_chatty_response(conversation_string, msg)
+        except Exception as e:
+            logger.error("Error streaming chatty response: %s", e, exc_info=True)
+            # End the stream with an apology
+            await human_stream_channel.publish(
+                TracedMessage(
+                    type="agent_message_stream_end",
+                    source="TriageAgent",
+                    data={
+                        "message_id": str(msg.id),
+                        "connection_id": connection_id,
+                        "agent": "TriageAgent",
+                        "message": "Sorry, I encountered an error generating a response.",
+                    },
+                )
+            )
 
 
 @triage_agent.subscribe(channel=human_channel)
