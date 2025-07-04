@@ -11,6 +11,7 @@ class WebSocketManager:
         self.active_connections: Dict[str, WebSocket] = {}
         self.message_buffers: Dict[str, list] = defaultdict(list)
         self.message_ids: Dict[str, str] = defaultdict(str)
+        self.chat_messages: Dict[str, list] = defaultdict(list)
 
     async def connect(self, websocket: WebSocket, connection_id: str):
         await websocket.accept()
@@ -47,6 +48,7 @@ class WebSocketManager:
                 # If closing fails, still remove from active connections
                 pass
         self.active_connections.pop(connection_id, None)
+        self.chat_messages.pop(connection_id, None)
 
     async def send_message_to_connection(self, connection_id: str, message_data: dict):
         from libraries.logger import get_console_logger

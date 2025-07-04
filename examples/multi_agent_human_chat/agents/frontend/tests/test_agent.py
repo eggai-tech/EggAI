@@ -25,7 +25,6 @@ from agents.frontend.agent import (
     add_websocket_gateway,
     handle_human_messages,
     handle_human_stream_messages,
-    messages_cache,
 )
 from agents.frontend.websocket_manager import WebSocketManager
 from libraries.tracing import TracedMessage
@@ -195,8 +194,8 @@ async def test_handle_human_stream_messages_end():
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
 
-    # Initialize messages cache
-    messages_cache[connection_id] = []
+    # Initialize chat history cache
+    websocket_manager.chat_messages[connection_id] = []
 
     with patch.object(
         websocket_manager, "send_message_to_connection", new_callable=AsyncMock
@@ -214,10 +213,10 @@ async def test_handle_human_stream_messages_end():
 
         await handle_human_stream_messages(message)
 
-        # Check message was added to cache
-        assert len(messages_cache[connection_id]) == 1
-        assert messages_cache[connection_id][0]["content"] == "Complete response"
-        assert messages_cache[connection_id][0]["agent"] == "TestAgent"
+        # Check message was added to chat history
+        assert len(websocket_manager.chat_messages[connection_id]) == 1
+        assert websocket_manager.chat_messages[connection_id][0]["content"] == "Complete response"
+        assert websocket_manager.chat_messages[connection_id][0]["agent"] == "TestAgent"
 
         mock_send.assert_called_once_with(
             connection_id,
@@ -267,8 +266,8 @@ async def test_handle_human_messages():
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
 
-    # Initialize messages cache
-    messages_cache[connection_id] = []
+    # Initialize chat history cache
+    websocket_manager.chat_messages[connection_id] = []
 
     with patch.object(
         websocket_manager, "send_message_to_connection", new_callable=AsyncMock
@@ -287,10 +286,10 @@ async def test_handle_human_messages():
 
         await handle_human_messages(message)
 
-        # Check message was added to cache
-        assert len(messages_cache[connection_id]) == 1
-        assert messages_cache[connection_id][0]["content"] == "Hello user"
-        assert messages_cache[connection_id][0]["agent"] == "TestAgent"
+        # Check message was added to chat history
+        assert len(websocket_manager.chat_messages[connection_id]) == 1
+        assert websocket_manager.chat_messages[connection_id][0]["content"] == "Hello user"
+        assert websocket_manager.chat_messages[connection_id][0]["agent"] == "TestAgent"
 
         mock_send.assert_called_once_with(
             connection_id,
@@ -308,9 +307,8 @@ async def test_handle_human_messages_new_connection():
     connection_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
 
-    # Ensure connection not in cache
-    if connection_id in messages_cache:
-        del messages_cache[connection_id]
+    # Ensure chat history is empty for new connection
+    websocket_manager.chat_messages.pop(connection_id, None)
 
     with patch.object(
         websocket_manager, "send_message_to_connection", new_callable=AsyncMock
@@ -329,10 +327,10 @@ async def test_handle_human_messages_new_connection():
 
         await handle_human_messages(message)
 
-        # Check cache was initialized and message added
-        assert connection_id in messages_cache
-        assert len(messages_cache[connection_id]) == 1
-        assert messages_cache[connection_id][0]["content"] == "Welcome"
+        # Check chat history cache was initialized and message added
+        assert connection_id in websocket_manager.chat_messages
+        assert len(websocket_manager.chat_messages[connection_id]) == 1
+        assert websocket_manager.chat_messages[connection_id][0]["content"] == "Welcome"
 
 
 def test_add_websocket_gateway(test_app, mock_server):

@@ -1,7 +1,6 @@
 import asyncio
 import os
 import uuid
-from collections import defaultdict
 
 import uvicorn
 from eggai import Agent, Channel
@@ -41,7 +40,6 @@ frontend_agent = Agent("FrontendAgent")
 human_channel = Channel("human")
 human_stream_channel = Channel("human_stream")
 websocket_manager = WebSocketManager()
-messages_cache = defaultdict(list)
 tracer = trace.get_tracer("frontend_agent")
 
 init_token_metrics(
@@ -61,9 +59,6 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
 
         if connection_id is None:
             connection_id = str(uuid.uuid4())
-
-        if connection_id not in messages_cache:
-            messages_cache[connection_id] = []
 
         # Create root span for the connection
         with tracer.start_as_current_span("frontend_chat", context=None) as root_span:
@@ -136,7 +131,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                         valid_content = content
 
                     await websocket_manager.attach_message_id(message_id, connection_id)
-                    messages_cache[connection_id].append(
+                    websocket_manager.chat_messages[connection_id].append(
                         {
                             "role": "user",
                             "content": valid_content,
@@ -151,7 +146,7 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
                             source="FrontendAgent",
                             type="user_message",
                             data={
-                                "chat_messages": messages_cache[connection_id],
+                                "chat_messages": websocket_manager.chat_messages[connection_id],
                                 "connection_id": connection_id,
                             },
                             traceparent=trace_parent,
@@ -209,7 +204,7 @@ async def handle_human_stream_messages(message: TracedMessage):
         )
     elif message_type == "agent_message_stream_end":
         final_content = message.data.get("message", "")
-        messages_cache[connection_id].append(
+        websocket_manager.chat_messages[connection_id].append(
             {
                 "role": "assistant",
                 "content": final_content,
@@ -235,12 +230,9 @@ async def handle_human_messages(message: TracedMessage):
     connection_id = message.data.get("connection_id")
     message_id = message.id
 
-    if connection_id not in messages_cache:
-        messages_cache[connection_id] = []
-
     if message_type == "agent_message":
         content = message.data.get("message")
-        messages_cache[connection_id].append(
+        websocket_manager.chat_messages[connection_id].append(
             {
                 "role": "assistant",
                 "content": content,
