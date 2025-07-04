@@ -12,6 +12,7 @@ from agents.billing.agent import (
     handle_other_messages,
     process_billing_request,
 )
+from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
 from libraries.tracing import TracedMessage
 
 
@@ -20,14 +21,13 @@ async def test_billing_agent_error_handling(monkeypatch):
     """Test error handling in billing agent."""
     load_dotenv()
 
-    def mock_billing_error(*args, **kwargs):
-        async def error_generator():
-            raise Exception("Billing module error")
-
-        return error_generator()
+    async def mock_billing_error(*args, **kwargs):
+        # This needs to be an async generator, not a coroutine
+        raise Exception("Billing module error")
+        yield  # Make this an async generator (unreachable, but defines the function type)
 
     monkeypatch.setattr(
-        "agents.billing.agent.billing_optimized_dspy", mock_billing_error
+        "agents.billing.utils.billing_optimized_dspy", mock_billing_error
     )
 
     from agents.billing.agent import human_stream_channel
@@ -37,7 +37,7 @@ async def test_billing_agent_error_handling(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="billing_request",
+        type=MESSAGE_TYPE_BILLING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [{"role": "user", "content": "What's my bill?"}],
@@ -70,7 +70,7 @@ async def test_billing_empty_chat_messages(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="billing_request",
+        type=MESSAGE_TYPE_BILLING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [],
@@ -103,7 +103,7 @@ async def test_billing_missing_connection_id(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="billing_request",
+        type=MESSAGE_TYPE_BILLING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [{"role": "user", "content": "test"}],
@@ -179,7 +179,7 @@ async def test_billing_missing_data_fields(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="billing_request",
+        type=MESSAGE_TYPE_BILLING_REQUEST,
         source="TestAgent",
         data={},
     )

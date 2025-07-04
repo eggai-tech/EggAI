@@ -10,55 +10,80 @@ from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
 from agents.billing.config import settings
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
-
-eggai_set_default_transport(
-    lambda: create_kafka_transport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content,
-    )
-)
-
-# Now that transport is configured, import the agent and other modules
-from agents.billing.agent import billing_agent
 from agents.billing.dspy_modules.evaluation.metrics import precision_metric
 from agents.billing.tests.utils import (
     get_test_cases,
     setup_mlflow_tracking,
     wait_for_agent_response,
 )
+from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
+from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
 
 logger = get_console_logger("billing_agent.tests.agent")
 
-# Create test channels and response queue
-test_agent = Agent("TestBillingAgent")
-test_channel = Channel("agents")
-human_channel = Channel("human")
-human_stream_channel = Channel("human_stream")
-response_queue = asyncio.Queue()
 
-# Configure language model for billing agent
-dspy_lm = dspy_set_language_model(settings, overwrite_cache_enabled=False)
+@pytest.fixture
+def setup_kafka_transport():
+    """Set up Kafka transport for tests."""
+    eggai_set_default_transport(
+        lambda: create_kafka_transport(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            ssl_cert=settings.kafka_ca_content,
+        )
+    )
+    yield
+    # Cleanup if needed
 
 
-@test_agent.subscribe(
-    channel=human_stream_channel,
-    filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
-    auto_offset_reset="latest",
-    group_id="test_billing_agent_group",
-)
-async def _handle_response(event):
-    """Handler for capturing agent responses."""
-    await response_queue.put(event)
+@pytest.fixture
+def test_components(setup_kafka_transport):
+    """Set up test components after Kafka transport is initialized."""
+    # Import billing agent after transport is set up
+    from agents.billing.agent import billing_agent
+    
+    # Create test channels and response queue
+    test_agent = Agent("TestBillingAgent")
+    test_channel = Channel("agents")
+    human_channel = Channel("human")
+    human_stream_channel = Channel("human_stream")
+    response_queue = asyncio.Queue()
+    
+    # Configure language model for billing agent
+    dspy_lm = dspy_set_language_model(settings, overwrite_cache_enabled=False)
+    
+    # Set up response handler
+    @test_agent.subscribe(
+        channel=human_stream_channel,
+        filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
+        auto_offset_reset="latest",
+        group_id="test_billing_agent_group",
+    )
+    async def _handle_response(event):
+        """Handler for capturing agent responses."""
+        await response_queue.put(event)
+    
+    return {
+        "billing_agent": billing_agent,
+        "test_agent": test_agent,
+        "test_channel": test_channel,
+        "human_channel": human_channel,
+        "human_stream_channel": human_stream_channel,
+        "response_queue": response_queue,
+        "dspy_lm": dspy_lm,
+    }
 
 
 @pytest.mark.asyncio
-async def test_billing_agent():
+async def test_billing_agent(test_components):
     """Test the billing agent with Kafka integration."""
-    # Transport was already set up at the top of the file
+    # Extract components from fixture
+    billing_agent = test_components["billing_agent"]
+    test_agent = test_components["test_agent"]
+    test_channel = test_components["test_channel"]
+    response_queue = test_components["response_queue"]
 
     # Get test cases
     test_cases = get_test_cases()
@@ -95,7 +120,7 @@ async def test_billing_agent():
                 await test_channel.publish(
                     TracedMessage(
                         id=message_id,
-                        type="billing_request",
+                        type=MESSAGE_TYPE_BILLING_REQUEST,
                         source="TestBillingAgent",
                         data={
                             "chat_messages": case["chat_messages"],

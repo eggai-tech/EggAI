@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+"""Billing agent configuration via environment and defaults."""
 load_dotenv()
 
 
@@ -17,19 +18,14 @@ class Settings(BaseSettings):
 
     # Kafka transport settings
     kafka_bootstrap_servers: str = Field(default="localhost:19092")
-    kafka_topic_prefix: str = Field(default="eggai")
-    kafka_rebalance_timeout_ms: int = Field(default=20000)
     kafka_ca_content: str = Field(default="")
 
     # Observability settings
     otel_endpoint: str = Field(default="http://localhost:4318")
-    tracing_enabled: bool = Field(default=True)
     prometheus_metrics_port: int = Field(
         default=9095, description="Port for Prometheus metrics server"
     )
 
-    # Billing specific settings
-    billing_database_path: str = Field(default="")
 
     model_config = SettingsConfigDict(
         env_prefix="BILLING_", env_file=".env", env_ignore_empty=True, extra="ignore"
@@ -37,3 +33,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+__all__ = ["Settings", "settings"]
