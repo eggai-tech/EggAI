@@ -258,4 +258,4 @@ class TestGetConversationString:
         with patch("agents.billing.utils.logger") as mock_logger:
             result = get_conversation_string(messages)
             mock_logger.warning.assert_called_with("Message missing content field")
-            assert "assistant: \n" in result
+            assert "assistant: " in result

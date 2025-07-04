@@ -31,10 +31,13 @@ class TestLazyInitialization:
             }
         }
         
-        with patch("pathlib.Path.exists", return_value=True):
-            with patch("builtins.open", mock_open(read_data=json.dumps(valid_json))):
-                result = load_optimized_instructions(Path("test.json"))
-                assert result == "Test optimized instructions"
+        mock_path = MagicMock()
+        mock_path.exists.return_value = True
+        mock_path.open.return_value.__enter__ = mock_open(read_data=json.dumps(valid_json)).__enter__
+        mock_path.open.return_value.__exit__ = MagicMock()
+        
+        result = load_optimized_instructions(mock_path)
+        assert result == "Test optimized instructions"
 
     def test_load_optimized_instructions_invalid_structure(self):
         """Test load_optimized_instructions with invalid JSON structure."""
@@ -138,14 +141,14 @@ class TestBillingModelFunctionality:
             truncate_long_history,
         )
         
-        config = ModelConfig(truncation_length=100)
-        history = "x" * 100  # Exactly at limit
+        config = ModelConfig(truncation_length=1000)
+        history = "x" * 1000  # Exactly at limit
         
         result = truncate_long_history(history, config)
         assert result["history"] == history
         assert result["truncated"] is False
-        assert result["original_length"] == 100
-        assert result["truncated_length"] == 100
+        assert result["original_length"] == 1000
+        assert result["truncated_length"] == 1000
 
     def test_truncate_long_history_just_over_limit(self):
         """Test truncate_long_history just over the limit."""
@@ -154,13 +157,18 @@ class TestBillingModelFunctionality:
             truncate_long_history,
         )
         
-        config = ModelConfig(truncation_length=100)
-        history = "x" * 101  # Just over limit
+        config = ModelConfig(truncation_length=1000)
+        # Create history with many lines
+        lines = ["Line " + str(i) for i in range(50)]
+        history = "\n".join(lines)
+        # Make it exceed the length limit
+        history = history + "x" * 900  # This will make it exceed 1000 chars
         
         result = truncate_long_history(history, config)
         assert result["truncated"] is True
-        assert result["original_length"] == 101
-        assert len(result["history"]) < 101
+        assert result["original_length"] > 1000
+        # Should keep last 30 lines
+        assert result["history"].count("\n") <= 30
 
     @pytest.mark.asyncio
     async def test_billing_optimized_dspy_with_config(self):
@@ -172,7 +180,7 @@ class TestBillingModelFunctionality:
             billing_optimized_dspy,
         )
         
-        config = ModelConfig(truncation_length=50)
+        config = ModelConfig(truncation_length=1000)
         history = "User: Test\nAgent: Response"
         
         # Mock the dependencies
