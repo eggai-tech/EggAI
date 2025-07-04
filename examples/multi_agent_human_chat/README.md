@@ -163,6 +163,7 @@ View results in MLflow at http://localhost:5001
 - [System Architecture](docs/system-architecture.md) - High-level design and component interactions
 - [Agent Overview](docs/agents-overview.md) - Detailed agent descriptions
 - [Ingestion Pipeline](docs/ingestion-pipeline.md) - Temporal workflows and Vespa integration
+- [Vespa Search Guide](docs/vespa-search-guide.md) - Search types, ranking profiles, and data exploration
 - [Model Training](docs/model-training.md) - Custom classifier training
 - [Retrieval Performance Testing](docs/retrieval-performance-testing.md) - Evaluation metrics and benchmarks
 - [Communication Flow](#communication-flow-example) - Message routing diagram
