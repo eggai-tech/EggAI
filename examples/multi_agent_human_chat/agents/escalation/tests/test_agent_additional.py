@@ -13,6 +13,7 @@ from agents.escalation.agent import (
     process_escalation_request,
 )
 from libraries.tracing import TracedMessage
+from agents.escalation.constants import MSG_TYPE_STREAM_END, MSG_TYPE_TICKETING_REQUEST, AGENT_NAME
 
 
 @pytest.mark.asyncio
@@ -37,7 +38,7 @@ async def test_escalation_agent_error_handling(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="escalation_request",
+        type=MSG_TYPE_TICKETING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [
@@ -56,7 +57,7 @@ async def test_escalation_agent_error_handling(monkeypatch):
     end_messages = [
         call
         for call in mock_publish.call_args_list
-        if call[0][0].type == "agent_message_stream_end"
+        if call[0][0].type == MSG_TYPE_STREAM_END
     ]
     assert len(end_messages) > 0
 
@@ -85,7 +86,7 @@ async def test_escalation_empty_chat_messages(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="escalation_request",
+        type=MSG_TYPE_TICKETING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [],
@@ -112,7 +113,7 @@ async def test_escalation_missing_connection_id(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="escalation_request",
+        type=MSG_TYPE_TICKETING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": [{"role": "user", "content": "test"}],
@@ -199,7 +200,7 @@ async def test_process_escalation_streaming_error(monkeypatch):
     end_messages = [
         call
         for call in mock_publish.call_args_list
-        if call[0][0].type == "agent_message_stream_end"
+        if call[0][0].type == MSG_TYPE_STREAM_END
     ]
     assert len(end_messages) > 0
 
@@ -216,7 +217,7 @@ async def test_escalation_missing_data_fields(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="escalation_request",
+        type=MSG_TYPE_TICKETING_REQUEST,
         source="TestAgent",
         data={},
     )
@@ -282,7 +283,7 @@ async def test_escalation_long_conversation(monkeypatch):
 
     test_message = TracedMessage(
         id=str(uuid4()),
-        type="escalation_request",
+        type=MSG_TYPE_TICKETING_REQUEST,
         source="TestAgent",
         data={
             "chat_messages": chat_messages,
@@ -299,7 +300,7 @@ async def test_escalation_long_conversation(monkeypatch):
     end_messages = [
         call
         for call in mock_publish.call_args_list
-        if call[0][0].type == "agent_message_stream_end"
+        if call[0][0].type == MSG_TYPE_STREAM_END
     ]
     assert len(end_messages) == 1
     assert (

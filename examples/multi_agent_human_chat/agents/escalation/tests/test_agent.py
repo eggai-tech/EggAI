@@ -32,6 +32,7 @@ from libraries.tracing import TracedMessage
 
 from ..agent import ticketing_agent as escalation_agent
 from ..types import ChatMessage
+from agents.escalation.constants import MSG_TYPE_STREAM_END, AGENT_NAME, MSG_TYPE_TICKETING_REQUEST
 
 # Configure logger
 logger = get_console_logger("escalation_agent.tests")
@@ -150,7 +151,7 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
 
 @test_agent.subscribe(
     channel=human_stream_channel,
-    filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
+    filter_by_message=lambda event: event.get("type") == MSG_TYPE_STREAM_END,
     auto_offset_reset="latest",
     group_id="test_escalation_agent_group",
 )
@@ -179,7 +180,7 @@ async def wait_for_agent_response(
 
             if (
                 event["data"].get("connection_id") == connection_id
-                and event.get("source") == "TicketingAgent"
+                and event.get("source") == AGENT_NAME
             ):
                 logger.info(
                     f"Found matching response for connection_id {connection_id}"
@@ -256,7 +257,7 @@ async def test_escalation_agent():
             await test_channel.publish(
                 TracedMessage(
                     id=message_id,
-                    type="ticketing_request",
+                    type=MSG_TYPE_TICKETING_REQUEST,
                     source="TestEscalationAgent",
                     data={
                         "chat_messages": case["chat_messages"],

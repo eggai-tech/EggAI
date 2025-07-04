@@ -28,10 +28,19 @@ from libraries.tracing.otel import safe_set_attribute
 logger = get_console_logger("escalation_agent")
 logger.setLevel(logging.INFO)
 
-ticketing_agent = Agent(name="TicketingAgent")
+from .constants import (
+    AGENT_NAME,
+    MSG_TYPE_TICKETING_REQUEST,
+    MSG_TYPE_STREAM_START,
+    MSG_TYPE_STREAM_CHUNK,
+    MSG_TYPE_STREAM_END,
+    GROUP_ID,
+)
+
+ticketing_agent = Agent(name=AGENT_NAME)
 agents_channel = Channel(channels.agents)
 human_stream_channel = Channel(channels.human_stream)
-tracer = trace.get_tracer("ticketing_agent")
+tracer = trace.get_tracer(AGENT_NAME)
 
 init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
@@ -87,8 +96,8 @@ async def process_escalation_request(
 
         await human_stream_channel.publish(
             TracedMessage(
-                type="agent_message_stream_start",
-                source="TicketingAgent",
+                type=MSG_TYPE_STREAM_START,
+                source=AGENT_NAME,
                 data={
                     "message_id": message_id,
                     "connection_id": connection_id,
@@ -110,8 +119,8 @@ async def process_escalation_request(
                     chunk_count += 1
                     await human_stream_channel.publish(
                         TracedMessage(
-                            type="agent_message_stream_chunk",
-                            source="TicketingAgent",
+                            type=MSG_TYPE_STREAM_CHUNK,
+                            source=AGENT_NAME,
                             data={
                                 "message_chunk": chunk.chunk,
                                 "message_id": message_id,
@@ -132,8 +141,8 @@ async def process_escalation_request(
                     )
                     await human_stream_channel.publish(
                         TracedMessage(
-                            type="agent_message_stream_end",
-                            source="TicketingAgent",
+                            type=MSG_TYPE_STREAM_END,
+                            source=AGENT_NAME,
                             data={
                                 "message_id": message_id,
                                 "message": response,
@@ -149,8 +158,8 @@ async def process_escalation_request(
             logger.error(f"Error in streaming response: {e}", exc_info=True)
             await human_stream_channel.publish(
                 TracedMessage(
-                    type="agent_message_stream_end",
-                    source="TicketingAgent",
+                    type=MSG_TYPE_STREAM_END,
+                    source=AGENT_NAME,
                     data={
                         "message_id": message_id,
                         "message": "I'm sorry, I encountered an error while processing your request.",
@@ -165,9 +174,9 @@ async def process_escalation_request(
 
 @ticketing_agent.subscribe(
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == "ticketing_request",
+    filter_by_message=lambda msg: msg.get("type") == MSG_TYPE_TICKETING_REQUEST,
     auto_offset_reset="latest",
-    group_id="escalation_agent_group",
+    group_id=GROUP_ID,
 )
 @traced_handler("handle_ticketing_request")
 async def handle_ticketing_request(msg: TracedMessage) -> None:
