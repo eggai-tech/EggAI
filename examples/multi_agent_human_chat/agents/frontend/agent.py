@@ -46,79 +46,79 @@ init_token_metrics(
 )
 
 def _extract_trace_context(connection_id: str):
-	with tracer.start_as_current_span("frontend_chat", context=None) as root_span:
-		root_ctx = root_span.get_span_context()
-		traceparent = (
-			f"00-{root_ctx.trace_id:032x}-{root_ctx.span_id:016x}-{root_ctx.trace_flags:02x}"
-		)
-		safe_set_attribute(root_span, "connection.id", str(connection_id))
-		tracestate = str(root_ctx.trace_state) if root_ctx.trace_state else ""
-	ctx = extract_span_context(traceparent, tracestate)
-	parent_ctx = trace.set_span_in_context(trace.NonRecordingSpan(ctx))
-	return traceparent, tracestate, parent_ctx
+    with tracer.start_as_current_span("frontend_chat", context=None) as root_span:
+        root_ctx = root_span.get_span_context()
+        traceparent = (
+            f"00-{root_ctx.trace_id:032x}-{root_ctx.span_id:016x}-{root_ctx.trace_flags:02x}"
+        )
+        safe_set_attribute(root_span, "connection.id", str(connection_id))
+        tracestate = str(root_ctx.trace_state) if root_ctx.trace_state else ""
+    ctx = extract_span_context(traceparent, tracestate)
+    parent_ctx = trace.set_span_in_context(trace.NonRecordingSpan(ctx))
+    return traceparent, tracestate, parent_ctx
 
 
 async def _initialize_connection(websocket: WebSocket, connection_id: str):
-	await websocket_manager.connect(websocket, connection_id)
-	await websocket_manager.send_message_to_connection(
-		connection_id, {"connection_id": connection_id}
-	)
+    await websocket_manager.connect(websocket, connection_id)
+    await websocket_manager.send_message_to_connection(
+        connection_id, {"connection_id": connection_id}
+    )
 
 
 async def _process_user_messages(server, websocket: WebSocket, connection_id: str, traceparent: str, tracestate: str):
-	while True:
-		try:
-			data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
-		except asyncio.TimeoutError:
-			if server.should_exit:
-				await websocket_manager.disconnect(connection_id)
-				for conn in server.server_state.connections or []:
-					if hasattr(conn, "shutdown"):
-						conn.shutdown()
-				break
-			continue
+    while True:
+        try:
+            data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
+        except asyncio.TimeoutError:
+            if server.should_exit:
+                await websocket_manager.disconnect(connection_id)
+                for conn in server.server_state.connections or []:
+                    if hasattr(conn, "shutdown"):
+                        conn.shutdown()
+                break
+            continue
 
-		message_id = str(uuid.uuid4())
-		content = data.get("payload")
+        message_id = str(uuid.uuid4())
+        content = data.get("payload")
 
-		if GUARDRAILS_ENABLED and toxic_language_guard:
-			valid = await toxic_language_guard(content)
-			if valid is None:
-				await human_channel.publish(
-					TracedMessage(
-						id=message_id,
-						source="FrontendAgent",
-						type="agent_message",
-						data={
-							"message": "Sorry, I can't help you with that.",
-							"connection_id": connection_id,
-							"agent": "TriageAgent",
-						},
-						traceparent=traceparent,
-						tracestate=tracestate,
-					)
-				)
-				continue
-		else:
-			valid = content
+        if GUARDRAILS_ENABLED and toxic_language_guard:
+            valid = await toxic_language_guard(content)
+            if valid is None:
+                await human_channel.publish(
+                    TracedMessage(
+                        id=message_id,
+                        source="FrontendAgent",
+                        type=MessageType.AGENT_MESSAGE.value,
+                        data={
+                            "message": "Sorry, I can't help you with that.",
+                            "connection_id": connection_id,
+                            "agent": "TriageAgent",
+                        },
+                        traceparent=traceparent,
+                        tracestate=tracestate,
+                    )
+                )
+                continue
+        else:
+            valid = content
 
-		await websocket_manager.attach_message_id(message_id, connection_id)
-		websocket_manager.chat_messages[connection_id].append(
-			{"role": "user", "content": valid, "id": message_id, "agent": "User"}
-		)
-		await human_channel.publish(
-			TracedMessage(
-				id=message_id,
-				source="FrontendAgent",
-				type="user_message",
-				data={
-					"chat_messages": websocket_manager.chat_messages[connection_id],
-					"connection_id": connection_id,
-				},
-				traceparent=traceparent,
-				tracestate=tracestate,
-			)
-		)
+        await websocket_manager.attach_message_id(message_id, connection_id)
+        websocket_manager.chat_messages[connection_id].append(
+            {"role": "user", "content": valid, "id": message_id, "agent": "User"}
+        )
+        await human_channel.publish(
+            TracedMessage(
+                id=message_id,
+                source="FrontendAgent",
+                type=MessageType.USER_MESSAGE.value,
+                data={
+                    "chat_messages": websocket_manager.chat_messages[connection_id],
+                    "connection_id": connection_id,
+                },
+                traceparent=traceparent,
+                tracestate=tracestate,
+            )
+        )
 
 
 @tracer.start_as_current_span("add_websocket_gateway")
@@ -163,25 +163,29 @@ async def handle_human_stream_messages(message: TracedMessage):
     message_id = message.data.get("message_id")
     connection_id = message.data.get("connection_id")
 
-    if message_type == "agent_message_stream_start":
+    if message_type == MessageType.AGENT_MESSAGE_STREAM_START.value:
         logger.info(f"Starting stream for message {message_id} from {agent}")
         await websocket_manager.send_message_to_connection(
             connection_id,
-            {"sender": agent, "content": "", "type": "assistant_message_stream_start"},
+            {
+                "sender": agent,
+                "content": "",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_START.value,
+            },
         )
 
-    elif message_type == "agent_message_stream_waiting_message":
+    elif message_type == MessageType.AGENT_MESSAGE_STREAM_WAITING_MESSAGE.value:
         message = message.data.get("message")
         await websocket_manager.send_message_to_connection(
             connection_id,
             {
                 "sender": agent,
                 "content": message,
-                "type": "assistant_message_stream_waiting_message",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_WAITING_MESSAGE.value,
             },
         )
 
-    elif message_type == "agent_message_stream_chunk":
+    elif message_type == MessageType.AGENT_MESSAGE_STREAM_CHUNK.value:
         chunk = message.data.get("message_chunk", "")
         chunk_index = message.data.get("chunk_index")
         await websocket_manager.send_message_to_connection(
@@ -190,10 +194,10 @@ async def handle_human_stream_messages(message: TracedMessage):
                 "sender": agent,
                 "content": chunk,
                 "chunk_index": chunk_index,
-                "type": "assistant_message_stream_chunk",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_CHUNK.value,
             },
         )
-    elif message_type == "agent_message_stream_end":
+    elif message_type == MessageType.AGENT_MESSAGE_STREAM_END.value:
         final_content = message.data.get("message", "")
         websocket_manager.chat_messages[connection_id].append(
             {
@@ -208,7 +212,7 @@ async def handle_human_stream_messages(message: TracedMessage):
             {
                 "sender": agent,
                 "content": final_content,
-                "type": "assistant_message_stream_end",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_END.value,
             },
         )
 
@@ -234,5 +238,5 @@ async def handle_human_messages(message: TracedMessage):
 
         await websocket_manager.send_message_to_connection(
             connection_id,
-            {"sender": agent, "content": content, "type": "assistant_message"},
+            {"sender": agent, "content": content, "type": MessageType.ASSISTANT_MESSAGE.value},
         )

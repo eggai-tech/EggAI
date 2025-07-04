@@ -22,6 +22,7 @@ eggai_set_default_transport(
 )
 
 from libraries.tracing import TracedMessage
+from agents.frontend.types import MessageType
 from ..agent import (
     add_websocket_gateway,
     frontend_agent,
@@ -93,7 +94,7 @@ async def test_frontend_agent():
     # Create a test message
     test_message = TracedMessage(
         id=message_id,
-        type="agent_message",
+        type=MessageType.AGENT_MESSAGE.value,
         source="triage_agent",
         data={
             "message": "Hello, how can I help you?",
@@ -114,7 +115,7 @@ async def test_frontend_agent():
         {
             "sender": "TriageAgent",
             "content": "Hello, how can I help you?",
-            "type": "assistant_message",
+            "type": MessageType.ASSISTANT_MESSAGE.value,
         },
     )
 
@@ -134,7 +135,7 @@ async def test_handle_human_stream_messages_start():
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message_stream_start",
+            type=MessageType.AGENT_MESSAGE_STREAM_START.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -149,7 +150,7 @@ async def test_handle_human_stream_messages_start():
             {
                 "sender": "TestAgent",
                 "content": "",
-                "type": "assistant_message_stream_start",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_START.value,
             },
         )
 
@@ -165,7 +166,7 @@ async def test_handle_human_stream_messages_chunk():
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message_stream_chunk",
+            type=MessageType.AGENT_MESSAGE_STREAM_CHUNK.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -183,7 +184,7 @@ async def test_handle_human_stream_messages_chunk():
                 "sender": "TestAgent",
                 "content": "Hello",
                 "chunk_index": 1,
-                "type": "assistant_message_stream_chunk",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_CHUNK.value,
             },
         )
 
@@ -202,7 +203,7 @@ async def test_handle_human_stream_messages_end():
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message_stream_end",
+            type=MessageType.AGENT_MESSAGE_STREAM_END.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -223,7 +224,7 @@ async def test_handle_human_stream_messages_end():
             {
                 "sender": "TestAgent",
                 "content": "Complete response",
-                "type": "assistant_message_stream_end",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_END.value,
             },
         )
 
@@ -239,7 +240,7 @@ async def test_handle_human_stream_messages_waiting():
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message_stream_waiting_message",
+            type=MessageType.AGENT_MESSAGE_STREAM_WAITING_MESSAGE.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -255,7 +256,7 @@ async def test_handle_human_stream_messages_waiting():
             {
                 "sender": "TestAgent",
                 "content": "Please wait...",
-                "type": "assistant_message_stream_waiting_message",
+                "type": MessageType.ASSISTANT_MESSAGE_STREAM_WAITING_MESSAGE.value,
             },
         )
 
@@ -274,7 +275,7 @@ async def test_handle_human_messages():
     ) as mock_send:
         message = TracedMessage(
             id=message_id,
-            type="agent_message",
+            type=MessageType.AGENT_MESSAGE.value,
             source="TestAgent",
             data={
                 "message_id": message_id,
@@ -296,7 +297,7 @@ async def test_handle_human_messages():
             {
                 "sender": "TestAgent",
                 "content": "Hello user",
-                "type": "assistant_message",
+                "type": MessageType.ASSISTANT_MESSAGE.value,
             },
         )
 

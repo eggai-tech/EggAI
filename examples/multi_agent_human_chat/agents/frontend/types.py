@@ -62,3 +62,19 @@ class TracedMessageDict(TypedDict, total=False):
     data: Dict[str, Any]  # Message data
     traceparent: Optional[str]  # Trace parent
     tracestate: Optional[str]  # Trace state
+
+
+from enum import Enum
+
+class MessageType(str, Enum):
+    USER_MESSAGE = "user_message"
+    AGENT_MESSAGE = "agent_message"
+    AGENT_MESSAGE_STREAM_START = "agent_message_stream_start"
+    AGENT_MESSAGE_STREAM_WAITING_MESSAGE = "agent_message_stream_waiting_message"
+    AGENT_MESSAGE_STREAM_CHUNK = "agent_message_stream_chunk"
+    AGENT_MESSAGE_STREAM_END = "agent_message_stream_end"
+    ASSISTANT_MESSAGE = "assistant_message"
+    ASSISTANT_MESSAGE_STREAM_START = "assistant_message_stream_start"
+    ASSISTANT_MESSAGE_STREAM_WAITING_MESSAGE = "assistant_message_stream_waiting_message"
+    ASSISTANT_MESSAGE_STREAM_CHUNK = "assistant_message_stream_chunk"
+    ASSISTANT_MESSAGE_STREAM_END = "assistant_message_stream_end"
