@@ -41,10 +41,84 @@ human_channel = Channel("human")
 human_stream_channel = Channel("human_stream")
 websocket_manager = WebSocketManager()
 tracer = trace.get_tracer("frontend_agent")
-
 init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
+
+def _extract_trace_context(connection_id: str):
+	with tracer.start_as_current_span("frontend_chat", context=None) as root_span:
+		root_ctx = root_span.get_span_context()
+		traceparent = (
+			f"00-{root_ctx.trace_id:032x}-{root_ctx.span_id:016x}-{root_ctx.trace_flags:02x}"
+		)
+		safe_set_attribute(root_span, "connection.id", str(connection_id))
+		tracestate = str(root_ctx.trace_state) if root_ctx.trace_state else ""
+	ctx = extract_span_context(traceparent, tracestate)
+	parent_ctx = trace.set_span_in_context(trace.NonRecordingSpan(ctx))
+	return traceparent, tracestate, parent_ctx
+
+
+async def _initialize_connection(websocket: WebSocket, connection_id: str):
+	await websocket_manager.connect(websocket, connection_id)
+	await websocket_manager.send_message_to_connection(
+		connection_id, {"connection_id": connection_id}
+	)
+
+
+async def _process_user_messages(server, websocket: WebSocket, connection_id: str, traceparent: str, tracestate: str):
+	while True:
+		try:
+			data = await asyncio.wait_for(websocket.receive_json(), timeout=1)
+		except asyncio.TimeoutError:
+			if server.should_exit:
+				await websocket_manager.disconnect(connection_id)
+				for conn in server.server_state.connections or []:
+					if hasattr(conn, "shutdown"):
+						conn.shutdown()
+				break
+			continue
+
+		message_id = str(uuid.uuid4())
+		content = data.get("payload")
+
+		if GUARDRAILS_ENABLED and toxic_language_guard:
+			valid = await toxic_language_guard(content)
+			if valid is None:
+				await human_channel.publish(
+					TracedMessage(
+						id=message_id,
+						source="FrontendAgent",
+						type="agent_message",
+						data={
+							"message": "Sorry, I can't help you with that.",
+							"connection_id": connection_id,
+							"agent": "TriageAgent",
+						},
+						traceparent=traceparent,
+						tracestate=tracestate,
+					)
+				)
+				continue
+		else:
+			valid = content
+
+		await websocket_manager.attach_message_id(message_id, connection_id)
+		websocket_manager.chat_messages[connection_id].append(
+			{"role": "user", "content": valid, "id": message_id, "agent": "User"}
+		)
+		await human_channel.publish(
+			TracedMessage(
+				id=message_id,
+				source="FrontendAgent",
+				type="user_message",
+				data={
+					"chat_messages": websocket_manager.chat_messages[connection_id],
+					"connection_id": connection_id,
+				},
+				traceparent=traceparent,
+				tracestate=tracestate,
+			)
+		)
 
 
 @tracer.start_as_current_span("add_websocket_gateway")
@@ -60,100 +134,17 @@ def add_websocket_gateway(route: str, app: FastAPI, server: uvicorn.Server):
         if connection_id is None:
             connection_id = str(uuid.uuid4())
 
-        # Create root span for the connection
-        with tracer.start_as_current_span("frontend_chat", context=None) as root_span:
-            root_span_ctx = root_span.get_span_context()
-            trace_parent = (
-                f"00-{root_span_ctx.trace_id:032x}-"
-                f"{root_span_ctx.span_id:016x}-"
-                f"{root_span_ctx.trace_flags:02x}"
-            )
-            safe_set_attribute(root_span, "connection.id", str(connection_id))
-            trace_state = (
-                str(root_span_ctx.trace_state) if root_span_ctx.trace_state else ""
-            )
-
-        # Extract span context for child spans
-        root_span_ctx = extract_span_context(trace_parent, trace_state)
-        parent_context = trace.set_span_in_context(
-            trace.NonRecordingSpan(root_span_ctx)
-        )
+        traceparent, tracestate, parent_ctx = _extract_trace_context(connection_id)
 
         with tracer.start_as_current_span(
-            "websocket_connection", context=parent_context, kind=trace.SpanKind.SERVER
+            "websocket_connection", context=parent_ctx, kind=trace.SpanKind.SERVER
         ) as span:
             try:
                 safe_set_attribute(span, "connection.id", str(connection_id))
-                await websocket_manager.connect(websocket, connection_id)
-                await websocket_manager.send_message_to_connection(
-                    connection_id, {"connection_id": connection_id}
+                await _initialize_connection(websocket, connection_id)
+                await _process_user_messages(
+                    server, websocket, connection_id, traceparent, tracestate
                 )
-
-                while True:
-                    try:
-                        data = await asyncio.wait_for(
-                            websocket.receive_json(), timeout=1
-                        )
-                    except asyncio.TimeoutError:
-                        if server.should_exit:
-                            await websocket_manager.disconnect(connection_id)
-                            # Close all connections when server is shutting down
-                            conns = server.server_state.connections or []
-                            for conn in conns:
-                                if "shutdown" in dir(conn):
-                                    conn.shutdown()
-                            break
-                        continue
-
-                    message_id = str(uuid.uuid4())
-                    content = data.get("payload")
-
-                    # Apply content moderation if enabled
-                    if GUARDRAILS_ENABLED and toxic_language_guard:
-                        valid_content = await toxic_language_guard(content)
-                        if valid_content is None:
-                            await human_channel.publish(
-                                TracedMessage(
-                                    id=message_id,
-                                    source="FrontendAgent",
-                                    type="agent_message",
-                                    data={
-                                        "message": "Sorry, I can't help you with that.",
-                                        "connection_id": connection_id,
-                                        "agent": "TriageAgent",
-                                    },
-                                    traceparent=trace_parent,
-                                    tracestate=trace_state,
-                                )
-                            )
-                            continue
-                    else:
-                        valid_content = content
-
-                    await websocket_manager.attach_message_id(message_id, connection_id)
-                    websocket_manager.chat_messages[connection_id].append(
-                        {
-                            "role": "user",
-                            "content": valid_content,
-                            "id": message_id,
-                            "agent": "User",
-                        }
-                    )
-
-                    await human_channel.publish(
-                        TracedMessage(
-                            id=message_id,
-                            source="FrontendAgent",
-                            type="user_message",
-                            data={
-                                "chat_messages": websocket_manager.chat_messages[connection_id],
-                                "connection_id": connection_id,
-                            },
-                            traceparent=trace_parent,
-                            tracestate=trace_state,
-                        )
-                    )
-
             except WebSocketDisconnect:
                 logger.info(f"WebSocket disconnected: {connection_id}")
             except Exception as e:
