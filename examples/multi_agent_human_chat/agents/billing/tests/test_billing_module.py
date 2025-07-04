@@ -26,7 +26,7 @@ from agents.shared_test_utils import (
 from agents.shared_test_utils import (
     test_truncate_long_history_with_config as shared_truncate_config,
 )
-from libraries.billing_dspy.billing import (
+from agents.billing.dspy_modules.billing import (
     BillingSignature,
     ModelConfig,
     billing_optimized_dspy,

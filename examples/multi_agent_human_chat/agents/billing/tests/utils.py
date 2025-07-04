@@ -117,10 +117,10 @@ async def wait_for_agent_response(
                 f"Received event from {event.get('source', 'unknown')} for connection {event.get('data', {}).get('connection_id', 'unknown')}"
             )
 
-            # Check if this response matches our request and comes from BillingAgent
+            # Check if this response matches our request and comes from billing_agent
             if (
                 event.get("data", {}).get("connection_id") == connection_id
-                and event.get("source") == "BillingAgent"
+                and event.get("source") == "billing_agent"
             ):
                 logger.info(f"Found matching response for {connection_id}")
                 return event

@@ -7,7 +7,7 @@ from dspy.streaming import StreamResponse
 
 from agents.billing.config import settings
 from agents.billing.types import ModelConfig
-from libraries.billing_dspy.billing_data import (
+from .billing_data import (
     get_billing_info,
     update_billing_info,
 )
@@ -76,26 +76,45 @@ def load_optimized_instructions(path: Path) -> Optional[str]:
     return None
 
 
-# Initialize tracer and DSPy model with (optional) optimized prompts
-tracer = create_tracer("billing_agent")
-billing_model = TracedReAct(
-    BillingSignature,
-    tools=[get_billing_info, update_billing_info],
-    name="billing_react",
-    tracer=tracer,
-    max_iters=5,
-)
+# Global variables for lazy initialization
+tracer = None
+_billing_model = None
+_initialized = False
 
-optimized_path = Path(__file__).resolve().parent / "optimized_billing_simba.json"
-instructions = load_optimized_instructions(optimized_path)
-using_optimized_prompts = False
-if instructions:
-    BillingSignature.__doc__ = instructions
-    using_optimized_prompts = True
 
-logger.info(
-    f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
-)
+def _initialize_billing_model():
+    """Lazy initialization of billing model to avoid hanging during imports."""
+    global tracer, _billing_model, _initialized
+    
+    if _initialized:
+        return _billing_model
+    
+    # Initialize tracer
+    tracer = create_tracer("billing_agent")
+    
+    # Load optimized instructions if available
+    optimized_path = Path(__file__).resolve().parent / "optimized_billing_simba.json"
+    instructions = load_optimized_instructions(optimized_path)
+    using_optimized_prompts = False
+    if instructions:
+        BillingSignature.__doc__ = instructions
+        using_optimized_prompts = True
+    
+    # Initialize the model
+    _billing_model = TracedReAct(
+        BillingSignature,
+        tools=[get_billing_info, update_billing_info],
+        name="billing_react",
+        tracer=tracer,
+        max_iters=5,
+    )
+    
+    logger.info(
+        f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
+    )
+    
+    _initialized = True
+    return _billing_model
 
 
 def truncate_long_history(
@@ -129,7 +148,6 @@ def truncate_long_history(
     return result
 
 
-@traced_dspy_function(name="billing_dspy")
 async def billing_optimized_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
@@ -139,6 +157,9 @@ async def billing_optimized_dspy(
     # Handle long conversations
     truncation_result = truncate_long_history(chat_history, config)
     chat_history = truncation_result["history"]
+
+    # Get the billing model (lazy initialization)
+    billing_model = _initialize_billing_model()
 
     # Create a streaming version of the billing model
     streamify_func = dspy.streamify(

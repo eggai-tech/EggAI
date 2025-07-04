@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from libraries.billing_dspy.billing_data import (
+from agents.billing.dspy_modules.billing_data import (
     BILLING_DATABASE,
     get_billing_info,
     get_policy_record,

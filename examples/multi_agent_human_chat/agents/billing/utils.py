@@ -7,7 +7,7 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Channel
 
-from libraries.billing_dspy.billing import billing_optimized_dspy
+from .dspy_modules.billing import billing_optimized_dspy
 from libraries.channels import channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, format_span_as_traceparent
@@ -82,11 +82,10 @@ async def process_billing_request(
             )
         )
 
-        chunks = billing_optimized_dspy(chat_history=conversation_string, config=config)
         count = 0
 
         try:
-            async for chunk in chunks:
+            async for chunk in billing_optimized_dspy(chat_history=conversation_string, config=config):
                 if isinstance(chunk, StreamResponse):
                     count += 1
                     await human_stream_channel.publish(

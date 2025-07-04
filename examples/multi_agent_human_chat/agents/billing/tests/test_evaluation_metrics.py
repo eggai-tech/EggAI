@@ -2,7 +2,7 @@
 
 import pytest
 
-from libraries.billing_dspy.evaluation.metrics import (
+from agents.billing.dspy_modules.evaluation.metrics import (
     get_amount_score,
     get_billing_cycle_score,
     get_date_score,

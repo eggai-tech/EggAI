@@ -21,11 +21,10 @@ async def test_billing_agent_error_handling(monkeypatch):
     """Test error handling in billing agent."""
     load_dotenv()
 
-    def mock_billing_error(*args, **kwargs):
-        async def error_generator():
-            raise Exception("Billing module error")
-
-        return error_generator()
+    async def mock_billing_error(*args, **kwargs):
+        # This needs to be an async generator, not a coroutine
+        raise Exception("Billing module error")
+        yield  # Make this an async generator (unreachable, but defines the function type)
 
     monkeypatch.setattr(
         "agents.billing.utils.billing_optimized_dspy", mock_billing_error
