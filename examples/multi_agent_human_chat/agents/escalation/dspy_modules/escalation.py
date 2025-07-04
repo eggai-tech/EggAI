@@ -14,17 +14,14 @@ import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 
-from agents.escalation.types import (
-    ModelConfig,
-    TicketDepartment,
-    TicketInfo,
-)
 from libraries.logger import get_console_logger
 from libraries.tracing import (
     TracedReAct,
     create_tracer,
     traced_dspy_function,
 )
+
+from ..types import DspyModelConfig, TicketDepartment, TicketInfo
 
 logger = get_console_logger("escalation_agent.dspy")
 
@@ -108,20 +105,23 @@ logger.info(
 
 @tracer.start_as_current_span("get_tickets_by_policy")
 def get_tickets_by_policy(policy_number: str) -> str:
-    """Retrieve all tickets associated with a policy number from the database."""
-    logger.info(f"Searching for tickets with policy number: {policy_number}")
+    """Retrieve all tickets associated with a policy number from the database.
+
+    Strips leading/trailing whitespace from the provided policy number before lookup."""
+    cleaned = policy_number.strip()
+    logger.info(f"Searching for tickets with policy number: {cleaned!r}")
 
     matching_tickets = [
         ticket
         for ticket in ticket_database
-        if ticket.get("policy_number") == policy_number
+        if ticket.get("policy_number") == cleaned
     ]
 
     if not matching_tickets:
         return json.dumps(
             {
                 "found": False,
-                "message": f"No tickets found for policy number {policy_number}",
+                "message": f"No tickets found for policy number {cleaned}",
                 "tickets": [],
             }
         )
@@ -129,7 +129,7 @@ def get_tickets_by_policy(policy_number: str) -> str:
     return json.dumps(
         {
             "found": True,
-            "message": f"Found {len(matching_tickets)} ticket(s) for policy number {policy_number}",
+            "message": f"Found {len(matching_tickets)} ticket(s) for policy number {cleaned}",
             "tickets": matching_tickets,
         }
     )
@@ -177,10 +177,10 @@ ticket_database: List[Dict] = [
 
 @traced_dspy_function(name="escalation_dspy")
 async def escalation_optimized_dspy(
-    chat_history: str, config: Optional[ModelConfig] = None
+    chat_history: str, config: Optional[DspyModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process an escalation inquiry using the DSPy model with streaming output."""
-    config = config or ModelConfig()
+    config = config or DspyModelConfig()
 
     streamify_func = dspy.streamify(
         escalation_model,

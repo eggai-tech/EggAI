@@ -1,5 +1,13 @@
+"""
+Core logic and handlers for the Escalation Agent.
+
+This module defines the Escalation Agent's processing workflow:
+  - Converting chat messages into a single conversation string
+  - Streaming responses from the DSPy-based escalation model
+  - Publishing start, chunk, and end events back to the human channel
+  - Handling incoming ticketing_request messages via subscription
+"""
 import asyncio
-import logging
 from typing import List
 
 from dspy import Prediction
@@ -7,26 +15,31 @@ from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry import trace
 
-from agents.escalation.config import settings
-from agents.escalation.dspy_modules.escalation import escalation_optimized_dspy
-from agents.escalation.types import ChatMessage, ModelConfig
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
-from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
-logger = get_console_logger("escalation_agent")
-logger.setLevel(logging.INFO)
+from .config import settings
+from .constants import (
+    AGENT_NAME,
+    GROUP_ID,
+    MSG_TYPE_STREAM_CHUNK,
+    MSG_TYPE_STREAM_END,
+    MSG_TYPE_STREAM_START,
+    MSG_TYPE_TICKETING_REQUEST,
+)
 
-ticketing_agent = Agent(name="TicketingAgent")
+# Configure per-module logger
+logger = get_console_logger(AGENT_NAME)
+from .dspy_modules.escalation import escalation_optimized_dspy
+from .types import ChatMessage, DspyModelConfig
+
+ticketing_agent = Agent(name=AGENT_NAME)
 agents_channel = Channel(channels.agents)
 human_stream_channel = Channel(channels.human_stream)
-tracer = trace.get_tracer("ticketing_agent")
+tracer = trace.get_tracer(AGENT_NAME)
 
-init_token_metrics(
-    port=settings.prometheus_metrics_port, application_name=settings.app_name
-)
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
@@ -60,7 +73,7 @@ async def process_escalation_request(
     message_id: str,
     timeout_seconds: float = None,
 ) -> None:
-    config = ModelConfig(
+    config = DspyModelConfig(
         name="escalation_react", timeout_seconds=timeout_seconds or 60.0
     )
 
@@ -78,8 +91,8 @@ async def process_escalation_request(
 
         await human_stream_channel.publish(
             TracedMessage(
-                type="agent_message_stream_start",
-                source="TicketingAgent",
+                type=MSG_TYPE_STREAM_START,
+                source=AGENT_NAME,
                 data={
                     "message_id": message_id,
                     "connection_id": connection_id,
@@ -101,8 +114,8 @@ async def process_escalation_request(
                     chunk_count += 1
                     await human_stream_channel.publish(
                         TracedMessage(
-                            type="agent_message_stream_chunk",
-                            source="TicketingAgent",
+                            type=MSG_TYPE_STREAM_CHUNK,
+                            source=AGENT_NAME,
                             data={
                                 "message_chunk": chunk.chunk,
                                 "message_id": message_id,
@@ -123,12 +136,12 @@ async def process_escalation_request(
                     )
                     await human_stream_channel.publish(
                         TracedMessage(
-                            type="agent_message_stream_end",
-                            source="TicketingAgent",
+                            type=MSG_TYPE_STREAM_END,
+                            source=AGENT_NAME,
                             data={
                                 "message_id": message_id,
                                 "message": response,
-                                "agent": "TicketingAgent",
+                                "agent": AGENT_NAME,
                                 "connection_id": connection_id,
                             },
                             traceparent=child_traceparent,
@@ -140,12 +153,12 @@ async def process_escalation_request(
             logger.error(f"Error in streaming response: {e}", exc_info=True)
             await human_stream_channel.publish(
                 TracedMessage(
-                    type="agent_message_stream_end",
-                    source="TicketingAgent",
+                    type=MSG_TYPE_STREAM_END,
+                    source=AGENT_NAME,
                     data={
                         "message_id": message_id,
                         "message": "I'm sorry, I encountered an error while processing your request.",
-                        "agent": "TicketingAgent",
+                        "agent": AGENT_NAME,
                         "connection_id": connection_id,
                     },
                     traceparent=child_traceparent,
@@ -156,9 +169,9 @@ async def process_escalation_request(
 
 @ticketing_agent.subscribe(
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == "ticketing_request",
+    filter_by_message=lambda msg: msg.get("type") == MSG_TYPE_TICKETING_REQUEST,
     auto_offset_reset="latest",
-    group_id="escalation_agent_group",
+    group_id=GROUP_ID,
 )
 @traced_handler("handle_ticketing_request")
 async def handle_ticketing_request(msg: TracedMessage) -> None:

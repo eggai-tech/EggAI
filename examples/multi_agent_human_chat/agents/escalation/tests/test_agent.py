@@ -26,6 +26,11 @@ eggai_set_default_transport(
     )
 )
 
+from agents.escalation.constants import (
+    AGENT_NAME,
+    MSG_TYPE_STREAM_END,
+    MSG_TYPE_TICKETING_REQUEST,
+)
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
@@ -150,7 +155,7 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
 
 @test_agent.subscribe(
     channel=human_stream_channel,
-    filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
+    filter_by_message=lambda event: event.get("type") == MSG_TYPE_STREAM_END,
     auto_offset_reset="latest",
     group_id="test_escalation_agent_group",
 )
@@ -179,7 +184,7 @@ async def wait_for_agent_response(
 
             if (
                 event["data"].get("connection_id") == connection_id
-                and event.get("source") == "TicketingAgent"
+                and event.get("source") == AGENT_NAME
             ):
                 logger.info(
                     f"Found matching response for connection_id {connection_id}"
@@ -256,7 +261,7 @@ async def test_escalation_agent():
             await test_channel.publish(
                 TracedMessage(
                     id=message_id,
-                    type="ticketing_request",
+                    type=MSG_TYPE_TICKETING_REQUEST,
                     source="TestEscalationAgent",
                     data={
                         "chat_messages": case["chat_messages"],
