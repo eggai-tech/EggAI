@@ -34,7 +34,7 @@ logger = get_console_logger(AGENT_NAME)
 
 
 @eggai_main
-async def main():
+async def main() -> None:
     """Main entry point for the escalation agent."""
     logger.info(f"Starting {settings.app_name}")
 
