@@ -1,7 +1,7 @@
 """Type definitions for the Audit Agent."""
 
 from datetime import datetime
-from typing import Any, Dict, Literal, Optional, TypedDict
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -15,43 +15,26 @@ AuditCategory = Literal[
     "Error",
 ]
 
+MESSAGE_CATEGORIES: Dict[str, AuditCategory] = {
+    "agent_message": "User Communication",
+    "billing_request": "Billing",
+    "policy_request": "Policies",
+    "escalation_request": "Escalation",
+    "triage_request": "Triage",
+}
 
-class ChatMessage(TypedDict, total=False):
-    content: str
-    role: str
-
-
-class MessageData(TypedDict, total=False):
-    message_id: str
-    message_type: str
-    message_source: str
-    channel: str
-    category: AuditCategory
-    audit_timestamp: str
-    error: Optional[Dict[str, str]]
-
-
-class AuditLogMessage(TypedDict):
-    id: str
-    type: Literal["audit_log"]
-    source: Literal["AuditAgent"]
-    data: MessageData
-    traceparent: Optional[str]
-    tracestate: Optional[str]
-
-
-class TracedMessageDict(TypedDict, total=False):
-    id: str
-    type: str
-    source: str
-    data: Dict[str, Any]
-    traceparent: Optional[str]
-    tracestate: Optional[str]
+__all__ = [
+    "AuditCategory",
+    "MESSAGE_CATEGORIES",
+    "AuditConfig",
+    "AuditEvent",
+]
 
 
 class AuditConfig(BaseModel):
     message_categories: Dict[str, AuditCategory] = Field(
-        default_factory=dict, description="Mapping of message types to audit categories"
+        default_factory=dict,
+        description="Mapping of message types to audit categories",
     )
     default_category: AuditCategory = Field(
         default="Other",
@@ -62,7 +45,8 @@ class AuditConfig(BaseModel):
         description="Whether to enable debug logging for audited messages",
     )
     audit_channel_name: str = Field(
-        default="audit_logs", description="Channel name for audit log messages"
+        default="audit_logs",
+        description="Channel name for audit log messages",
     )
 
     model_config = {"validate_assignment": True, "extra": "forbid"}
