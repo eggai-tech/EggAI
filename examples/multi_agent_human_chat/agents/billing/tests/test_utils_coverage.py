@@ -1,7 +1,7 @@
 """Additional tests for utils.py to improve coverage."""
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from dspy import Prediction
@@ -12,7 +12,6 @@ from agents.billing.utils import (
     get_conversation_string,
     process_billing_request,
 )
-from libraries.tracing import TracedMessage
 
 
 class TestProcessBillingRequest:

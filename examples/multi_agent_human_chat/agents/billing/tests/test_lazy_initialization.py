@@ -9,8 +9,6 @@ import pytest
 from agents.billing.dspy_modules.billing import (
     _initialize_billing_model,
     load_optimized_instructions,
-    _billing_model,
-    _initialized,
 )
 
 
@@ -135,7 +133,10 @@ class TestBillingModelFunctionality:
 
     def test_truncate_long_history_boundary(self):
         """Test truncate_long_history at exact boundary."""
-        from agents.billing.dspy_modules.billing import truncate_long_history, ModelConfig
+        from agents.billing.dspy_modules.billing import (
+            ModelConfig,
+            truncate_long_history,
+        )
         
         config = ModelConfig(truncation_length=100)
         history = "x" * 100  # Exactly at limit
@@ -148,7 +149,10 @@ class TestBillingModelFunctionality:
 
     def test_truncate_long_history_just_over_limit(self):
         """Test truncate_long_history just over the limit."""
-        from agents.billing.dspy_modules.billing import truncate_long_history, ModelConfig
+        from agents.billing.dspy_modules.billing import (
+            ModelConfig,
+            truncate_long_history,
+        )
         
         config = ModelConfig(truncation_length=100)
         history = "x" * 101  # Just over limit
@@ -161,8 +165,12 @@ class TestBillingModelFunctionality:
     @pytest.mark.asyncio
     async def test_billing_optimized_dspy_with_config(self):
         """Test billing_optimized_dspy with custom config."""
-        from agents.billing.dspy_modules.billing import billing_optimized_dspy, ModelConfig
         from dspy.streaming import StreamResponse
+
+        from agents.billing.dspy_modules.billing import (
+            ModelConfig,
+            billing_optimized_dspy,
+        )
         
         config = ModelConfig(truncation_length=50)
         history = "User: Test\nAgent: Response"
