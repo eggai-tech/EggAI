@@ -8,10 +8,8 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
-# Import settings first
 from .config import settings
 
-# Configure transport with heartbeat and session timeout
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -19,7 +17,6 @@ eggai_set_default_transport(
     )
 )
 
-# Import agent after transport is configured
 from .agent import billing_agent
 
 logger = get_console_logger("billing_agent")
@@ -29,15 +26,12 @@ logger = get_console_logger("billing_agent")
 async def main():
     logger.info(f"Starting {settings.app_name}")
 
-    # Initialize telemetry and language model
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
     dspy_set_language_model(settings)
 
-    # Start the agent
     await billing_agent.start()
     logger.info(f"{settings.app_name} started successfully")
 
-    # Wait indefinitely
     await asyncio.Future()
 
 

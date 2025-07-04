@@ -65,7 +65,6 @@ async def process_billing_request(
     timeout_seconds: float = None,
 ) -> None:
     """Generate a response to a billing request with streaming output."""
-    # Create model config with timeout value
     config = ModelConfig(name="billing_react", timeout_seconds=timeout_seconds or 30.0)
     with tracer.start_as_current_span("process_billing_request") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
@@ -79,7 +78,6 @@ async def process_billing_request(
             span.set_status(1, "Invalid input")
             raise ValueError("Conversation history is too short to process")
 
-        # Start the stream
         await human_stream_channel.publish(
             TracedMessage(
                 type="agent_message_stream_start",
@@ -94,12 +92,10 @@ async def process_billing_request(
         )
         logger.info(f"Stream started for message {message_id}")
 
-        # Call the model with streaming
         logger.info("Calling billing model with streaming")
         chunks = billing_optimized_dspy(chat_history=conversation_string, config=config)
         chunk_count = 0
 
-        # Process the streaming chunks
         try:
             async for chunk in chunks:
                 if isinstance(chunk, StreamResponse):
@@ -119,7 +115,6 @@ async def process_billing_request(
                         )
                     )
                 elif isinstance(chunk, Prediction):
-                    # Get the complete response
                     response = chunk.final_response
                     if response:
                         response = response.replace(" [[ ## completed ## ]]", "")
@@ -144,7 +139,6 @@ async def process_billing_request(
                     logger.info(f"Stream ended for message {message_id}")
         except Exception as e:
             logger.error(f"Error in streaming response: {e}", exc_info=True)
-            # Send an error message to end the stream
             await human_stream_channel.publish(
                 TracedMessage(
                     type="agent_message_stream_end",

@@ -43,13 +43,10 @@ class BillingSignature(dspy.Signature):
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
 
 
-# Initialize tracer
 tracer = create_tracer("billing_agent")
 
-# Path to the SIMBA optimized JSON file
 optimized_model_path = Path(__file__).resolve().parent / "optimized_billing_simba.json"
 
-# Create base model with tracing that we'll use
 billing_model = TracedReAct(
     BillingSignature,
     tools=[get_billing_info, update_billing_info],
@@ -58,10 +55,8 @@ billing_model = TracedReAct(
     max_iters=5,
 )
 
-# Flag to indicate if we're using optimized prompts (from JSON)
 using_optimized_prompts = False
 
-# Try to load prompts from the optimized JSON file directly
 if optimized_model_path.exists():
     try:
         import json
@@ -70,15 +65,12 @@ if optimized_model_path.exists():
         with open(optimized_model_path, "r") as f:
             optimized_data = json.load(f)
 
-            # Check if the JSON has the expected structure
             if "react" in optimized_data and "signature" in optimized_data["react"]:
-                # Extract the optimized instructions
                 optimized_instructions = optimized_data["react"]["signature"].get(
                     "instructions"
                 )
                 if optimized_instructions:
                     logger.info("Successfully loaded optimized instructions")
-                    # Update the instructions in our signature class
                     BillingSignature.__doc__ = optimized_instructions
                     using_optimized_prompts = True
 
@@ -91,7 +83,6 @@ if optimized_model_path.exists():
 else:
     logger.info(f"Optimized model file not found at {optimized_model_path}")
 
-# Log which prompts we're using
 logger.info(
     f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
 )
@@ -111,16 +102,13 @@ def truncate_long_history(
         "truncated_length": len(chat_history),
     }
 
-    # Check if truncation needed
     if len(chat_history) <= max_length:
         return result
 
-    # Perform truncation - keep the last 30 lines like the other agents
     lines = chat_history.split("\n")
-    truncated_lines = lines[-30:]  # Keep last 30 lines
+    truncated_lines = lines[-30:]
     truncated_history = "\n".join(truncated_lines)
 
-    # Update result
     result["history"] = truncated_history
     result["truncated"] = True
     result["truncated_length"] = len(truncated_history)
@@ -135,11 +123,9 @@ async def billing_optimized_dspy(
     """Process a billing inquiry using the DSPy model with streaming output."""
     config = config or ModelConfig()
 
-    # Handle long conversations
     truncation_result = truncate_long_history(chat_history, config)
     chat_history = truncation_result["history"]
 
-    # Create a streaming version of the billing model
     streamify_func = dspy.streamify(
         billing_model,
         stream_listeners=[
@@ -161,7 +147,6 @@ if __name__ == "__main__":
 
         init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
 
-        # Test the billing DSPy module
         test_conversation = (
             "User: How much is my premium?\n"
             "BillingAgent: Could you please provide your policy number?\n"

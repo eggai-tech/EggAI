@@ -14,10 +14,8 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import init_telemetry
 
-# Import settings first
 from .config import settings
 
-# Configure transport with heartbeat and session timeout
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -25,7 +23,6 @@ eggai_set_default_transport(
     )
 )
 
-# Import agent after transport is configured
 from .agent import add_websocket_gateway, frontend_agent
 
 logger = get_console_logger("frontend_agent")

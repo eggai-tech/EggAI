@@ -14,7 +14,6 @@ from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
 from libraries.tracing.otel import safe_set_attribute
 
-# Lazy-loaded classifier registry: maps version to (module path, function name)
 _CLASSIFIER_PATHS = {
     "v0": ("agents.triage.dspy_modules.classifier_v0", "classifier_v0"),
     "v1": ("agents.triage.dspy_modules.classifier_v1", "classifier_v1"),
@@ -25,12 +24,7 @@ _CLASSIFIER_PATHS = {
 }
 
 def build_conversation_string(chat_messages: List[Dict[str, str]]) -> str:
-    """
-    Build a conversation history string from a list of chat entries.
-    Each entry is formatted as 'AgentName: content' on its own line.
-    Only entries with non-empty content are included, and a trailing newline
-    is added if there is at least one message.
-    """
+    """Build a conversation history string from a list of chat entries."""
     lines: List[str] = []
     for chat in chat_messages:
         user = chat.get("agent", "User")
@@ -42,11 +36,7 @@ def build_conversation_string(chat_messages: List[Dict[str, str]]) -> str:
 async def _publish_to_agent(
     conversation_string: str, target_agent: TargetAgent, msg: TracedMessage
 ) -> None:
-    """
-    Publish a single classified user message to a specialized agent.
-
-    Starts a tracing span and sends the routed message over the agents_channel transport.
-    """
+    """Publish a single classified user message to a specialized agent."""
     logger.info(f"Routing message to {target_agent}")
     with tracer.start_as_current_span("publish_to_agent") as span:
         safe_set_attribute(span, "target_agent", str(target_agent))
@@ -75,11 +65,7 @@ async def _publish_to_agent(
 async def _stream_chatty_response(
     conversation_string: str, msg: TracedMessage
 ) -> None:
-    """
-    Stream a 'chatty' (small-talk) response back to the human stream channel.
-
-    Sends a start event, emits each chunk, and a final end event, with tracing.
-    """
+    """Stream a 'chatty' (small-talk) response back to the human stream channel."""
     with tracer.start_as_current_span("chatty_stream_response") as span:
         safe_set_attribute(span, "conversation_length", len(conversation_string))
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
@@ -120,7 +106,6 @@ async def _stream_chatty_response(
                 )
                 logger.info(f"Chunk {chunk_count} sent: {chunk.chunk}")
             elif isinstance(chunk, dspy.Prediction):
-                # FIXME: with short prompts, dspy sometimes leaves the suffix untrimmed
                 chunk.response = chunk.response.replace(" [[ ## completed ## ]]", "")
 
                 await human_stream_channel.publish(
@@ -137,7 +122,6 @@ async def _stream_chatty_response(
                         tracestate=child_tracestate,
                     )
                 )
-                # end of streaming logic
 triage_agent = Agent(name="TriageAgent")
 human_channel = Channel(channels.human)
 human_stream_channel = Channel(channels.human_stream)
@@ -148,12 +132,7 @@ logger = get_console_logger("triage_agent.handler")
 
 
 def get_current_classifier() -> Callable[..., Any]:
-    """
-    Lazily import and return the classifier function based on the configured version.
-
-    Raises:
-        ValueError: If the configured classifier_version is not supported.
-    """
+    """Lazily import and return the classifier function based on the configured version."""
     try:
         module_path, fn_name = _CLASSIFIER_PATHS[settings.classifier_version]
     except KeyError:
@@ -173,13 +152,7 @@ current_classifier = get_current_classifier()
 )
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage) -> None:
-    """
-    Main handler for user messages: classify and route or stream chatty responses.
-
-    Validates input, invokes the selected classifier, and delegates to single-message
-    or streaming helpers. Errors are caught per stage and result in a user-friendly
-    agent_message or stream-end message.
-    """
+    """Main handler for user messages: classify and route or stream chatty responses."""
     chat_messages: List[Dict[str, Any]] = msg.data.get("chat_messages", [])
     connection_id: str = msg.data.get("connection_id", "unknown")
 
@@ -270,7 +243,6 @@ async def handle_user_message(msg: TracedMessage) -> None:
             await _stream_chatty_response(conversation_string, msg)
         except Exception as e:
             logger.error("Error streaming chatty response: %s", e, exc_info=True)
-            # End the stream with an apology
             await human_stream_channel.publish(
                 TracedMessage(
                     type="agent_message_stream_end",
@@ -287,11 +259,7 @@ async def handle_user_message(msg: TracedMessage) -> None:
 
 @triage_agent.subscribe(channel=human_channel)
 async def handle_others(msg: TracedMessage) -> None:
-    """
-    Fallback handler for other message types on the human channel.
-
-    Logs events at debug level; no routing or response is performed.
-    """
+    """Fallback handler for other message types on the human channel."""
     logger.debug("Received message: %s", msg)
 
 

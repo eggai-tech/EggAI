@@ -1,5 +1,4 @@
-"""Audit Agent module for capturing messages from human and agent channels
-and publishing standardized audit logs."""
+"""Audit Agent for message logging."""
 __all__ = [
     "audit_agent",
     "audit_message",
@@ -80,7 +79,6 @@ async def audit_message(
                     f"type={message_type}, source={source}, id={message_id}"
                 )
 
-            # build standardized audit log
             audit_event = AuditEvent(
                 message_id=message_id,
                 message_type=message_type,
@@ -101,7 +99,6 @@ async def audit_message(
             await audit_logs_channel.publish(log_message)
     except Exception as e:
         logger.error("Error processing audit message", exc_info=True)
-        # emit error audit entry
         error_event = AuditEvent(
             message_id=message_id,
             message_type=message_type,

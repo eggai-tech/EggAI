@@ -1,4 +1,4 @@
-"""Tests for the Audit Agent."""
+"""Audit agent tests."""
 
 import asyncio
 import time

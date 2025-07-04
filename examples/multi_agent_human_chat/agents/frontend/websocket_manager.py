@@ -17,11 +17,7 @@ class WebSocketManager:
         self.chat_messages: Dict[str, list] = defaultdict(list)
 
     async def connect(self, websocket: WebSocket, connection_id: str) -> str:
-        """
-        Accept a WebSocket connection, register it, and replay any buffered messages.
-
-        Returns the connection ID.
-        """
+        """Accept a WebSocket connection, register it, and replay any buffered messages."""
         await websocket.accept()
         if connection_id in self.active_connections:
             await self.disconnect(connection_id)
@@ -54,7 +50,6 @@ class WebSocketManager:
                         code=1001, reason="Connection closed by server"
                     )
             except Exception:
-                # If closing fails, still remove from active connections
                 pass
         self.active_connections.pop(connection_id, None)
         self.chat_messages.pop(connection_id, None)

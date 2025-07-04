@@ -1,9 +1,4 @@
-"""
-Type definitions for the Billing Agent.
-
-This module contains all type definitions used throughout the billing agent code,
-providing consistent typing and improving code maintainability.
-"""
+"""Type definitions for the Billing Agent."""
 
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
@@ -11,44 +6,39 @@ from pydantic import BaseModel, Field
 
 
 class ChatMessage(TypedDict, total=False):
-    """Type definition for a chat message."""
 
-    content: str  # Required message content
-    role: str  # Typically "User" or "BillingAgent", optional with default "User"
+    content: str
+    role: str
 
 
 class MessageData(TypedDict, total=False):
-    """Type definition for message data in billing requests."""
 
-    chat_messages: List[ChatMessage]  # The conversation history
-    connection_id: str  # Unique identifier for the conversation
-    message_id: str  # Unique identifier for the message
+    chat_messages: List[ChatMessage]
+    connection_id: str
+    message_id: str
 
 
 class BillingRequestMessage(TypedDict):
-    """Type definition for a billing request message."""
 
-    id: str  # Unique message identifier
-    type: Literal["billing_request"]  # Message type
-    source: str  # Source of the message
-    data: MessageData  # Message data with chat history and IDs
-    traceparent: Optional[str]  # OpenTelemetry traceparent header
-    tracestate: Optional[str]  # OpenTelemetry tracestate header
+    id: str
+    type: Literal["billing_request"]
+    source: str
+    data: MessageData
+    traceparent: Optional[str]
+    tracestate: Optional[str]
 
 
 class TracedMessageDict(TypedDict, total=False):
-    """Type definition for traced message dictionary."""
 
-    id: str  # Message ID
-    type: str  # Message type
-    source: str  # Message source
-    data: Dict[str, Any]  # Message data
-    traceparent: Optional[str]  # Trace parent
-    tracestate: Optional[str]  # Trace state
+    id: str
+    type: str
+    source: str
+    data: Dict[str, Any]
+    traceparent: Optional[str]
+    tracestate: Optional[str]
 
 
 class ModelConfig(BaseModel):
-    """Configuration for the billing DSPy model."""
 
     name: str = Field("billing_react", description="Name of the model")
     max_iterations: int = Field(
@@ -109,13 +99,12 @@ class BillingRecord(BaseModel):
     contact_email: Optional[str] = Field(None, description="Contact email address")
     contact_phone: Optional[str] = Field(None, description="Contact phone number")
 
-    model_config = {"extra": "forbid"}  # Prevent extra fields for security
+    model_config = {"extra": "forbid"}
 
 
 class TruncationResult(TypedDict):
-    """Result of truncating a conversation history."""
 
-    history: str  # Truncated or original history
-    truncated: bool  # Whether truncation was performed
-    original_length: int  # Original length of the history
-    truncated_length: int  # Length after truncation (same as original if not truncated)
+    history: str
+    truncated: bool
+    original_length: int
+    truncated_length: int

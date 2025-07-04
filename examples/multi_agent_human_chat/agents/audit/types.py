@@ -1,4 +1,4 @@
-"""Type definitions for the Audit Agent."""
+"""Audit agent type definitions."""
 
 from datetime import datetime
 from typing import Any, Dict, Literal, Optional
@@ -32,22 +32,10 @@ __all__ = [
 
 
 class AuditConfig(BaseModel):
-    message_categories: Dict[str, AuditCategory] = Field(
-        default_factory=dict,
-        description="Mapping of message types to audit categories",
-    )
-    default_category: AuditCategory = Field(
-        default="Other",
-        description="Default category for messages without a specific mapping",
-    )
-    enable_debug_logging: bool = Field(
-        default=False,
-        description="Whether to enable debug logging for audited messages",
-    )
-    audit_channel_name: str = Field(
-        default="audit_logs",
-        description="Channel name for audit log messages",
-    )
+    message_categories: Dict[str, AuditCategory] = Field(default_factory=dict)
+    default_category: AuditCategory = Field(default="Other")
+    enable_debug_logging: bool = Field(default=False)
+    audit_channel_name: str = Field(default="audit_logs")
 
     model_config = {"validate_assignment": True, "extra": "forbid"}
 
