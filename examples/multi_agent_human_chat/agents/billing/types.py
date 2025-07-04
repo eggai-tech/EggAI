@@ -1,8 +1,11 @@
 """Type definitions for the Billing Agent."""
 
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Optional, TypedDict
 
 from pydantic import BaseModel, Field
+
+# Message type constants
+MESSAGE_TYPE_BILLING_REQUEST: str = "billing_request"
 
 
 class ChatMessage(TypedDict, total=False):
@@ -11,31 +14,6 @@ class ChatMessage(TypedDict, total=False):
     role: str
 
 
-class MessageData(TypedDict, total=False):
-
-    chat_messages: List[ChatMessage]
-    connection_id: str
-    message_id: str
-
-
-class BillingRequestMessage(TypedDict):
-
-    id: str
-    type: Literal["billing_request"]
-    source: str
-    data: MessageData
-    traceparent: Optional[str]
-    tracestate: Optional[str]
-
-
-class TracedMessageDict(TypedDict, total=False):
-
-    id: str
-    type: str
-    source: str
-    data: Dict[str, Any]
-    traceparent: Optional[str]
-    tracestate: Optional[str]
 
 
 class ModelConfig(BaseModel):
@@ -101,10 +79,11 @@ class BillingRecord(BaseModel):
 
     model_config = {"extra": "forbid"}
 
+__all__ = [
+    "ChatMessage",
+    "ModelConfig",
+    "ModelResult",
+    "BillingRecord",
+    "MESSAGE_TYPE_BILLING_REQUEST",
+]
 
-class TruncationResult(TypedDict):
-
-    history: str
-    truncated: bool
-    original_length: int
-    truncated_length: int

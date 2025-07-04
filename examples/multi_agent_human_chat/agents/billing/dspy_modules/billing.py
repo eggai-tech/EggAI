@@ -6,13 +6,14 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 
 from agents.billing.config import settings
-from agents.billing.dspy_modules.billing_data import (
+from agents.billing.types import ModelConfig
+from libraries.logger import get_console_logger
+from libraries.tracing import TracedReAct, create_tracer
+
+from .billing_data import (
     get_billing_info,
     update_billing_info,
 )
-from agents.billing.types import ModelConfig
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
 
 logger = get_console_logger("billing_agent.dspy")
 
@@ -43,49 +44,78 @@ class BillingSignature(dspy.Signature):
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
 
 
-tracer = create_tracer("billing_agent")
+import json
 
-optimized_model_path = Path(__file__).resolve().parent / "optimized_billing_simba.json"
 
-billing_model = TracedReAct(
-    BillingSignature,
-    tools=[get_billing_info, update_billing_info],
-    name="billing_react",
-    tracer=tracer,
-    max_iters=5,
-)
+def load_optimized_instructions(path: Path) -> Optional[str]:
+    """
+    Load optimized instructions from a JSON file and return them if valid.
+    """
+    if not path.exists():
+        logger.info(f"Optimized model file not found at {path}")
+        return None
 
-using_optimized_prompts = False
-
-if optimized_model_path.exists():
     try:
-        import json
+        logger.info(f"Loading optimized prompts from {path}")
+        with path.open("r") as f:
+            data = json.load(f)
 
-        logger.info(f"Loading optimized prompts from {optimized_model_path}")
-        with open(optimized_model_path, "r") as f:
-            optimized_data = json.load(f)
+        react = data.get("react", {})
+        signature = react.get("signature", {})
+        instructions = signature.get("instructions")
 
-            if "react" in optimized_data and "signature" in optimized_data["react"]:
-                optimized_instructions = optimized_data["react"]["signature"].get(
-                    "instructions"
-                )
-                if optimized_instructions:
-                    logger.info("Successfully loaded optimized instructions")
-                    BillingSignature.__doc__ = optimized_instructions
-                    using_optimized_prompts = True
+        if instructions:
+            logger.info(f"Successfully loaded optimized instructions from {path}")
+            return instructions
 
-            if not using_optimized_prompts:
-                logger.warning(
-                    "Optimized JSON file exists but doesn't have expected structure"
-                )
+        logger.warning(
+            "Optimized JSON file exists but missing 'react.signature.instructions'"
+        )
     except Exception as e:
-        logger.error(f"Error loading optimized JSON: {e}")
-else:
-    logger.info(f"Optimized model file not found at {optimized_model_path}")
+        logger.error(f"Error loading optimized JSON: {e}", exc_info=True)
 
-logger.info(
-    f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
-)
+    return None
+
+
+# Global variables for lazy initialization
+tracer = None
+_billing_model = None
+_initialized = False
+
+
+def _initialize_billing_model():
+    """Lazy initialization of billing model to avoid hanging during imports."""
+    global tracer, _billing_model, _initialized
+    
+    if _initialized:
+        return _billing_model
+    
+    # Initialize tracer
+    tracer = create_tracer("billing_agent")
+    
+    # Load optimized instructions if available
+    optimized_path = Path(__file__).resolve().parent / "optimized_billing_simba.json"
+    instructions = load_optimized_instructions(optimized_path)
+    using_optimized_prompts = False
+    if instructions:
+        BillingSignature.__doc__ = instructions
+        using_optimized_prompts = True
+    
+    # Initialize the model
+    _billing_model = TracedReAct(
+        BillingSignature,
+        tools=[get_billing_info, update_billing_info],
+        name="billing_react",
+        tracer=tracer,
+        max_iters=5,
+    )
+    
+    logger.info(
+        f"Using {'optimized' if using_optimized_prompts else 'standard'} prompts with tracer"
+    )
+    
+    _initialized = True
+    return _billing_model
 
 
 def truncate_long_history(
@@ -116,7 +146,6 @@ def truncate_long_history(
     return result
 
 
-@traced_dspy_function(name="billing_dspy")
 async def billing_optimized_dspy(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
@@ -126,6 +155,10 @@ async def billing_optimized_dspy(
     truncation_result = truncate_long_history(chat_history, config)
     chat_history = truncation_result["history"]
 
+    # Get the billing model (lazy initialization)
+    billing_model = _initialize_billing_model()
+
+    # Create a streaming version of the billing model
     streamify_func = dspy.streamify(
         billing_model,
         stream_listeners=[
