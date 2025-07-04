@@ -11,6 +11,7 @@ from typing import Callable, Any, List, Dict
 from libraries.channels import channels
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
+from libraries.tracing.otel import safe_set_attribute
 
 # Lazy-loaded classifier registry: maps version to (module path, function name)
 _CLASSIFIER_PATHS = {
@@ -32,6 +33,8 @@ async def _publish_to_agent(
     """
     logger.info(f"Routing message to {target_agent}")
     with tracer.start_as_current_span("publish_to_agent") as span:
+        safe_set_attribute(span, "target_agent", str(target_agent))
+        safe_set_attribute(span, "conversation_length", len(conversation_string))
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
         triage_to_agent_messages = [
             {
@@ -62,6 +65,7 @@ async def _stream_chatty_response(
     Sends a start event, emits each chunk, and a final end event, with tracing.
     """
     with tracer.start_as_current_span("chatty_stream_response") as span:
+        safe_set_attribute(span, "conversation_length", len(conversation_string))
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
         stream_message_id = str(msg.id)
 
@@ -165,8 +169,13 @@ async def handle_user_message(msg: TracedMessage) -> None:
     chat_messages: List[Dict[str, Any]] = msg.data.get("chat_messages", [])
     connection_id: str = msg.data.get("connection_id", "unknown")
 
+    span = trace.get_current_span()
+    safe_set_attribute(span, "connection_id", connection_id)
+    safe_set_attribute(span, "num_chat_messages", len(chat_messages))
+
     logger.info(f"Received message from connection {connection_id}")
     if not chat_messages:
+        safe_set_attribute(span, "empty_chat_history", True)
         logger.warning("Empty chat history for connection %s", connection_id)
         await human_channel.publish(
             TracedMessage(
@@ -182,10 +191,15 @@ async def handle_user_message(msg: TracedMessage) -> None:
         return
 
     conversation_string = build_conversation_string(chat_messages)
+    safe_set_attribute(span, "conversation_length", len(conversation_string))
 
     try:
         response = current_classifier(chat_history=conversation_string)
+        safe_set_attribute(span, "classifier_version", settings.classifier_version)
+        safe_set_attribute(span, "target_agent", str(response.target_agent))
+        safe_set_attribute(span, "classification_latency_ms", response.metrics.latency_ms)
     except ValueError as e:
+        safe_set_attribute(span, "error", str(e))
         logger.error("Classifier configuration error: %s", e)
         await human_channel.publish(
             TracedMessage(
@@ -200,6 +214,7 @@ async def handle_user_message(msg: TracedMessage) -> None:
         )
         return
     except Exception as e:
+        safe_set_attribute(span, "error", "classification_failure")
         logger.error("Error during classification: %s", e, exc_info=True)
         await human_channel.publish(
             TracedMessage(
