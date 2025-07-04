@@ -198,7 +198,7 @@ def test_escalation_module_imports():
 @pytest.mark.asyncio
 async def test_escalation_optimized_dspy_with_config():
     """Test escalation function with custom config."""
-    from agents.escalation.types import ModelConfig
+from agents.escalation.types import DspyModelConfig as ModelConfig
 
     chat_history = "User: Test with config"
     config = ModelConfig(name="test_model", max_iterations=3)

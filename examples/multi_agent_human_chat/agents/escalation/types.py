@@ -59,17 +59,25 @@ class TracedMessageDict(TypedDict, total=False):
     tracestate: Optional[str]  # Trace state
 
 
-class ModelConfig(BaseModel):
+class DspyModelConfig(BaseModel):
     """Configuration for the ticketing DSPy model."""
 
-    name: str = Field("ticketing_agent", description="Name of the model")
+    name: str = Field(
+        "ticketing_agent", description="Name of the DSPy ticketing model"
+    )
     max_iterations: int = Field(
         5, description="Maximum iterations for the model", ge=1, le=10
     )
-    use_tracing: bool = Field(True, description="Whether to trace model execution")
-    cache_enabled: bool = Field(False, description="Whether to enable model caching")
+    use_tracing: bool = Field(
+        True, description="Whether to trace model execution"
+    )
+    cache_enabled: bool = Field(
+        False, description="Whether to enable model caching"
+    )
     timeout_seconds: float = Field(
-        30.0, description="Timeout for model inference in seconds", ge=1.0
+        30.0,
+        description="Timeout for model inference in seconds",
+        ge=1.0,
     )
 
 

@@ -15,7 +15,7 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 
 from agents.escalation.types import (
-    ModelConfig,
+    DspyModelConfig,
     TicketDepartment,
     TicketInfo,
 )
@@ -180,10 +180,10 @@ ticket_database: List[Dict] = [
 
 @traced_dspy_function(name="escalation_dspy")
 async def escalation_optimized_dspy(
-    chat_history: str, config: Optional[ModelConfig] = None
+    chat_history: str, config: Optional[DspyModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process an escalation inquiry using the DSPy model with streaming output."""
-    config = config or ModelConfig()
+    config = config or DspyModelConfig()
 
     streamify_func = dspy.streamify(
         escalation_model,
