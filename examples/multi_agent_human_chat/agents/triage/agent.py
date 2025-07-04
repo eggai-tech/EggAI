@@ -17,6 +17,22 @@ _CLASSIFIER_PATHS = {
     "v4": ("agents.triage.dspy_modules.classifier_v4", "classifier_v4"),
     "v5": ("agents.triage.attention_net.classifier_v5", "classifier_v5"),
 }
+
+
+def build_conversation_string(chat_messages: list[dict[str, str]]) -> str:
+    """
+    Build a conversation history string from a list of chat entries.
+    Each entry is formatted as 'AgentName: content' on its own line.
+    Only entries with non-empty content are included, and a trailing newline
+    is added if there is at least one message.
+    """
+    lines: list[str] = []
+    for chat in chat_messages:
+        user = chat.get("agent", "User")
+        content = chat.get("content", "")
+        if content:
+            lines.append(f"{user}: {content}")
+    return "\n".join(lines) + ("\n" if lines else "")
 from libraries.channels import channels
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
@@ -68,12 +84,7 @@ async def handle_user_message(msg: TracedMessage):
         connection_id = msg.data.get("connection_id", "unknown")
 
         logger.info(f"Received message from connection {connection_id}")
-        conversation_string = ""
-        for chat in chat_messages:
-            user = chat.get("agent", "User")
-            content = chat.get("content", "")
-            if content:
-                conversation_string += f"{user}: {content}\n"
+        conversation_string = build_conversation_string(chat_messages)
 
         response = current_classifier(chat_history=conversation_string)
         target_agent = response.target_agent
