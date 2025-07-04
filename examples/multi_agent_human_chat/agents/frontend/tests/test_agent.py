@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from starlette.websockets import WebSocket, WebSocketState
 
 # Set up Kafka transport before any agents or channels are created
-from agents.frontend.config import settings
+from ..config import settings
 from libraries.kafka_transport import create_kafka_transport
 
 eggai_set_default_transport(
@@ -21,15 +21,15 @@ eggai_set_default_transport(
     )
 )
 
-from agents.frontend.agent import (
+from libraries.tracing import TracedMessage
+from ..agent import (
     add_websocket_gateway,
+    frontend_agent,
     handle_human_messages,
     handle_human_stream_messages,
+    websocket_manager,
 )
-from agents.frontend.websocket_manager import WebSocketManager
-from libraries.tracing import TracedMessage
-
-from ..agent import frontend_agent, websocket_manager
+from ..websocket_manager import WebSocketManager
 
 pytestmark = pytest.mark.asyncio
 
