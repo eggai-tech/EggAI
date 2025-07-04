@@ -17,8 +17,6 @@ WorkflowStep = Literal["ask_additional_data", "ask_confirmation", "create_ticket
 # Type alias for confirmation responses
 ConfirmationResponse = Literal["yes", "no"]
 
-# Forward reference for type hints
-TicketingAgentSignature = Any  # Will be imported from dspy modules when created
 
 
 class ChatMessage(TypedDict, total=False):
