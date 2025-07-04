@@ -12,11 +12,10 @@ from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI
 from starlette.websockets import WebSocket, WebSocketState
 
-# Internal imports
-from ..config import settings
+from agents.frontend.types import MessageType
 from libraries.kafka_transport import create_kafka_transport
 from libraries.tracing import TracedMessage
-from agents.frontend.types import MessageType
+
 from ..agent import (
     add_websocket_gateway,
     frontend_agent,
@@ -24,6 +23,9 @@ from ..agent import (
     handle_human_stream_messages,
     websocket_manager,
 )
+
+# Internal imports
+from ..config import settings
 from ..websocket_manager import WebSocketManager
 
 # Initialize default transport for tests

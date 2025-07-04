@@ -1,10 +1,11 @@
 """Tests for configuration loading and guardrails integration."""
 
 import os
+
 import pytest
 
-from ..config import Settings
 from .. import guardrails as guardrails_mod
+from ..config import Settings
 
 
 def test_settings_defaults():

@@ -6,7 +6,6 @@ providing consistent typing and improving code maintainability.
 
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
-
 # Type alias for websocket states
 WebSocketStateType = Literal["connected", "disconnected", "connecting"]
 
@@ -65,6 +64,7 @@ class TracedMessageDict(TypedDict, total=False):
 
 
 from enum import Enum
+
 
 class MessageType(str, Enum):
     USER_MESSAGE = "user_message"

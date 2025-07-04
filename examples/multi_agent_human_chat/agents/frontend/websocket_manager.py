@@ -1,7 +1,7 @@
 """WebSocket connection manager for the frontend agent."""
 
 from collections import defaultdict
-from typing import Dict, Any
+from typing import Dict
 
 from starlette.websockets import WebSocket, WebSocketState
 

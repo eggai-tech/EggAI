@@ -1,8 +1,6 @@
 """Tests for the HTTP root endpoint (serving index.html)."""
 
-import os
 import pytest
-
 from fastapi.testclient import TestClient
 
 from ..main import api, settings

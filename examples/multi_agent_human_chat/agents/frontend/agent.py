@@ -20,6 +20,7 @@ from libraries.tracing.otel import (
 )
 
 from .config import settings
+from .types import MessageType
 from .websocket_manager import WebSocketManager
 
 logger = get_console_logger("frontend_agent")
