@@ -11,7 +11,6 @@ class WebSocketManager:
         self.active_connections: Dict[str, WebSocket] = {}
         self.message_buffers: Dict[str, list] = defaultdict(list)
         self.message_ids: Dict[str, str] = defaultdict(str)
-        self.streaming_messages: Dict[str, list] = defaultdict(list)
 
     async def connect(self, websocket: WebSocket, connection_id: str):
         await websocket.accept()
