@@ -1,26 +1,20 @@
 """Frontend agent tests."""
 
+# Standard library imports
 import asyncio
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
+# Third-party imports
 import pytest
 from eggai import Channel
 from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI
 from starlette.websockets import WebSocket, WebSocketState
 
-# Set up Kafka transport before any agents or channels are created
+# Internal imports
 from ..config import settings
 from libraries.kafka_transport import create_kafka_transport
-
-eggai_set_default_transport(
-    lambda: create_kafka_transport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content,
-    )
-)
-
 from libraries.tracing import TracedMessage
 from agents.frontend.types import MessageType
 from ..agent import (
@@ -31,6 +25,14 @@ from ..agent import (
     websocket_manager,
 )
 from ..websocket_manager import WebSocketManager
+
+# Initialize default transport for tests
+eggai_set_default_transport(
+    lambda: create_kafka_transport(
+        bootstrap_servers=settings.kafka_bootstrap_servers,
+        ssl_cert=settings.kafka_ca_content,
+    )
+)
 
 pytestmark = pytest.mark.asyncio
 
