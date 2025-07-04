@@ -5,12 +5,10 @@ from collections import defaultdict
 
 import uvicorn
 from eggai import Agent, Channel
-from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI, Query
 from opentelemetry import trace
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
 from libraries.tracing.init_metrics import init_token_metrics
@@ -38,13 +36,6 @@ else:
     logger.info("Guardrails disabled (no GUARDRAILS_TOKEN)")
     toxic_language_guard = None
 
-# Set up Kafka transport
-eggai_set_default_transport(
-    lambda: create_kafka_transport(
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        ssl_cert=settings.kafka_ca_content,
-    )
-)
 
 frontend_agent = Agent("FrontendAgent")
 human_channel = Channel("human")
