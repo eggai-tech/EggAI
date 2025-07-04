@@ -571,5 +571,5 @@ def test_websocket_manager_initialization():
     assert isinstance(manager.active_connections, dict)
     assert isinstance(manager.message_buffers, dict)
     assert isinstance(manager.message_ids, dict)
-    assert isinstance(manager.streaming_messages, dict)
+    assert isinstance(manager.chat_messages, dict)
     assert len(manager.active_connections) == 0

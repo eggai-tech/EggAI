@@ -50,8 +50,10 @@ async def test_toxic_language_guard_pass(monkeypatch):
     async def dummy_validate(text):
         return DummyResult()
 
-    monkeypatch.setattr(guardrails_mod, '_toxic_language_guard',
-                        type('X', (), {'validate': dummy_validate})())
+    # Replace the internal guard instance and override its validate() method
+    dummy_guard = type('Guard', (), {})()
+    dummy_guard.validate = dummy_validate
+    monkeypatch.setattr(guardrails_mod, '_toxic_language_guard', dummy_guard)
     out = await guardrails_mod.toxic_language_guard("input text")
     assert out == "cleaned"
 
@@ -66,7 +68,9 @@ async def test_toxic_language_guard_fail(monkeypatch):
     async def dummy_validate(text):
         return DummyResult()
 
-    monkeypatch.setattr(guardrails_mod, '_toxic_language_guard',
-                        type('X', (), {'validate': dummy_validate})())
+    # Replace the internal guard instance and override its validate() method
+    dummy_guard = type('Guard', (), {})()
+    dummy_guard.validate = dummy_validate
+    monkeypatch.setattr(guardrails_mod, '_toxic_language_guard', dummy_guard)
     out = await guardrails_mod.toxic_language_guard("toxic text")
     assert out is None

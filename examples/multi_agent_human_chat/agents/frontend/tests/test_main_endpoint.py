@@ -36,10 +36,10 @@ def test_read_root_error(temp_public_dir, monkeypatch):
     html_file = temp_public_dir / "index.html"
     html_file.write_text("data", encoding="utf-8")
     # Simulate open() throwing an unexpected error
-    import importlib
-    main_mod = importlib.import_module("agents.frontend.main")
+    # Simulate open() throwing an unexpected error
+    import builtins
     monkeypatch.setattr(
-        main_mod,
+        builtins,
         'open',
         lambda *args, **kwargs: (_ for _ in ()).throw(Exception("fail")),
     )
