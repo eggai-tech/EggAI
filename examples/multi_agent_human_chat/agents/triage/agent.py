@@ -1,3 +1,4 @@
+"""Triage agent handler: classify user messages and route or stream responses."""
 import dspy.streaming
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
@@ -7,6 +8,12 @@ from agents.triage.config import settings
 from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import AGENT_REGISTRY, TargetAgent
 import importlib
+from typing import Callable, Any, List, Dict
+from libraries.channels import channels
+from libraries.kafka_transport import create_kafka_transport
+from libraries.logger import get_console_logger
+from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
+from libraries.tracing.init_metrics import init_token_metrics
 
 # Lazy-loaded classifier registry: maps version to (module path, function name)
 _CLASSIFIER_PATHS = {
@@ -18,24 +25,14 @@ _CLASSIFIER_PATHS = {
     "v5": ("agents.triage.attention_net.classifier_v5", "classifier_v5"),
 }
 
-def build_conversation_string(chat_messages: list[dict[str, str]]) -> str:
-    """
-    Build a conversation history string from a list of chat entries.
-    Each entry is formatted as 'AgentName: content' on its own line.
-    Only entries with non-empty content are included, and a trailing newline
-    is added if there is at least one message.
-    """
-    lines: list[str] = []
-    for chat in chat_messages:
-        user = chat.get("agent", "User")
-        content = chat.get("content", "")
-        if content:
-            lines.append(f"{user}: {content}")
-    return "\n".join(lines) + ("\n" if lines else "")
-
 async def _publish_to_agent(
     conversation_string: str, target_agent: TargetAgent, msg: TracedMessage
 ) -> None:
+    """
+    Publish a single classified user message to a specialized agent.
+
+    Starts a tracing span and sends the routed message over the agents_channel transport.
+    """
     logger.info(f"Routing message to {target_agent}")
     with tracer.start_as_current_span("publish_to_agent") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
@@ -62,6 +59,11 @@ async def _publish_to_agent(
 async def _stream_chatty_response(
     conversation_string: str, msg: TracedMessage
 ) -> None:
+    """
+    Stream a 'chatty' (small-talk) response back to the human stream channel.
+
+    Sends a start event, emits each chunk, and a final end event, with tracing.
+    """
     with tracer.start_as_current_span("chatty_stream_response") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
         stream_message_id = str(msg.id)
@@ -119,29 +121,6 @@ async def _stream_chatty_response(
                     )
                 )
                 logger.info(
-                    f"Stream ended for message {stream_message_id}: {chunk.response}"
-                )
-
-
-def build_conversation_string(chat_messages: list[dict[str, str]]) -> str:
-    """
-    Build a conversation history string from a list of chat entries.
-    Each entry is formatted as 'AgentName: content' on its own line.
-    Only entries with non-empty content are included, and a trailing newline
-    is added if there is at least one message.
-    """
-    lines: list[str] = []
-    for chat in chat_messages:
-        user = chat.get("agent", "User")
-        content = chat.get("content", "")
-        if content:
-            lines.append(f"{user}: {content}")
-    return "\n".join(lines) + ("\n" if lines else "")
-from libraries.channels import channels
-from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
-from libraries.tracing.init_metrics import init_token_metrics
 
 init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
@@ -163,7 +142,13 @@ tracer = trace.get_tracer("triage_agent")
 logger = get_console_logger("triage_agent.handler")
 
 
-def get_current_classifier():
+def get_current_classifier() -> Callable[..., Any]:
+    """
+    Lazily import and return the classifier function based on the configured version.
+
+    Raises:
+        ValueError: If the configured classifier_version is not supported.
+    """
     try:
         module_path, fn_name = _CLASSIFIER_PATHS[settings.classifier_version]
     except KeyError:
@@ -182,7 +167,13 @@ current_classifier = get_current_classifier()
     group_id="triage_agent_group",
 )
 @traced_handler("handle_user_message")
-async def handle_user_message(msg: TracedMessage):
+async def handle_user_message(msg: TracedMessage) -> None:
+    """
+    Handle incoming user messages: classify and route or stream chatty responses.
+
+    Extracts the chat history, invokes the current classifier, and delegates to
+    publishing or streaming helpers based on the target agent.
+    """
     try:
         chat_messages = msg.data.get("chat_messages", [])
         connection_id = msg.data.get("connection_id", "unknown")
@@ -206,7 +197,12 @@ async def handle_user_message(msg: TracedMessage):
 
 
 @triage_agent.subscribe(channel=human_channel)
-async def handle_others(msg: TracedMessage):
+async def handle_others(msg: TracedMessage) -> None:
+    """
+    Fallback handler for other message types on the human channel.
+
+    Logs events at debug level; no routing or response is performed.
+    """
     logger.debug("Received message: %s", msg)
 
 
