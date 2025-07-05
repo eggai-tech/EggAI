@@ -182,3 +182,51 @@ All Messages → Audit Agent → Audit Logs Channel → Storage
 - **Agent Isolation**: Each agent runs in separate process
 - **Channel Security**: Message encryption in transit
 - **Audit Compliance**: Complete message history
+
+## Communication Flow Example
+
+This sequence diagram shows a typical interaction where a user asks about their insurance policy:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant HumanChannel
+    participant Triage
+    participant AgentsChannel
+    participant Policies
+    participant Audit
+
+    User->>Frontend: Send greeting (e.g., "hi")
+    Frontend->>HumanChannel: Forward user input
+    HumanChannel->>+Audit: Log message
+    HumanChannel->>Triage: Forward to Triage
+    Triage-->>HumanChannel: Respond with initial greeting (e.g., "Hello! How can I assist?")
+    HumanChannel->>+Audit: Log message
+    HumanChannel-->>Frontend: Send response
+    Frontend-->>User: Display response
+
+    User->>Frontend: Ask for help with insurance (e.g., "I want to know what's included in my policy")
+    Frontend->>HumanChannel: Forward user input
+    HumanChannel->>+Audit: Log message
+    HumanChannel->>Triage: Forward to Triage
+    Triage->>AgentsChannel: Forward to Policies
+    AgentsChannel->>+Audit: Log message
+    AgentsChannel->>Policies: Forward to Policies
+    Policies-->>HumanChannel: Ask for clarification (e.g., "Can you provide your policy number?")
+    HumanChannel->>+Audit: Log message
+    HumanChannel-->>Frontend: Send response
+    Frontend-->>User: Display response
+
+    User->>Frontend: Provide policy number (e.g., A12345)
+    Frontend->>HumanChannel: Forward user input
+    HumanChannel->>+Audit: Log message
+    HumanChannel->>Triage: Forward to Triage
+    Triage->>AgentsChannel: Forward to Policies
+    AgentsChannel->>+Audit: Log message
+    AgentsChannel->>Policies: Forward to Policies
+    Policies-->>HumanChannel: Return policy details (e.g., "Your insurance with the policy number A12345 includes...")
+    HumanChannel->>+Audit: Log message
+    HumanChannel-->>Frontend: Send response
+    Frontend-->>User: Display response
+```
