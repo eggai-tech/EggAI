@@ -4,11 +4,11 @@ from pydantic import BaseModel
 
 
 class TargetAgent(str, Enum):
-    BillingAgent = "Billing"
-    PolicyAgent = "Policy"
-    ClaimsAgent = "Claims"
-    EscalationAgent = "Escalation"
-    ChattyAgent = "Chatty"
+    BillingAgent = "BillingAgent"
+    PolicyAgent = "PolicyAgent"
+    ClaimsAgent = "ClaimsAgent"
+    EscalationAgent = "EscalationAgent"
+    ChattyAgent = "ChattyAgent"
 
 
 class ClassifierMetrics(BaseModel):
