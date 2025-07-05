@@ -5,7 +5,7 @@ import dspy.streaming
 from eggai import Agent, Channel
 from opentelemetry import trace
 
-from agents.triage.config import settings
+from agents.triage.config import GROUP_ID, MESSAGE_TYPE_USER_MESSAGE, settings
 from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import AGENT_REGISTRY, TargetAgent
 from libraries.channels import channels
@@ -145,9 +145,9 @@ current_classifier = get_current_classifier()
 
 @triage_agent.subscribe(
     channel=human_channel,
-    filter_by_message=lambda msg: msg.get("type") == "user_message",
+    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_USER_MESSAGE,
     auto_offset_reset="latest",
-    group_id="triage_agent_group",
+    group_id=GROUP_ID,
 )
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage) -> None:

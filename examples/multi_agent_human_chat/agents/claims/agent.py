@@ -5,9 +5,9 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
-from agents.claims.config import settings
+from agents.claims.config import MESSAGE_TYPE_CLAIM_REQUEST, model_config, settings
 from agents.claims.dspy_modules.claims import claims_optimized_dspy
-from agents.claims.types import ChatMessage, ModelConfig
+from agents.claims.types import ChatMessage
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
@@ -140,7 +140,9 @@ async def process_claims_request(
     timeout_seconds: float = None,
 ) -> None:
     """Generate a response to a claims request with streaming output."""
-    config = ModelConfig(name="claims_react", timeout_seconds=timeout_seconds or 30.0)
+    config = model_config
+    if timeout_seconds:
+        config = model_config.model_copy(update={"timeout_seconds": timeout_seconds})
     with tracer.start_as_current_span("process_claims_request") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
         safe_set_attribute(span, "connection_id", connection_id)
@@ -203,7 +205,7 @@ async def process_claims_request(
 
 @claims_agent.subscribe(
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == "claim_request",
+    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_CLAIM_REQUEST,
     auto_offset_reset="latest",
     group_id="claims_agent_group",
 )

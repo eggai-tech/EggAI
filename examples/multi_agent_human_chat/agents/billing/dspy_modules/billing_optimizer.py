@@ -144,7 +144,6 @@ def precision_metric(example, pred, trace=None) -> float:
     return 1.0
 
 
-# Define the critical text that must be preserved for billing
 critical_privacy_text = "NEVER reveal ANY billing information unless the user has provided a specific, valid policy number"
 date_format_text = "Dates MUST be in the format YYYY-MM-DD"
 
@@ -161,10 +160,8 @@ def format_examples(examples, max_examples=3):
 
 
 if __name__ == "__main__":
-    # Set up env & LM - explicitly disable cache for optimization
     lm = dspy_set_language_model(settings, overwrite_cache_enabled=False)
 
-    # Set up MLflow
     mlflow.set_experiment("billing_agent_optimization")
     run_name = (
         f"billing_optimization_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"

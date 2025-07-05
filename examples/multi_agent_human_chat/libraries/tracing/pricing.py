@@ -71,14 +71,11 @@ DEFAULT_PRICING_DATA = {
 
 
 class PricingCalculator:
-    """Calculator for AI model pricing based on token usage."""
 
     def __init__(self):
-        """Initialize the pricing calculator."""
         self.pricing_data = self._load_pricing_data()
 
     def _load_pricing_data(self) -> Dict[str, Any]:
-        """Load pricing data from remote source or use default."""
         try:
             # Try to load from remote source (could be a URL in production)
             # For now, just use the default data
@@ -88,7 +85,6 @@ class PricingCalculator:
             return DEFAULT_PRICING_DATA
 
     def _normalize_model_name(self, model_name: str) -> str:
-        """Normalize model name to match pricing data keys."""
         if not model_name:
             return "gpt-3.5-turbo"  # Default fallback
 
@@ -145,7 +141,6 @@ class PricingCalculator:
         return "gpt-3.5-turbo"
 
     def get_model_pricing(self, model_name: str) -> Tuple[float, float]:
-        """Get pricing for a model (input_price_per_1k, output_price_per_1k)."""
         normalized_name = self._normalize_model_name(model_name)
 
         if normalized_name in self.pricing_data["chat"]:
@@ -159,7 +154,6 @@ class PricingCalculator:
     def calculate_cost(
         self, model_name: str, prompt_tokens: int, completion_tokens: int
     ) -> Dict[str, Any]:
-        """Calculate cost for a request."""
         # Handle negative tokens gracefully
         prompt_tokens = max(0, prompt_tokens)
         completion_tokens = max(0, completion_tokens)
@@ -185,7 +179,6 @@ class PricingCalculator:
         }
 
     def get_supported_models(self) -> Dict[str, Dict[str, float]]:
-        """Get all supported models and their pricing."""
         return self.pricing_data["chat"]
 
 
@@ -194,7 +187,6 @@ _pricing_calculator = None
 
 
 def get_pricing_calculator() -> PricingCalculator:
-    """Get the global pricing calculator instance."""
     global _pricing_calculator
     if _pricing_calculator is None:
         _pricing_calculator = PricingCalculator()
@@ -204,7 +196,6 @@ def get_pricing_calculator() -> PricingCalculator:
 def calculate_request_cost(
     model_name: str, prompt_tokens: int, completion_tokens: int
 ) -> Dict[str, Any]:
-    """Convenience function to calculate request cost."""
     calculator = get_pricing_calculator()
     return calculator.calculate_cost(model_name, prompt_tokens, completion_tokens)
 

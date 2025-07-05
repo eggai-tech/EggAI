@@ -5,9 +5,18 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
-from agents.policies.agent.config import settings
+from agents.policies.agent.config import (
+    AGENT_NAME,
+    CONSUMER_GROUP_ID,
+    MESSAGE_TYPE_AGENT_MESSAGE,
+    MESSAGE_TYPE_POLICY_REQUEST,
+    MESSAGE_TYPE_STREAM_CHUNK,
+    MESSAGE_TYPE_STREAM_END,
+    model_config,
+    settings,
+)
 from agents.policies.agent.reasoning import policies_react_dspy
-from agents.policies.agent.types import ChatMessage, ModelConfig
+from agents.policies.agent.types import ChatMessage
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
@@ -18,13 +27,6 @@ from libraries.tracing import (
 )
 from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
-
-AGENT_NAME = "PoliciesAgent"
-CONSUMER_GROUP_ID = "policies_agent_group"
-MESSAGE_TYPE_POLICY_REQUEST = "policy_request"
-MESSAGE_TYPE_AGENT_MESSAGE = "agent_message"
-MESSAGE_TYPE_STREAM_CHUNK = "agent_message_stream_chunk"
-MESSAGE_TYPE_STREAM_END = "agent_message_stream_end"
 
 policies_agent = Agent(name=AGENT_NAME)
 logger = get_console_logger("policies_agent.handler")
@@ -71,7 +73,9 @@ async def process_policy_request(
     timeout_seconds: float = None,
 ) -> None:
     """Generate a response to a policy request with streaming output."""
-    config = ModelConfig(timeout_seconds=timeout_seconds or 30.0)
+    config = model_config
+    if timeout_seconds:
+        config = model_config.model_copy(update={"timeout_seconds": timeout_seconds})
     with tracer.start_as_current_span("process_policy_request") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
         safe_set_attribute(span, "connection_id", connection_id)

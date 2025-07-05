@@ -154,11 +154,6 @@ _application_name = "unknown"
 
 
 def normalize_gen_ai_system(model_name: str) -> str:
-    """
-    Normalize model name to standard gen_ai.system values.
-    Following OpenTelemetry semantic conventions exactly.
-    https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-metrics/
-    """
     model_lower = model_name.lower()
 
     # OpenAI models
@@ -241,13 +236,6 @@ def normalize_gen_ai_system(model_name: str) -> str:
 def normalize_operation_name(
     model_name: str, prompt: str = None, messages: list = None
 ) -> str:
-    """
-    Determine the operation name based on the request type.
-    Following OpenTelemetry semantic conventions exactly.
-    https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-metrics/
-
-    Valid values: chat, create_agent, embeddings, execute_tool, generate_content, invoke_agent, text_completion
-    """
     # If messages are provided, it's likely a chat completion
     if messages:
         return "chat"
@@ -272,14 +260,6 @@ def normalize_operation_name(
 
 
 def export_semantic_metrics(lm, operation_duration: float = None, span=None):
-    """
-    Export metrics following OpenTelemetry GenAI semantic conventions.
-
-    Args:
-        lm: The TrackingLM instance
-        operation_duration: Duration of the operation in seconds
-        span: Optional current span to extract attributes from
-    """
     global _application_name
 
     # Extract model info
@@ -422,19 +402,11 @@ def export_semantic_metrics(lm, operation_duration: float = None, span=None):
 
 
 def export_token_metrics(lm, span=None):
-    """
-    Export semantic convention metrics.
-
-    Args:
-        lm: The TrackingLM instance
-        span: Optional current span to extract attributes from
-    """
     # Export semantic convention metrics
     export_semantic_metrics(lm, span=span)
 
 
 def patch_tracking_lm():
-    """Patch TrackingLM to automatically export metrics after each forward call."""
     from libraries.dspy_set_language_model import TrackingLM
 
     original_forward = TrackingLM.forward
@@ -465,24 +437,11 @@ def patch_tracking_lm():
 
 
 def start_metrics_server(port: int = 9091):
-    """Start Prometheus metrics server."""
     start_http_server(port)
     print(f"✓ Prometheus metrics server started on port {port}")
 
 
 def init_token_metrics(port: int = 9091, application_name: str = "unknown"):
-    """
-    Initialize the complete token metrics system.
-
-    This function:
-    1. Patches TrackingLM to automatically export metrics
-    2. Starts the Prometheus metrics server
-    3. Enables OpenTelemetry semantic convention metrics
-
-    Args:
-        port: Port for the Prometheus metrics server (default: 9091)
-        application_name: Name of the application for metrics labeling (default: "unknown")
-    """
     global _application_name
     _application_name = application_name
 

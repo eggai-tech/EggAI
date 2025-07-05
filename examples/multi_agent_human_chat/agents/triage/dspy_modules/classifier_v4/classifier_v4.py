@@ -75,12 +75,10 @@ classifier_v4_program = dspy.Predict(
     signature=AgentClassificationSignature.with_instructions(ZERO_SHOT_INSTRUCTIONS)
 )
 
-# Define the path for the optimizations file
 optimizations_json = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "optimizations_v4.json")
 )
 
-# Check if the optimizations file exists and load it
 if os.path.exists(optimizations_json):
     logger.info(f"Loading optimizations from {optimizations_json}")
     with open(optimizations_json, "r") as f:

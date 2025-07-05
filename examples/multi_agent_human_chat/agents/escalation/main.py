@@ -9,8 +9,7 @@ from libraries.logger import configure_logging, get_console_logger
 from libraries.tracing import init_telemetry
 from libraries.tracing.init_metrics import init_token_metrics
 
-from .config import settings
-from .constants import AGENT_NAME
+from .config import AGENT_NAME, settings
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(

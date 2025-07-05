@@ -68,7 +68,6 @@ async def run_policy_documentation_worker(
         f"Starting Policy Documentation worker on task queue: {settings.temporal_task_queue}"
     )
 
-    # Start the worker
     asyncio.ensure_future(worker.run())
     _get_logger().info("Policy Documentation worker started successfully!")
 

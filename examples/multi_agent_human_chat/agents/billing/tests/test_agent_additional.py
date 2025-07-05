@@ -12,7 +12,7 @@ from agents.billing.agent import (
     handle_other_messages,
     process_billing_request,
 )
-from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
+from agents.billing.config import MESSAGE_TYPE_BILLING_REQUEST
 from libraries.tracing import TracedMessage
 
 
