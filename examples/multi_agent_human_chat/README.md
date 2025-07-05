@@ -174,46 +174,69 @@ View results in MLflow at http://localhost:5001
 ```mermaid
 sequenceDiagram
     participant User
-    participant FrontendAgent
+    participant Frontend
     participant HumanChannel
-    participant TriageAgent
+    participant Triage
     participant AgentsChannel
-    participant PoliciesAgent
-    participant AuditAgent
+    participant Policies
+    participant Audit
 
-    User->>FrontendAgent: Send greeting (e.g., "hi")
-    FrontendAgent->>HumanChannel: Forward user input
-    HumanChannel->>+AuditAgent: Log message
-    HumanChannel->>TriageAgent: Forward to TriageAgent
-    TriageAgent-->>HumanChannel: Respond with initial greeting (e.g., "Hello! How can I assist?")
-    HumanChannel->>+AuditAgent: Log message
-    HumanChannel-->>FrontendAgent: Send response
-    FrontendAgent-->>User: Display response
+    User->>Frontend: Send greeting (e.g., "hi")
+    Frontend->>HumanChannel: Forward user input
+    HumanChannel->>+Audit: Log message
+    HumanChannel->>Triage: Forward to Triage
+    Triage-->>HumanChannel: Respond with initial greeting (e.g., "Hello! How can I assist?")
+    HumanChannel->>+Audit: Log message
+    HumanChannel-->>Frontend: Send response
+    Frontend-->>User: Display response
 
-    User->>FrontendAgent: Ask for help with insurance (e.g., "I want to know what's included in my policy")
-    FrontendAgent->>HumanChannel: Forward user input
-    HumanChannel->>+AuditAgent: Log message
-    HumanChannel->>TriageAgent: Forward to TriageAgent
-    TriageAgent->>AgentsChannel: Forward to PoliciesAgent
-    AgentsChannel->>+AuditAgent: Log message
-    AgentsChannel->>PoliciesAgent: Forward to PoliciesAgent
-    PoliciesAgent-->>HumanChannel: Ask for clarification (e.g., "Can you provide your policy number?")
-    HumanChannel->>+AuditAgent: Log message
-    HumanChannel-->>FrontendAgent: Send response
-    FrontendAgent-->>User: Display response
+    User->>Frontend: Ask for help with insurance (e.g., "I want to know what's included in my policy")
+    Frontend->>HumanChannel: Forward user input
+    HumanChannel->>+Audit: Log message
+    HumanChannel->>Triage: Forward to Triage
+    Triage->>AgentsChannel: Forward to Policies
+    AgentsChannel->>+Audit: Log message
+    AgentsChannel->>Policies: Forward to Policies
+    Policies-->>HumanChannel: Ask for clarification (e.g., "Can you provide your policy number?")
+    HumanChannel->>+Audit: Log message
+    HumanChannel-->>Frontend: Send response
+    Frontend-->>User: Display response
 
-    User->>FrontendAgent: Provide policy number (e.g., A12345)
-    FrontendAgent->>HumanChannel: Forward user input
-    HumanChannel->>+AuditAgent: Log message
-    HumanChannel->>TriageAgent: Forward to TriageAgent
-    TriageAgent->>AgentsChannel: Forward to PoliciesAgent
-    AgentsChannel->>+AuditAgent: Log message
-    AgentsChannel->>PoliciesAgent: Forward to PoliciesAgent
-    PoliciesAgent-->>HumanChannel: Return policy details (e.g., "Your insurance with the policy number A12345 includes...")
-    HumanChannel->>+AuditAgent: Log message
-    HumanChannel-->>FrontendAgent: Send response
-    FrontendAgent-->>User: Display response
+    User->>Frontend: Provide policy number (e.g., A12345)
+    Frontend->>HumanChannel: Forward user input
+    HumanChannel->>+Audit: Log message
+    HumanChannel->>Triage: Forward to Triage
+    Triage->>AgentsChannel: Forward to Policies
+    AgentsChannel->>+Audit: Log message
+    AgentsChannel->>Policies: Forward to Policies
+    Policies-->>HumanChannel: Return policy details (e.g., "Your insurance with the policy number A12345 includes...")
+    HumanChannel->>+Audit: Log message
+    HumanChannel-->>Frontend: Send response
+    Frontend-->>User: Display response
 ```
+
+## Multi-Environment Deployment
+
+The system supports deployment namespacing for running multiple instances on shared infrastructure:
+
+```bash
+# For PR deployments
+export DEPLOYMENT_NAMESPACE=pr-123
+make start-all
+
+# For staging
+export DEPLOYMENT_NAMESPACE=staging
+make start-all
+
+# For production (no namespace)
+unset DEPLOYMENT_NAMESPACE
+make start-all
+```
+
+This will automatically prefix:
+- Kafka topics: `pr-123-agents`, `pr-123-human`, `pr-123-human_stream`
+- Temporal namespaces and task queues
+- Vespa app names: `pr-123-policies`
 
 ## Cleaning Up
 
