@@ -120,6 +120,7 @@ def deploy_to_vespa(
     node_count: int = 1,
     hosts_config: Path = None,
     services_xml: Path = None,
+    app_name: str = "policies",
 ) -> bool:
     """Deploy the enhanced application package to Vespa.
 
@@ -190,6 +191,7 @@ def deploy_to_vespa(
                 node_count=node_count,
                 hosts=hosts,
                 services_xml=services_xml,
+                app_name=app_name,
             )
 
         # Deploy the package

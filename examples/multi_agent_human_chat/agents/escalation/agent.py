@@ -23,7 +23,7 @@ from .config import (
 )
 
 logger = get_console_logger(AGENT_NAME)
-from .dspy_modules.escalation import escalation_optimized_dspy
+from .dspy_modules.escalation import process_escalation
 from .types import ChatMessage
 
 ticketing_agent = Agent(name=AGENT_NAME)
@@ -98,7 +98,7 @@ async def process_escalation_request(
         chunk_count = 0
 
         try:
-            async for chunk in escalation_optimized_dspy(
+            async for chunk in process_escalation(
                 chat_history=conversation_string, config=config
             ):
                 if isinstance(chunk, StreamResponse):

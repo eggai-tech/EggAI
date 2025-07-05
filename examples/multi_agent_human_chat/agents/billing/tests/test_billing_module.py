@@ -3,7 +3,7 @@ import pytest
 from agents.billing.dspy_modules.billing import (
     BillingSignature,
     ModelConfig,
-    billing_optimized_dspy,
+    process_billing,
     truncate_long_history,
 )
 from libraries.shared_test_utils import (
@@ -48,22 +48,22 @@ def test_billing_signature_fields():
 
 
 @pytest.mark.asyncio
-async def test_billing_optimized_dspy_basic():
-    """Test basic functionality of billing_optimized_dspy."""
+async def test_process_billing_basic():
+    """Test basic functionality of process_billing."""
     conversation = (
         "User: What's my current bill?\nBillingAgent: Let me check that for you."
     )
     expected_response = (
         "Your current balance is $125.50. Your next payment is due on March 15th."
     )
-    await shared_dspy_basic(billing_optimized_dspy, conversation, expected_response)
+    await shared_dspy_basic(process_billing, conversation, expected_response)
 
 
 @pytest.mark.asyncio
-async def test_billing_optimized_dspy_empty_conversation():
-    """Test billing_optimized_dspy with empty conversation."""
+async def test_process_billing_empty_conversation():
+    """Test process_billing with empty conversation."""
     expected_response = "I need more information about your account to help you."
-    await shared_dspy_empty(billing_optimized_dspy, expected_response)
+    await shared_dspy_empty(process_billing, expected_response)
 
 
 def test_model_config_validation():

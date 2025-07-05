@@ -11,6 +11,12 @@ class BaseAgentConfig(BaseSettings):
         description="Unique application name for the agent"
     )
     
+    # Deployment configuration
+    deployment_namespace: Optional[str] = Field(
+        default=None,
+        description="Namespace for deployment (e.g., pr-123, staging, prod)"
+    )
+    
     # Language model settings
     language_model: str = Field(
         default="openai/gpt-4o-mini",
@@ -57,9 +63,34 @@ class BaseAgentConfig(BaseSettings):
         description="Port for Prometheus metrics endpoint (must be unique per agent)"
     )
     
+    # Temporal configuration (for agents that use it)
+    temporal_namespace: Optional[str] = Field(
+        default=None,
+        description="Temporal namespace (uses deployment_namespace if not set)"
+    )
+    temporal_task_queue: Optional[str] = Field(
+        default=None,
+        description="Temporal task queue (uses agent-specific default if not set)"
+    )
+    
     # Base configuration - to be overridden by each agent
     model_config = SettingsConfigDict(
         env_file=".env",
         env_ignore_empty=True,
         extra="ignore"
     )
+    
+    def get_temporal_namespace(self) -> str:
+        """Get the Temporal namespace, using deployment namespace as fallback."""
+        if self.temporal_namespace:
+            return self.temporal_namespace
+        if self.deployment_namespace:
+            return self.deployment_namespace
+        return "default"
+    
+    def get_temporal_task_queue(self, default_queue: str) -> str:
+        """Get the Temporal task queue with deployment namespace prefix if configured."""
+        base_queue = self.temporal_task_queue or default_queue
+        if self.deployment_namespace:
+            return f"{self.deployment_namespace}-{base_queue}"
+        return base_queue

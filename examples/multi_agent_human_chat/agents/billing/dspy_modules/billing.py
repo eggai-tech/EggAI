@@ -144,7 +144,7 @@ def truncate_long_history(
     return result
 
 
-async def billing_optimized_dspy(
+async def process_billing(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process a billing inquiry using the DSPy model with streaming output."""
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for billing agent")
-        chunks = billing_optimized_dspy(test_conversation)
+        chunks = process_billing(test_conversation)
 
         async for chunk in chunks:
             if isinstance(chunk, StreamResponse):

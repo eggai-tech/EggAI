@@ -36,7 +36,7 @@ class TicketingRequestMessage(TypedDict):
     tracestate: Optional[str]
 
 
-class EscalationModelConfig(BaseModelConfig):
+class ModelConfig(BaseModelConfig):
 
     name: str = Field("ticketing_agent", description="Name of the DSPy ticketing model")
 
@@ -54,5 +54,4 @@ class TicketInfo(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-DspyModelConfig = EscalationModelConfig
-ModelConfig = EscalationModelConfig
+DspyModelConfig = ModelConfig

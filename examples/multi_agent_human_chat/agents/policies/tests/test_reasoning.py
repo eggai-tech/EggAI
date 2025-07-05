@@ -6,7 +6,7 @@ from dspy.streaming import StreamResponse
 
 from agents.policies.agent.reasoning import (
     PolicyAgentSignature,
-    policies_react_dspy,
+    process_policies,
     truncate_long_history,
     using_optimized_prompts,
 )
@@ -116,11 +116,11 @@ class TestPolicyAgentSignature:
 
 
 class TestPoliciesReactDspy:
-    """Test the main policies_react_dspy function."""
+    """Test the main process_policies function."""
     
     @pytest.mark.asyncio
     async def test_policies_react_basic_flow(self):
-        """Test basic flow of policies_react_dspy."""
+        """Test basic flow of process_policies."""
         test_history = "User: What is my policy number?\nAgent: I need your policy number."
         
         # Mock the streamify function and model
@@ -135,7 +135,7 @@ class TestPoliciesReactDspy:
             mock_streamify.return_value = mock_stream
             
             # Execute
-            result = policies_react_dspy(test_history)
+            result = process_policies(test_history)
             
             # Verify streamify was called with correct parameters
             mock_streamify.assert_called_once()
@@ -146,7 +146,7 @@ class TestPoliciesReactDspy:
     
     @pytest.mark.asyncio
     async def test_policies_react_with_truncation(self):
-        """Test policies_react_dspy with history truncation."""
+        """Test process_policies with history truncation."""
         # Create long history that will be truncated
         long_history = "\n".join([f"User: Question {i}\nAgent: Answer {i}" for i in range(50)])
         
@@ -165,7 +165,7 @@ class TestPoliciesReactDspy:
                 mock_streamify.return_value = mock_stream
                 
                 # Execute
-                result = policies_react_dspy(long_history)
+                result = process_policies(long_history)
                 
                 # Verify truncation was called
                 mock_truncate.assert_called_once_with(long_history, ModelConfig())
@@ -189,7 +189,7 @@ class TestPoliciesReactDspy:
             
             # Execute and collect results
             final_prediction = None
-            async for item in policies_react_dspy(test_history):
+            async for item in process_policies(test_history):
                 if isinstance(item, Prediction):
                     final_prediction = item
             

@@ -10,7 +10,7 @@ from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, format_span_as_traceparent
 from libraries.tracing.otel import safe_set_attribute
 
-from .dspy_modules.billing import billing_optimized_dspy
+from .dspy_modules.billing import process_billing
 from .types import ChatMessage, ModelConfig
 
 default_human_stream_channel = Channel(channels.human_stream)
@@ -80,7 +80,7 @@ async def process_billing_request(
         count = 0
 
         try:
-            async for chunk in billing_optimized_dspy(chat_history=conversation_string, config=config):
+            async for chunk in process_billing(chat_history=conversation_string, config=config):
                 if isinstance(chunk, StreamResponse):
                     count += 1
                     await human_stream_channel.publish(

@@ -10,7 +10,7 @@ from .types import ModelConfig
 
 load_dotenv()
 
-AGENT_NAME = "PoliciesAgent"
+AGENT_NAME = "Policies"
 CONSUMER_GROUP_ID = "policies_agent_group"
 MESSAGE_TYPE_POLICY_REQUEST = "policy_request"
 MESSAGE_TYPE_AGENT_MESSAGE = "agent_message"

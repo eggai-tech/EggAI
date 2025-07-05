@@ -11,11 +11,10 @@ from libraries.tracing import TracedMessage, create_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
 
 from .config import MESSAGE_TYPE_BILLING_REQUEST, settings
-from .dspy_modules.billing import billing_optimized_dspy
 from .types import ChatMessage
 from .utils import get_conversation_string, process_billing_request
 
-billing_agent = Agent(name="BillingAgent")
+billing_agent = Agent(name="Billing")
 logger = get_console_logger("billing_agent.handler")
 agents_channel = Channel(channels.agents)
 human_channel = Channel(channels.human)
@@ -44,11 +43,11 @@ async def handle_billing_request(msg: TracedMessage) -> None:
             await human_channel.publish(
                 TracedMessage(
                     type="agent_message",
-                    source="BillingAgent",
+                    source="Billing",
                     data={
                     "message": "I apologize, but I didn't receive any message content to process.",  # noqa: E501
                         "connection_id": connection_id,
-                        "agent": "BillingAgent",
+                        "agent": "Billing",
                     },
                     traceparent=msg.traceparent,
                     tracestate=msg.tracestate,
@@ -94,6 +93,8 @@ if __name__ == "__main__":
     async def run():
         from libraries.dspy_set_language_model import dspy_set_language_model
 
+        from .dspy_modules.billing import process_billing
+
         dspy_set_language_model(settings)
 
         await clear_channels()
@@ -105,7 +106,7 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for billing agent")
-        chunks = billing_optimized_dspy(chat_history=test_conversation)
+        chunks = process_billing(chat_history=test_conversation)
         async for chunk in chunks:
             if isinstance(chunk, StreamResponse):
                 logger.info(f"Chunk: {chunk.chunk}")

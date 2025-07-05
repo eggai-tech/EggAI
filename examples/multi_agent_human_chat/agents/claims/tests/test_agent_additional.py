@@ -26,7 +26,7 @@ async def test_claims_agent_error_handling(monkeypatch):
 
         return error_generator()
 
-    monkeypatch.setattr("agents.claims.agent.claims_optimized_dspy", mock_claims_error)
+    monkeypatch.setattr("agents.claims.agent.process_claims", mock_claims_error)
 
     from agents.claims.agent import human_stream_channel
 

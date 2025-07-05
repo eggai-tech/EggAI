@@ -23,7 +23,7 @@ from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
 
 from ..agent import triage_agent
-from ..data_sets.loader import load_dataset_triage_testing, translate_agent_str_to_enum
+from ..data_sets.loader import load_dataset_triage_testing
 from ..models import AGENT_REGISTRY, TargetAgent
 
 # ---------------------------------------------------------------------------
@@ -305,7 +305,7 @@ async def test_triage_agent():
             classification_results.append(
                 {
                     "id": mid,
-                    "expected": translate_agent_str_to_enum(case.target_agent),
+                    "expected": case.target_agent,
                     "routed": routed,
                     "latency": f"{latency_ms:.1f} ms",
                     "latency_value": latency_ms,
@@ -318,14 +318,14 @@ async def test_triage_agent():
             mlflow.log_metric(f"latency_case_{i + 1}", latency_ms)
 
             # Record if classification was correct or not
-            is_correct = routed == translate_agent_str_to_enum(case.target_agent)
+            is_correct = routed == case.target_agent
             mlflow.log_metric(
                 f"classification_correct_{i + 1}", 1.0 if is_correct else 0.0
             )
 
             if not is_correct:
                 classification_errors.append(
-                    f"Expected {translate_agent_str_to_enum(case.target_agent)}, got {routed} (ID {mid[:8]})"
+                    f"Expected {case.target_agent}, got {routed} (ID {mid[:8]})"
                 )
 
         # Phase 3: LLM judging (with error handling for connection issues)

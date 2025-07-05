@@ -66,18 +66,11 @@ def load_dataset_triage_training():
 
 def as_dspy_examples(dataset: list[DatasetRow]):
     examples = []
-    target_agent_map = {
-        "BillingAgent": TargetAgent.BillingAgent,
-        "PolicyAgent": TargetAgent.PolicyAgent,
-        "ClaimsAgent": TargetAgent.ClaimsAgent,
-        "EscalationAgent": TargetAgent.EscalationAgent,
-        "ChattyAgent": TargetAgent.ChattyAgent,
-    }
     for row in dataset:
         examples.append(
             dspy.Example(
                 chat_history=row.conversation,
-                target_agent=target_agent_map[row.target_agent],
+                target_agent=row.target_agent,
             ).with_inputs("chat_history")
         )
     return examples
