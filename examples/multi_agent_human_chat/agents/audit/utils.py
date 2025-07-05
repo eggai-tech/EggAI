@@ -6,8 +6,6 @@ from libraries.tracing import TracedMessage
 
 logger = get_console_logger("audit_agent")
 
-
-
 def get_message_metadata(
     message: Optional[Union[TracedMessage, Dict]]
 ) -> tuple[str, str]:

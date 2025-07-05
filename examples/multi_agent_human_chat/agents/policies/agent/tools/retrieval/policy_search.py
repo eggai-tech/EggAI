@@ -1,5 +1,3 @@
-"""Policy documentation search tool."""
-
 import json
 from typing import Any, Dict, List, Optional
 

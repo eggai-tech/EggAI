@@ -1,5 +1,3 @@
-"""Unit tests for Policies Agent reasoning module."""
-
 from unittest.mock import patch
 
 import pytest

@@ -1,5 +1,3 @@
-"""API client for retrieval testing."""
-
 import asyncio
 import socket
 import subprocess

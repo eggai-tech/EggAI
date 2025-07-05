@@ -10,7 +10,6 @@ load_dotenv()
 
 MESSAGE_TYPE_BILLING_REQUEST = "billing_request"
 
-
 class Settings(BaseAgentConfig):
     app_name: str = Field(default="billing_agent")
     prometheus_metrics_port: int = Field(
@@ -29,7 +28,6 @@ class Settings(BaseAgentConfig):
     model_config = SettingsConfigDict(
         env_prefix="BILLING_", env_file=".env", env_ignore_empty=True, extra="ignore"
     )
-
 
 settings = Settings()
 

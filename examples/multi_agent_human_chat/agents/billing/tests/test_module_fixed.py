@@ -1,5 +1,3 @@
-"""Fixed test for billing DSPy module that avoids streaming complexity."""
-
 from unittest.mock import MagicMock, patch
 
 import pytest

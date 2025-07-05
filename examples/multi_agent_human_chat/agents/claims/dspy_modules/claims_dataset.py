@@ -1,5 +1,3 @@
-"""Dataset generator for Claims Agent optimization."""
-
 import json
 import os
 import random

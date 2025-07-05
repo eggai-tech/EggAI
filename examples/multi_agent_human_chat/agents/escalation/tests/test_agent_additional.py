@@ -1,5 +1,3 @@
-"""Additional tests for escalation agent to improve coverage."""
-
 from unittest.mock import AsyncMock
 from uuid import uuid4
 

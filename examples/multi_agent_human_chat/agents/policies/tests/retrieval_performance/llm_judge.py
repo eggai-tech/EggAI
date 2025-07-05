@@ -1,5 +1,3 @@
-"""LLM judge for retrieval quality evaluation."""
-
 import os
 
 import dspy

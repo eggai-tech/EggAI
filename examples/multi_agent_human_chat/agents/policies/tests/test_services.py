@@ -1,11 +1,3 @@
-"""Unit tests for Policies Agent services.
-
-These tests cover the service layer functionality:
-- DocumentService
-- SearchService  
-- ReindexService
-"""
-
 from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 

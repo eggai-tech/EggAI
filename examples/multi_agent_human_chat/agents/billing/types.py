@@ -10,7 +10,6 @@ from libraries.types import ModelResult as ModelResult
 class BillingModelConfig(BaseModelConfig):
     name: str = Field(default="billing_react", description="Name of the model")
 
-
 class BillingRecord(BaseModel):
 
     policy_number: str = Field(..., description="Unique identifier for the policy")

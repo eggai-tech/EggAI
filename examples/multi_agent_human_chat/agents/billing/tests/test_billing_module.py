@@ -1,5 +1,3 @@
-"""Tests for billing DSPy module to improve coverage."""
-
 import pytest
 
 from agents.billing.dspy_modules.billing import (

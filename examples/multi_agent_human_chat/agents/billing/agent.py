@@ -26,11 +26,6 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
-
-
-
-
-
 @billing_agent.subscribe(
     channel=agents_channel,
     filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_BILLING_REQUEST,
@@ -93,8 +88,6 @@ async def handle_billing_request(msg: TracedMessage) -> None:
 async def handle_other_messages(msg: TracedMessage) -> None:
     """Handle non-billing messages received on the agent channel."""
     logger.debug("Received non-billing message: %s", msg)
-
-
 
 if __name__ == "__main__":
 

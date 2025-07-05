@@ -1,5 +1,3 @@
-"""Integration tests for the billing agent with Kafka messaging."""
-
 import asyncio
 import time
 from uuid import uuid4

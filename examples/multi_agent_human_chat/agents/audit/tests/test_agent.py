@@ -1,5 +1,3 @@
-"""Audit agent tests."""
-
 import asyncio
 import time
 from datetime import datetime

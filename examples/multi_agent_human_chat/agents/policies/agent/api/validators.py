@@ -1,5 +1,3 @@
-"""Input validators for the Policies Agent API."""
-
 from typing import Optional
 
 from fastapi import HTTPException

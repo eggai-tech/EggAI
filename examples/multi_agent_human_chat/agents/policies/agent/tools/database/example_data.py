@@ -1,10 +1,3 @@
-"""
-Example/test data for the policies database.
-
-WARNING: This is sample data for testing and demonstration purposes only.
-In production, this would be replaced with actual database queries.
-"""
-
 from typing import Dict, List
 
 # Sample policies for testing and demonstration

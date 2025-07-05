@@ -1,9 +1,3 @@
-"""
-Tests for the Escalation Agent.
-
-This module contains tests for the escalation agent functionality.
-"""
-
 import asyncio
 import time
 from datetime import datetime

@@ -16,7 +16,6 @@ MESSAGE_CATEGORIES: Dict[str, AuditCategory] = {
     "triage_request": "Triage",
 }
 
-
 class Settings(BaseSettings):
     app_name: str = Field(default="audit_agent")
     kafka_bootstrap_servers: str = Field(default="localhost:19092")
@@ -31,7 +30,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="AUDIT_", env_file=".env", env_ignore_empty=True, extra="ignore"
     )
-
 
 settings = Settings()
 

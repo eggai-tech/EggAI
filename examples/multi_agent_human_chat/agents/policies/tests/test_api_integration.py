@@ -1,12 +1,3 @@
-"""Integration tests for the Policies Agent API.
-
-These tests cover the full API functionality including:
-- Document listing and retrieval
-- Search operations
-- Reindexing workflows
-- Error handling
-"""
-
 import asyncio
 from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch

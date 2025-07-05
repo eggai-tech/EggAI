@@ -1,5 +1,3 @@
-"""Test utilities for billing agent tests."""
-
 import dspy
 
 from libraries.logger import get_console_logger
@@ -16,7 +14,6 @@ from libraries.test_utils import (
 
 logger = get_console_logger("billing_agent.tests.utils")
 
-
 class BillingEvaluationSignature(dspy.Signature):
     """DSPy signature for LLM-based evaluation of billing agent responses."""
 
@@ -28,9 +25,7 @@ class BillingEvaluationSignature(dspy.Signature):
     reasoning: str = dspy.OutputField(desc="Detailed justification in Markdown.")
     precision_score: float = dspy.OutputField(desc="Precision score (0.0 to 1.0).")
 
-
 def get_test_cases():
-    """Get standard test cases for billing agent tests."""
     test_cases = [
         {
             "policy_number": "B67890",
@@ -69,7 +64,6 @@ def get_test_cases():
 
     return test_cases
 
-
 # Import wait_for_agent_response from shared test utils
 from libraries.test_utils import wait_for_agent_response as _wait_for_agent_response
 
@@ -81,9 +75,6 @@ async def wait_for_agent_response(
     return await _wait_for_agent_response(
         response_queue, connection_id, timeout, expected_source="billing_agent"
     )
-
-
-
 
 async def evaluate_response_with_llm(
     chat_history, expected_response, agent_response, dspy_lm
