@@ -1,11 +1,12 @@
 """
 Retrieval Performance Test Suite
 
-Staged testing: Query -> Evaluate -> Report
+4-stage testing: Collect -> Metrics -> LLM Judge -> Report
 Results logged to MLflow for tracking and analysis.
 """
 
 import asyncio
+import os
 import unittest
 from datetime import datetime
 from typing import List, Tuple
@@ -28,22 +29,36 @@ from libraries.logger import get_console_logger
 
 logger = get_console_logger("retrieval_performance_test")
 
+# Development constants
+LIMIT_DATASET_ITEMS = os.getenv("LIMIT_DATASET_ITEMS")
+if LIMIT_DATASET_ITEMS is not None:
+    LIMIT_DATASET_ITEMS = int(LIMIT_DATASET_ITEMS)
+
 
 class RetrievalPerformanceTester:
-    """Orchestrates staged retrieval performance testing."""
+    """Orchestrates 4-stage retrieval performance testing."""
 
     def __init__(
         self,
-        base_url: str = "http://localhost:8002",
         config: RetrievalTestConfiguration = None,
     ):
-        self.base_url = base_url
         self.config = config or RetrievalTestConfiguration()
         self.test_cases = get_retrieval_test_cases()
+
+        # Apply dataset limit for development
+        if LIMIT_DATASET_ITEMS is not None:
+            original_count = len(self.test_cases)
+            self.test_cases = self.test_cases[:LIMIT_DATASET_ITEMS]
+            logger.info(
+                f"DEV MODE: Limited dataset from {original_count} to {len(self.test_cases)} items"
+            )
+
         self.combinations = self._generate_combinations()
 
-        self.api_client = RetrievalAPIClient(base_url)
-        self.evaluator = RetrievalEvaluator()
+        self.api_client = RetrievalAPIClient()
+        self.evaluator = RetrievalEvaluator(
+            enable_llm_judge=self.config.enable_llm_judge
+        )
         self.reporter = MLflowReporter()
 
         logger.info(f"Generated {len(self.combinations)} parameter combinations")
@@ -63,188 +78,178 @@ class RetrievalPerformanceTester:
                     )
         return combinations
 
-    async def stage1_query_all(self) -> List[RetrievalResult]:
-        """Stage 1: Execute all retrieval queries."""
+    async def check_service_prerequisites(self) -> bool:
+        """Start embedded service for testing."""
+        logger.info("Starting embedded service for testing...")
+
+        success = await self.api_client.start_service()
+        if not success:
+            logger.error("Failed to start embedded service for testing")
+            return False
+
+        logger.info(f"Service ready at {self.api_client.base_url}")
+        return True
+
+    async def stage1_collect_all_results(self) -> List[RetrievalResult]:
+        """Stage 1: Collect all retrieved results."""
         logger.info(
-            f"Stage 1: Starting retrieval for {len(self.combinations)} combinations"
+            f"Stage 1: Collecting retrieval results for {len(self.combinations)} combinations"
         )
 
-        if self.config.parallel_queries:
-            results = await self._query_parallel()
-        else:
-            results = await self._query_sequential()
-
-        successful = len([r for r in results if r.error is None])
-        logger.info(
-            f"Stage 1 completed: {successful}/{len(results)} queries successful"
-        )
-        return results
-
-    async def _query_parallel(self) -> List[RetrievalResult]:
-        """Execute queries in parallel with semaphore control."""
         semaphore = asyncio.Semaphore(self.config.max_query_workers)
 
-        async def bounded_query(combination):
+        async def query_combination(combination):
             async with semaphore:
                 test_case = next(
-                    (tc for tc in self.test_cases if tc.id == combination.test_case_id),
-                    None,
+                    tc for tc in self.test_cases if tc.id == combination.test_case_id
                 )
-                if not test_case:
-                    return RetrievalResult(
-                        combination=combination,
-                        retrieved_chunks=[],
-                        retrieval_time_ms=0.0,
-                        total_hits=0,
-                        error=f"Test case {combination.test_case_id} not found",
-                    )
                 return await self.api_client.query_single(combination, test_case)
 
-        results = await asyncio.gather(
-            *[bounded_query(combination) for combination in self.combinations],
-            return_exceptions=True,
+        final_results = await asyncio.gather(
+            *[query_combination(combination) for combination in self.combinations]
         )
 
-        return [
-            r
-            if not isinstance(r, Exception)
-            else RetrievalResult(self.combinations[i], [], 0.0, 0, str(r))
-            for i, r in enumerate(results)
-        ]
+        successful = len([r for r in final_results if r.error is None])
+        logger.info(
+            f"Stage 1 completed: {successful}/{len(final_results)} queries successful"
+        )
+        return final_results
 
-    async def _query_sequential(self) -> List[RetrievalResult]:
-        """Execute queries sequentially."""
-        results = []
-        for combination in self.combinations:
-            test_case = next(
-                (tc for tc in self.test_cases if tc.id == combination.test_case_id),
-                None,
-            )
-            if test_case:
-                result = await self.api_client.query_single(combination, test_case)
-                results.append(result)
-                await asyncio.sleep(0.1)
-        return results
+    def stage2_generate_metrics(self, retrieval_results: List[RetrievalResult]) -> dict:
+        """Stage 2: Generate metrics from retrieval results."""
+        logger.info(f"Stage 2: Generating metrics for {len(retrieval_results)} results")
 
-    async def stage2_evaluate_all(
+        metrics = {
+            "total_queries": len(retrieval_results),
+            "successful_queries": len(
+                [r for r in retrieval_results if r.error is None]
+            ),
+            "failed_queries": len(
+                [r for r in retrieval_results if r.error is not None]
+            ),
+            "avg_retrieval_time_ms": 0.0,
+            "total_hits": 0,
+            "by_search_type": {},
+            "by_max_hits": {},
+        }
+
+        successful_results = [r for r in retrieval_results if r.error is None]
+
+        if successful_results:
+            metrics["avg_retrieval_time_ms"] = sum(
+                r.retrieval_time_ms for r in successful_results
+            ) / len(successful_results)
+            metrics["total_hits"] = sum(r.total_hits for r in successful_results)
+
+            # Metrics by search type
+            for search_type in self.config.search_types:
+                type_results = [
+                    r
+                    for r in successful_results
+                    if r.combination.search_type == search_type
+                ]
+                if type_results:
+                    metrics["by_search_type"][search_type] = {
+                        "count": len(type_results),
+                        "avg_time_ms": sum(r.retrieval_time_ms for r in type_results)
+                        / len(type_results),
+                        "total_hits": sum(r.total_hits for r in type_results),
+                    }
+
+            # Metrics by max hits
+            for max_hits in self.config.max_hits_values:
+                hits_results = [
+                    r for r in successful_results if r.combination.max_hits == max_hits
+                ]
+                if hits_results:
+                    metrics["by_max_hits"][max_hits] = {
+                        "count": len(hits_results),
+                        "avg_time_ms": sum(r.retrieval_time_ms for r in hits_results)
+                        / len(hits_results),
+                        "total_hits": sum(r.total_hits for r in hits_results),
+                    }
+
+        logger.info(
+            f"Stage 2 completed: Generated metrics for {metrics['successful_queries']} successful queries"
+        )
+        return metrics
+
+    async def stage3_llm_judge(
         self, retrieval_results: List[RetrievalResult]
     ) -> List[EvaluationResult]:
-        """Stage 2: Evaluate all retrieval results using LLM judge."""
+        """Stage 3 (optional): LLM Judge evaluation."""
         logger.info(
-            f"Stage 2: Starting LLM evaluation for {len(retrieval_results)} results"
+            f"Stage 3: LLM Judge evaluation for {len(retrieval_results)} results"
         )
 
-        if self.config.parallel_evaluations:
-            results = await self._evaluate_parallel(retrieval_results)
-        else:
-            results = await self._evaluate_sequential(retrieval_results)
-
-        successful = len([r for r in results if r.error is None])
-        logger.info(
-            f"Stage 2 completed: {successful}/{len(results)} evaluations successful"
-        )
-        return results
-
-    async def _evaluate_parallel(
-        self, retrieval_results: List[RetrievalResult]
-    ) -> List[EvaluationResult]:
-        """Evaluate results in parallel with semaphore control."""
         semaphore = asyncio.Semaphore(self.config.max_eval_workers)
 
-        async def bounded_evaluate(retrieval_result):
+        async def evaluate_result(retrieval_result):
             async with semaphore:
                 test_case = next(
-                    (
-                        tc
-                        for tc in self.test_cases
-                        if tc.id == retrieval_result.combination.test_case_id
-                    ),
-                    None,
-                )
-                if not test_case:
-                    return EvaluationResult(
-                        combination=retrieval_result.combination,
-                        retrieval_quality_score=0.0,
-                        completeness_score=0.0,
-                        relevance_score=0.0,
-                        reasoning="Test case not found",
-                        judgment=False,
-                        evaluation_time_ms=0.0,
-                        error=f"Test case {retrieval_result.combination.test_case_id} not found",
-                    )
-                return await self.evaluator.evaluate_single(retrieval_result, test_case)
-
-        results = await asyncio.gather(
-            *[bounded_evaluate(result) for result in retrieval_results],
-            return_exceptions=True,
-        )
-
-        return [
-            r
-            if not isinstance(r, Exception)
-            else EvaluationResult(
-                retrieval_results[i].combination,
-                0.0,
-                0.0,
-                0.0,
-                f"Exception: {r}",
-                False,
-                0.0,
-                str(r),
-            )
-            for i, r in enumerate(results)
-        ]
-
-    async def _evaluate_sequential(
-        self, retrieval_results: List[RetrievalResult]
-    ) -> List[EvaluationResult]:
-        """Evaluate results sequentially."""
-        results = []
-        for retrieval_result in retrieval_results:
-            test_case = next(
-                (
                     tc
                     for tc in self.test_cases
                     if tc.id == retrieval_result.combination.test_case_id
-                ),
-                None,
-            )
-            if test_case:
-                evaluation = await self.evaluator.evaluate_single(
-                    retrieval_result, test_case
                 )
-                results.append(evaluation)
-                await asyncio.sleep(0.1)
-        return results
+                return await self.evaluator.evaluate_single(retrieval_result, test_case)
 
-    def stage3_report_to_mlflow(
+        final_results = await asyncio.gather(
+            *[evaluate_result(result) for result in retrieval_results]
+        )
+
+        successful = len([r for r in final_results if r.error is None])
+        logger.info(
+            f"Stage 3 completed: {successful}/{len(final_results)} evaluations successful"
+        )
+        return final_results
+
+    def stage4_report_to_mlflow(
         self,
         retrieval_results: List[RetrievalResult],
-        evaluation_results: List[EvaluationResult],
+        metrics: dict,
+        evaluation_results: List[EvaluationResult] = None,
     ) -> None:
-        """Stage 3: Report results to MLflow."""
-        self.reporter.report_results(retrieval_results, evaluation_results)
+        """Stage 4: Report to MLflow."""
+        logger.info("Stage 4: Reporting to MLflow")
+        self.reporter.report_results(
+            retrieval_results, evaluation_results or [], self.config
+        )
 
-    async def run_staged_evaluation(
+    async def run_full_evaluation(
         self,
-    ) -> Tuple[List[RetrievalResult], List[EvaluationResult]]:
-        """Run complete staged evaluation: Query -> Evaluate -> Report."""
-        if not await self.api_client.ensure_api_running():
+    ) -> Tuple[List[RetrievalResult], dict, List[EvaluationResult]]:
+        """Run complete 4-stage evaluation: Prerequisites -> Collect -> Metrics -> Judge -> Report."""
+        # Prerequisites check
+        if not await self.check_service_prerequisites():
             raise RuntimeError(
-                f"API at {self.base_url} is not available and could not be started"
+                "Service prerequisites not met - failed to start API service"
             )
 
-        logger.info("Starting staged retrieval evaluation")
+        logger.info("Starting 4-stage retrieval evaluation")
         logger.info(
             f"{len(self.test_cases)} test cases, {len(self.combinations)} total combinations"
         )
 
-        retrieval_results = await self.stage1_query_all()
-        evaluation_results = await self.stage2_evaluate_all(retrieval_results)
-        self.stage3_report_to_mlflow(retrieval_results, evaluation_results)
+        # Stage 1: Collect all retrieved results
+        retrieval_results = await self.stage1_collect_all_results()
 
-        logger.info("Staged evaluation completed successfully")
-        return retrieval_results, evaluation_results
+        # Stage 2: Generate metrics
+        metrics = self.stage2_generate_metrics(retrieval_results)
+
+        # Stage 3: LLM Judge (optional)
+        evaluation_results = []
+        if self.config.enable_llm_judge:
+            evaluation_results = await self.stage3_llm_judge(retrieval_results)
+
+        # Stage 4: Report to MLflow
+        self.stage4_report_to_mlflow(retrieval_results, metrics, evaluation_results)
+
+        logger.info("4-stage evaluation completed successfully")
+        return retrieval_results, metrics, evaluation_results
+
+    def cleanup(self):
+        """Clean up resources."""
+        self.api_client.stop_service()
 
     def find_best_combination(
         self,
@@ -420,28 +425,24 @@ class RetrievalPerformanceTester:
 class TestRetrievalPerformance(unittest.TestCase):
     """Test class for retrieval performance evaluation."""
 
-    @pytest.mark.skip(reason="Requires API server running on port 8002")
     def test_retrieval_quality_across_search_parameters(self):
         """Comprehensive retrieval quality evaluation across search types and parameters."""
         asyncio.run(_run_retrieval_test())
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Requires API server running on port 8002")
 async def test_retrieval_quality_async():
     """Async pytest version of the retrieval performance test."""
     await _run_retrieval_test()
 
 
 async def _run_retrieval_test():
-    """Run the actual test logic using staged approach."""
-    logger.info("Starting staged retrieval test...")
+    """Run the actual test logic using 4-stage approach."""
+    logger.info("Starting 4-stage retrieval test...")
 
     config = RetrievalTestConfiguration(
         search_types=["hybrid", "keyword", "vector"],
         max_hits_values=[1, 5, 10],
-        parallel_queries=True,
-        parallel_evaluations=True,
         max_query_workers=5,
         max_eval_workers=3,
     )
@@ -449,45 +450,60 @@ async def _run_retrieval_test():
     tester = RetrievalPerformanceTester(config=config)
     logger.info("Tester initialized")
 
-    retrieval_results, evaluation_results = await tester.run_staged_evaluation()
+    try:
+        (
+            retrieval_results,
+            metrics,
+            evaluation_results,
+        ) = await tester.run_full_evaluation()
+    finally:
+        tester.cleanup()
 
-    summary_report = tester.generate_summary_report(
-        retrieval_results, evaluation_results
-    )
-    logger.info("Summary report generated")
-    logger.info(f"\n{summary_report}")
+    # Log metrics from Stage 2
+    logger.info("Stage 2 Metrics:")
+    logger.info(f"Total queries: {metrics['total_queries']}")
+    logger.info(f"Successful queries: {metrics['successful_queries']}")
+    logger.info(f"Average retrieval time: {metrics['avg_retrieval_time_ms']:.1f}ms")
+    logger.info(f"Total hits: {metrics['total_hits']}")
 
-    # Find and display best combination
-    best_combo = tester.find_best_combination(retrieval_results, evaluation_results)
-    if best_combo:
-        logger.info("=" * 60)
-        logger.info("BEST PERFORMING COMBINATION")
-        logger.info("=" * 60)
-        logger.info(f"Search Type: {best_combo['search_type'].upper()}")
-        logger.info(f"Max Hits: {best_combo['max_hits']}")
-        logger.info(f"Quality Score: {best_combo['avg_quality']:.3f}")
-        logger.info(f"Pass Rate: {best_combo['pass_rate']:.1%}")
-        logger.info(f"Avg Retrieval Time: {best_combo['avg_retrieval_time']:.1f}ms")
-        logger.info(f"Composite Score: {best_combo['composite_score']:.3f}")
-        logger.info("=" * 60)
+    # Generate summary report if LLM judge was used
+    if evaluation_results:
+        summary_report = tester.generate_summary_report(
+            retrieval_results, evaluation_results
+        )
+        logger.info("Summary report generated")
+        logger.info(f"\n{summary_report}")
 
-        # Recommendation
-        if best_combo["avg_quality"] >= 0.8:
-            logger.info(
-                "RECOMMENDATION: This combination provides excellent retrieval quality!"
-            )
-        elif best_combo["avg_quality"] >= 0.7:
-            logger.info(
-                "RECOMMENDATION: This combination provides good retrieval quality."
-            )
-        else:
-            logger.info(
-                "RECOMMENDATION: Consider tuning parameters for better quality."
-            )
+        # Find and display best combination
+        best_combo = tester.find_best_combination(retrieval_results, evaluation_results)
+        if best_combo:
+            logger.info("=" * 60)
+            logger.info("BEST PERFORMING COMBINATION")
+            logger.info("=" * 60)
+            logger.info(f"Search Type: {best_combo['search_type'].upper()}")
+            logger.info(f"Max Hits: {best_combo['max_hits']}")
+            logger.info(f"Quality Score: {best_combo['avg_quality']:.3f}")
+            logger.info(f"Pass Rate: {best_combo['pass_rate']:.1%}")
+            logger.info(f"Avg Retrieval Time: {best_combo['avg_retrieval_time']:.1f}ms")
+            logger.info(f"Composite Score: {best_combo['composite_score']:.3f}")
+            logger.info("=" * 60)
+
+            # Recommendation
+            if best_combo["avg_quality"] >= 0.8:
+                logger.info(
+                    "RECOMMENDATION: This combination provides excellent retrieval quality!"
+                )
+            elif best_combo["avg_quality"] >= 0.7:
+                logger.info(
+                    "RECOMMENDATION: This combination provides good retrieval quality."
+                )
+            else:
+                logger.info(
+                    "RECOMMENDATION: Consider tuning parameters for better quality."
+                )
 
     # Assertions
     logger.info("Performing assertions...")
-    assert len(evaluation_results) > 0, "No evaluations were completed"
     assert len(retrieval_results) > 0, "No retrieval results were obtained"
 
     expected_combinations = (
@@ -497,22 +513,23 @@ async def _run_retrieval_test():
         f"Expected {expected_combinations} results, got {len(retrieval_results)}"
     )
 
-    successful_evals = [e for e in evaluation_results if e.error is None]
-    if successful_evals:
-        avg_quality = sum(e.retrieval_quality_score for e in successful_evals) / len(
-            successful_evals
-        )
-        pass_rate = sum(1 for e in successful_evals if e.judgment) / len(
-            successful_evals
-        )
+    if evaluation_results:
+        successful_evals = [e for e in evaluation_results if e.error is None]
+        if successful_evals:
+            avg_quality = sum(
+                e.retrieval_quality_score for e in successful_evals
+            ) / len(successful_evals)
+            pass_rate = sum(1 for e in successful_evals if e.judgment) / len(
+                successful_evals
+            )
 
-        logger.info(f"Overall average quality score: {avg_quality:.3f}")
-        logger.info(f"Overall pass rate: {pass_rate:.1%}")
+            logger.info(f"Overall average quality score: {avg_quality:.3f}")
+            logger.info(f"Overall pass rate: {pass_rate:.1%}")
 
-        if avg_quality < 0.6:
-            logger.warning(f"Low average quality score: {avg_quality:.3f}")
-        if pass_rate < 0.5:
-            logger.warning(f"Low pass rate: {pass_rate:.1%}")
+            if avg_quality < 0.6:
+                logger.warning(f"Low average quality score: {avg_quality:.3f}")
+            if pass_rate < 0.5:
+                logger.warning(f"Low pass rate: {pass_rate:.1%}")
 
     logger.info("Test completed successfully!")
 

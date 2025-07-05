@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -24,23 +25,22 @@ from agents.policies.agent.agent import policies_agent
 logger = get_console_logger("policies_agent")
 
 
-
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     """Handle application lifecycle events."""
     logger.info("Starting Policies Agent...")
-    
+
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
-    
+
     dspy_set_language_model(settings)
-    
+
     logger.info("Starting agent...")
     await policies_agent.start()
-    
+
     logger.info("Policies Agent started successfully")
-    
+
     yield
-    
+
     logger.info("Shutting down Policies Agent...")
     policies_agent.stop()
     await eggai_cleanup()
@@ -58,10 +58,13 @@ app.include_router(api_router, prefix="/api/v1", tags=["policies"])
 
 
 if __name__ == "__main__":
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8002"))
+    log_level = os.getenv("LOG_LEVEL", "info")
     uvicorn.run(
         "agents.policies.agent.main:app",
-        host="0.0.0.0",
-        port=8002,
+        host=host,
+        port=port,
         reload=False,
-        log_level="info",
+        log_level=log_level,
     )

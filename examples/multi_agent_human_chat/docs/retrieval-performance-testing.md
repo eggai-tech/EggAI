@@ -6,25 +6,23 @@ This document describes the comprehensive test suite for evaluating the quality 
 
 The retrieval performance test suite evaluates how well the Vespa-powered search system retrieves relevant policy documentation. It uses real QA pairs from insurance policy documents and measures performance using both context similarity and LLM-based evaluation.
 
-## Architecture
+## Hyper-Parameter Grid Search
 
 ```mermaid
-graph LR
-    subgraph "Test Pipeline"
-        A[QA Test Cases] --> B[Stage 1: Query Execution]
-        B --> C[Stage 2: LLM Evaluation]
-        C --> D[Stage 3: MLflow Reporting]
+flowchart LR
+    subgraph "Parameters"
+        P1[Search Types<br/>hybrid<br/>keyword<br/>vector]
+        P2[Max Hits<br/>1<br/>5<br/>10]
+        P3[QA Pairs<br/>Question 1<br/>Question 2<br/>Question N]
     end
     
-    subgraph "Evaluation Methods"
-        E[Context Similarity]
-        F[Ranking Metrics]
-        G[LLM Judge]
-    end
+    P1 --> Grid[Grid Search<br/>3 × 3 × N = 9N<br/>combinations]
+    P2 --> Grid
+    P3 --> Grid
     
-    B --> E
-    B --> F
-    C --> G
+    Grid --> Metrics[Metrics Collection<br/>Retrieval Times<br/>Quality Scores<br/>LLM Judge Evaluation<br/>Performance Stats]
+    
+    Metrics --> Best[Best Combination<br/>Highest composite score<br/>70% Quality + 20% Pass Rate + 10% Speed]
 ```
 
 ## Evaluation Metrics
@@ -85,8 +83,14 @@ graph LR
 ## Running Performance Tests
 
 ### Prerequisites
+
+**Environment Requirements:**
+- Ensure all required environment variables are set in `.env`
+- Tests automatically start an embedded service on a random port (10000-11000)
+- No need to manually start any services beforehand
+
 ```bash
-# Ensure Vespa is running and documents are indexed
+# Ensure Vespa is running and documents are indexed (if testing with real data)
 make docker-up
 make start-policies-document-ingestion
 ```
@@ -99,9 +103,20 @@ make test-policies-retrieval-performance
 
 ### Run Tests Without LLM Judge
 ```python
-# In your test configuration
+# Configure the test to skip LLM evaluation
 config = RetrievalTestConfiguration(enable_llm_judge=False)
+tester = RetrievalPerformanceTester(config=config)
 ```
+
+## Test Flow
+
+The test follows a simplified 4-stage pattern:
+
+1. **Prerequisites Check**: Start embedded service and verify health
+2. **Stage 1 - Collect Results**: Execute all retrieval queries for parameter combinations
+3. **Stage 2 - Generate Metrics**: Calculate performance metrics from results
+4. **Stage 3 - LLM Judge (Optional)**: Evaluate quality using LLM judge
+5. **Stage 4 - Report to MLflow**: Log all results and metrics
 
 ## Configuration Options
 
@@ -114,6 +129,10 @@ config = RetrievalTestConfiguration(enable_llm_judge=False)
 - `1`: Retrieve only top result
 - `5`: Retrieve top 5 results
 - `10`: Retrieve top 10 results
+
+### Worker Configuration
+- `max_query_workers`: Parallel query execution (default: 5)
+- `max_eval_workers`: Parallel LLM evaluation (default: 3)
 
 ### Test Data
 Located in `agents/policies/tests/retrieval_performance/filtered_qa_pairs.json`:
@@ -152,50 +171,6 @@ Results are logged to MLflow under experiment `retrieval_performance_evaluation`
 - MRR < 30%: Results buried deep
 - Hit Rate @ Top-1 < 20%: Poor ranking
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Low Context Coverage**
-   - Check chunk size configuration
-   - Verify document preprocessing
-
-2. **High Recall, Low MRR**
-   - Content found but poorly ranked
-   - Adjust ranking algorithm parameters
-
-3. **Zero Scores**
-   - Verify Vespa connectivity
-   - Check document indexing status
-
-4. **LLM Judge Failures**
-   - Verify OpenAI API key
-   - Check rate limits
-
-## Integration with CI/CD
-
-```yaml
-# Example GitHub Actions integration
-- name: Run Retrieval Performance Tests
-  run: |
-    make test-policies-retrieval-performance
-    python scripts/check_performance_thresholds.py
-```
-
-## Extending the Test Suite
-
-### Adding Test Cases
-1. Add QA pairs to `filtered_qa_pairs.json`
-2. Include question, answer, context, and source
-3. Run test suite to evaluate
-
-### Custom Metrics
-```python
-# In evaluator.py
-def custom_metric(retrieved_chunks, expected_context):
-    # Your custom evaluation logic
-    return score
-```
 
 ## Related Documentation
 

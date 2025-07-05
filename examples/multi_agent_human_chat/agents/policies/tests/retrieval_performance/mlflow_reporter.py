@@ -112,7 +112,7 @@ class MLflowReporter:
         mlflow.log_param("test_run_timestamp", datetime.now().isoformat())
 
         # Log LLM judge configuration if provided
-        if config:
+        if config and hasattr(config, "enable_llm_judge"):
             mlflow.log_param("llm_judge_enabled", config.enable_llm_judge)
 
     def _log_aggregate_metrics(
