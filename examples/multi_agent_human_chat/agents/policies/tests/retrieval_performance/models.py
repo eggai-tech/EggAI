@@ -1,5 +1,3 @@
-"""Data models for retrieval performance testing."""
-
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 

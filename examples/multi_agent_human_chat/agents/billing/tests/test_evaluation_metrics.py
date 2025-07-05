@@ -1,5 +1,3 @@
-"""Tests for billing evaluation metrics."""
-
 import pytest
 
 from agents.billing.dspy_modules.evaluation.metrics import (

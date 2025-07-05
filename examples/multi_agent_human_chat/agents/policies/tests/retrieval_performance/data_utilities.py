@@ -1,5 +1,3 @@
-"""Test data for retrieval performance evaluation."""
-
 import json
 from pathlib import Path
 from typing import List

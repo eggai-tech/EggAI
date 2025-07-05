@@ -1,5 +1,3 @@
-"""Test configuration for escalation agent tests."""
-
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 

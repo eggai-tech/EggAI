@@ -1,5 +1,3 @@
-"""Tests for Vespa deployment with custom configurations."""
-
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from pathlib import Path

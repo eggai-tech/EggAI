@@ -1,5 +1,3 @@
-"""Advanced evaluation tests for billing agent responses with LLM evaluators."""
-
 import time
 from datetime import datetime
 

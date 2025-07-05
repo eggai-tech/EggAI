@@ -1,5 +1,3 @@
-"""MLflow reporting for retrieval performance results."""
-
 from datetime import datetime
 from typing import List
 

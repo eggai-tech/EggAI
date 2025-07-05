@@ -1,11 +1,7 @@
-"""Frontend agent tests."""
-
-# Standard library imports
 import asyncio
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Third-party imports
 import pytest
 from eggai import Channel
 from eggai.transport import eggai_set_default_transport

@@ -1,5 +1,3 @@
-"""Middleware for the Policies Agent API."""
-
 import time
 from typing import Callable
 

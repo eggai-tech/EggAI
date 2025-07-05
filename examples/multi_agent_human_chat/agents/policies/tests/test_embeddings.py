@@ -1,5 +1,3 @@
-"""Tests for embedding generation with configuration integration."""
-
 from unittest.mock import MagicMock, patch
 
 import numpy as np

@@ -13,8 +13,6 @@ AuditCategory = Literal[
     "Error",
 ]
 
-
-
 class AuditConfig(BaseModel):
     message_categories: Dict[str, AuditCategory] = Field(default_factory=dict)
     default_category: AuditCategory = Field(default="Other")
@@ -22,7 +20,6 @@ class AuditConfig(BaseModel):
     audit_channel_name: str = Field(default="audit_logs")
 
     model_config = {"validate_assignment": True, "extra": "forbid"}
-
 
 class AuditEvent(BaseModel):
     message_id: str = Field(...)

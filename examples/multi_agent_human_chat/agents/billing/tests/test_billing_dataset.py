@@ -1,5 +1,3 @@
-"""Tests for billing dataset generation."""
-
 import dspy
 
 from agents.billing.dspy_modules.billing_dataset import (

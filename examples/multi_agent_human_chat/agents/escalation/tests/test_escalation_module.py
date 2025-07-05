@@ -1,5 +1,3 @@
-"""Tests for escalation module functionality."""
-
 from unittest.mock import MagicMock, patch
 
 import pytest

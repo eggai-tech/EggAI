@@ -1,5 +1,3 @@
-"""Tests for configuration loading and guardrails integration."""
-
 import os
 
 import pytest

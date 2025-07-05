@@ -1,5 +1,3 @@
-"""Context-based metrics for retrieval evaluation."""
-
 import math
 from difflib import SequenceMatcher
 from typing import List, Optional, Tuple
