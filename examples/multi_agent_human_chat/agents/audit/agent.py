@@ -25,7 +25,7 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
-audit_agent = Agent("AuditAgent")
+audit_agent = Agent("Audit")
 logger = get_console_logger("audit_agent")
 
 agents_channel = Channel(channels.agents)

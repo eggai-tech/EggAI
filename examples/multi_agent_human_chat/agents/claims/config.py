@@ -4,7 +4,7 @@ from pydantic_settings import SettingsConfigDict
 
 from libraries.types import BaseAgentConfig
 
-from .types import ClaimsModelConfig
+from .types import ModelConfig
 
 load_dotenv()
 
@@ -29,7 +29,7 @@ class Settings(BaseAgentConfig):
 
 settings = Settings()
 
-model_config = ClaimsModelConfig(
+model_config = ModelConfig(
     name=settings.model_name,
     max_iterations=settings.max_iterations,
     use_tracing=settings.use_tracing,

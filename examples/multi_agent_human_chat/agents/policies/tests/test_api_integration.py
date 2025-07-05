@@ -375,7 +375,7 @@ class TestReindexEndpoints:
         ))
         
         # Mock the temporal client import
-        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+        with patch("agents.policies.ingestion.temporal_client.TemporalClient") as mock_temporal_cls:
             mock_temporal = mock_temporal_cls.return_value
             async def mock_ingest_result(*args, **kwargs):
                 return type('Result', (), {
@@ -408,7 +408,7 @@ class TestReindexEndpoints:
         ))
         
         # Mock the temporal client import
-        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+        with patch("agents.policies.ingestion.temporal_client.TemporalClient") as mock_temporal_cls:
             mock_temporal = mock_temporal_cls.return_value
             async def mock_ingest_result(*args, **kwargs):
                 return type('Result', (), {
@@ -440,7 +440,7 @@ class TestReindexEndpoints:
         ))
         
         # Mock the temporal client to simulate failure
-        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+        with patch("agents.policies.ingestion.temporal_client.TemporalClient") as mock_temporal_cls:
             mock_temporal = mock_temporal_cls.return_value
             async def mock_ingest_failure(*args, **kwargs):
                 return type('Result', (), {

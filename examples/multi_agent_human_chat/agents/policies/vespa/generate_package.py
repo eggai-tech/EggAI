@@ -192,9 +192,13 @@ def create_policy_document_schema() -> Schema:
     )
 
 
-def create_application_package() -> ApplicationPackage:
-    """Create the complete Vespa application package with enhanced schema."""
-    logger.info("Creating enhanced Vespa application package")
+def create_application_package(app_name: str = "policies") -> ApplicationPackage:
+    """Create the complete Vespa application package with enhanced schema.
+    
+    Args:
+        app_name: Name of the Vespa application (default: "policies")
+    """
+    logger.info(f"Creating enhanced Vespa application package with name: {app_name}")
 
     # Create schema
     schema = create_policy_document_schema()
@@ -204,7 +208,7 @@ def create_application_package() -> ApplicationPackage:
 
     # Create application package with validation overrides
     app_package = ApplicationPackage(
-        name="policies", schema=[schema], validations=validations
+        name=app_name, schema=[schema], validations=validations
     )
 
     logger.info("Enhanced application package created successfully")
@@ -396,6 +400,7 @@ def generate_package_artifacts(
     node_count: int = 1,
     hosts: Optional[List[Dict[str, str]]] = None,
     services_xml: Optional[Path] = None,
+    app_name: str = "policies",
 ) -> tuple[Path, Path]:
     """Generate Vespa package artifacts.
 
@@ -414,7 +419,7 @@ def generate_package_artifacts(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Create the application package
-    app_package = create_application_package()
+    app_package = create_application_package(app_name=app_name)
 
     # Save as zip file with deployment configurations
     zip_path = save_package_to_zip(
@@ -423,7 +428,7 @@ def generate_package_artifacts(
 
     # Create metadata
     schema_info = {
-        "name": "policies",
+        "name": app_name,
         "generated_at": datetime.now().isoformat(),
         "deployment": {
             "mode": deployment_mode,

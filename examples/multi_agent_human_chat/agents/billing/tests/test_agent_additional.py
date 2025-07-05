@@ -25,7 +25,7 @@ async def test_billing_agent_error_handling(monkeypatch):
         yield  # Make this an async generator (unreachable, but defines the function type)
 
     monkeypatch.setattr(
-        "agents.billing.utils.billing_optimized_dspy", mock_billing_error
+        "agents.billing.utils.process_billing", mock_billing_error
     )
 
     from agents.billing.agent import human_stream_channel

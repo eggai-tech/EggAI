@@ -12,10 +12,8 @@ from libraries.types import (
 PolicyCategory = Literal["auto", "life", "home", "health"]
 
 
-class PoliciesModelConfig(BaseModelConfig):
+class ModelConfig(BaseModelConfig):
     """Policies agent-specific model configuration."""
 
     name: str = Field("policies_react", description="Name of the model")
     date_format: str = Field("YYYY-MM-DD", description="Required date format for responses")
-
-ModelConfig = PoliciesModelConfig

@@ -8,7 +8,7 @@ from .types import DspyModelConfig
 
 load_dotenv()
 
-AGENT_NAME = "TicketingAgent"
+AGENT_NAME = "Ticketing"
 MSG_TYPE_TICKETING_REQUEST = "ticketing_request"
 MSG_TYPE_STREAM_START = "agent_message_stream_start"
 MSG_TYPE_STREAM_CHUNK = "agent_message_stream_chunk"

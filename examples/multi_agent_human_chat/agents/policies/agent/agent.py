@@ -15,7 +15,7 @@ from agents.policies.agent.config import (
     model_config,
     settings,
 )
-from agents.policies.agent.reasoning import policies_react_dspy
+from agents.policies.agent.reasoning import process_policies
 from agents.policies.agent.types import ChatMessage
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
@@ -91,7 +91,7 @@ async def process_policy_request(
         await human_stream_channel.publish(
             TracedMessage(
                 type="agent_message_stream_start",
-                source="PoliciesAgent",
+                source="Policies",
                 data={
                     "message_id": message_id,
                     "connection_id": connection_id,
@@ -103,7 +103,7 @@ async def process_policy_request(
         logger.info(f"Stream started for message {message_id}")
 
         logger.info("Calling policies model with streaming")
-        chunks = policies_react_dspy(chat_history=conversation_string, config=config)
+        chunks = process_policies(chat_history=conversation_string, config=config)
         chunk_count = 0
 
         try:
@@ -152,7 +152,7 @@ async def process_policy_request(
             await human_stream_channel.publish(
                 TracedMessage(
                     type="agent_message_stream_end",
-                    source="PoliciesAgent",
+                    source="Policies",
                     data={
                         "message_id": message_id,
                         "message": "I'm sorry, I encountered an error while processing your request.",
@@ -241,7 +241,7 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for policies agent")
-        chunks = policies_react_dspy(chat_history=test_conversation)
+        chunks = process_policies(chat_history=test_conversation)
         async for chunk in chunks:
             if isinstance(chunk, StreamResponse):
                 logger.info(f"Chunk: {chunk.chunk}")

@@ -37,11 +37,8 @@ ValidatorResult = Tuple[bool, Any]
 ValidatorFunction = Callable[[str], ValidatorResult]
 
 
-class ClaimsModelConfig(BaseModelConfig):
+class ModelConfig(BaseModelConfig):
     name: str = Field(default="claims_react", description="Name of the model")
-
-
-ModelConfig = ClaimsModelConfig
 
 
 class OptimizationConfig(BaseModel):

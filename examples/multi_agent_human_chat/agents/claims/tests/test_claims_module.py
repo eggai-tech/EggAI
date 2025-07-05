@@ -5,7 +5,7 @@ import pytest
 from agents.claims.dspy_modules.claims import (
     ClaimsSignature,
     ModelConfig,
-    claims_optimized_dspy,
+    process_claims,
     truncate_long_history,
 )
 from libraries.shared_test_utils import (
@@ -51,17 +51,17 @@ def test_claims_signature_fields():
 
 @pytest.mark.asyncio
 async def test_claims_optimized_dspy_basic():
-    """Test basic functionality of claims_optimized_dspy."""
+    """Test basic functionality of process_claims."""
     conversation = "User: I need to file a claim for my car accident\nClaimsAgent: I can help with that."
     expected_response = "I'll help you file your claim. Please provide your policy number and details about the incident."
-    await shared_dspy_basic(claims_optimized_dspy, conversation, expected_response)
+    await shared_dspy_basic(process_claims, conversation, expected_response)
 
 
 @pytest.mark.asyncio
 async def test_claims_optimized_dspy_empty_conversation():
-    """Test claims_optimized_dspy with empty conversation."""
+    """Test process_claims with empty conversation."""
     expected_response = "I need more information about your claim to help you."
-    await shared_dspy_empty(claims_optimized_dspy, expected_response)
+    await shared_dspy_empty(process_claims, expected_response)
 
 
 def test_model_config_validation():

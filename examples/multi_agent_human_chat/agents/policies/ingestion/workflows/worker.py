@@ -49,7 +49,7 @@ async def run_policy_documentation_worker(
 
     if client is None:
         client = await Client.connect(
-            settings.temporal_server_url, namespace=settings.temporal_namespace
+            settings.temporal_server_url, namespace=settings.get_temporal_namespace()
         )
 
     worker = Worker(
@@ -65,7 +65,7 @@ async def run_policy_documentation_worker(
     )
 
     _get_logger().info(
-        f"Starting Policy Documentation worker on task queue: {settings.temporal_task_queue}"
+        f"Starting Policy Documentation worker on task queue: {settings.temporal_task_queue}, namespace: {settings.get_temporal_namespace()}"
     )
 
     asyncio.ensure_future(worker.run())

@@ -30,7 +30,7 @@ async def test_billing_module_without_streaming():
                     
                     # Import after mocking to get mocked version
                     from agents.billing.dspy_modules.billing import (
-                        billing_optimized_dspy,
+                        process_billing,
                     )
                     
                     # Create mock response generator
@@ -47,7 +47,7 @@ async def test_billing_module_without_streaming():
                     
                     # Run the billing function
                     final_response = None
-                    async for chunk in billing_optimized_dspy(test_history):
+                    async for chunk in process_billing(test_history):
                         if isinstance(chunk, Prediction) and hasattr(chunk, "final_response"):
                             final_response = chunk.final_response
                             break
@@ -83,7 +83,7 @@ async def test_billing_module_error_handling():
                     mock_traced_react.return_value = mock_model
                     
                     from agents.billing.dspy_modules.billing import (
-                        billing_optimized_dspy,
+                        process_billing,
                     )
                     
                     # Create error generator
@@ -98,5 +98,5 @@ async def test_billing_module_error_handling():
                     
                     # Should handle error gracefully
                     with pytest.raises(RuntimeError, match="Simulated error"):
-                        async for _chunk in billing_optimized_dspy(test_history):
+                        async for _chunk in process_billing(test_history):
                             pass

@@ -4,7 +4,7 @@ import pytest
 
 from agents.escalation.dspy_modules.escalation import (
     TicketingSignature,
-    escalation_optimized_dspy,
+    process_escalation,
 )
 
 
@@ -48,7 +48,7 @@ def test_ticketing_signature():
 
 @pytest.mark.asyncio
 async def test_escalation_optimized_dspy_basic():
-    """Test basic escalation_optimized_dspy function call."""
+    """Test basic process_escalation function call."""
     chat_history = "User: I need to speak to a manager about my policy."
 
     # Mock the ReAct response
@@ -67,7 +67,7 @@ async def test_escalation_optimized_dspy_basic():
             mock_streamify.return_value = mock_generator
 
             responses = []
-            async for response in escalation_optimized_dspy(chat_history):
+            async for response in process_escalation(chat_history):
                 responses.append(response)
 
             assert len(responses) == 1
@@ -92,7 +92,7 @@ async def test_escalation_optimized_dspy_empty_chat():
         mock_streamify.return_value = mock_generator
 
         responses = []
-        async for response in escalation_optimized_dspy(chat_history):
+        async for response in process_escalation(chat_history):
             responses.append(response)
 
         assert len(responses) == 1
@@ -113,7 +113,7 @@ async def test_escalation_optimized_dspy_error_handling():
 
         responses = []
         with pytest.raises(Exception, match="Test error"):
-            async for response in escalation_optimized_dspy(chat_history):
+            async for response in process_escalation(chat_history):
                 responses.append(response)
 
         # Should have received the first response before error
@@ -152,7 +152,7 @@ User: My claim has been pending for weeks without any update."""
         mock_streamify.return_value = mock_generator
 
         responses = []
-        async for response in escalation_optimized_dspy(conversation):
+        async for response in process_escalation(conversation):
             responses.append(response)
 
         assert len(responses) == 1
@@ -180,12 +180,12 @@ def test_escalation_module_imports():
     from agents.escalation.dspy_modules.escalation import (
         TicketingSignature,
         create_ticket,
-        escalation_optimized_dspy,
         get_tickets_by_policy,
+        process_escalation,
     )
 
     # Test that functions exist
-    assert callable(escalation_optimized_dspy)
+    assert callable(process_escalation)
     assert callable(get_tickets_by_policy)
     assert callable(create_ticket)
 
@@ -196,7 +196,7 @@ def test_escalation_module_imports():
 @pytest.mark.asyncio
 async def test_escalation_optimized_dspy_with_config():
     """Test escalation function with custom config."""
-    from agents.escalation.types import DspyModelConfig as ModelConfig
+    from agents.escalation.types import ModelConfig
 
     chat_history = "User: Test with config"
     config = ModelConfig(name="test_model", max_iterations=3)
@@ -211,7 +211,7 @@ async def test_escalation_optimized_dspy_with_config():
         mock_streamify.return_value = mock_generator
 
         responses = []
-        async for response in escalation_optimized_dspy(chat_history, config):
+        async for response in process_escalation(chat_history, config):
             responses.append(response)
 
         assert len(responses) == 1

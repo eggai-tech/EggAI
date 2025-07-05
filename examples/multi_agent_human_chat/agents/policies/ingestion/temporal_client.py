@@ -12,10 +12,10 @@ from agents.policies.ingestion.workflows.ingestion_workflow import (
 )
 from libraries.logger import get_console_logger
 
-logger = get_console_logger("ingestion.documentation_client")
+logger = get_console_logger("ingestion.temporal_client")
 
 
-class DocumentationTemporalClient:
+class TemporalClient:
     """Client for executing document ingestion workflows via Temporal."""
 
     def __init__(

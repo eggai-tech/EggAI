@@ -14,7 +14,7 @@ class TestTriggerInitialDocumentIngestion:
     """Test initial document ingestion functionality."""
     
     @pytest.mark.asyncio
-    @patch("agents.policies.ingestion.start_worker.DocumentationTemporalClient")
+    @patch("agents.policies.ingestion.start_worker.TemporalClient")
     @patch("agents.policies.ingestion.start_worker.settings")
     async def test_trigger_initial_ingestion_success(self, mock_settings, mock_client_class):
         """Test successful ingestion of all policy documents."""
@@ -62,7 +62,7 @@ class TestTriggerInitialDocumentIngestion:
         mock_client.close.assert_called_once()
     
     @pytest.mark.asyncio
-    @patch("agents.policies.ingestion.start_worker.DocumentationTemporalClient")
+    @patch("agents.policies.ingestion.start_worker.TemporalClient")
     @patch("agents.policies.ingestion.start_worker.settings")
     async def test_trigger_initial_ingestion_with_missing_files(self, mock_settings, mock_client_class):
         """Test ingestion when some policy files are missing."""
@@ -98,7 +98,7 @@ class TestTriggerInitialDocumentIngestion:
         assert mock_client.ingest_document_async.call_count == 2
     
     @pytest.mark.asyncio
-    @patch("agents.policies.ingestion.start_worker.DocumentationTemporalClient")
+    @patch("agents.policies.ingestion.start_worker.TemporalClient")
     @patch("agents.policies.ingestion.start_worker.settings")
     @patch("agents.policies.ingestion.start_worker.logger")
     async def test_trigger_initial_ingestion_with_skipped(self, mock_logger, mock_settings, mock_client_class):
@@ -138,7 +138,7 @@ class TestTriggerInitialDocumentIngestion:
         mock_logger.info.assert_any_call("Policy auto skipped: Already indexed")
     
     @pytest.mark.asyncio
-    @patch("agents.policies.ingestion.start_worker.DocumentationTemporalClient")
+    @patch("agents.policies.ingestion.start_worker.TemporalClient")
     @patch("agents.policies.ingestion.start_worker.settings")
     @patch("agents.policies.ingestion.start_worker.logger")
     async def test_trigger_initial_ingestion_with_failures(self, mock_logger, mock_settings, mock_client_class):
@@ -174,7 +174,7 @@ class TestTriggerInitialDocumentIngestion:
         mock_logger.error.assert_any_call("Policy auto ingestion failed: Processing failed")
     
     @pytest.mark.asyncio
-    @patch("agents.policies.ingestion.start_worker.DocumentationTemporalClient")
+    @patch("agents.policies.ingestion.start_worker.TemporalClient")
     @patch("agents.policies.ingestion.start_worker.settings")
     @patch("agents.policies.ingestion.start_worker.logger")
     async def test_trigger_initial_ingestion_exception(self, mock_logger, mock_settings, mock_client_class):
@@ -461,7 +461,7 @@ class TestSettingsIntegration:
         )
     
     @pytest.mark.asyncio
-    @patch("agents.policies.ingestion.start_worker.DocumentationTemporalClient")
+    @patch("agents.policies.ingestion.start_worker.TemporalClient")
     @patch("agents.policies.ingestion.start_worker.settings")
     async def test_trigger_ingestion_uses_settings(self, mock_settings, mock_client_class):
         """Test that trigger_initial_document_ingestion uses settings."""

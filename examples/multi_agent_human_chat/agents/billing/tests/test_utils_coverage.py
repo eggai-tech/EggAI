@@ -49,7 +49,7 @@ class TestProcessBillingRequest:
         
         conversation = "User: What's my premium?\nAgent: Please provide your policy number."
         
-        with patch("agents.billing.utils.billing_optimized_dspy") as mock_dspy:
+        with patch("agents.billing.utils.process_billing") as mock_dspy:
             # Create mock async generator
             async def mock_generator():
                 yield Prediction(final_response="Final response")
@@ -73,7 +73,7 @@ class TestProcessBillingRequest:
         mock_channel = AsyncMock()
         conversation = "User: What's my premium?\nAgent: Please provide your policy number."
         
-        with patch("agents.billing.utils.billing_optimized_dspy") as mock_dspy:
+        with patch("agents.billing.utils.process_billing") as mock_dspy:
             # Create mock async generator that yields a Prediction
             async def mock_generator():
                 yield Prediction(final_response="Your premium is $120")
@@ -98,7 +98,7 @@ class TestProcessBillingRequest:
         mock_channel = AsyncMock()
         conversation = "User: What's my premium?\nAgent: Please provide your policy number."
         
-        with patch("agents.billing.utils.billing_optimized_dspy") as mock_dspy:
+        with patch("agents.billing.utils.process_billing") as mock_dspy:
             # Create mock async generator that raises an error
             async def mock_generator():
                 raise RuntimeError("Test error")
@@ -128,7 +128,7 @@ class TestProcessBillingRequest:
         mock_channel = AsyncMock()
         conversation = "User: What's my premium?\nAgent: Please provide your policy number."
         
-        with patch("agents.billing.utils.billing_optimized_dspy") as mock_dspy:
+        with patch("agents.billing.utils.process_billing") as mock_dspy:
             # Create mock async generator that takes too long
             async def mock_generator():
                 await asyncio.sleep(1)  # Longer than timeout
@@ -154,7 +154,7 @@ class TestProcessBillingRequest:
         mock_channel = AsyncMock()
         conversation = "User: What's my premium?\nAgent: Please provide your policy number."
         
-        with patch("agents.billing.utils.billing_optimized_dspy") as mock_dspy:
+        with patch("agents.billing.utils.process_billing") as mock_dspy:
             # Create mock async generator with no response
             async def mock_generator():
                 # Empty generator - no yield

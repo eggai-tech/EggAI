@@ -173,12 +173,12 @@ class TestBillingModelFunctionality:
 
     @pytest.mark.asyncio
     async def test_billing_optimized_dspy_with_config(self):
-        """Test billing_optimized_dspy with custom config."""
+        """Test process_billing with custom config."""
         from dspy import Prediction
 
         from agents.billing.dspy_modules.billing import (
             ModelConfig,
-            billing_optimized_dspy,
+            process_billing,
         )
         
         config = ModelConfig(truncation_length=1000)
@@ -195,7 +195,7 @@ class TestBillingModelFunctionality:
                 mock_init.return_value = MagicMock()
                 
                 chunks = []
-                async for chunk in billing_optimized_dspy(history, config):
+                async for chunk in process_billing(history, config):
                     chunks.append(chunk)
                 
                 assert len(chunks) == 1
