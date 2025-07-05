@@ -6,7 +6,7 @@ from pydantic_settings import SettingsConfigDict
 
 from libraries.types import BaseAgentConfig
 
-from ..types import ModelConfig
+from .types import ModelConfig
 
 load_dotenv()
 
