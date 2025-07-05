@@ -1,5 +1,3 @@
-"""Dataset generator for Billing Agent optimization."""
-
 import random
 from dataclasses import dataclass
 from typing import List

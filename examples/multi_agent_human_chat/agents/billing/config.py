@@ -1,29 +1,18 @@
-from typing import Optional
-
 from dotenv import load_dotenv
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
 
-"""Billing agent configuration via environment and defaults."""
+from libraries.types import BaseAgentConfig
+
 load_dotenv()
 
 
-class Settings(BaseSettings):
+class Settings(BaseAgentConfig):
     app_name: str = Field(default="billing_agent")
-
-    language_model: str = Field(default="openai/gpt-4o-mini")
-    language_model_api_base: Optional[str] = Field(default=None)
-    cache_enabled: bool = Field(default=False)
-
-    kafka_bootstrap_servers: str = Field(default="localhost:19092")
-    kafka_ca_content: str = Field(default="")
-
-    otel_endpoint: str = Field(default="http://localhost:4318")
-    tracing_enabled: bool = Field(default=True)
     prometheus_metrics_port: int = Field(
         default=9095, description="Port for Prometheus metrics server"
     )
-
+    
     billing_database_path: str = Field(default="")
 
     model_config = SettingsConfigDict(
@@ -32,4 +21,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-__all__ = ["Settings", "settings"]

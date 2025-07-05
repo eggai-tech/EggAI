@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""
-Generate Vespa application package for policies.
-
-This module contains functions to create the Vespa schema and application package
-with all necessary configurations for the policies search system.
-
-Usage:
-    python generate_package.py [--output-dir DIR]
-"""
 
 import argparse
 import json
@@ -47,7 +38,6 @@ def create_validation_overrides() -> List[Validation]:
     Returns:
         List of Validation objects
     """
-    # Set override until tomorrow for immediate deployment needs
     future_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     validations = []

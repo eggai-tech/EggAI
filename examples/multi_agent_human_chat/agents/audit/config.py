@@ -1,9 +1,3 @@
-"""Configuration for audit agent."""
-__all__ = [
-    "Settings",
-    "settings",
-]
-
 
 from dotenv import load_dotenv
 from pydantic import Field

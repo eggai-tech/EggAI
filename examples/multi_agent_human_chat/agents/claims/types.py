@@ -1,5 +1,3 @@
-"""Type definitions for the Claims Agent."""
-
 import json
 import re
 from pathlib import Path
@@ -7,18 +5,21 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, TypedDic
 
 from pydantic import BaseModel, Field, field_validator
 
-
-class ChatMessage(TypedDict, total=False):
-
-    content: str
-    role: str
-
-
-class MessageData(TypedDict, total=False):
-
-    chat_messages: List[ChatMessage]
-    connection_id: str
-    message_id: str
+from libraries.types import (
+    ChatMessage as ChatMessage,
+)
+from libraries.types import (
+    MessageData as MessageData,
+)
+from libraries.types import (
+    ModelConfig as BaseModelConfig,
+)
+from libraries.types import (
+    ModelResult as ModelResult,
+)
+from libraries.types import (
+    TracedMessageDict as TracedMessageDict,
+)
 
 
 class ClaimsRequestMessage(TypedDict):
@@ -31,60 +32,19 @@ class ClaimsRequestMessage(TypedDict):
     tracestate: Optional[str]
 
 
-class TracedMessageDict(TypedDict, total=False):
-
-    id: str
-    type: str
-    source: str
-    data: Dict[str, Any]
-    traceparent: Optional[str]
-    tracestate: Optional[str]
-
 
 ValidatorResult = Tuple[bool, Any]
 ValidatorFunction = Callable[[str], ValidatorResult]
 
 
-class ModelConfig(BaseModel):
-
-    name: str = Field("claims_react", description="Name of the model")
-    max_iterations: int = Field(
-        5, description="Maximum iterations for the model", ge=1, le=10
-    )
-    use_tracing: bool = Field(True, description="Whether to trace model execution")
-    cache_enabled: bool = Field(False, description="Whether to enable model caching")
-    truncation_length: int = Field(
-        15000, description="Maximum length for conversation history", ge=1000
-    )
-    timeout_seconds: float = Field(
-        30.0, description="Timeout for model inference in seconds", ge=1.0
-    )
+class ClaimsModelConfig(BaseModelConfig):
+    name: str = Field(default="claims_react", description="Name of the model")
 
 
-class ModelResult(BaseModel):
-    """Result of a model prediction."""
-
-    response: str = Field(..., description="The generated response text")
-    processing_time_ms: float = Field(
-        ..., description="Processing time in milliseconds", ge=0
-    )
-    success: bool = Field(
-        True, description="Whether the model execution was successful"
-    )
-    truncated: bool = Field(False, description="Whether the input was truncated")
-    original_length: Optional[int] = Field(
-        None, description="Original length of input before truncation"
-    )
-    truncated_length: Optional[int] = Field(
-        None, description="Length of input after truncation"
-    )
-    error: Optional[str] = Field(None, description="Error message if execution failed")
-
-    model_config = {"validate_assignment": True}
+ModelConfig = ClaimsModelConfig
 
 
 class OptimizationConfig(BaseModel):
-    """Configuration for model optimization loading."""
 
     json_path: Path = Field(..., description="Path to optimization JSON file")
     fallback_to_base: bool = Field(
@@ -93,7 +53,6 @@ class OptimizationConfig(BaseModel):
 
 
 class ClaimRecord(BaseModel):
-    """Data structure for an insurance claim record with validation."""
 
     claim_number: str = Field(..., description="Unique identifier for the claim")
     policy_number: str = Field(

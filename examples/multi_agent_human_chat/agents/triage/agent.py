@@ -1,4 +1,3 @@
-"""Triage agent handler: classify user messages and route or stream responses."""
 import importlib
 from typing import Any, Callable, Dict, List
 

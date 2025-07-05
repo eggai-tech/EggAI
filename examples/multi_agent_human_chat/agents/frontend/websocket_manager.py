@@ -1,5 +1,3 @@
-"""WebSocket connection manager for the frontend agent."""
-
 from collections import defaultdict
 from typing import Dict
 

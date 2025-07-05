@@ -1,5 +1,3 @@
-"""Policy reasoning module using DSPy ReAct implementation for the Policies Agent."""
-
 import json
 import os
 from pathlib import Path
@@ -9,12 +7,12 @@ import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 
+from agents.policies.agent.config import settings
 from agents.policies.agent.tools.database.policy_data import get_personal_policy_details
 from agents.policies.agent.tools.retrieval.policy_search import (
     search_policy_documentation,
 )
-from agents.policies.config import settings
-from agents.policies.types import ModelConfig, PolicyCategory
+from agents.policies.agent.types import ModelConfig, PolicyCategory
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
 from libraries.tracing import (
@@ -26,7 +24,6 @@ from libraries.tracing import (
 
 logger = get_console_logger("policies_agent.reasoning")
 
-# Create tracer for policies agent
 policies_tracer = create_tracer("policies_agent")
 
 # Default configuration
@@ -103,7 +100,6 @@ optimized_model_path = (
     Path(__file__).resolve().parent / "optimization" / "optimized_policies_simba.json"
 )
 
-# Create base model with tracing
 policies_model = TracedReAct(
     PolicyAgentSignature,
     tools=[get_personal_policy_details, search_policy_documentation],
@@ -196,7 +192,6 @@ def policies_react_dspy(
     truncation_result = truncate_long_history(chat_history, config)
     chat_history = truncation_result["history"]
 
-    # Create a streaming version of the policies model
     return dspy.streamify(
         policies_model,
         stream_listeners=[

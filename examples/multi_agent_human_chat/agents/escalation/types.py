@@ -1,8 +1,22 @@
-"""Type definitions for the Escalation Agent."""
-
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Literal, Optional, TypedDict
 
 from pydantic import BaseModel, Field
+
+from libraries.types import (
+    ChatMessage as ChatMessage,
+)
+from libraries.types import (
+    MessageData as MessageData,
+)
+from libraries.types import (
+    ModelConfig as BaseModelConfig,
+)
+from libraries.types import (
+    ModelResult as ModelResult,
+)
+from libraries.types import (
+    TracedMessageDict as TracedMessageDict,
+)
 
 TicketDepartment = Literal["Technical Support", "Billing", "Sales"]
 
@@ -10,20 +24,6 @@ WorkflowStep = Literal["ask_additional_data", "ask_confirmation", "create_ticket
 
 ConfirmationResponse = Literal["yes", "no"]
 
-
-
-class ChatMessage(TypedDict, total=False):
-
-    content: str
-    role: str
-
-
-class MessageData(TypedDict, total=False):
-
-    chat_messages: List[ChatMessage]
-    connection_id: str
-    message_id: str
-    session: str
 
 
 class TicketingRequestMessage(TypedDict):
@@ -36,25 +36,9 @@ class TicketingRequestMessage(TypedDict):
     tracestate: Optional[str]
 
 
-class TracedMessageDict(TypedDict, total=False):
-
-    id: str
-    type: str
-    source: str
-    data: Dict[str, Any]
-    traceparent: Optional[str]
-    tracestate: Optional[str]
-
-
-class DspyModelConfig(BaseModel):
+class EscalationModelConfig(BaseModelConfig):
 
     name: str = Field("ticketing_agent", description="Name of the DSPy ticketing model")
-    max_iterations: int = Field(
-        5, description="Maximum iterations for the model", ge=1, le=10
-    )
-    use_tracing: bool = Field(True, description="Whether to trace model execution")
-    cache_enabled: bool = Field(False, description="Whether to enable model caching")
-    timeout_seconds: float = Field(30.0, description="Timeout for model inference in seconds", ge=1.0)
 
 
 
@@ -70,16 +54,5 @@ class TicketInfo(BaseModel):
     model_config = {"extra": "forbid"}
 
 
-class ModelResult(BaseModel):
-    """Result of a model prediction."""
-
-    message: str = Field(..., description="The generated message to the user")
-    processing_time_ms: float = Field(
-        ..., description="Processing time in milliseconds", ge=0
-    )
-    success: bool = Field(
-        True, description="Whether the model execution was successful"
-    )
-    error: Optional[str] = Field(None, description="Error message if execution failed")
-
-    model_config = {"validate_assignment": True}
+DspyModelConfig = EscalationModelConfig
+ModelConfig = EscalationModelConfig

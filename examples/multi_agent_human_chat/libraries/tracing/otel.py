@@ -1,9 +1,3 @@
-"""
-OpenTelemetry initialization and configuration utilities.
-
-This module provides centralized configuration and tracer creation for OpenTelemetry.
-"""
-
 import asyncio
 import functools
 import json

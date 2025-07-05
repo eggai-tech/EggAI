@@ -1,4 +1,3 @@
-"""Core logic and handlers for the Escalation Agent."""
 import asyncio
 from typing import List
 

@@ -1,5 +1,3 @@
-"""Main module for the Policies Agent with FastAPI endpoints."""
-
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -8,7 +6,7 @@ from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI
 
 from agents.policies.agent.api.routes import router as api_router
-from agents.policies.config import settings
+from agents.policies.agent.config import settings
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger

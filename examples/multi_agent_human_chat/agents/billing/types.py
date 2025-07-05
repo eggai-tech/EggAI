@@ -1,61 +1,19 @@
-"""Type definitions for the Billing Agent."""
-
-from typing import Optional, TypedDict
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
-# Message type constants
+from libraries.types import ChatMessage as ChatMessage
+from libraries.types import ModelConfig as BaseModelConfig
+from libraries.types import ModelResult as ModelResult
+
 MESSAGE_TYPE_BILLING_REQUEST: str = "billing_request"
 
 
-class ChatMessage(TypedDict, total=False):
-
-    content: str
-    role: str
-
-
-
-
-class ModelConfig(BaseModel):
-
-    name: str = Field("billing_react", description="Name of the model")
-    max_iterations: int = Field(
-        5, description="Maximum iterations for the model", ge=1, le=10
-    )
-    use_tracing: bool = Field(True, description="Whether to trace model execution")
-    cache_enabled: bool = Field(False, description="Whether to enable model caching")
-    truncation_length: int = Field(
-        15000, description="Maximum length for conversation history", ge=1000
-    )
-    timeout_seconds: float = Field(
-        30.0, description="Timeout for model inference in seconds", ge=1.0
-    )
-
-
-class ModelResult(BaseModel):
-    """Result of a model prediction."""
-
-    response: str = Field(..., description="The generated response text")
-    processing_time_ms: float = Field(
-        ..., description="Processing time in milliseconds", ge=0
-    )
-    success: bool = Field(
-        True, description="Whether the model execution was successful"
-    )
-    truncated: bool = Field(False, description="Whether the input was truncated")
-    original_length: Optional[int] = Field(
-        None, description="Original length of input before truncation"
-    )
-    truncated_length: Optional[int] = Field(
-        None, description="Length of input after truncation"
-    )
-    error: Optional[str] = Field(None, description="Error message if execution failed")
-
-    model_config = {"validate_assignment": True}
+class BillingModelConfig(BaseModelConfig):
+    name: str = Field(default="billing_react", description="Name of the model")
 
 
 class BillingRecord(BaseModel):
-    """Data structure for a billing record with validation."""
 
     policy_number: str = Field(..., description="Unique identifier for the policy")
     customer_name: str = Field(..., description="Name of the customer")
@@ -79,11 +37,6 @@ class BillingRecord(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-__all__ = [
-    "ChatMessage",
-    "ModelConfig",
-    "ModelResult",
-    "BillingRecord",
-    "MESSAGE_TYPE_BILLING_REQUEST",
-]
+ModelConfig = BillingModelConfig
+
 

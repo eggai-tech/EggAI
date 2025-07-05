@@ -1,28 +1,4 @@
 #!/usr/bin/env python3
-"""
-Deploy Vespa application package from generated artifacts.
-
-This script deploys a pre-generated Vespa application package to the Vespa cluster.
-It first generates the package using generate_package.py, then deploys the artifacts.
-
-Usage:
-    python deploy_package.py [--config-server URL] [--query-url URL] [--force] [--artifacts-dir DIR]
-
-Examples:
-    # Local deployment (generates and deploys)
-    python deploy_package.py
-    
-    # Kubernetes deployment
-    python deploy_package.py \
-        --config-server http://vespa-configserver-0.vespa-internal.my-namespace.svc.cluster.local:19071 \
-        --query-url http://vespa-query-0.vespa-internal.my-namespace.svc.cluster.local:8080
-        
-    # Force redeploy even if schema exists
-    python deploy_package.py --force
-    
-    # Use pre-generated artifacts
-    python deploy_package.py --artifacts-dir ./my-artifacts
-"""
 
 import argparse
 import json

@@ -12,7 +12,7 @@ from agents.policies.agent.reasoning import (
     truncate_long_history,
     using_optimized_prompts,
 )
-from agents.policies.types import ModelConfig
+from agents.policies.agent.types import ModelConfig
 
 
 class TestTruncateLongHistory:

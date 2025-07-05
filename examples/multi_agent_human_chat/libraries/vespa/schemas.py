@@ -1,5 +1,3 @@
-"""Vespa document schemas and data models."""
-
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 

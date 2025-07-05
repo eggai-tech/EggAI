@@ -1,5 +1,3 @@
-"""Main module for the Escalation Agent."""
-
 import asyncio
 
 from eggai import eggai_main

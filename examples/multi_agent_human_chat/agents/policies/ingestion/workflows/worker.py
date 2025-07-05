@@ -20,7 +20,6 @@ from agents.policies.ingestion.workflows.ingestion_workflow import (
     DocumentIngestionWorkflow,
 )
 
-# Import logger only when needed to avoid Temporal sandbox issues
 logger = None
 
 

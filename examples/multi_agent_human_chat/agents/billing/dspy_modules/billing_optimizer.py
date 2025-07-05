@@ -1,20 +1,3 @@
-"""
-Optimizer for Billing Agent prompts using COPRO.
-
-Note on ReAct Optimization:
----------------------------
-This optimizer uses COPRO to optimize a TracedReAct module, which is not
-the standard use case for COPRO.
-
-Key points:
-1. We use mock tools during optimization that return fixed data
-2. We save only the optimized signature, not the full program
-3. We load this signature back into a TracedReAct module at runtime
-
-This approach allows us to optimize the agent's instructions while
-preserving its tool-using capabilities.
-"""
-
 import datetime
 import sys
 import time
@@ -54,26 +37,21 @@ def print_progress(message, progress=None, total=None):
         total: Total progress value (optional)
     """
     if progress is not None and total is not None:
-        # Calculate percentage
         percent = min(100, int(progress / total * 100))
         bar_length = 30
         filled_length = int(bar_length * progress // total)
 
-        # Create the progress bar
         bar = "█" * filled_length + "░" * (bar_length - filled_length)
 
-        # Print the progress bar and message
         sys.stdout.write(f"\r{message}: [{bar}] {percent}% ({progress}/{total})")
         sys.stdout.flush()
     else:
-        # Just print the message with a spinner
         chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         spinner = chars[int(time.time() * 10) % len(chars)]
         sys.stdout.write(f"\r{spinner} {message}...")
         sys.stdout.flush()
 
 
-# Import core prompt from billing.py - single source of truth
 import importlib.util
 import inspect
 
@@ -91,18 +69,15 @@ def get_billing_signature_prompt() -> str:
     return inspect.getdoc(billing_module.BillingSignature)
 
 
-# Use the same prompt from the main module
 class BillingSignature(dspy.Signature):
     """The billing agent signature for optimization."""
 
-    # Get the docstring from the main BillingSignature
     __doc__ = get_billing_signature_prompt()
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
 
 
-# Create the unoptimized react program
 from libraries.tracing import TracedReAct
 
 
@@ -246,16 +221,10 @@ if __name__ == "__main__":
             num_threads=1,  # Single thread for minimal overhead
         )
 
-        # Evaluate baseline with progress indicator
         logger.info("Evaluating baseline...")
-        # Start progress animation for baseline evaluation
         print_progress("Evaluating baseline")
 
-        # Custom evaluator to show progress
         def evaluate_with_progress(program):
-            # Start evaluation with active spinner
-
-            # Define a function to show spinner during evaluation
             def show_spinner():
                 elapsed = 0
                 while elapsed < 60:  # Timeout after 60 seconds

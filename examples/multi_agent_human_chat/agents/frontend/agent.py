@@ -1,5 +1,3 @@
-"""Frontend Agent: WebSocket gateway, tracing, and message routing module."""
-
 import asyncio
 import os
 import uuid

@@ -1,5 +1,3 @@
-"""Metrics for evaluating billing agent responses."""
-
 import re
 from typing import Tuple
 

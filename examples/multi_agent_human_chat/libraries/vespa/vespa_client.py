@@ -1,5 +1,3 @@
-"""Vespa client for document indexing and querying."""
-
 from asyncio import Semaphore, gather
 from typing import Any, Dict, List, Optional
 
