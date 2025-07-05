@@ -31,7 +31,6 @@ class BillingEvaluationSignature(dspy.Signature):
 
 def get_test_cases():
     """Get standard test cases for billing agent tests."""
-    # Define base test cases
     test_cases = [
         {
             "policy_number": "B67890",
@@ -60,15 +59,12 @@ def get_test_cases():
         },
     ]
 
-    # Process test cases to add derived fields
     for case in test_cases:
-        # Create message list with billing-specific role
         case["chat_messages"] = create_message_list(
             case["user_messages"], case.get("agent_responses"),
             agent_role="BillingAgent"
         )
 
-        # Create conversation string
         case["chat_history"] = create_conversation_string(case["chat_messages"])
 
     return test_cases

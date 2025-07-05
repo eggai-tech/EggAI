@@ -16,14 +16,6 @@ logger = get_console_logger("tracing.dspy")
 def add_gen_ai_attributes_to_span(
     span: trace.Span, model_name: str = "claude", **kwargs
 ) -> None:
-    """
-    Add standard gen_ai attributes to a span to prevent errors with None values.
-
-    Args:
-        span: OpenTelemetry span to add attributes to
-        model_name: Name of the model being used
-        **kwargs: Additional attributes to set on the span
-    """
     attr_dict = {"model_name": model_name}
 
     attr_dict.update({k: v for k, v in kwargs.items() if v is not None})
@@ -35,14 +27,6 @@ def add_gen_ai_attributes_to_span(
 
 
 class TracedChainOfThought(dspy.ChainOfThought):
-    """
-    Traced version of DSPy's ChainOfThought module.
-
-    Args:
-        signature: DSPy signature for the module
-        name: Name to use in trace spans
-        tracer: Optional specific tracer to use (defaults to module name)
-    """
 
     def __init__(
         self,
@@ -75,25 +59,11 @@ class TracedChainOfThought(dspy.ChainOfThought):
 
 
 def traced_dspy_function(name=None, span_namer=None):
-    """
-    Decorator to add tracing to DSPy functions.
-
-    This creates a span for the function and logs inputs/outputs.
-    Handles both synchronous and asynchronous functions.
-
-    Args:
-        name: Optional name for the span (defaults to function name)
-        span_namer: Optional function to derive span name from arguments
-
-    Returns:
-        Decorated function with tracing
-    """
 
     def decorator(fn):
         tracer = trace.get_tracer(f"dspy.{name or fn.__name__}")
 
         def set_gen_ai_attributes(span: trace.Span, **kwargs):
-            """Set standard gen_ai attributes on the span to prevent errors."""
             # Extract relevant attributes from kwargs
             extracted_attrs = {}
 
@@ -174,16 +144,6 @@ def traced_dspy_function(name=None, span_namer=None):
 
 
 class TracedReAct(dspy.ReAct):
-    """
-    Traced version of DSPy's ReAct module with support for optimized loading.
-
-    Args:
-        signature: DSPy signature for the module
-        tools: List of tools to use
-        max_iters: Maximum iterations for ReAct
-        name: Name to use in trace spans
-        tracer: Optional specific tracer to use (defaults to module name)
-    """
 
     def __init__(
         self,

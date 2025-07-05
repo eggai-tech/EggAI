@@ -12,15 +12,12 @@ from triage_webserver.routes import datasets, examples
 
 app = FastAPI(title="Triage Dataset Manager")
 
-# Set up static files - only for logo and other assets, we're using CDN for CSS
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# Initialize templates
 templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 templates = Jinja2Templates(directory=templates_path)
 
-# Include routers
 app.include_router(datasets.router, prefix="/api/datasets", tags=["datasets"])
 app.include_router(examples.router, prefix="/api/examples", tags=["examples"])
 

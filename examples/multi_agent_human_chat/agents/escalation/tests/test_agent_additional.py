@@ -12,7 +12,7 @@ from agents.escalation.agent import (
     handle_ticketing_request,
     process_escalation_request,
 )
-from agents.escalation.constants import (
+from agents.escalation.config import (
     MSG_TYPE_STREAM_END,
     MSG_TYPE_TICKETING_REQUEST,
 )

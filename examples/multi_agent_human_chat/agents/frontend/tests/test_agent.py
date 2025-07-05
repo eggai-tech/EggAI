@@ -28,7 +28,6 @@ from ..agent import (
 from ..config import settings
 from ..websocket_manager import WebSocketManager
 
-# Initialize default transport for tests
 eggai_set_default_transport(
     lambda: create_kafka_transport(
         bootstrap_servers=settings.kafka_bootstrap_servers,
@@ -41,7 +40,6 @@ pytestmark = pytest.mark.asyncio
 # Mock the WebSocket manager to avoid actual socket connections
 websocket_manager.send_message_to_connection = AsyncMock()
 
-# Set up channel for testing
 human_channel = Channel("human")
 
 

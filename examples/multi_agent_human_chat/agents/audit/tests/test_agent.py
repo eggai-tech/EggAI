@@ -22,7 +22,8 @@ eggai_set_default_transport(
     )
 )
 
-from agents.audit.agent import MESSAGE_CATEGORIES, audit_agent, audit_message
+from agents.audit.agent import audit_agent, audit_message
+from agents.audit.config import MESSAGE_CATEGORIES
 from agents.audit.types import AuditCategory
 from libraries.channels import channels
 from libraries.logger import get_console_logger

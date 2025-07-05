@@ -19,7 +19,6 @@ async def generate_dataset(
     """
     Generate a dataset using the specified parameters
     """
-    # Initialize default values if not provided
     if temperatures is None:
         temperatures = [0.7, 0.8, 0.9]
     if turns is None:
@@ -67,10 +66,8 @@ def main():
     """
     Main entry point for the triage-generate command
     """
-    # Load environment variables
     dotenv.load_dotenv()
 
-    # Parse command line arguments
     parser = argparse.ArgumentParser(description="Generate a triage agent dataset")
     parser.add_argument(
         "--output",

@@ -2,12 +2,17 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+
+from libraries.types import BaseAgentConfig
 
 load_dotenv()
 
+MESSAGE_TYPE_USER_MESSAGE = "user_message"
+GROUP_ID = "triage_agent_group"
 
-class Settings(BaseSettings):
+
+class Settings(BaseAgentConfig):
     app_name: str = Field(default="triage_agent")
 
     language_model: str = Field(default="openai/gpt-4o-mini")

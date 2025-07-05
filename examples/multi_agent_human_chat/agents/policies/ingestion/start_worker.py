@@ -90,7 +90,6 @@ async def main():
     # Create shutdown event
     shutdown_event = asyncio.Event()
 
-    # Set up async signal handlers for graceful shutdown
     def signal_handler(signum):
         logger.info(f"Received signal {signum}, shutting down...")
         shutdown_event.set()

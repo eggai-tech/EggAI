@@ -17,14 +17,6 @@ logger = get_console_logger("tracing.dspy")
 
 
 def safe_set_attribute(span, key: str, value: Any) -> None:
-    """
-    Safely set a span attribute, handling None values and unsupported types.
-
-    Args:
-        span: The OpenTelemetry span to set the attribute on
-        key: The attribute key
-        value: The attribute value
-    """
     if value is None:
         # Skip None values entirely
         return
@@ -85,14 +77,6 @@ def safe_set_attribute(span, key: str, value: Any) -> None:
 
 
 def init_telemetry(app_name: str, endpoint: Optional[str] = None) -> None:
-    """
-    Initialize OpenTelemetry.
-
-    Args:
-        app_name: The name of the application for OpenTelemetry
-        endpoint: Optional OTLP endpoint URL (defaults to env OTEL_ENDPOINT or localhost)
-        **kwargs: Additional configuration parameters (unused after openlit removal)
-    """
     # Initialize OpenTelemetry directly
     from opentelemetry import trace
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
