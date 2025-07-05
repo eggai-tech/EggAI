@@ -20,7 +20,7 @@ class TestTriggerInitialDocumentIngestion:
         """Test successful ingestion of all policy documents."""
         # Setup
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         
         mock_client = AsyncMock()
@@ -68,7 +68,7 @@ class TestTriggerInitialDocumentIngestion:
         """Test ingestion when some policy files are missing."""
         # Setup
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         
         mock_client = AsyncMock()
@@ -105,7 +105,7 @@ class TestTriggerInitialDocumentIngestion:
         """Test ingestion when some documents are skipped."""
         # Setup
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         
         mock_client = AsyncMock()
@@ -145,7 +145,7 @@ class TestTriggerInitialDocumentIngestion:
         """Test ingestion with some failures."""
         # Setup
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         
         mock_client = AsyncMock()
@@ -181,7 +181,7 @@ class TestTriggerInitialDocumentIngestion:
         """Test handling of exceptions during ingestion."""
         # Setup
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         
         mock_client = AsyncMock()
@@ -215,7 +215,7 @@ class TestMainFunction:
         mock_settings.app_name = "test_worker"
         mock_settings.otel_endpoint = "http://otel:4318"
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         mock_settings.vespa_config_url = "http://vespa:19071"
         mock_settings.vespa_query_url = "http://vespa:8080"
@@ -224,6 +224,7 @@ class TestMainFunction:
         mock_settings.vespa_node_count = 1
         mock_settings.vespa_hosts_config = None
         mock_settings.vespa_services_xml = None
+        mock_settings.vespa_app_name = "policies"
         
         # Mock worker
         mock_worker = AsyncMock()
@@ -268,7 +269,8 @@ class TestMainFunction:
             deployment_mode="local",
             node_count=1,
             hosts_config=None,
-            services_xml=None
+            services_xml=None,
+            app_name="policies"
         )
         
         # Verify document ingestion
@@ -292,7 +294,7 @@ class TestMainFunction:
         mock_settings.app_name = "test_worker"
         mock_settings.otel_endpoint = "http://otel:4318"
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         mock_settings.vespa_config_url = "http://vespa:19071"
         mock_settings.vespa_query_url = "http://vespa:8080"
@@ -301,6 +303,7 @@ class TestMainFunction:
         mock_settings.vespa_node_count = 1
         mock_settings.vespa_hosts_config = None
         mock_settings.vespa_services_xml = None
+        mock_settings.vespa_app_name = "policies"
         
         # Mock worker
         mock_worker = AsyncMock()
@@ -334,7 +337,7 @@ class TestMainFunction:
         mock_settings.app_name = "test_worker"
         mock_settings.otel_endpoint = "http://otel:4318"
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         
         # Mock worker startup failure
@@ -363,7 +366,7 @@ class TestMainFunction:
         mock_settings.app_name = "test_worker"
         mock_settings.otel_endpoint = "http://otel:4318"
         mock_settings.temporal_server_url = "localhost:7233"
-        mock_settings.temporal_namespace = "default"
+        mock_settings.get_temporal_namespace.return_value = "default"
         mock_settings.temporal_task_queue = "policy-rag"
         mock_settings.vespa_config_url = "http://vespa:19071"
         mock_settings.vespa_query_url = "http://vespa:8080"
@@ -372,6 +375,7 @@ class TestMainFunction:
         mock_settings.vespa_node_count = 1
         mock_settings.vespa_hosts_config = None
         mock_settings.vespa_services_xml = None
+        mock_settings.vespa_app_name = "policies"
         
         # Mock worker
         mock_worker = AsyncMock()
@@ -408,7 +412,7 @@ class TestSettingsIntegration:
         mock_settings.app_name = "custom_worker"
         mock_settings.otel_endpoint = "http://custom-otel:4318"
         mock_settings.temporal_server_url = "custom-temporal:7233"
-        mock_settings.temporal_namespace = "custom-namespace"
+        mock_settings.get_temporal_namespace.return_value = "custom-namespace"
         mock_settings.temporal_task_queue = "custom-queue"
         mock_settings.vespa_config_url = "http://custom-vespa:19071"
         mock_settings.vespa_query_url = "http://custom-vespa:8080"
@@ -417,6 +421,7 @@ class TestSettingsIntegration:
         mock_settings.vespa_node_count = 3
         mock_settings.vespa_hosts_config = Path("/custom/hosts.json")
         mock_settings.vespa_services_xml = Path("/custom/services.xml")
+        mock_settings.vespa_app_name = "policies"
         
         # Mock worker
         mock_worker = AsyncMock()
@@ -457,7 +462,8 @@ class TestSettingsIntegration:
             deployment_mode="production",
             node_count=3,
             hosts_config=Path("/custom/hosts.json"),
-            services_xml=Path("/custom/services.xml")
+            services_xml=Path("/custom/services.xml"),
+            app_name="policies"
         )
     
     @pytest.mark.asyncio
@@ -467,7 +473,7 @@ class TestSettingsIntegration:
         """Test that trigger_initial_document_ingestion uses settings."""
         # Setup
         mock_settings.temporal_server_url = "custom:7233"
-        mock_settings.temporal_namespace = "custom-ns"
+        mock_settings.get_temporal_namespace.return_value = "custom-ns"
         mock_settings.temporal_task_queue = "custom-queue"
         
         mock_client = AsyncMock()
