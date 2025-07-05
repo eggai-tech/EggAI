@@ -1,9 +1,3 @@
-"""Audit Agent for message logging."""
-__all__ = [
-    "audit_agent",
-    "audit_message",
-]
-
 from typing import Dict, Optional, Union
 from uuid import uuid4
 

@@ -106,11 +106,9 @@ def get_console_logger(service_name: str) -> logging.Logger:
     """
     logger = logging.getLogger(service_name)
 
-    # Return the logger if handlers are already configured
     if logger.handlers:
         return logger
 
-    # Clear existing handlers if any
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
 

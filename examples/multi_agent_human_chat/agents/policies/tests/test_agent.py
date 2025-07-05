@@ -17,7 +17,7 @@ from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage
 
-from ..config import settings
+from ..agent.config import settings
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(

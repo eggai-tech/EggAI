@@ -1,7 +1,4 @@
-"""Vespa integration library for EggAI."""
-
-from .config import VespaConfig
-from .schemas import DocumentMetadata, PolicyDocument
-from .vespa_client import VespaClient
-
-__all__ = ["VespaClient", "VespaConfig", "PolicyDocument", "DocumentMetadata"]
+from .config import VespaConfig as VespaConfig
+from .schemas import DocumentMetadata as DocumentMetadata
+from .schemas import PolicyDocument as PolicyDocument
+from .vespa_client import VespaClient as VespaClient

@@ -1,5 +1,3 @@
-"""Constants for the Escalation Agent."""
-
 AGENT_NAME = "TicketingAgent"
 
 MSG_TYPE_TICKETING_REQUEST = "ticketing_request"

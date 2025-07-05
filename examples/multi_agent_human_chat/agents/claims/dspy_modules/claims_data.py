@@ -1,5 +1,3 @@
-"""Claims data store and tools for claim operations."""
-
 import json
 from typing import Optional, Tuple
 

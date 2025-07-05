@@ -1,10 +1,3 @@
-"""
-Escalation (Ticketing) DSPy modules for the Escalation Agent.
-
-This module contains the DSPy modules and signatures for the escalation agent,
-which handles ticket creation and management for customer issues.
-"""
-
 import json
 from datetime import datetime
 from pathlib import Path
@@ -154,7 +147,6 @@ def create_ticket(
     return json.dumps(ticket_dict)
 
 
-# Create a main escalation model for streaming
 escalation_model = TracedReAct(
     TicketingSignature,
     tools=[get_tickets_by_policy, create_ticket],

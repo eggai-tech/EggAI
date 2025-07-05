@@ -1,26 +1,14 @@
-"""Type definitions for the Frontend Agent."""
+from enum import Enum
+from typing import Literal, Optional, TypedDict
 
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from libraries.types import (
+    MessageData,
+)
+from libraries.types import (
+    ModelConfig as BaseModelConfig,
+)
 
 WebSocketStateType = Literal["connected", "disconnected", "connecting"]
-
-
-class ChatMessage(TypedDict, total=False):
-
-    role: str
-    content: str
-    id: str
-    agent: str
-
-
-class MessageData(TypedDict, total=False):
-
-    chat_messages: List[ChatMessage]
-    connection_id: str
-    message_id: str
-    message: str
-    agent: str
-    session: str
 
 
 class UserMessage(TypedDict):
@@ -43,17 +31,10 @@ class AgentResponseMessage(TypedDict):
     tracestate: Optional[str]
 
 
-class TracedMessageDict(TypedDict, total=False):
+class FrontendModelConfig(BaseModelConfig):
+    pass
 
-    id: str
-    type: str
-    source: str
-    data: Dict[str, Any]
-    traceparent: Optional[str]
-    tracestate: Optional[str]
-
-
-from enum import Enum
+ModelConfig = FrontendModelConfig
 
 
 class MessageType(str, Enum):

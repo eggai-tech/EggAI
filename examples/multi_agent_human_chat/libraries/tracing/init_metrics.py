@@ -1,7 +1,6 @@
 from opentelemetry import trace
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
-# Import pricing functionality
 from .pricing import calculate_request_cost
 
 # OpenTelemetry GenAI Semantic Convention Metrics

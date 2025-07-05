@@ -1,5 +1,3 @@
-"""Audit agent type definitions."""
-
 from datetime import datetime
 from typing import Any, Dict, Literal, Optional
 
@@ -23,12 +21,6 @@ MESSAGE_CATEGORIES: Dict[str, AuditCategory] = {
     "triage_request": "Triage",
 }
 
-__all__ = [
-    "AuditCategory",
-    "MESSAGE_CATEGORIES",
-    "AuditConfig",
-    "AuditEvent",
-]
 
 
 class AuditConfig(BaseModel):

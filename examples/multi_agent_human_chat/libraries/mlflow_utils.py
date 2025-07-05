@@ -26,7 +26,6 @@ def find_model(model_name: str, version: str, artifact_path: str = "model") -> s
     dest = cache_path / model_name / version
     dest.mkdir(parents=True, exist_ok=True)
     client.download_artifacts(run_id, artifact_path, dst_path=str(dest))
-    # return the path to the model
     if pickle_path.exists():
         return str(pickle_path)
     if pytorch_path.exists():

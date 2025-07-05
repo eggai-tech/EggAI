@@ -1,7 +1,3 @@
-"""Guardrails for content moderation."""
-
-"""Optional content moderation using Guardrails."""
-
 from guardrails import AsyncGuard
 
 from libraries.logger import get_console_logger

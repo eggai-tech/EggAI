@@ -1,5 +1,3 @@
-"""SIMBA optimizer for Billing Agent."""
-
 from pathlib import Path
 
 import dspy

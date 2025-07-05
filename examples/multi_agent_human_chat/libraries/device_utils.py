@@ -1,5 +1,3 @@
-"""Device detection utilities for PyTorch."""
-
 import torch
 
 

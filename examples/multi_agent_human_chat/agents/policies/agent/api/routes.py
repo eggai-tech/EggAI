@@ -1,5 +1,3 @@
-"""API routes for the Policies Agent."""
-
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -381,4 +379,3 @@ async def vector_search(
 
 
 # Export the router
-__all__ = ["router"]

@@ -1,5 +1,3 @@
-"""Report generation utilities for billing agent test results."""
-
 from typing import List
 
 

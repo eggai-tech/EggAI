@@ -1,10 +1,3 @@
-"""
-Channel name configuration for the EggAI multi-agent system.
-
-This module defines the standard channel names used for communication between agents.
-Using this centralized configuration helps maintain consistency and makes changes easier.
-"""
-
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

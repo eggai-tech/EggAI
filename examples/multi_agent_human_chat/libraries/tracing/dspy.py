@@ -1,10 +1,3 @@
-"""
-DSPy-specific tracing utilities.
-
-This module provides tracing utilities for DSPy modules, including ChainOfThought,
-ReAct, and other DSPy components.
-"""
-
 import asyncio
 import functools
 from typing import Callable, List, Optional
@@ -31,16 +24,12 @@ def add_gen_ai_attributes_to_span(
         model_name: Name of the model being used
         **kwargs: Additional attributes to set on the span
     """
-    # Create attributes with defaults to ensure no None values
     attr_dict = {"model_name": model_name}
 
-    # Add any additional attributes provided
     attr_dict.update({k: v for k, v in kwargs.items() if v is not None})
 
-    # Create the model with all attributes
     gen_ai_attrs = GenAIAttributes(**attr_dict)
 
-    # Set all attributes safely
     for key, value in gen_ai_attrs.to_span_attributes().items():
         safe_set_attribute(span, key, value)
 

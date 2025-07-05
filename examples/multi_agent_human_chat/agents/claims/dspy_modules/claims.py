@@ -1,5 +1,3 @@
-"""Claims Agent optimized DSPy module for production use."""
-
 import json
 import time
 from pathlib import Path
@@ -203,7 +201,6 @@ def truncate_long_history(
         "truncated_length": len(chat_history),
     }
 
-    # Check if truncation needed
     if len(chat_history) <= max_length:
         return result
 

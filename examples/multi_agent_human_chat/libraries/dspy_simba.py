@@ -1,10 +1,3 @@
-"""
-SIMBA optimizer for DSPy modules.
-
-This module provides a SIMBAOptimizer class that can be used to optimize DSPy ReAct or ChainOfThought
-agents using the SIMBA (Stochastic Introspective Mini-Batch Ascent) algorithm.
-"""
-
 import datetime
 import os
 import time
@@ -72,16 +65,13 @@ class SIMBAOptimizer:
         Returns:
             The optimized DSPy module
         """
-        # Set up MLflow tracking
         mlflow.set_experiment(experiment_name)
 
-        # Create run name if not provided
         if run_name is None:
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             run_name = f"simba_optimization_{timestamp}"
 
         with mlflow.start_run(run_name=run_name):
-            # Log optimizer parameters
             mlflow.log_params(
                 {
                     "optimizer": "SIMBA",

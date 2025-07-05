@@ -90,7 +90,6 @@ def _initialize_billing_model():
     if _initialized:
         return _billing_model
     
-    # Initialize tracer
     tracer = create_tracer("billing_agent")
     
     # Load optimized instructions if available
@@ -101,7 +100,6 @@ def _initialize_billing_model():
         BillingSignature.__doc__ = instructions
         using_optimized_prompts = True
     
-    # Initialize the model
     _billing_model = TracedReAct(
         BillingSignature,
         tools=[get_billing_info, update_billing_info],

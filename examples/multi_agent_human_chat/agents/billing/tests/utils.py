@@ -1,37 +1,20 @@
 """Test utilities for billing agent tests."""
 
-import asyncio
-import time
-from datetime import datetime
-
 import dspy
-import mlflow
 
 from libraries.logger import get_console_logger
+from libraries.test_utils import (
+    MLflowTracker as MLflowTracker,
+)
+from libraries.test_utils import (
+    create_conversation_string,
+    create_message_list,
+)
+from libraries.test_utils import (
+    setup_mlflow_tracking as setup_mlflow_tracking,
+)
 
 logger = get_console_logger("billing_agent.tests.utils")
-
-
-def create_message_list(user_messages, agent_responses=None):
-    """Create a list of chat messages from user messages and agent responses."""
-    if agent_responses is None:
-        agent_responses = []
-
-    messages = []
-    # Interleave user messages and agent responses
-    for i, user_msg in enumerate(user_messages):
-        messages.append({"role": "User", "content": user_msg})
-        if i < len(agent_responses):
-            messages.append({"role": "BillingAgent", "content": agent_responses[i]})
-    return messages
-
-
-def create_conversation_string(messages):
-    """Create a conversation string from message list."""
-    conversation = ""
-    for msg in messages:
-        conversation += f"{msg['role']}: {msg['content']}\n"
-    return conversation
 
 
 class BillingEvaluationSignature(dspy.Signature):
@@ -79,9 +62,10 @@ def get_test_cases():
 
     # Process test cases to add derived fields
     for case in test_cases:
-        # Create message list
+        # Create message list with billing-specific role
         case["chat_messages"] = create_message_list(
-            case["user_messages"], case.get("agent_responses")
+            case["user_messages"], case.get("agent_responses"),
+            agent_role="BillingAgent"
         )
 
         # Create conversation string
@@ -90,93 +74,19 @@ def get_test_cases():
     return test_cases
 
 
+# Import wait_for_agent_response from shared test utils
+from libraries.test_utils import wait_for_agent_response as _wait_for_agent_response
+
+
 async def wait_for_agent_response(
     response_queue, connection_id: str, timeout: float = 30.0
 ) -> dict:
-    """Wait for a response from the agent with matching connection ID."""
-    start_wait = time.perf_counter()
-    logger.info(f"Waiting for response with connection_id {connection_id}")
-
-    # Clear any existing responses in queue
-    while not response_queue.empty():
-        try:
-            old_event = response_queue.get_nowait()
-            logger.info(
-                f"Cleared old response: {old_event.get('source', 'unknown')} for {old_event.get('data', {}).get('connection_id', 'unknown')}"
-            )
-        except asyncio.QueueEmpty:
-            break
-
-    # Keep checking for matching responses
-    while (time.perf_counter() - start_wait) < timeout:
-        try:
-            # Use a shorter timeout for the queue get to check more frequently
-            event = await asyncio.wait_for(response_queue.get(), timeout=1.0)
-
-            logger.info(
-                f"Received event from {event.get('source', 'unknown')} for connection {event.get('data', {}).get('connection_id', 'unknown')}"
-            )
-
-            # Check if this response matches our request and comes from billing_agent
-            if (
-                event.get("data", {}).get("connection_id") == connection_id
-                and event.get("source") == "billing_agent"
-            ):
-                logger.info(f"Found matching response for {connection_id}")
-                return event
-            else:
-                logger.info(
-                    f"Received non-matching response: {event.get('source')} for {event.get('data', {}).get('connection_id')}"
-                )
-        except asyncio.TimeoutError:
-            # Wait a little and try again but don't log every attempt
-            await asyncio.sleep(0.1)
-
-        # Regularly report waiting status
-        if (time.perf_counter() - start_wait) % 5 < 0.1:
-            logger.info(
-                f"Still waiting for response from BillingAgent for connection {connection_id}..."
-            )
-
-    logger.error(
-        f"Timeout after {timeout}s waiting for response with connection_id {connection_id}"
-    )
-    raise asyncio.TimeoutError(
-        f"Timeout waiting for response with connection_id {connection_id}"
+    """Wait for a response from the billing agent with matching connection ID."""
+    return await _wait_for_agent_response(
+        response_queue, connection_id, timeout, expected_source="billing_agent"
     )
 
 
-class MLflowTracker:
-    """Context manager for MLflow tracking."""
-
-    def __init__(self, experiment_name, run_name=None, params=None):
-        self.experiment_name = experiment_name
-        self.run_name = run_name
-        self.params = params
-
-    def __enter__(self):
-        mlflow.set_experiment(self.experiment_name)
-        if self.run_name is None:
-            self.run_name = (
-                f"billing_test_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-            )
-
-        self.run = mlflow.start_run(run_name=self.run_name)
-
-        if self.params:
-            for key, value in self.params.items():
-                mlflow.log_param(key, value)
-
-        return self.run
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        mlflow.end_run()
-        return False  # Don't suppress exceptions
-
-
-def setup_mlflow_tracking(experiment_name, run_name=None, params=None):
-    """Create an MLflow tracking context manager."""
-    return MLflowTracker(experiment_name, run_name, params)
 
 
 async def evaluate_response_with_llm(

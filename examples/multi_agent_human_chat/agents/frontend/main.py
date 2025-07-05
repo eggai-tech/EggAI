@@ -1,5 +1,3 @@
-"""Main module for the Frontend Agent."""
-
 import asyncio
 import os
 from contextlib import asynccontextmanager

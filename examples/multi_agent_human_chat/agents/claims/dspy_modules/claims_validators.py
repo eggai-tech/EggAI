@@ -1,5 +1,3 @@
-"""Field validators and registry for the Claims Agent."""
-
 from typing import List, Optional, Tuple, Union
 
 

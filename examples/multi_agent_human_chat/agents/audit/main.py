@@ -1,6 +1,3 @@
-"""Entry point for audit agent."""
-__all__ = ["main"]
-
 import asyncio
 import logging
 

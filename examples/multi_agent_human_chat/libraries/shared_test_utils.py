@@ -1,5 +1,3 @@
-"""Shared test utilities to reduce code duplication across agent tests."""
-
 from unittest.mock import patch
 
 import pytest

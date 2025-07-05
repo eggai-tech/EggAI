@@ -37,7 +37,6 @@ class FewShotsClassifier:
         self.seeds = seeds
         self.sentence_transformer = SentenceTransformer(st_model_name)
         self.C = C
-        # initialize the ensemble of classifiers
         self.classifiers = []
 
     def fit(self, dataset: dict[str, int]):

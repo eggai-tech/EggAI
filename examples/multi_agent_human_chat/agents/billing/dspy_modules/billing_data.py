@@ -1,5 +1,3 @@
-"""Billing data access module."""
-
 import json
 
 from libraries.logger import get_console_logger

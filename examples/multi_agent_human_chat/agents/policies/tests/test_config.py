@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from agents.policies.config import Settings as MainSettings
+from agents.policies.agent.config import Settings as MainSettings
 from agents.policies.ingestion.config import Settings as IngestionSettings
 
 

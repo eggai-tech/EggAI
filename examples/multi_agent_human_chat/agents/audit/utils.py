@@ -1,5 +1,3 @@
-"""Audit agent utilities."""
-
 from typing import Dict, Optional, Union
 from uuid import uuid4
 
@@ -8,12 +6,6 @@ from libraries.tracing import TracedMessage
 
 logger = get_console_logger("audit_agent")
 
-__all__ = [
-    "get_message_metadata",
-    "get_message_content",
-    "get_message_id",
-    "propagate_trace_context",
-]
 
 
 def get_message_metadata(
