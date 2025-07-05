@@ -606,7 +606,8 @@ class TestDeployToVespa:
             deployment_mode="production",
             node_count=3,
             hosts=hosts_data,
-            services_xml=None
+            services_xml=None,
+            app_name="policies"
         )
 
 
