@@ -73,8 +73,8 @@ class RetrievalAPIClient:
 
         # Inherit environment from parent process
         env = os.environ.copy()
-        env["HOST"] = "localhost"
-        env["PORT"] = str(self.port)
+        env["POLICIES_API_HOST"] = "localhost"
+        env["POLICIES_API_PORT"] = str(self.port)
 
         cmd = [sys.executable, "-m", "agents.policies.agent.main"]
 
@@ -92,7 +92,18 @@ class RetrievalAPIClient:
 
             # Check if process is still alive
             if self.process.poll() is not None:
-                logger.error(f"Process died early with exit code {self.process.poll()}")
+                exit_code = self.process.poll()
+                logger.error(f"Process died early with exit code {exit_code}")
+                
+                # Log stdout and stderr for debugging
+                try:
+                    stdout, stderr = self.process.communicate(timeout=1)
+                    if stdout:
+                        logger.error(f"Process stdout: {stdout.decode()}")
+                    if stderr:
+                        logger.error(f"Process stderr: {stderr.decode()}")
+                except:
+                    logger.error("Could not read process output")
                 break
 
             if await self.check_api_health():
