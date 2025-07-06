@@ -181,8 +181,8 @@ def truncate_long_history(
     return result
 
 
-@traced_dspy_function(name="policies_react_dspy")
-def policies_react_dspy(
+@traced_dspy_function(name="process_policies")
+def process_policies(
     chat_history: str, config: Optional[ModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process a policies inquiry using the DSPy ReAct model with streaming output."""
@@ -216,7 +216,7 @@ if __name__ == "__main__":
             "User: My policy number is A12345\n"
         )
 
-        chunks = policies_react_dspy(test_conversation)
+        chunks = process_policies(test_conversation)
 
         async for chunk in chunks:
             if isinstance(chunk, StreamResponse):

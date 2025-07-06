@@ -1,5 +1,3 @@
-"""Dataset generator for Policies Agent optimization."""
-
 import random
 from dataclasses import dataclass
 from typing import List, Literal, Optional

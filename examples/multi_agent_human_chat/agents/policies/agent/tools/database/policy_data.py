@@ -1,13 +1,3 @@
-"""Policy database access tool.
-
-NOTE: This module currently uses example data for demonstration purposes.
-In production, the get_personal_policy_details function should be updated
-to query a real database (e.g., PostgreSQL, MongoDB, etc.).
-
-The USE_EXAMPLE_DATA flag in example_data.py controls whether to use
-the example policies or attempt a real database query.
-"""
-
 import json
 
 from opentelemetry import trace

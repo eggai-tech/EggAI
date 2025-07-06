@@ -5,7 +5,7 @@ import dspy.streaming
 from eggai import Agent, Channel
 from opentelemetry import trace
 
-from agents.triage.config import settings
+from agents.triage.config import GROUP_ID, MESSAGE_TYPE_USER_MESSAGE, settings
 from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import AGENT_REGISTRY, TargetAgent
 from libraries.channels import channels
@@ -50,7 +50,7 @@ async def _publish_to_agent(
         await agents_channel.publish(
             TracedMessage(
                 type=AGENT_REGISTRY[target_agent]["message_type"],
-                source="TriageAgent",
+                source="Triage",
                 data={
                     "chat_messages": triage_to_agent_messages,
                     "message_id": msg.id,
@@ -73,7 +73,7 @@ async def _stream_chatty_response(
         await human_stream_channel.publish(
             TracedMessage(
                 type="agent_message_stream_start",
-                source="TriageAgent",
+                source="Triage",
                 data={
                     "message_id": stream_message_id,
                     "connection_id": msg.data.get("connection_id", "unknown"),
@@ -92,7 +92,7 @@ async def _stream_chatty_response(
                 await human_stream_channel.publish(
                     TracedMessage(
                         type="agent_message_stream_chunk",
-                        source="TriageAgent",
+                        source="Triage",
                         data={
                             "message_chunk": chunk.chunk,
                             "message_id": stream_message_id,
@@ -110,10 +110,10 @@ async def _stream_chatty_response(
                 await human_stream_channel.publish(
                     TracedMessage(
                         type="agent_message_stream_end",
-                        source="TriageAgent",
+                        source="Triage",
                         data={
                             "message_id": stream_message_id,
-                            "agent": "TriageAgent",
+                            "agent": "Triage",
                             "connection_id": msg.data.get("connection_id", "unknown"),
                             "message": chunk.response,
                         },
@@ -121,7 +121,7 @@ async def _stream_chatty_response(
                         tracestate=child_tracestate,
                     )
                 )
-triage_agent = Agent(name="TriageAgent")
+triage_agent = Agent(name="Triage")
 human_channel = Channel(channels.human)
 human_stream_channel = Channel(channels.human_stream)
 agents_channel = Channel(channels.agents)
@@ -145,9 +145,9 @@ current_classifier = get_current_classifier()
 
 @triage_agent.subscribe(
     channel=human_channel,
-    filter_by_message=lambda msg: msg.get("type") == "user_message",
+    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_USER_MESSAGE,
     auto_offset_reset="latest",
-    group_id="triage_agent_group",
+    group_id=GROUP_ID,
 )
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage) -> None:
@@ -166,7 +166,7 @@ async def handle_user_message(msg: TracedMessage) -> None:
         await human_channel.publish(
             TracedMessage(
                 type="agent_message",
-                source="TriageAgent",
+                source="Triage",
                 data={
                     "message": "Sorry, I didn't receive any message to process.",
                     "connection_id": connection_id,
@@ -190,7 +190,7 @@ async def handle_user_message(msg: TracedMessage) -> None:
         await human_channel.publish(
             TracedMessage(
                 type="agent_message",
-                source="TriageAgent",
+                source="Triage",
                 data={
                     "message": f"Configuration error: {e}",
                     "connection_id": connection_id,
@@ -205,7 +205,7 @@ async def handle_user_message(msg: TracedMessage) -> None:
         await human_channel.publish(
             TracedMessage(
                 type="agent_message",
-                source="TriageAgent",
+                source="Triage",
                 data={
                     "message": "Sorry, I encountered an error while classifying your message.",
                     "connection_id": connection_id,
@@ -229,7 +229,7 @@ async def handle_user_message(msg: TracedMessage) -> None:
             await human_channel.publish(
                 TracedMessage(
                     type="agent_message",
-                    source="TriageAgent",
+                    source="Triage",
                     data={
                         "message": "Sorry, I couldn't route your request due to an internal error.",
                         "connection_id": connection_id,
@@ -245,7 +245,7 @@ async def handle_user_message(msg: TracedMessage) -> None:
             await human_stream_channel.publish(
                 TracedMessage(
                     type="agent_message_stream_end",
-                    source="TriageAgent",
+                    source="Triage",
                     data={
                         "message_id": str(msg.id),
                         "connection_id": connection_id,

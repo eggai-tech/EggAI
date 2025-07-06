@@ -1,5 +1,3 @@
-"""Tests for billing data module."""
-
 import json
 
 import pytest

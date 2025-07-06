@@ -6,12 +6,9 @@ from libraries.types import ChatMessage as ChatMessage
 from libraries.types import ModelConfig as BaseModelConfig
 from libraries.types import ModelResult as ModelResult
 
-MESSAGE_TYPE_BILLING_REQUEST: str = "billing_request"
 
-
-class BillingModelConfig(BaseModelConfig):
+class ModelConfig(BaseModelConfig):
     name: str = Field(default="billing_react", description="Name of the model")
-
 
 class BillingRecord(BaseModel):
 
@@ -37,6 +34,5 @@ class BillingRecord(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-ModelConfig = BillingModelConfig
 
 

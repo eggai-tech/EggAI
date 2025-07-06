@@ -36,7 +36,7 @@ else:
     toxic_language_guard = None
 
 
-frontend_agent = Agent("FrontendAgent")
+frontend_agent = Agent("Frontend")
 human_channel = Channel("human")
 human_stream_channel = Channel("human_stream")
 websocket_manager = WebSocketManager()
@@ -93,12 +93,12 @@ async def _process_user_messages(
                 await human_channel.publish(
                     TracedMessage(
                         id=message_id,
-                        source="FrontendAgent",
+                        source="Frontend",
                         type=MessageType.AGENT_MESSAGE.value,
                         data={
                             "message": "Sorry, I can't help you with that.",
                             "connection_id": connection_id,
-                            "agent": "TriageAgent",
+                            "agent": "Triage",
                         },
                         traceparent=traceparent,
                         tracestate=tracestate,

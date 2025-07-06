@@ -6,7 +6,6 @@ from sqlalchemy.orm import sessionmaker
 from triage_webserver.config import WebServerConfig
 from triage_webserver.database.base import Base
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -14,14 +13,12 @@ config = WebServerConfig()
 
 logger.info(f"Connecting to database at: {config.DATABASE_URL}")
 
-# Create database engine with connection pooling
 engine = create_engine(
     config.DATABASE_URL,
     pool_pre_ping=True,  # Check connection liveness
     echo=config.DEBUG,  # Log SQL in debug mode
 )
 
-# Create a session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Add engine connection debugging
@@ -53,7 +50,6 @@ def init_db():
     try:
         # Import all models here to ensure they are registered with Base
 
-        # Create all tables
         Base.metadata.create_all(bind=engine)
         logger.info("Database initialized successfully.")
     except Exception as e:

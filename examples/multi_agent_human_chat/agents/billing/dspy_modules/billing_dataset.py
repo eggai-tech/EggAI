@@ -8,7 +8,6 @@ import dspy
 @dataclass
 class BillingExample:
     """Example for Billing Agent dataset."""
-
     chat_history: str
     expected_response: str
 

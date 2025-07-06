@@ -10,8 +10,8 @@ from libraries.tracing import TracedMessage, create_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
-from .config import settings
-from .types import MESSAGE_CATEGORIES, AuditCategory, AuditConfig, AuditEvent
+from .config import audit_config, settings
+from .types import AuditCategory, AuditEvent
 from .utils import (
     get_message_content,
     get_message_id,
@@ -25,15 +25,7 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
-
-audit_config = AuditConfig(
-    message_categories=MESSAGE_CATEGORIES,
-    default_category="Other",
-    enable_debug_logging=settings.debug_logging_enabled,
-    audit_channel_name=channels.audit_logs,
-)
-
-audit_agent = Agent("AuditAgent")
+audit_agent = Agent("Audit")
 logger = get_console_logger("audit_agent")
 
 agents_channel = Channel(channels.agents)

@@ -26,7 +26,6 @@ class AgentClassificationSignature(dspy.Signature):
     target_agent: TargetAgent = dspy.OutputField()
 
 
-# Create the classifier program with minimal instructions
 classifier_v0_program = dspy.Predict(
     signature=AgentClassificationSignature.with_instructions(
         """Classify the chat history to one of the following agent types: 

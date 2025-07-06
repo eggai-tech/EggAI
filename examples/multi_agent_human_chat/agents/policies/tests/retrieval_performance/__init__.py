@@ -1,1 +1,0 @@
-"""Retrieval performance testing package."""

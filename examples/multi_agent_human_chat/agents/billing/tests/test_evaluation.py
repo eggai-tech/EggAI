@@ -1,5 +1,3 @@
-"""Advanced evaluation tests for billing agent responses with LLM evaluators."""
-
 import time
 from datetime import datetime
 
@@ -7,7 +5,7 @@ import mlflow
 import pytest
 
 from agents.billing.config import settings
-from agents.billing.dspy_modules.billing import billing_optimized_dspy
+from agents.billing.dspy_modules.billing import process_billing
 from agents.billing.dspy_modules.evaluation.metrics import precision_metric
 from agents.billing.dspy_modules.evaluation.report import generate_test_report
 from agents.billing.tests.utils import (
@@ -55,7 +53,7 @@ async def test_billing_response_evaluation():
 
             # Get the model's response to evaluate
             start_time = time.perf_counter()
-            response_generator = billing_optimized_dspy(
+            response_generator = process_billing(
                 chat_history=case["chat_history"]
             )
 

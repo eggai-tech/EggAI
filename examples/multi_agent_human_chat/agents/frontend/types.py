@@ -15,7 +15,7 @@ class UserMessage(TypedDict):
 
     id: str
     type: Literal["user_message"]
-    source: Literal["FrontendAgent"]
+    source: Literal["Frontend"]
     data: MessageData
     traceparent: Optional[str]
     tracestate: Optional[str]
@@ -31,10 +31,8 @@ class AgentResponseMessage(TypedDict):
     tracestate: Optional[str]
 
 
-class FrontendModelConfig(BaseModelConfig):
+class ModelConfig(BaseModelConfig):
     pass
-
-ModelConfig = FrontendModelConfig
 
 
 class MessageType(str, Enum):

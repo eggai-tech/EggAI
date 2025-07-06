@@ -1,5 +1,3 @@
-"""Main evaluator for retrieval performance assessment."""
-
 import time
 from typing import List
 

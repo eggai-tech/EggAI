@@ -231,7 +231,6 @@ async def get_document_chunks(
         # Validate document ID
         validated_doc_id = validate_document_id(document_id)
         
-        # Get all documents and filter by document_id
         all_documents = await document_service.list_documents(limit=1000)
         chunks = [doc for doc in all_documents if doc.document_id == validated_doc_id]
         

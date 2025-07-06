@@ -168,7 +168,7 @@ ticket_database: List[Dict] = [
 
 
 @traced_dspy_function(name="escalation_dspy")
-async def escalation_optimized_dspy(
+async def process_escalation(
     chat_history: str, config: Optional[DspyModelConfig] = None
 ) -> AsyncIterable[Union[StreamResponse, Prediction]]:
     """Process an escalation inquiry using the DSPy model with streaming output."""
@@ -206,7 +206,7 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for escalation agent")
-        chunks = escalation_optimized_dspy(test_conversation)
+        chunks = process_escalation(test_conversation)
 
         async for chunk in chunks:
             if isinstance(chunk, StreamResponse):

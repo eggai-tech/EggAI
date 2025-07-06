@@ -11,19 +11,20 @@ from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
 from libraries.tracing.otel import safe_set_attribute
 
-from .config import settings
-from .constants import (
+from .config import (
     AGENT_NAME,
     GROUP_ID,
     MSG_TYPE_STREAM_CHUNK,
     MSG_TYPE_STREAM_END,
     MSG_TYPE_STREAM_START,
     MSG_TYPE_TICKETING_REQUEST,
+    dspy_model_config,
+    settings,
 )
 
 logger = get_console_logger(AGENT_NAME)
-from .dspy_modules.escalation import escalation_optimized_dspy
-from .types import ChatMessage, DspyModelConfig
+from .dspy_modules.escalation import process_escalation
+from .types import ChatMessage
 
 ticketing_agent = Agent(name=AGENT_NAME)
 agents_channel = Channel(channels.agents)
@@ -63,9 +64,9 @@ async def process_escalation_request(
     message_id: str,
     timeout_seconds: float = None,
 ) -> None:
-    config = DspyModelConfig(
-        name="escalation_react", timeout_seconds=timeout_seconds or 60.0
-    )
+    config = dspy_model_config
+    if timeout_seconds:
+        config = dspy_model_config.model_copy(update={"timeout_seconds": timeout_seconds})
 
     with tracer.start_as_current_span("process_escalation_request") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
@@ -97,7 +98,7 @@ async def process_escalation_request(
         chunk_count = 0
 
         try:
-            async for chunk in escalation_optimized_dspy(
+            async for chunk in process_escalation(
                 chat_history=conversation_string, config=config
             ):
                 if isinstance(chunk, StreamResponse):

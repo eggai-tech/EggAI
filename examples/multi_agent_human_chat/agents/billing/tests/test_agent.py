@@ -1,5 +1,3 @@
-"""Integration tests for the billing agent with Kafka messaging."""
-
 import asyncio
 import time
 from uuid import uuid4
@@ -9,14 +7,13 @@ import pytest
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
-from agents.billing.config import settings
+from agents.billing.config import MESSAGE_TYPE_BILLING_REQUEST, settings
 from agents.billing.dspy_modules.evaluation.metrics import precision_metric
 from agents.billing.tests.utils import (
     get_test_cases,
     setup_mlflow_tracking,
     wait_for_agent_response,
 )
-from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
@@ -41,7 +38,6 @@ def setup_kafka_transport():
 @pytest.fixture
 def test_components(setup_kafka_transport):
     """Set up test components after Kafka transport is initialized."""
-    # Import billing agent after transport is set up
     from agents.billing.agent import billing_agent
     
     # Create test channels and response queue
@@ -54,7 +50,6 @@ def test_components(setup_kafka_transport):
     # Configure language model for billing agent
     dspy_lm = dspy_set_language_model(settings, overwrite_cache_enabled=False)
     
-    # Set up response handler
     @test_agent.subscribe(
         channel=human_stream_channel,
         filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",

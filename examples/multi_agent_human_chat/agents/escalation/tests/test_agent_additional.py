@@ -1,5 +1,3 @@
-"""Additional tests for escalation agent to improve coverage."""
-
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -12,7 +10,7 @@ from agents.escalation.agent import (
     handle_ticketing_request,
     process_escalation_request,
 )
-from agents.escalation.constants import (
+from agents.escalation.config import (
     MSG_TYPE_STREAM_END,
     MSG_TYPE_TICKETING_REQUEST,
 )
@@ -31,7 +29,7 @@ async def test_escalation_agent_error_handling(monkeypatch):
         return error_generator()
 
     monkeypatch.setattr(
-        "agents.escalation.agent.escalation_optimized_dspy", mock_escalation_error
+        "agents.escalation.agent.process_escalation", mock_escalation_error
     )
 
     from agents.escalation.agent import human_stream_channel
@@ -84,7 +82,7 @@ async def test_escalation_empty_chat_messages(monkeypatch):
         yield Prediction(final_response="I need more information to help you")
 
     monkeypatch.setattr(
-        "agents.escalation.agent.escalation_optimized_dspy", mock_response
+        "agents.escalation.agent.process_escalation", mock_response
     )
 
     test_message = TracedMessage(
@@ -189,7 +187,7 @@ async def test_process_escalation_streaming_error(monkeypatch):
         raise Exception("Streaming error")
 
     monkeypatch.setattr(
-        "agents.escalation.agent.escalation_optimized_dspy", mock_streaming_error
+        "agents.escalation.agent.process_escalation", mock_streaming_error
     )
 
     connection_id = str(uuid4())
@@ -276,7 +274,7 @@ async def test_escalation_long_conversation(monkeypatch):
         yield Prediction(final_response="I understand your concern. Let me help you.")
 
     monkeypatch.setattr(
-        "agents.escalation.agent.escalation_optimized_dspy", mock_response
+        "agents.escalation.agent.process_escalation", mock_response
     )
 
     chat_messages = []

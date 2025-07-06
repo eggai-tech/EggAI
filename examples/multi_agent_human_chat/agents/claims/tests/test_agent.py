@@ -217,13 +217,13 @@ async def wait_for_agent_response(connection_id: str, timeout: float = 120.0) ->
         try:
             event = await asyncio.wait_for(_response_queue.get(), timeout=2.0)
 
-            # Check if this response matches our request and comes from ClaimsAgent
+            # Check if this response matches our request and comes from Claims
             if (
                 event["data"].get("connection_id") == connection_id
-                and event.get("source") == "ClaimsAgent"
+                and event.get("source") == "Claims"
             ):
                 logger.info(
-                    f"Found matching response from ClaimsAgent for connection_id {connection_id}"
+                    f"Found matching response from Claims for connection_id {connection_id}"
                 )
                 return event
             else:
@@ -231,7 +231,7 @@ async def wait_for_agent_response(connection_id: str, timeout: float = 120.0) ->
                 source = event.get("source", "unknown")
                 event_conn_id = event["data"].get("connection_id", "unknown")
                 logger.info(
-                    f"Received non-matching response from {source} for connection_id {event_conn_id}, waiting for ClaimsAgent with {connection_id}"
+                    f"Received non-matching response from {source} for connection_id {event_conn_id}, waiting for Claims with {connection_id}"
                 )
         except asyncio.TimeoutError:
             # Wait a little and try again

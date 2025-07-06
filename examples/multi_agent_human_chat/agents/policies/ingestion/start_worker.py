@@ -4,9 +4,7 @@ import sys
 from pathlib import Path
 
 from agents.policies.ingestion.config import settings
-from agents.policies.ingestion.documentation_temporal_client import (
-    DocumentationTemporalClient,
-)
+from agents.policies.ingestion.temporal_client import TemporalClient
 from agents.policies.ingestion.workflows.worker import (
     run_policy_documentation_worker,
 )
@@ -27,9 +25,9 @@ async def trigger_initial_document_ingestion():
     documents_dir = current_dir / "documents"
 
     try:
-        client = DocumentationTemporalClient(
+        client = TemporalClient(
             temporal_server_url=settings.temporal_server_url,
-            temporal_namespace=settings.temporal_namespace,
+            temporal_namespace=settings.get_temporal_namespace(),
             temporal_task_queue=settings.temporal_task_queue,
         )
 
@@ -84,13 +82,12 @@ async def main():
 
     logger.info("Starting Policy Documentation Temporal worker with settings:")
     logger.info(f"  Server URL: {settings.temporal_server_url}")
-    logger.info(f"  Namespace: {settings.temporal_namespace}")
+    logger.info(f"  Namespace: {settings.get_temporal_namespace()}")
     logger.info(f"  Task Queue: {settings.temporal_task_queue}")
 
     # Create shutdown event
     shutdown_event = asyncio.Event()
 
-    # Set up async signal handlers for graceful shutdown
     def signal_handler(signum):
         logger.info(f"Received signal {signum}, shutting down...")
         shutdown_event.set()
@@ -122,6 +119,7 @@ async def main():
             node_count=settings.vespa_node_count,
             hosts_config=settings.vespa_hosts_config,
             services_xml=settings.vespa_services_xml,
+            app_name=settings.vespa_app_name,
         )
 
         if not schema_deployed:

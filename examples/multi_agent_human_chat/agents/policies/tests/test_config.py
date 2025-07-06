@@ -1,5 +1,3 @@
-"""Tests for configuration settings."""
-
 import os
 from pathlib import Path
 from unittest.mock import patch
@@ -123,13 +121,17 @@ class TestIngestionConfig:
         
         assert settings.app_name == "policies_document_ingestion"
         assert settings.temporal_server_url == "localhost:7233"
-        assert settings.temporal_namespace == "default"
-        assert settings.temporal_task_queue == "policy-rag"
+        assert settings.temporal_namespace is None  # Now None by default
+        assert settings.get_temporal_namespace() == "default"  # Method returns default
+        assert settings.temporal_task_queue == "policy-rag"  # Property returns base value without prefix
+        assert settings.temporal_task_queue_base == "policy-rag"  # Base value
         assert settings.vespa_deployment_mode == "production"
         assert settings.vespa_node_count == 3
         assert settings.vespa_artifacts_dir is None
         assert settings.vespa_hosts_config is None
         assert settings.vespa_services_xml is None
+        assert settings.vespa_app_name == "policies"  # Property returns base value without prefix
+        assert settings.vespa_app_name_base == "policies"  # Base value
     
     def test_vespa_deployment_settings(self):
         """Test Vespa deployment configuration."""
@@ -167,13 +169,15 @@ class TestIngestionConfig:
         with patch.dict(os.environ, {
             "POLICIES_DOCUMENT_INGESTION_TEMPORAL_SERVER_URL": "temporal:7233",
             "POLICIES_DOCUMENT_INGESTION_TEMPORAL_NAMESPACE": "policies",
-            "POLICIES_DOCUMENT_INGESTION_TEMPORAL_TASK_QUEUE": "custom-queue"
+            "POLICIES_DOCUMENT_INGESTION_TEMPORAL_TASK_QUEUE_BASE": "custom-queue"
         }):
             settings = IngestionSettings()
             
             assert settings.temporal_server_url == "temporal:7233"
             assert settings.temporal_namespace == "policies"
-            assert settings.temporal_task_queue == "custom-queue"
+            assert settings.get_temporal_namespace() == "policies"
+            assert settings.temporal_task_queue_base == "custom-queue"
+            assert settings.temporal_task_queue == "custom-queue"  # No prefix when deployment_namespace is None
     
     def test_invalid_node_count(self):
         """Test validation of node count."""
@@ -230,6 +234,34 @@ class TestConfigIntegration:
         settings.app_name = "changed"
         assert settings.app_name == "changed"
         assert settings.app_name != original_name
+
+
+    def test_deployment_namespace_handling(self):
+        """Test deployment namespace configuration."""
+        # Test with deployment namespace set
+        with patch.dict(os.environ, {
+            "POLICIES_DOCUMENT_INGESTION_DEPLOYMENT_NAMESPACE": "pr-123"
+        }):
+            settings = IngestionSettings()
+            
+            assert settings.deployment_namespace == "pr-123"
+            assert settings.get_temporal_namespace() == "pr-123"  # Uses deployment namespace
+            assert settings.temporal_task_queue == "pr-123-policy-rag"  # Prefixed
+            assert settings.vespa_app_name == "pr-123-policies"  # Prefixed
+    
+    def test_deployment_namespace_from_env(self):
+        """Test deployment namespace from DEPLOYMENT_NAMESPACE env var."""
+        # Clear any POLICIES_DOCUMENT_INGESTION_ prefix vars
+        with patch.dict(os.environ, {
+            "DEPLOYMENT_NAMESPACE": "staging",
+            "POLICIES_DOCUMENT_INGESTION_DEPLOYMENT_NAMESPACE": ""  # Empty to use fallback
+        }):
+            settings = IngestionSettings()
+            
+            assert settings.deployment_namespace == "staging"
+            assert settings.get_temporal_namespace() == "staging"
+            assert settings.temporal_task_queue == "staging-policy-rag"
+            assert settings.vespa_app_name == "staging-policies"
 
 
 class TestConfigurationEdgeCases:

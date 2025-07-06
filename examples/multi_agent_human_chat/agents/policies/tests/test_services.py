@@ -1,11 +1,3 @@
-"""Unit tests for Policies Agent services.
-
-These tests cover the service layer functionality:
-- DocumentService
-- SearchService  
-- ReindexService
-"""
-
 from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -480,7 +472,7 @@ class TestReindexService:
         # Setup mocks
         mock_vespa_client.search_documents.return_value = create_mock_documents()[:2]
         
-        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_class:
+        with patch("agents.policies.ingestion.temporal_client.TemporalClient") as mock_temporal_class:
             mock_temporal = AsyncMock()
             mock_temporal_class.return_value = mock_temporal
             mock_temporal.ingest_document_async.return_value = MagicMock(

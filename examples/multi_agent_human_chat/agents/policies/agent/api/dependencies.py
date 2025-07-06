@@ -1,5 +1,3 @@
-"""Dependency injection for the Policies Agent API."""
-
 from functools import lru_cache
 from typing import Annotated
 

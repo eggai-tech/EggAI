@@ -1,5 +1,3 @@
-"""Async utilities for handling async/sync context switching."""
-
 import asyncio
 import concurrent.futures
 from typing import Any, Coroutine, TypeVar

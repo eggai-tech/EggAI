@@ -1,9 +1,3 @@
-"""
-Tests for the Escalation Agent.
-
-This module contains tests for the escalation agent functionality.
-"""
-
 import asyncio
 import time
 from datetime import datetime
@@ -26,7 +20,7 @@ eggai_set_default_transport(
     )
 )
 
-from agents.escalation.constants import (
+from agents.escalation.config import (
     AGENT_NAME,
     MSG_TYPE_STREAM_END,
     MSG_TYPE_TICKETING_REQUEST,

@@ -5,9 +5,9 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
-from agents.claims.config import settings
-from agents.claims.dspy_modules.claims import claims_optimized_dspy
-from agents.claims.types import ChatMessage, ModelConfig
+from agents.claims.config import MESSAGE_TYPE_CLAIM_REQUEST, model_config, settings
+from agents.claims.dspy_modules.claims import process_claims
+from agents.claims.types import ChatMessage
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
 from libraries.tracing import (
@@ -19,7 +19,7 @@ from libraries.tracing import (
 from libraries.tracing.init_metrics import init_token_metrics
 from libraries.tracing.otel import safe_set_attribute
 
-claims_agent = Agent(name="ClaimsAgent")
+claims_agent = Agent(name="Claims")
 logger = get_console_logger("claims_agent.handler")
 agents_channel = Channel(channels.agents)
 human_channel = Channel(channels.human)
@@ -63,11 +63,11 @@ async def _publish_agent_message(
     await human_channel.publish(
         TracedMessage(
             type="agent_message",
-            source="ClaimsAgent",
+            source="Claims",
             data={
                 "message": message,
                 "connection_id": connection_id,
-                "agent": "ClaimsAgent",
+                "agent": "Claims",
             },
             traceparent=traceparent,
             tracestate=tracestate,
@@ -80,7 +80,7 @@ async def _publish_stream_start(
     await human_stream_channel.publish(
         TracedMessage(
             type="agent_message_stream_start",
-            source="ClaimsAgent",
+            source="Claims",
             data={"message_id": message_id, "connection_id": connection_id},
             traceparent=traceparent,
             tracestate=tracestate,
@@ -98,7 +98,7 @@ async def _publish_stream_chunk(
     await human_stream_channel.publish(
         TracedMessage(
             type="agent_message_stream_chunk",
-            source="ClaimsAgent",
+            source="Claims",
             data={
                 "message_chunk": chunk,
                 "message_id": message_id,
@@ -120,11 +120,11 @@ async def _publish_stream_end(
     await human_stream_channel.publish(
         TracedMessage(
             type="agent_message_stream_end",
-            source="ClaimsAgent",
+            source="Claims",
             data={
                 "message_id": message_id,
                 "message": message,
-                "agent": "ClaimsAgent",
+                "agent": "Claims",
                 "connection_id": connection_id,
             },
             traceparent=traceparent,
@@ -140,7 +140,9 @@ async def process_claims_request(
     timeout_seconds: float = None,
 ) -> None:
     """Generate a response to a claims request with streaming output."""
-    config = ModelConfig(name="claims_react", timeout_seconds=timeout_seconds or 30.0)
+    config = model_config
+    if timeout_seconds:
+        config = model_config.model_copy(update={"timeout_seconds": timeout_seconds})
     with tracer.start_as_current_span("process_claims_request") as span:
         child_traceparent, child_tracestate = format_span_as_traceparent(span)
         safe_set_attribute(span, "connection_id", connection_id)
@@ -159,7 +161,7 @@ async def process_claims_request(
         logger.info(f"Stream started for message {message_id}")
 
         logger.info("Calling claims model with streaming")
-        chunks = claims_optimized_dspy(chat_history=conversation_string, config=config)
+        chunks = process_claims(chat_history=conversation_string, config=config)
         chunk_count = 0
 
         try:
@@ -203,7 +205,7 @@ async def process_claims_request(
 
 @claims_agent.subscribe(
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == "claim_request",
+    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_CLAIM_REQUEST,
     auto_offset_reset="latest",
     group_id="claims_agent_group",
 )
@@ -251,6 +253,8 @@ if __name__ == "__main__":
     async def run():
         from libraries.dspy_set_language_model import dspy_set_language_model
 
+        from .dspy_modules.claims import process_claims
+
         dspy_set_language_model(settings)
 
         await clear_channels()
@@ -262,7 +266,7 @@ if __name__ == "__main__":
         )
 
         logger.info("Running test query for claims agent")
-        chunks = claims_optimized_dspy(chat_history=test_conversation)
+        chunks = process_claims(chat_history=test_conversation)
         async for chunk in chunks:
             if isinstance(chunk, StreamResponse):
                 logger.info(f"Chunk: {chunk.chunk}")

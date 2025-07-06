@@ -1,5 +1,3 @@
-"""Tests for escalation data functions."""
-
 import json
 from datetime import datetime
 

@@ -161,26 +161,6 @@ vespa_url: "http://localhost:8080"
 schema_name: "policy_document"
 ```
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Vespa not ready**: Wait for Vespa to fully initialize (check http://localhost:19071)
-2. **Worker not running**: Ensure `make start-policies-document-ingestion` is active
-3. **Documents not found**: Check Temporal UI for workflow failures
-
-### Debugging
-```bash
-# Check Temporal workflows
-curl http://localhost:8081
-
-# Verify Vespa documents
-curl http://localhost:8080/search/?query=*
-
-# View worker logs
-docker logs -f <worker-container-id>
-```
-
 ## Adding New Documents
 
 1. Add markdown file to `agents/policies/ingestion/documents/`

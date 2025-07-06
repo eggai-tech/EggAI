@@ -1,5 +1,3 @@
-"""Error handling utilities for Claims Agent."""
-
 from enum import Enum
 from typing import Optional
 

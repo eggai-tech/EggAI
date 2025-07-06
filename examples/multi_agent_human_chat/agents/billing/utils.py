@@ -10,10 +10,9 @@ from libraries.logger import get_console_logger
 from libraries.tracing import TracedMessage, create_tracer, format_span_as_traceparent
 from libraries.tracing.otel import safe_set_attribute
 
-from .dspy_modules.billing import billing_optimized_dspy
+from .dspy_modules.billing import process_billing
 from .types import ChatMessage, ModelConfig
 
-# Default human stream channel for the Billing Agent
 default_human_stream_channel = Channel(channels.human_stream)
 
 logger = get_console_logger("billing_agent.utils")
@@ -21,7 +20,6 @@ tracer = create_tracer("billing_agent")
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
-    """Format chat messages into a conversation string."""
     with tracer.start_as_current_span("get_conversation_string") as span:
         safe_set_attribute(
             span,
@@ -55,7 +53,6 @@ async def process_billing_request(
     human_stream_channel: Channel = default_human_stream_channel,
     timeout_seconds: Optional[float] = None,
 ) -> None:
-    """Generate a streaming response to a billing request."""
     config = ModelConfig(name="billing_react", timeout_seconds=timeout_seconds or 30.0)
     with tracer.start_as_current_span("process_billing_request") as span:
         tp, ts = format_span_as_traceparent(span)
@@ -83,7 +80,7 @@ async def process_billing_request(
         count = 0
 
         try:
-            async for chunk in billing_optimized_dspy(chat_history=conversation_string, config=config):
+            async for chunk in process_billing(chat_history=conversation_string, config=config):
                 if isinstance(chunk, StreamResponse):
                     count += 1
                     await human_stream_channel.publish(

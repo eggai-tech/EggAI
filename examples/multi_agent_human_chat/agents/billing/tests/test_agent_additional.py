@@ -1,5 +1,3 @@
-"""Additional tests for billing agent to improve coverage."""
-
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -12,7 +10,7 @@ from agents.billing.agent import (
     handle_other_messages,
     process_billing_request,
 )
-from agents.billing.types import MESSAGE_TYPE_BILLING_REQUEST
+from agents.billing.config import MESSAGE_TYPE_BILLING_REQUEST
 from libraries.tracing import TracedMessage
 
 
@@ -27,7 +25,7 @@ async def test_billing_agent_error_handling(monkeypatch):
         yield  # Make this an async generator (unreachable, but defines the function type)
 
     monkeypatch.setattr(
-        "agents.billing.utils.billing_optimized_dspy", mock_billing_error
+        "agents.billing.utils.process_billing", mock_billing_error
     )
 
     from agents.billing.agent import human_stream_channel

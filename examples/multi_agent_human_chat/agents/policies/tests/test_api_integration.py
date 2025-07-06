@@ -1,12 +1,3 @@
-"""Integration tests for the Policies Agent API.
-
-These tests cover the full API functionality including:
-- Document listing and retrieval
-- Search operations
-- Reindexing workflows
-- Error handling
-"""
-
 import asyncio
 from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -384,7 +375,7 @@ class TestReindexEndpoints:
         ))
         
         # Mock the temporal client import
-        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+        with patch("agents.policies.ingestion.temporal_client.TemporalClient") as mock_temporal_cls:
             mock_temporal = mock_temporal_cls.return_value
             async def mock_ingest_result(*args, **kwargs):
                 return type('Result', (), {
@@ -417,7 +408,7 @@ class TestReindexEndpoints:
         ))
         
         # Mock the temporal client import
-        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+        with patch("agents.policies.ingestion.temporal_client.TemporalClient") as mock_temporal_cls:
             mock_temporal = mock_temporal_cls.return_value
             async def mock_ingest_result(*args, **kwargs):
                 return type('Result', (), {
@@ -449,7 +440,7 @@ class TestReindexEndpoints:
         ))
         
         # Mock the temporal client to simulate failure
-        with patch("agents.policies.ingestion.documentation_temporal_client.DocumentationTemporalClient") as mock_temporal_cls:
+        with patch("agents.policies.ingestion.temporal_client.TemporalClient") as mock_temporal_cls:
             mock_temporal = mock_temporal_cls.return_value
             async def mock_ingest_failure(*args, **kwargs):
                 return type('Result', (), {

@@ -1,5 +1,3 @@
-"""Full document retrieval functionality for policies agent."""
-
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from pydantic import BaseModel

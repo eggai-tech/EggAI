@@ -1,5 +1,3 @@
-"""Simple tests for the billing DSPy module to ensure basic functionality."""
-
 from unittest.mock import MagicMock, patch
 
 
