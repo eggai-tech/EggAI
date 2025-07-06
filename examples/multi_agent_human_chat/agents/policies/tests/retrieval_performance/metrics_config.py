@@ -5,9 +5,9 @@ This file defines all metrics used for evaluating retrieval performance
 and their respective weights in the final performance score calculation.
 """
 
-from typing import Dict, Any
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict
 
 
 class MetricCategory(Enum):

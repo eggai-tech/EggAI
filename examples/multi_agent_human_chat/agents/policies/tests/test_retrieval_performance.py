@@ -14,6 +14,18 @@ import pytest
 
 from agents.policies.agent.config import settings as agent_settings
 from agents.policies.ingestion.config import settings as ingestion_settings
+from agents.policies.ingestion.workflows.activities.document_chunking_activity import (
+    chunk_document_activity,
+)
+from agents.policies.ingestion.workflows.activities.document_indexing_activity import (
+    index_document_activity,
+)
+from agents.policies.ingestion.workflows.activities.document_loading_activity import (
+    load_document_activity,
+)
+from agents.policies.ingestion.workflows.activities.document_verification_activity import (
+    verify_document_activity,
+)
 from agents.policies.tests.retrieval_performance.api_client import RetrievalAPIClient
 from agents.policies.tests.retrieval_performance.data_utilities import (
     get_retrieval_test_cases,
@@ -26,12 +38,10 @@ from agents.policies.tests.retrieval_performance.models import (
     RetrievalResult,
     RetrievalTestConfiguration,
 )
-from agents.policies.tests.retrieval_performance.performance_calculator import PerformanceCalculator
+from agents.policies.tests.retrieval_performance.performance_calculator import (
+    PerformanceCalculator,
+)
 from agents.policies.vespa.deploy_package import deploy_to_vespa
-from agents.policies.ingestion.workflows.activities.document_verification_activity import verify_document_activity
-from agents.policies.ingestion.workflows.activities.document_loading_activity import load_document_activity
-from agents.policies.ingestion.workflows.activities.document_chunking_activity import chunk_document_activity
-from agents.policies.ingestion.workflows.activities.document_indexing_activity import index_document_activity
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("retrieval_performance_test")

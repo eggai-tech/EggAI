@@ -5,17 +5,17 @@ This module provides a unified approach to calculating performance scores
 for retrieval combinations, regardless of whether LLM judge is enabled.
 """
 
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from .models import RetrievalResult, EvaluationResult, ParameterCombination
-from .metrics_config import (
-    get_active_metrics, 
-    normalize_weights, 
-    NORMALIZATION_FUNCTIONS,
-    MetricCategory
-)
 from libraries.logger import get_console_logger
+
+from .metrics_config import (
+    NORMALIZATION_FUNCTIONS,
+    get_active_metrics,
+    normalize_weights,
+)
+from .models import EvaluationResult, RetrievalResult
 
 logger = get_console_logger("performance_calculator")
 
