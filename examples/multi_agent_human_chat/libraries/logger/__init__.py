@@ -1,1 +1,1 @@
-from .logger import get_console_logger as get_console_logger
+from .logger import get_console_logger as get_console_logger, configure_logging

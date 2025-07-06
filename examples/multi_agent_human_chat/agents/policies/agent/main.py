@@ -42,7 +42,6 @@ async def lifespan(_: FastAPI):
     yield
 
     logger.info("Shutting down Policies Agent...")
-    policies_agent.stop()
     await eggai_cleanup()
     logger.info("Policies Agent shutdown complete")
 
