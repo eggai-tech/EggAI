@@ -106,6 +106,8 @@ def deploy_to_vespa(
         deployment_mode: 'local' or 'production'
         node_count: Number of nodes for production deployment
         hosts_config: Path to JSON file with host configurations
+        services_xml: Path to XML file with services configurations
+        app_name: Name of the application to deploy
     """
     logger.info(f"Deploying to {config_server_url}")
 
@@ -158,15 +160,41 @@ def deploy_to_vespa(
 
         # Verify deployment with retry
         expected_generation = pre_deployment_generation + 1
-        for attempt in range(1, 11):
+        for attempt in range(1, 21):
             if check_schema_exists(config_server_url, query_url, expected_generation):
                 logger.info("✅ Deployment verified successfully")
                 return True
             
-            if attempt < 10:
+            if attempt < 20:
                 time.sleep(5)
             else:
-                logger.error(f"Verification failed after 50 seconds")
+                # Final check: verify generation increased AND config server shows convergence
+                try:
+                    response = httpx.get(f"{config_server_url}/application/v2/tenant/default/application/default/environment/prod/region/default/instance/default", timeout=10.0)
+                    if response.status_code == 200:
+                        app_data = response.json()
+                        current_gen = app_data.get("generation", 0)
+                        
+                        # Only consider successful if generation increased AND we have model versions
+                        if current_gen >= expected_generation and app_data.get("modelVersions"):
+                            # Try to check service convergence as additional validation
+                            try:
+                                conv_response = httpx.get(f"{config_server_url}/application/v2/tenant/default/application/default/environment/prod/region/default/instance/default/serviceconverge", timeout=10.0)
+                                if conv_response.status_code == 200:
+                                    conv_data = conv_response.json()
+                                    if conv_data.get("converged", False):
+                                        logger.info(f"✅ Deployment successful (generation {current_gen}, converged)")
+                                        return True
+                                    else:
+                                        logger.warning(f"Generation {current_gen} deployed but services not converged yet")
+                            except:
+                                pass
+                            
+                            logger.warning(f"Generation {current_gen} deployed but full verification failed - may need manual check")
+                            return False
+                except:
+                    pass
+                logger.error(f"Deployment verification failed after 100 seconds")
                 return False
 
     except Exception as e:
