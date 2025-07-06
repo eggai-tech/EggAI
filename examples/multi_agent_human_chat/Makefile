@@ -99,7 +99,10 @@ test-policies-agent:
 	exit $$TEST_EXIT_CODE
 
 test-policies-retrieval-performance:
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/pytest agents/policies/tests/test_retrieval_performance.py -v -s
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/pytest agents/policies/tests/test_retrieval_performance.py \
+       -v -s \
+       --junitxml=reports/pytest-policies-retrieval-performance.xml \
+       --html=reports/pytest-results.html --self-contained-html
 
 
 

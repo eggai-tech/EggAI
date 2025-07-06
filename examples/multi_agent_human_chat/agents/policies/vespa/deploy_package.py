@@ -160,12 +160,15 @@ def deploy_to_vespa(
 
         # Verify deployment with retry
         expected_generation = pre_deployment_generation + 1
+        logger.info(f"Waiting for schema to be ready (generation {expected_generation})...")
         for attempt in range(1, 21):
+            logger.info(f"Verification attempt {attempt}/20...")
             if check_schema_exists(config_server_url, query_url, expected_generation):
                 logger.info("✅ Deployment verified successfully")
                 return True
             
             if attempt < 20:
+                logger.info(f"Schema not ready yet, waiting 5 seconds... (attempt {attempt}/20)")
                 time.sleep(5)
             else:
                 # Final check: verify generation increased AND config server shows convergence

@@ -26,7 +26,12 @@ from agents.policies.tests.retrieval_performance.models import (
     RetrievalResult,
     RetrievalTestConfiguration,
 )
+from agents.policies.tests.retrieval_performance.performance_calculator import PerformanceCalculator
 from agents.policies.vespa.deploy_package import deploy_to_vespa
+from agents.policies.ingestion.workflows.activities.document_verification_activity import verify_document_activity
+from agents.policies.ingestion.workflows.activities.document_loading_activity import load_document_activity
+from agents.policies.ingestion.workflows.activities.document_chunking_activity import chunk_document_activity
+from agents.policies.ingestion.workflows.activities.document_indexing_activity import index_document_activity
 from libraries.logger import get_console_logger
 
 logger = get_console_logger("retrieval_performance_test")
@@ -125,6 +130,14 @@ class RetrievalPerformanceTester:
             return False
         logger.info("✓ Vespa connectivity verified")
         
+        # Run document ingestion to populate Vespa with sample data
+        logger.info("Running initial document ingestion...")
+        ingestion_success = await self.run_document_ingestion()
+        if not ingestion_success:
+            logger.error("Failed to ingest sample documents")
+            return False
+        logger.info("✓ Sample documents ingested successfully")
+        
         # Start embedded service
         logger.info("Starting embedded service for testing...")
         success = await self.api_client.start_service()
@@ -216,6 +229,91 @@ class RetrievalPerformanceTester:
         except Exception as e:
             logger.error(f"Error checking Vespa connectivity: {e}")
             return False
+
+    async def run_document_ingestion(self, sample_documents_dir: str = None) -> bool:
+        """Run document ingestion activities directly without Temporal."""
+        if sample_documents_dir is None:
+            sample_documents_dir = "agents/policies/ingestion/documents"
+        
+        logger.info(f"Starting document ingestion from {sample_documents_dir}")
+        
+        # Find sample documents
+        import glob
+        from pathlib import Path
+        
+        doc_pattern = f"{sample_documents_dir}/*.md"
+        sample_files = glob.glob(doc_pattern)
+        
+        if not sample_files:
+            logger.warning(f"No sample documents found in {sample_documents_dir}")
+            return False
+        
+        logger.info(f"Found {len(sample_files)} sample documents to ingest")
+        
+        success_count = 0
+        total_chunks = 0
+        
+        for file_path in sample_files:
+            try:
+                logger.info(f"Processing document: {file_path}")
+                
+                # Step 1: Verify document
+                verification_result = await verify_document_activity(
+                    file_path, "policies_index", force_rebuild=True
+                )
+                
+                if not verification_result["success"]:
+                    logger.error(f"Verification failed for {file_path}: {verification_result.get('error_message')}")
+                    continue
+                
+                # Step 2: Load document
+                load_result = await load_document_activity(file_path)
+                
+                if not load_result["success"]:
+                    logger.error(f"Loading failed for {file_path}: {load_result.get('error_message')}")
+                    continue
+                
+                # Step 3: Chunk document
+                chunk_result = await chunk_document_activity(load_result)
+                
+                if not chunk_result["success"]:
+                    logger.error(f"Chunking failed for {file_path}: {chunk_result.get('error_message')}")
+                    continue
+                
+                if not chunk_result["chunks"]:
+                    logger.warning(f"No chunks generated for {file_path}")
+                    continue
+                
+                # Step 4: Index chunks
+                # Extract category from filename (e.g., "life.md" -> "life")
+                from pathlib import Path
+                category = Path(file_path).stem  # Gets "life" from "life.md"
+                
+                indexing_result = await index_document_activity(
+                    chunk_result["chunks"],
+                    file_path,
+                    category,  # Use filename-based category to match test expectations
+                    "policies_index",  # index_name
+                    True,  # force_rebuild
+                    chunk_result.get("document_stats"),
+                    load_result.get("metadata")
+                )
+                
+                if not indexing_result["success"]:
+                    logger.error(f"Indexing failed for {file_path}: {indexing_result.get('error_message')}")
+                    continue
+                
+                success_count += 1
+                doc_chunks = len(chunk_result["chunks"])
+                total_chunks += doc_chunks
+                logger.info(f"Successfully ingested {Path(file_path).name} - {doc_chunks} chunks")
+                
+            except Exception as e:
+                logger.error(f"Error processing {file_path}: {e}", exc_info=True)
+                continue
+        
+        logger.info(f"Document ingestion completed: {success_count}/{len(sample_files)} documents processed, {total_chunks} total chunks")
+        return success_count > 0
 
     async def stage1_collect_all_results(self) -> List[RetrievalResult]:
         """Stage 1: Collect all retrieved results."""
@@ -461,6 +559,7 @@ class RetrievalPerformanceTester:
 
         return None
 
+
     def generate_summary_report(
         self,
         retrieval_results: List[RetrievalResult],
@@ -551,16 +650,16 @@ class RetrievalPerformanceTester:
 
 @pytest.mark.asyncio
 async def test_retrieval_performance():
-    """Async pytest version of the retrieval performance test with 2-minute timeout."""
+    """Async pytest version of the retrieval performance test with 8-minute timeout."""
     try:
-        await asyncio.wait_for(_run_retrieval_test(), timeout=120)
+        await asyncio.wait_for(_run_retrieval_test(), timeout=480)
     except asyncio.TimeoutError:
-        pytest.fail("Test timed out after 2 minutes")
+        pytest.fail("Test timed out after 8 minutes")
 
 
 async def _run_retrieval_test():
     """Run the actual test logic using 4-stage approach."""
-    logger.info("Starting 4-stage retrieval test with 2-minute timeout...")
+    logger.info("Starting 4-stage retrieval test with 8-minute timeout...")
 
     config = RetrievalTestConfiguration(
         search_types=["hybrid", "keyword", "vector"],
@@ -579,10 +678,10 @@ async def _run_retrieval_test():
             retrieval_results,
             metrics,
             evaluation_results,
-        ) = await asyncio.wait_for(tester.run_full_evaluation(), timeout=115)  # Leave 5s buffer for cleanup
+        ) = await asyncio.wait_for(tester.run_full_evaluation(), timeout=475)  # Leave 5s buffer for cleanup
         logger.info("Evaluation completed within timeout")
     except asyncio.TimeoutError:
-        logger.error("Test evaluation timed out after 115 seconds")
+        logger.error("Test evaluation timed out after 475 seconds")
         raise RuntimeError("Test evaluation timed out - check infrastructure connectivity")
     finally:
         logger.info("Cleaning up test resources...")
@@ -631,6 +730,51 @@ async def _run_retrieval_test():
                     "RECOMMENDATION: Consider tuning parameters for better quality."
                 )
 
+    # Find and display best combination using unified performance calculator
+    calculator = PerformanceCalculator(has_llm_judge=bool(evaluation_results))
+    best_combo = calculator.find_best_combination(retrieval_results, evaluation_results)
+    
+    if best_combo:
+        logger.info("=" * 60)
+        llm_suffix = " (WITH LLM JUDGE)" if evaluation_results else " (RETRIEVAL-ONLY)"
+        logger.info(f"BEST PERFORMING COMBINATION{llm_suffix}")
+        logger.info("=" * 60)
+        logger.info(f"Search Type: {best_combo.search_type.upper()}")
+        logger.info(f"Max Hits: {best_combo.max_hits}")
+        logger.info(f"Final Score: {best_combo.final_score:.3f}")
+        logger.info("")
+        
+        # Display key metrics
+        logger.info("Key Metrics:")
+        logger.info(f"  • Success Rate: {best_combo.metrics.get('success_rate', 0):.1%}")
+        logger.info(f"  • Avg Retrieval Time: {best_combo.metrics.get('avg_retrieval_time', 0):.1f}ms")
+        logger.info(f"  • Avg Total Hits: {best_combo.metrics.get('avg_total_hits', 0):.1f}")
+        
+        if evaluation_results:
+            logger.info(f"  • Avg Quality Score: {best_combo.metrics.get('avg_quality_score', 0):.3f}")
+            logger.info(f"  • Pass Rate: {best_combo.metrics.get('pass_rate', 0):.1%}")
+            logger.info(f"  • Avg Recall: {best_combo.metrics.get('avg_recall_score', 0):.3f}")
+            logger.info(f"  • Hit Rate Top 3: {best_combo.metrics.get('hit_rate_top_3', 0):.1%}")
+        
+        logger.info("=" * 60)
+        
+        # Recommendation based on performance score
+        if best_combo.final_score >= 0.8:
+            logger.info("RECOMMENDATION: Excellent overall performance!")
+        elif best_combo.final_score >= 0.6:
+            logger.info("RECOMMENDATION: Good overall performance.")
+        elif best_combo.final_score >= 0.4:
+            logger.info("RECOMMENDATION: Moderate performance - consider parameter tuning.")
+        else:
+            logger.info("RECOMMENDATION: Poor performance - significant optimization needed.")
+        
+        # Log metrics summary
+        metrics_summary = calculator.get_metrics_summary()
+        logger.info(f"Performance calculated using {metrics_summary['total_metrics']} metrics")
+        for category, metrics_list in metrics_summary['metrics_by_category'].items():
+            category_weight = sum(m['weight'] for m in metrics_list)
+            logger.info(f"  • {category.title()}: {category_weight:.1%} total weight")
+
     # Assertions
     logger.info("Performing assertions...")
     assert len(retrieval_results) > 0, "No retrieval results were obtained"
@@ -667,10 +811,10 @@ async def main():
     """Main entry point for standalone execution."""
     logger.info("Running retrieval performance test in standalone mode...")
     try:
-        await asyncio.wait_for(_run_retrieval_test(), timeout=120)
+        await asyncio.wait_for(_run_retrieval_test(), timeout=480)
         logger.info("Standalone test completed successfully")
     except asyncio.TimeoutError:
-        logger.error("Standalone test timed out after 2 minutes")
+        logger.error("Standalone test timed out after 8 minutes")
         raise
 
 

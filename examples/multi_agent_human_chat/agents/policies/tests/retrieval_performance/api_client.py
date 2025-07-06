@@ -169,14 +169,18 @@ class RetrievalAPIClient:
                     if response.status == 200:
                         response_data = await response.json()
                         retrieved_chunks = self._extract_chunks(response_data)
+                        total_hits = response_data.get("total_hits", len(retrieved_chunks))
+                        
+                        # Debug logging
+                        logger.info(f"Query: '{test_case.question[:50]}...' | Category: {test_case.category} | Search: {combination.search_type} | Hits: {total_hits}")
+                        if total_hits == 0:
+                            logger.warning(f"Zero hits for query. Response keys: {list(response_data.keys())}")
 
                         return RetrievalResult(
                             combination=combination,
                             retrieved_chunks=retrieved_chunks,
                             retrieval_time_ms=retrieval_time_ms,
-                            total_hits=response_data.get(
-                                "total_hits", len(retrieved_chunks)
-                            ),
+                            total_hits=total_hits,
                         )
                     else:
                         error_text = await response.text()

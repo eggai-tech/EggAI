@@ -153,12 +153,21 @@ class DocumentIngestionWorkflow:
         workflow.logger.info(
             f"Starting indexing of {len(chunk_result['chunks'])} chunks"
         )
+        
+        # Auto-generate category from filename if using default "general" category
+        # This ensures consistency with test expectations and categorization logic
+        from pathlib import Path
+        category = input_data.category
+        if category == "general":
+            category = Path(input_data.file_path).stem  # Gets "life" from "life.md"
+            workflow.logger.info(f"Auto-generated category '{category}' from filename")
+        
         indexing_result = await workflow.execute_activity(
             index_document_activity,
             args=[
                 chunk_result["chunks"],
                 input_data.file_path,
-                input_data.category,
+                category,  # Use auto-generated or explicit category
                 input_data.index_name,
                 input_data.force_rebuild,
                 chunk_result.get("document_stats"),  # Pass document stats
