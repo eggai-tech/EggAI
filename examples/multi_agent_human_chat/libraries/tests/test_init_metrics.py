@@ -351,7 +351,7 @@ class TestInitTokenMetrics:
     @patch("libraries.tracing.init_metrics.patch_tracking_lm")
     def test_init_token_metrics_default_params(self, mock_patch, mock_start_server):
         """Test init_token_metrics with default parameters."""
-        init_token_metrics()
+        init_token_metrics(force_init=True)
 
         mock_patch.assert_called_once()
         mock_start_server.assert_called_once_with(9091)
@@ -360,7 +360,7 @@ class TestInitTokenMetrics:
     @patch("libraries.tracing.init_metrics.patch_tracking_lm")
     def test_init_token_metrics_custom_params(self, mock_patch, mock_start_server):
         """Test init_token_metrics with custom parameters."""
-        init_token_metrics(port=8080, application_name="custom_agent")
+        init_token_metrics(port=8080, application_name="custom_agent", force_init=True)
 
         mock_patch.assert_called_once()
         mock_start_server.assert_called_once_with(8080)
