@@ -15,6 +15,7 @@ import pytest
 from agents.policies.agent.config import settings as agent_settings
 from agents.policies.ingestion.config import settings as ingestion_settings
 from agents.policies.tests.retrieval_performance.api_client import RetrievalAPIClient
+from agents.policies.vespa.deploy_package import deploy_to_vespa
 from agents.policies.tests.retrieval_performance.data_utilities import (
     get_retrieval_test_cases,
 )
@@ -103,6 +104,24 @@ class RetrievalPerformanceTester:
             logger.error(f"Vespa not accessible at {vespa_config_url} or {vespa_query_url}")
             return False
         logger.info("✓ Vespa connectivity verified")
+        
+        # Deploy Vespa schema if needed
+        logger.info("Checking and deploying Vespa schema...")
+        deployment_success = deploy_to_vespa(
+            config_server_url=vespa_config_url,
+            query_url=vespa_query_url,
+            force=False,  # Only deploy if schema doesn't exist
+            artifacts_dir=ingestion_settings.vespa_artifacts_dir,
+            deployment_mode=ingestion_settings.vespa_deployment_mode,
+            node_count=ingestion_settings.vespa_node_count,
+            hosts_config=ingestion_settings.vespa_hosts_config,
+            services_xml=ingestion_settings.vespa_services_xml,
+            app_name=ingestion_settings.vespa_app_name_base,
+        )
+        if not deployment_success:
+            logger.error("Failed to deploy Vespa schema")
+            return False
+        logger.info("✓ Vespa schema deployment verified")
         
         # Start embedded service
         logger.info("Starting embedded service for testing...")
