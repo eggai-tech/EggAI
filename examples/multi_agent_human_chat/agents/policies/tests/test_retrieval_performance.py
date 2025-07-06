@@ -87,26 +87,12 @@ class RetrievalPerformanceTester:
         # Log configuration being used
         self._log_configuration()
         
-        # Check Kafka connectivity using agent config
-        kafka_url = agent_settings.kafka_bootstrap_servers
-        logger.info(f"Checking Kafka at {kafka_url} (from agent config)...")
-        if not await self._check_kafka_connectivity(kafka_url):
-            logger.error(f"Kafka not accessible at {kafka_url}")
-            return False
-        logger.info("✓ Kafka connectivity verified")
-        
-        # Check Vespa connectivity using ingestion config
+        # Get Vespa URLs for later use
         vespa_config_url = ingestion_settings.vespa_config_url
         vespa_query_url = ingestion_settings.vespa_query_url
-        logger.info(f"Checking Vespa config server at {vespa_config_url} (from ingestion config)...")
-        logger.info(f"Checking Vespa query server at {vespa_query_url} (from ingestion config)...")
-        if not await self._check_vespa_connectivity(vespa_config_url, vespa_query_url):
-            logger.error(f"Vespa not accessible at {vespa_config_url} or {vespa_query_url}")
-            return False
-        logger.info("✓ Vespa connectivity verified")
         
-        # Deploy Vespa schema if needed
-        logger.info("Checking and deploying Vespa schema...")
+        # Deploy Vespa schema FIRST (before connectivity checks)
+        logger.info("Deploying Vespa schema (before connectivity checks)...")
         deployment_success = deploy_to_vespa(
             config_server_url=vespa_config_url,
             query_url=vespa_query_url,
@@ -121,7 +107,23 @@ class RetrievalPerformanceTester:
         if not deployment_success:
             logger.error("Failed to deploy Vespa schema")
             return False
-        logger.info("✓ Vespa schema deployment verified")
+        logger.info("✓ Vespa schema deployment completed")
+        
+        # Check Kafka connectivity using agent config
+        kafka_url = agent_settings.kafka_bootstrap_servers
+        logger.info(f"Checking Kafka at {kafka_url} (from agent config)...")
+        if not await self._check_kafka_connectivity(kafka_url):
+            logger.error(f"Kafka not accessible at {kafka_url}")
+            return False
+        logger.info("✓ Kafka connectivity verified")
+        
+        # Check Vespa connectivity AFTER deployment
+        logger.info(f"Checking Vespa config server at {vespa_config_url} (from ingestion config)...")
+        logger.info(f"Checking Vespa query server at {vespa_query_url} (from ingestion config)...")
+        if not await self._check_vespa_connectivity(vespa_config_url, vespa_query_url):
+            logger.error(f"Vespa not accessible at {vespa_config_url} or {vespa_query_url}")
+            return False
+        logger.info("✓ Vespa connectivity verified")
         
         # Start embedded service
         logger.info("Starting embedded service for testing...")
