@@ -99,11 +99,10 @@ test-policies-agent:
 	exit $$TEST_EXIT_CODE
 
 test-policies-retrieval-performance:
-	@echo "Running retrieval performance evaluation for policies agent..."
-	@echo "This test evaluates search quality across different parameters using LLM judges and logs results to MLflow."
-	@echo "Ensure the policies API is running at http://localhost:8002 before starting."
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/policies/tests/test_retrieval_performance.py
-	@echo "Retrieval performance evaluation completed. Check MLflow UI at http://localhost:5001 for detailed results."
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/pytest agents/policies/tests/test_retrieval_performance.py \
+       -v -s \
+       --junitxml=reports/pytest-policies-retrieval-performance.xml \
+       --html=reports/pytest-results.html --self-contained-html
 
 
 
