@@ -194,7 +194,7 @@ def deploy_to_vespa(
                             return False
                 except:
                     pass
-                logger.error(f"Deployment verification failed after 100 seconds")
+                logger.error("Deployment verification failed after 100 seconds")
                 return False
 
     except Exception as e:
