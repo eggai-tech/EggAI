@@ -78,12 +78,17 @@ class RetrievalAPIClient:
 
         cmd = [sys.executable, "-m", "agents.policies.agent.main"]
 
+        # Log the exact command being run for debugging
+        logger.info(f"Starting command: {' '.join(cmd)}")
+        logger.info(f"Working directory: {project_root}")
+        logger.info(f"Environment overrides: POLICIES_API_HOST={env.get('POLICIES_API_HOST')}, POLICIES_API_PORT={env.get('POLICIES_API_PORT')}")
+        
         self.process = subprocess.Popen(
             cmd,
             cwd=str(project_root),
             env=env,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Combine stderr into stdout for easier debugging
         )
 
         # Wait for service to be ready
@@ -95,13 +100,11 @@ class RetrievalAPIClient:
                 exit_code = self.process.poll()
                 logger.error(f"Process died early with exit code {exit_code}")
                 
-                # Log stdout and stderr for debugging
+                # Log process output for debugging
                 try:
-                    stdout, stderr = self.process.communicate(timeout=1)
+                    stdout, _ = self.process.communicate(timeout=1)
                     if stdout:
-                        logger.error(f"Process stdout: {stdout.decode()}")
-                    if stderr:
-                        logger.error(f"Process stderr: {stderr.decode()}")
+                        logger.error(f"Process output: {stdout.decode()}")
                 except Exception as e:
                     logger.error(f"Could not read process output: {e}")
                 break
@@ -114,6 +117,16 @@ class RetrievalAPIClient:
                 logger.info(f"Waiting for service to start... ({i}/60 seconds)")
 
         logger.error("Service failed to start within timeout")
+        
+        # Try to get final process output before stopping
+        if self.process and self.process.poll() is not None:
+            try:
+                stdout, _ = self.process.communicate(timeout=1)
+                if stdout:
+                    logger.error(f"Final process output: {stdout.decode()}")
+            except Exception as e:
+                logger.error(f"Could not read final process output: {e}")
+        
         self.stop_service()
         return False
 

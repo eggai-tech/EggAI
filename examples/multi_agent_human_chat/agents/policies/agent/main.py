@@ -57,8 +57,8 @@ app.include_router(api_router, prefix="/api/v1", tags=["policies"])
 
 
 if __name__ == "__main__":
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8002"))
+    host = os.getenv("POLICIES_API_HOST", settings.api_host)
+    port = int(os.getenv("POLICIES_API_PORT", settings.api_port))
     log_level = os.getenv("LOG_LEVEL", "info")
     uvicorn.run(
         "agents.policies.agent.main:app",
