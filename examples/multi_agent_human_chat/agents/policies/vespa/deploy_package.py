@@ -13,7 +13,6 @@ import httpx
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from vespa.application import Vespa
 
 from agents.policies.vespa.generate_package import generate_package_artifacts
 from libraries.logger import get_console_logger
@@ -21,93 +20,68 @@ from libraries.logger import get_console_logger
 logger = get_console_logger("vespa_deployment")
 
 
-def check_schema_exists(query_url: str) -> bool:
-    """Check if the policy_document schema is already deployed.
-
-    Args:
-        query_url: Full URL of the Vespa query endpoint (e.g., http://localhost:8080)
-    """
+def check_schema_exists(config_server_url: str, query_url: str, expected_generation: int = None) -> bool:
+    """Check if schema is deployed with correct generation."""
     try:
-        app = Vespa(url=query_url)
-
-        # Try to query the schema to see if it exists
-        response = app.query(yql="select * from policy_document where true limit 1")
-
-        if response.is_successful():
-            logger.info("✅ Schema already deployed and functional")
-            return True
-        else:
-            logger.info(
-                "Schema not found or not functional, proceeding with deployment"
-            )
+        app_status_url = f"{config_server_url}/application/v2/tenant/default/application/default/environment/prod/region/default/instance/default"
+        response = httpx.get(app_status_url, timeout=10.0)
+        
+        if response.status_code != 200:
             return False
+            
+        generation = response.json().get("generation", 0)
+        if generation == 0:
+            return False
+        
+        if expected_generation is not None and generation < expected_generation:
+            return False
+        
+        # Check schema accessibility
+        policy_doc_url = f"{query_url}/document/v1/policies/policy_document/docid/test?cluster=policies_content"
+        response = httpx.get(policy_doc_url, timeout=10.0)
+        
+        if response.status_code in [404, 200]:
+            logger.info(f"Schema ready (generation {generation})")
+            return True
+        return False
 
-    except Exception as e:
-        logger.info(f"Unable to check existing schema: {e}, proceeding with deployment")
+    except Exception:
         return False
 
 
 def deploy_package_from_zip(config_server_url: str, zip_path: Path) -> tuple[bool, str]:
-    """Deploy a Vespa application package from a zip file.
-
-    Args:
-        config_server_url: Full URL of the Vespa config server
-        zip_path: Path to the application package zip file
-
-    Returns:
-        Tuple of (success, session_id)
-    """
-    logger.info(f"Deploying package from {zip_path}")
-
-    # Read the zip file
+    """Deploy Vespa package via config server."""
     with open(zip_path, "rb") as f:
         zip_content = f.read()
 
-    # Prepare the application package
+    # Prepare application
     prepare_url = f"{config_server_url}/application/v2/tenant/default/session"
-    headers = {"Content-Type": "application/zip"}
-
-    response = httpx.post(
-        prepare_url, content=zip_content, headers=headers, timeout=60.0
-    )
-
+    response = httpx.post(prepare_url, content=zip_content, headers={"Content-Type": "application/zip"}, timeout=60.0)
+    
     if response.status_code != 200:
-        logger.error(f"Failed to prepare application: {response.status_code}")
-        logger.error(f"Response: {response.text}")
+        logger.error(f"Prepare failed: {response.status_code} - {response.text}")
         return False, ""
 
-    session_data = response.json()
-    session_id = session_data.get("session-id")
-
+    session_id = response.json().get("session-id")
     if not session_id:
-        logger.error("No session ID returned from prepare")
+        logger.error("No session ID returned")
         return False, ""
 
-    logger.info(f"Application prepared with session ID: {session_id}")
-
-    # Prepare the session
+    # Prepare session
     prepare_session_url = f"{config_server_url}/application/v2/tenant/default/session/{session_id}/prepared"
     response = httpx.put(prepare_session_url, timeout=60.0)
-
     if response.status_code != 200:
-        logger.error(f"Failed to prepare session: {response.status_code}")
-        logger.error(f"Response: {response.text}")
+        logger.error(f"Session prepare failed: {response.status_code} - {response.text}")
         return False, session_id
 
-    logger.info("Session prepared successfully")
-
-    # Activate the session
-    activate_url = (
-        f"{config_server_url}/application/v2/tenant/default/session/{session_id}/active"
-    )
+    # Activate session
+    activate_url = f"{config_server_url}/application/v2/tenant/default/session/{session_id}/active"
     response = httpx.put(activate_url, timeout=60.0)
-
     if response.status_code != 200:
-        logger.error(f"Failed to activate application: {response.status_code}")
-        logger.error(f"Response: {response.text}")
+        logger.error(f"Activation failed: {response.status_code} - {response.text}")
         return False, session_id
 
-    logger.info("✅ Application activated successfully!")
+    logger.info(f"Deployed successfully (session {session_id})")
     return True, session_id
 
 
@@ -132,110 +106,98 @@ def deploy_to_vespa(
         deployment_mode: 'local' or 'production'
         node_count: Number of nodes for production deployment
         hosts_config: Path to JSON file with host configurations
+        services_xml: Path to XML file with services configurations
+        app_name: Name of the application to deploy
     """
-    logger.info("Starting enhanced Vespa deployment")
-    logger.info(f"Config server: {config_server_url}")
-    logger.info(f"Query endpoint: {query_url}")
+    logger.info(f"Deploying to {config_server_url}")
+
+    # Get current generation
+    try:
+        response = httpx.get(f"{config_server_url}/application/v2/tenant/default/application/default/environment/prod/region/default/instance/default", timeout=10.0)
+        pre_deployment_generation = response.json().get("generation", 0) if response.status_code == 200 else 0
+    except Exception as _:
+        pre_deployment_generation = 0
 
     # Check if schema exists
-    if not force and check_schema_exists(query_url):
-        logger.info("Schema already exists and is active. Skipping deployment.")
+    if not force and check_schema_exists(config_server_url, query_url):
+        logger.info("Schema already deployed, skipping")
         return True
 
     try:
-        # Generate or locate package artifacts
+        # Get package artifacts
         if artifacts_dir and artifacts_dir.exists():
-            # Use existing artifacts
             zip_path = artifacts_dir / "vespa-application.zip"
-            metadata_path = artifacts_dir / "package-metadata.json"
-
             if not zip_path.exists():
-                logger.error(f"Package zip not found at {zip_path}")
+                logger.error(f"Package not found: {zip_path}")
                 return False
-
-            logger.info(f"Using existing package from {artifacts_dir}")
         else:
-            # Generate new artifacts
-            logger.info("Generating new package artifacts...")
-
-            # Load hosts configuration if provided
+            # Generate hosts for production mode
             hosts = None
             if deployment_mode == "production":
                 if hosts_config and hosts_config.exists():
                     with open(hosts_config) as f:
                         hosts = json.load(f)
-                    logger.info(f"Loaded hosts configuration from {hosts_config}")
                 else:
-                    # Generate default hosts based on environment
-                    # Check if we're in Kubernetes by looking for common env vars
                     namespace = os.environ.get("KUBERNETES_NAMESPACE", "default")
                     service_name = os.environ.get("VESPA_SERVICE_NAME", "vespa-node")
-
                     hosts = []
                     for i in range(node_count):
                         if "KUBERNETES_SERVICE_HOST" in os.environ:
-                            # Kubernetes environment
                             host_name = f"{service_name}-{i}.{service_name}-internal.{namespace}.svc.cluster.local"
                         else:
-                            # Default to local Docker names with network domain
                             host_name = f"vespa-node-{i}.eggai-example-network"
-
                         hosts.append({"name": host_name, "alias": f"node{i}"})
-                    logger.info(
-                        f"Generated {len(hosts)} host configurations for {deployment_mode} environment"
-                    )
 
-            zip_path, metadata_path = generate_package_artifacts(
-                artifacts_dir,
-                deployment_mode=deployment_mode,
-                node_count=node_count,
-                hosts=hosts,
-                services_xml=services_xml,
-                app_name=app_name,
+            zip_path, _ = generate_package_artifacts(
+                artifacts_dir, deployment_mode=deployment_mode, node_count=node_count,
+                hosts=hosts, services_xml=services_xml, app_name=app_name
             )
 
-        # Deploy the package
+        # Deploy package
         success, session_id = deploy_package_from_zip(config_server_url, zip_path)
-
         if not success:
-            logger.error("Deployment failed")
             return False
 
-        # Wait a bit for the application to be ready
-        logger.info("Waiting for schema to be ready...")
-        time.sleep(10)  # Give more time for multi-node setup
-
-        # Verify the schema is actually queryable
-        if check_schema_exists(query_url):
-            logger.info("✅ Schema verified and ready for use!")
-
-            # Log enhanced schema details
-            logger.info("Enhanced schema deployed with fields:")
-            logger.info("  Core: id, title, text, category, chunk_index, source_file")
-            logger.info(
-                "  Metadata: page_numbers, page_range, headings, char_count, token_count"
-            )
-            logger.info(
-                "  Relationships: document_id, previous_chunk_id, next_chunk_id, chunk_position"
-            )
-            logger.info("  Context: section_path")
-            logger.info("  BM25 indexing enabled on: title, text")
-            logger.info("  Rank profiles: default, with_position, semantic, hybrid")
-
-            return True
-        else:
-            logger.warning("Schema deployment completed but verification failed")
-            logger.warning(
-                "The schema may still be initializing, waiting a bit more..."
-            )
-            time.sleep(20)  # Give extra time for multi-node coordination
-
-            # Try one more time
-            if check_schema_exists(query_url):
-                logger.info("✅ Schema verified on second attempt!")
+        # Verify deployment with retry
+        expected_generation = pre_deployment_generation + 1
+        logger.info(f"Waiting for schema to be ready (generation {expected_generation})...")
+        for attempt in range(1, 21):
+            logger.info(f"Verification attempt {attempt}/20...")
+            if check_schema_exists(config_server_url, query_url, expected_generation):
+                logger.info("✅ Deployment verified successfully")
                 return True
+            
+            if attempt < 20:
+                logger.info(f"Schema not ready yet, waiting 5 seconds... (attempt {attempt}/20)")
+                time.sleep(5)
             else:
-                logger.error("Schema verification failed after deployment")
+                # Final check: verify generation increased AND config server shows convergence
+                try:
+                    response = httpx.get(f"{config_server_url}/application/v2/tenant/default/application/default/environment/prod/region/default/instance/default", timeout=10.0)
+                    if response.status_code == 200:
+                        app_data = response.json()
+                        current_gen = app_data.get("generation", 0)
+                        
+                        # Only consider successful if generation increased AND we have model versions
+                        if current_gen >= expected_generation and app_data.get("modelVersions"):
+                            # Try to check service convergence as additional validation
+                            try:
+                                conv_response = httpx.get(f"{config_server_url}/application/v2/tenant/default/application/default/environment/prod/region/default/instance/default/serviceconverge", timeout=10.0)
+                                if conv_response.status_code == 200:
+                                    conv_data = conv_response.json()
+                                    if conv_data.get("converged", False):
+                                        logger.info(f"✅ Deployment successful (generation {current_gen}, converged)")
+                                        return True
+                                    else:
+                                        logger.warning(f"Generation {current_gen} deployed but services not converged yet")
+                            except Exception as _:
+                                pass
+                            
+                            logger.warning(f"Generation {current_gen} deployed but full verification failed - may need manual check")
+                            return False
+                except Exception as _:
+                    pass
+                logger.error("Deployment verification failed after 100 seconds")
                 return False
 
     except Exception as e:
@@ -303,19 +265,7 @@ def main():
 
     args = parser.parse_args()
 
-    print("🚀 Enhanced Vespa Package Deployment Tool")
-    print("=" * 50)
-    print(f"Config Server: {args.config_server}")
-    print(f"Query Endpoint: {args.query_url}")
-    print(f"Force: {args.force}")
-    print(f"Deployment Mode: {args.deployment_mode}")
-    if args.deployment_mode == "production":
-        print(f"Node Count: {args.node_count}")
-        if args.hosts_config:
-            print(f"Hosts Config: {args.hosts_config}")
-    if args.artifacts_dir:
-        print(f"Artifacts Dir: {args.artifacts_dir}")
-    print()
+    logger.info(f"Vespa deployment: {args.deployment_mode} mode")
 
     try:
         success = deploy_to_vespa(
@@ -330,31 +280,16 @@ def main():
         )
 
         if success:
-            print()
-            print("🎉 Enhanced deployment completed successfully!")
-            print(f"   Config Server: {args.config_server}")
-            print(f"   Query Endpoint: {args.query_url}")
-            print("   Schema: policy_document (enhanced)")
-            print("   Core fields: id, title, text, category, chunk_index, source_file")
-            print(
-                "   Metadata fields: page numbers, headings, citations, relationships"
-            )
-            print()
-            print("   Next steps:")
-            print("   1. Re-index your documents to populate the new metadata fields")
-            print("   2. Use the enhanced search API to get page citations")
+            logger.info("Deployment completed successfully")
             sys.exit(0)
         else:
-            print()
-            print("❌ Deployment failed or skipped!")
-            print("   Check the logs above for details.")
+            logger.error("Deployment failed")
             sys.exit(1)
 
     except KeyboardInterrupt:
-        logger.info("Deployment cancelled by user")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error(f"Error: {e}")
         sys.exit(1)
 
 

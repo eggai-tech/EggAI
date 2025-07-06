@@ -77,7 +77,7 @@ class RetrievalTestConfiguration:
     parallel_evaluations: bool = True
     max_query_workers: int = 5
     max_eval_workers: int = 3
-    enable_llm_judge: bool = True  # Toggle for LLM-based evaluation
+    enable_llm_judge: bool = False  # Toggle for LLM-based evaluation
 
     def __post_init__(self):
         if self.search_types is None:

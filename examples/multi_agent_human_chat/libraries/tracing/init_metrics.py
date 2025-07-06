@@ -441,7 +441,14 @@ def start_metrics_server(port: int = 9091):
     print(f"✓ Prometheus metrics server started on port {port}")
 
 
-def init_token_metrics(port: int = 9091, application_name: str = "unknown"):
+def init_token_metrics(port: int = 9091, application_name: str = "unknown", force_init: bool = False):
+    import os
+    
+    # Skip metrics initialization in CI environment unless forced
+    if os.getenv("CI") and not force_init:
+        print("⚠️  Metrics collection disabled in CI environment")
+        return
+    
     global _application_name
     _application_name = application_name
 

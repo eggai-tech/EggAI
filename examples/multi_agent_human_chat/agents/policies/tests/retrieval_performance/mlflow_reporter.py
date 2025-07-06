@@ -24,7 +24,11 @@ class MLflowReporter:
         config=None,
     ) -> None:
         """Report results with one run per parameter combination."""
-        logger.info(f"Stage 3: Reporting {len(evaluation_results)} results to MLflow")
+        # Report based on which results we have
+        if evaluation_results:
+            logger.info(f"Stage 4: Reporting {len(evaluation_results)} evaluation results to MLflow")
+        else:
+            logger.info(f"Stage 4: Reporting {len(retrieval_results)} retrieval results to MLflow (no LLM evaluation)")
 
         try:
             experiment_name = "retrieval_performance_evaluation"
@@ -39,11 +43,11 @@ class MLflowReporter:
                 self._log_combination_run(combo_name, combo_data, timestamp, config)
 
             logger.info(
-                f"Stage 3 completed: {len(combination_groups)} runs logged to experiment '{experiment_name}'"
+                f"Stage 4 completed: {len(combination_groups)} runs logged to experiment '{experiment_name}'"
             )
 
         except Exception as e:
-            logger.error(f"Stage 3 failed: {e}")
+            logger.error(f"Stage 4 failed: {e}")
 
     def _group_by_combination(
         self,
@@ -53,30 +57,40 @@ class MLflowReporter:
         """Group results by parameter combination."""
         combination_groups = {}
 
-        for eval_result in evaluation_results:
-            combo_key = f"{eval_result.combination.search_type}_hits{eval_result.combination.max_hits}"
-            if combo_key not in combination_groups:
-                combination_groups[combo_key] = {"evaluations": [], "retrievals": []}
+        # If we have evaluation results, group by them
+        if evaluation_results:
+            for eval_result in evaluation_results:
+                combo_key = f"{eval_result.combination.search_type}_hits{eval_result.combination.max_hits}"
+                if combo_key not in combination_groups:
+                    combination_groups[combo_key] = {"evaluations": [], "retrievals": []}
 
-            combination_groups[combo_key]["evaluations"].append(eval_result)
+                combination_groups[combo_key]["evaluations"].append(eval_result)
 
-            matching_retrieval = next(
-                (
-                    r
-                    for r in retrieval_results
-                    if (
-                        r.combination.test_case_id
-                        == eval_result.combination.test_case_id
-                        and r.combination.search_type
-                        == eval_result.combination.search_type
-                        and r.combination.max_hits == eval_result.combination.max_hits
-                    )
-                ),
-                None,
-            )
+                matching_retrieval = next(
+                    (
+                        r
+                        for r in retrieval_results
+                        if (
+                            r.combination.test_case_id
+                            == eval_result.combination.test_case_id
+                            and r.combination.search_type
+                            == eval_result.combination.search_type
+                            and r.combination.max_hits == eval_result.combination.max_hits
+                        )
+                    ),
+                    None,
+                )
 
-            if matching_retrieval:
-                combination_groups[combo_key]["retrievals"].append(matching_retrieval)
+                if matching_retrieval:
+                    combination_groups[combo_key]["retrievals"].append(matching_retrieval)
+        else:
+            # If no evaluation results, group by retrieval results only
+            for retrieval_result in retrieval_results:
+                combo_key = f"{retrieval_result.combination.search_type}_hits{retrieval_result.combination.max_hits}"
+                if combo_key not in combination_groups:
+                    combination_groups[combo_key] = {"evaluations": [], "retrievals": []}
+
+                combination_groups[combo_key]["retrievals"].append(retrieval_result)
 
         return combination_groups
 
@@ -95,10 +109,16 @@ class MLflowReporter:
                     self._log_parameters(evaluations[0], config)
                     self._log_aggregate_metrics(evaluations, retrievals)
                     self._log_individual_metrics(evaluations, retrievals)
-
-                logger.info(
-                    f"Logged run: {run_name} (tested {len(evaluations)} test cases)"
-                )
+                    logger.info(
+                        f"Logged run: {run_name} (tested {len(evaluations)} test cases)"
+                    )
+                elif retrievals:
+                    # Log retrieval-only results when no evaluations
+                    self._log_parameters_from_retrieval(retrievals[0], config)
+                    self._log_retrieval_only_metrics(retrievals)
+                    logger.info(
+                        f"Logged run: {run_name} (tested {len(retrievals)} retrievals, no LLM evaluation)"
+                    )
 
         except Exception as e:
             logger.error(f"Failed to log run {combo_name}: {e}")
@@ -110,8 +130,43 @@ class MLflowReporter:
         mlflow.log_param("test_run_timestamp", datetime.now().isoformat())
 
         # Log LLM judge configuration if provided
-        if config:
+        if config and hasattr(config, "enable_llm_judge"):
             mlflow.log_param("llm_judge_enabled", config.enable_llm_judge)
+
+    def _log_parameters_from_retrieval(self, retrieval_sample, config=None):
+        """Log run parameters from retrieval results when no evaluations."""
+        mlflow.log_param("search_type", retrieval_sample.combination.search_type)
+        mlflow.log_param("max_hits", retrieval_sample.combination.max_hits)
+        mlflow.log_param("test_run_timestamp", datetime.now().isoformat())
+        
+        # Log LLM judge configuration if provided
+        if config and hasattr(config, "enable_llm_judge"):
+            mlflow.log_param("llm_judge_enabled", config.enable_llm_judge)
+
+    def _log_retrieval_only_metrics(self, retrievals: List[RetrievalResult]) -> None:
+        """Log metrics when only retrieval results are available."""
+        mlflow.log_param("num_test_cases", len(retrievals))
+        
+        # Filter out failed retrievals
+        successful_retrievals = [r for r in retrievals if r.error is None]
+        
+        if successful_retrievals:
+            # Retrieval performance metrics
+            avg_retrieval_time = sum(r.retrieval_time_ms for r in successful_retrievals) / len(successful_retrievals)
+            avg_total_hits = sum(r.total_hits for r in successful_retrievals) / len(successful_retrievals)
+            success_rate = len(successful_retrievals) / len(retrievals)
+            
+            mlflow.log_metric("avg_retrieval_time_ms", avg_retrieval_time)
+            mlflow.log_metric("avg_total_hits", avg_total_hits)
+            mlflow.log_metric("success_rate", success_rate)
+            mlflow.log_metric("total_retrievals", len(retrievals))
+            mlflow.log_metric("successful_retrievals", len(successful_retrievals))
+            
+            # Log individual retrieval metrics
+            for retrieval in successful_retrievals:
+                test_case_id = retrieval.combination.test_case_id
+                mlflow.log_metric(f"retrieval_time_{test_case_id}", retrieval.retrieval_time_ms)
+                mlflow.log_metric(f"total_hits_{test_case_id}", retrieval.total_hits)
 
     def _log_aggregate_metrics(
         self, evaluations: List[EvaluationResult], retrievals: List[RetrievalResult]

@@ -5,7 +5,7 @@ on:
     branches:
       - main
   pull_request:
-      types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]
 
 jobs:
   static-analysis:
@@ -60,7 +60,7 @@ jobs:
   integration:
     runs-on: gpu-runner-github-hosted
     name: Run integration tests
-    timeout-minutes: 45  # Increase timeout for pulling large images
+    timeout-minutes: 45 # Increase timeout for pulling large images
     permissions:
       contents: read
       packages: write
@@ -133,13 +133,13 @@ jobs:
             done
           '
           echo "Redpanda and MinIO are healthy!"
-          
+
       - name: Wait for Vespa nodes to start
         working-directory: examples/multi_agent_human_chat
         run: |
           echo "Waiting for Vespa nodes to start (this can take a few minutes)..."
           sleep 60  # Give Vespa nodes time to start
-          
+
           # Check if vespa-node-0 is responding (don't rely on health check)
           timeout 300 bash -c '
             until curl -s -f http://localhost:19071/state/v1/health > /dev/null 2>&1; do
@@ -152,8 +152,8 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Set up test environment
         working-directory: examples/multi_agent_human_chat
