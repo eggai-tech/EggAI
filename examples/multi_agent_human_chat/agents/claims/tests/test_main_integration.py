@@ -14,7 +14,7 @@ with patch('agents.claims.main.create_kafka_transport'):
             
             with patch('agents.claims.main.init_telemetry'):
                 with patch('agents.claims.main.dspy_set_language_model'):
-                    with patch('agents.claims.main.load_optimized_prompts'):
+                    with patch('agents.claims.dspy_modules.claims.load_optimized_prompts'):
                         from agents.claims.main import app
 
 
