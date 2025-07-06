@@ -96,10 +96,18 @@
         const checkAPIStatus = async () => {
           console.log('Checking API status...');
           const status = {};
-          for (const [name, url] of Object.entries(API_ENDPOINTS)) {
+          
+          // Check each API using their actual endpoints since /health doesn't exist
+          const endpoints = {
+            policies: `${API_ENDPOINTS.policies}/policies?limit=1`,
+            claims: `${API_ENDPOINTS.claims}/claims?limit=1`,
+            billing: `${API_ENDPOINTS.billing}/billing?limit=1`
+          };
+          
+          for (const [name, url] of Object.entries(endpoints)) {
             try {
-              console.log(`Checking ${name} API at ${url}/health`);
-              const response = await fetch(`${url}/health`, {
+              console.log(`Checking ${name} API at ${url}`);
+              const response = await fetch(url, {
                 method: 'GET',
                 mode: 'cors',
                 headers: {

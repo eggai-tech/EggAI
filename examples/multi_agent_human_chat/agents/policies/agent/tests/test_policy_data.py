@@ -1,8 +1,8 @@
 """Tests for policy data module"""
 import json
 
+from agents.policies.agent.tools.database.example_data import EXAMPLE_POLICIES
 from agents.policies.agent.tools.database.policy_data import (
-    PERSONAL_POLICIES,
     get_all_policies,
     get_personal_policy_details,
 )
@@ -12,7 +12,7 @@ def test_get_all_policies():
     """Test getting all policies"""
     policies = get_all_policies()
     assert isinstance(policies, list)
-    assert len(policies) == len(PERSONAL_POLICIES)
+    assert len(policies) == len(EXAMPLE_POLICIES)
     
     # Check structure of first policy
     if policies:

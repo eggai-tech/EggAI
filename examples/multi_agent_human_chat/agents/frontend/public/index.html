@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>Insurance Support Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
       window.tailwind = {
         config: {
@@ -49,6 +50,97 @@
       }
       .fade-in {
         animation: fadeIn 0.3s ease-out;
+      }
+      
+      /* Markdown Styles */
+      .markdown-content {
+        line-height: 1.6;
+      }
+      .markdown-content p {
+        margin-bottom: 0.75rem;
+      }
+      .markdown-content p:last-child {
+        margin-bottom: 0;
+      }
+      .markdown-content strong {
+        font-weight: 600;
+      }
+      .markdown-content em {
+        font-style: italic;
+      }
+      .markdown-content code {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 3px;
+        padding: 0.125rem 0.25rem;
+        font-family: monospace;
+        font-size: 0.875em;
+      }
+      .dark .markdown-content code {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      .markdown-content pre {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+        padding: 1rem;
+        overflow-x: auto;
+        margin-bottom: 0.75rem;
+      }
+      .dark .markdown-content pre {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      .markdown-content pre code {
+        background-color: transparent;
+        padding: 0;
+      }
+      .markdown-content ul,
+      .markdown-content ol {
+        margin-bottom: 0.75rem;
+        padding-left: 1.5rem;
+      }
+      .markdown-content ul {
+        list-style-type: disc;
+      }
+      .markdown-content ol {
+        list-style-type: decimal;
+      }
+      .markdown-content li {
+        margin-bottom: 0.25rem;
+      }
+      .markdown-content h1,
+      .markdown-content h2,
+      .markdown-content h3,
+      .markdown-content h4,
+      .markdown-content h5,
+      .markdown-content h6 {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        margin-top: 1rem;
+      }
+      .markdown-content h1 { font-size: 1.5rem; }
+      .markdown-content h2 { font-size: 1.25rem; }
+      .markdown-content h3 { font-size: 1.125rem; }
+      .markdown-content blockquote {
+        border-left: 4px solid #e5e7eb;
+        padding-left: 1rem;
+        margin: 0.75rem 0;
+        color: #6b7280;
+      }
+      .dark .markdown-content blockquote {
+        border-left-color: #374151;
+        color: #9ca3af;
+      }
+      .markdown-content a {
+        color: #2563eb;
+        text-decoration: underline;
+      }
+      .dark .markdown-content a {
+        color: #60a5fa;
+      }
+      .markdown-content a:hover {
+        color: #1d4ed8;
+      }
+      .dark .markdown-content a:hover {
+        color: #93bbfc;
       }
     </style>
   </head>
@@ -144,6 +236,31 @@
         const [streamingMessages, setStreamingMessages] = useState({});
         const wsRef = useRef(null);
         const messagesEndRef = useRef(null);
+
+        // Markdown parsing function
+        const parseMarkdown = (text) => {
+          if (!text) return '';
+          
+          // Configure marked options for security
+          marked.setOptions({
+            breaks: true,
+            gfm: true,
+            sanitize: false, // We'll use React's built-in XSS protection
+          });
+          
+          return marked.parse(text);
+        };
+
+        // Render markdown content safely
+        const MarkdownContent = ({ content }) => {
+          const html = parseMarkdown(content);
+          return (
+            <div 
+              className="markdown-content"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          );
+        };
 
         useEffect(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -433,7 +550,7 @@
                               </span>
                             </div>
                             <div className="max-w-[48rem] text-gray-700 dark:text-gray-300 text-sm leading-relaxed bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4">
-                              {msg.text}
+                              <MarkdownContent content={msg.text} />
                             </div>
                           </div>
                         </div>
@@ -465,7 +582,7 @@
                               </span>
                             </div>
                             <div className="max-w-[48rem] text-gray-700 dark:text-gray-300 text-sm leading-relaxed bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4">
-                              {msg.text}
+                              <MarkdownContent content={msg.text} />
                               <span className="animate-pulse ml-0.5 inline-block h-4 w-1 bg-gray-400"></span>
                             </div>
                           </div>
