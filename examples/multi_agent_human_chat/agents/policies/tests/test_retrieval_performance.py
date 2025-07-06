@@ -6,7 +6,6 @@ Results logged to MLflow for tracking and analysis.
 """
 import asyncio
 import os
-import unittest
 from datetime import datetime
 from typing import List, Tuple
 
@@ -118,11 +117,11 @@ class RetrievalPerformanceTester:
     def _log_configuration(self) -> None:
         """Log the configuration being used for service checks."""
         logger.info("=== Configuration for Infrastructure Checks ===")
-        logger.info(f"Agent Settings:")
+        logger.info("Agent Settings:")
         logger.info(f"  - App Name: {agent_settings.app_name}")
         logger.info(f"  - Kafka Bootstrap Servers: {agent_settings.kafka_bootstrap_servers}")
         logger.info(f"  - Language Model: {agent_settings.language_model}")
-        logger.info(f"Ingestion Settings:")
+        logger.info("Ingestion Settings:")
         logger.info(f"  - App Name: {ingestion_settings.app_name}")
         logger.info(f"  - Vespa Config URL: {ingestion_settings.vespa_config_url}")
         logger.info(f"  - Vespa Query URL: {ingestion_settings.vespa_query_url}")
