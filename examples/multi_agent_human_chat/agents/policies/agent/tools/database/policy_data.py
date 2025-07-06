@@ -12,6 +12,30 @@ logger = get_console_logger("policies_agent.tools.database")
 tracer = trace.get_tracer("policies_agent_tools_database")
 
 
+def get_all_policies() -> list:
+    """
+    Retrieve all policies from the database.
+    Used by the API to list all available policies.
+    
+    Returns:
+        List of policy dictionaries
+    """
+    logger.info("Retrieving all policies")
+    
+    try:
+        # In production, this would query a real database
+        # For now, use example data if enabled
+        if USE_EXAMPLE_DATA:
+            return EXAMPLE_POLICIES
+        else:
+            # TODO: Replace with actual database query
+            logger.warning("Production database not configured, returning empty list")
+            return []
+    except Exception as e:
+        logger.error(f"Error retrieving all policies: {e}", exc_info=True)
+        return []
+
+
 @tracer.start_as_current_span("get_personal_policy_details")
 def get_personal_policy_details(policy_number: str) -> str:
     """

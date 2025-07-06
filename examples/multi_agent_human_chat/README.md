@@ -50,7 +50,7 @@ Edit `.env` and uncomment the OpenAI model lines:
 # OPENAI_API_KEY=your-api-key-here
 ```
 
-### 3. Start Services
+### 3. Start Platform Services
 
 ```bash
 make docker-up  # Start all required services (Kafka, Vespa, Temporal, etc.)
@@ -64,18 +64,24 @@ make start-all
 
 Open http://localhost:8000 to start chatting!
 
-**Example queries:**
-- "What's my premium for policy B67890?"
-- "I want to file a claim"
-- "What does my home insurance cover?"
-- "I have a complaint about my service"
+The chat interface now includes:
+- **Support categories** with clickable example questions
+- **Policy Inquiries** - Coverage and policy details
+- **Billing & Payments** - Premiums and payment info  
+- **Claims Support** - File claims and check status
+- **General Support** - Escalations and other help
 
-**Useful links:**
+Just click any example question to get started!
+
+**Platform Services:**
+All services are accessible directly from the chat UI header, or visit:
 - Chat UI: http://localhost:8000
-- Grafana Dashboards: http://localhost:3000
-- Redpanda Console: http://localhost:8082
-- Temporal UI: http://localhost:8081
-- MLflow: http://localhost:5001
+- Redpanda Console: http://localhost:8082 - Message queue monitoring
+- Temporal UI: http://localhost:8081 - Workflow management
+- Grafana: http://localhost:3000 - Metrics & dashboards
+- MLflow: http://localhost:5001 - ML experiment tracking
+- Vespa Status: http://localhost:19071 - Search engine status
+- Prometheus: http://localhost:9090 - Metrics collection
 
 ## System Overview
 
@@ -102,41 +108,14 @@ make format      # Format code
 
 ## Documentation
 
-- [System Architecture](docs/system-architecture.md) - High-level design, component interactions, and communication flow
-- [Agent Overview](docs/agents-overview.md) - Detailed agent descriptions and testing guide
+- [System Architecture](docs/system-architecture.md) - High-level design and component interactions
+- [Agent Overview](docs/agents-overview.md) - Detailed agent descriptions
+- [UI Enhancements](docs/ui-enhancements.md) - Support categories and example questions
 - [Ingestion Pipeline](docs/ingestion-pipeline.md) - Temporal workflows and Vespa integration
-- [Vespa Search Guide](docs/vespa-search-guide.md) - Search types, ranking profiles, and data exploration
-- [Model Training](docs/model-training.md) - Custom classifier training
-- [Retrieval Performance Testing](docs/retrieval-performance-testing.md) - Evaluation metrics and benchmarks
-
-## Advanced Topics
-
-### Multi-Environment Deployment
-
-Run multiple isolated instances using deployment namespaces:
-
-```bash
-export DEPLOYMENT_NAMESPACE=pr-123  # or staging, prod, etc.
-make start-all
-```
-
-This prefixes Kafka topics, Temporal namespaces, and Vespa app names.
-
-### Agent Optimization
-
-```bash
-make compile-billing-optimizer   # Optimize billing agent
-make compile-all                # Optimize all agents
-```
-
-### Custom Model Training
-
-```bash
-make train-triage-classifier-v3  # Train baseline classifier
-make train-triage-classifier-v5  # Train attention-based classifier
-```
-
-View results in MLflow at http://localhost:5001
+- [Advanced Topics](docs/advanced-topics.md) - Multi-environment deployment, optimization, and training
+- [Vespa Search Guide](docs/vespa-search-guide.md) - Search types and ranking profiles
+- [Model Training](docs/model-training.md) - Custom classifier training guide
+- [Retrieval Performance Testing](docs/retrieval-performance-testing.md) - Evaluation metrics
 
 ## Cleaning Up
 

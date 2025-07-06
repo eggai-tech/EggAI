@@ -31,7 +31,7 @@ class ReindexService:
             # Get count of existing documents first
             existing_results = await self.vespa_client.search_documents(
                 query="",
-                max_hits=10000,  # Get all documents
+                max_hits=400,  # Respect Vespa's configured limit
             )
             documents_to_clear = len(existing_results)
 
@@ -65,10 +65,10 @@ class ReindexService:
             Dictionary with indexing statistics
         """
         try:
-            # Get all documents to analyze
+            # Get all documents to analyze (respecting Vespa's limit)
             all_results = await self.vespa_client.search_documents(
                 query="",  # Get all documents
-                max_hits=10000,  # Get all results
+                max_hits=400,  # Respect Vespa's configured limit
             )
 
             # Analyze documents by category

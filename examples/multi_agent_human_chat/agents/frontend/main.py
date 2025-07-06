@@ -65,6 +65,31 @@ async def read_root():
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
+@api.get("/admin.html", response_class=HTMLResponse)
+async def read_admin():
+    try:
+        html_file_path = os.path.join(settings.default_public_dir, "admin.html")
+        logger.debug(f"Reading admin HTML file from: {html_file_path}")
+
+        if not os.path.isfile(html_file_path):
+            logger.error(f"File not found: {html_file_path}")
+            raise FileNotFoundError(f"File not found: {html_file_path}")
+
+        with open(html_file_path, "r", encoding="utf-8") as file:
+            file_content = file.read()
+
+        return HTMLResponse(content=file_content, status_code=200)
+
+    except FileNotFoundError as fnf_error:
+        logger.error(f"File not found: {str(fnf_error)}")
+        raise HTTPException(status_code=404, detail=str(fnf_error))
+
+    except Exception as e:
+        logger.error(f"Error reading admin HTML: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+
 frontend_server = uvicorn.Server(
     uvicorn.Config(
         api, host=settings.host, port=settings.port, log_level=settings.log_level

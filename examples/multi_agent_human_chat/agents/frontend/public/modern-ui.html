@@ -90,7 +90,7 @@
         {
           title: "Policies",
           examples: [
-            "View my policy details",
+            "View my policy details for A12345",
             "What does my home insurance cover?",
             "What's my deductible amount?",
             "Download policy documents",
@@ -99,7 +99,7 @@
         {
           title: "Billing",
           examples: [
-            "Check my premium",
+            "Check premium for policy B67890",
             "When is my next payment due?",
             "Update payment method",
             "View billing history",
@@ -109,29 +109,27 @@
           title: "Claims",
           examples: [
             "File a new claim",
-            "Check claim status",
+            "Check status of claim CL789012",
             "Upload claim documents",
             "View claim history",
           ],
         },
         {
-          title: "Other Inquiries",
+          title: "Support",
           examples: [
             "Request manager assistance",
             "Report an issue",
             "Account access problems",
-            "General questions",
+            "Other inquiries",
           ],
         },
       ];
 
       const platformServices = [
-        { name: "Redpanda", url: "http://localhost:8082" },
-        { name: "Temporal", url: "http://localhost:8081" },
-        { name: "Grafana", url: "http://localhost:3000" },
-        { name: "MLflow", url: "http://localhost:5001" },
-        { name: "Vespa", url: "http://localhost:19071" },
-        { name: "Prometheus", url: "http://localhost:9090" },
+        { name: "About", url: "#" },
+        { name: "Products", url: "#" },
+        { name: "Resources", url: "#" },
+        { name: "Contact", url: "#" },
       ];
 
       function App() {
@@ -318,22 +316,14 @@
                       <a
                         key={idx}
                         href={service.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
                       >
                         {service.name}
                       </a>
                     ))}
                     <span className="text-xs text-gray-400 px-4">|</span>
-                    <a
-                      href="/admin.html"
-                      className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
-                    >
-                      Admin
-                    </a>
                     <button
-                      className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ml-4"
+                      className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                       onClick={toggleDarkMode}
                       title="Toggle Dark Mode"
                     >
@@ -364,13 +354,13 @@
                       <h2 className="text-3xl font-light text-gray-900 dark:text-gray-100 mb-12">
                         How can we help you today?
                       </h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-8">
                         {supportCategories.map((category, idx) => (
-                          <div key={idx}>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                          <div key={idx} className="group">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 pb-2 border-b-2 border-gray-900 dark:border-gray-100">
                               {category.title}
                             </h3>
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {category.examples.map((example, exIdx) => (
                                 <button
                                   key={exIdx}
@@ -378,9 +368,11 @@
                                     setInputValue(example);
                                     sendMessage(example);
                                   }}
-                                  className="block w-full text-left text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-150"
+                                  className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-all duration-150"
                                 >
-                                  {example}
+                                  <span className="inline-block transition-transform group-hover:translate-x-1">
+                                    {example}
+                                  </span>
                                 </button>
                               ))}
                             </div>
@@ -408,7 +400,7 @@
                       <div key={i} className="py-4 fade-in">
                         <div className="max-w-7xl mx-auto px-6">
                           <div className="flex gap-3 justify-end">
-                            <div className="max-w-[70%] bg-blue-600 text-white rounded-lg px-5 py-3">
+                            <div className="max-w-[70%] bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-none px-5 py-3">
                               <p className="text-sm leading-relaxed">
                                 {msg.text}
                               </p>
@@ -432,7 +424,7 @@
                                 {msg.sender}
                               </span>
                             </div>
-                            <div className="max-w-[48rem] text-gray-700 dark:text-gray-300 text-sm leading-relaxed bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4">
+                            <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 px-5 py-4">
                               {msg.text}
                             </div>
                           </div>
@@ -464,7 +456,7 @@
                                 }
                               </span>
                             </div>
-                            <div className="max-w-[48rem] text-gray-700 dark:text-gray-300 text-sm leading-relaxed bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4">
+                            <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 px-5 py-4">
                               {msg.text}
                               <span className="animate-pulse ml-0.5 inline-block h-4 w-1 bg-gray-400"></span>
                             </div>
@@ -503,9 +495,9 @@
                   <input
                     type="text"
                     placeholder="Ask a question..."
-                    className="flex-1 pl-4 pr-12 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg
+                    className="flex-1 pl-4 pr-12 py-3 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700
                                text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-150"
+                               focus:outline-none focus:border-gray-900 dark:focus:border-gray-100 transition-all duration-150"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={(e) => {
@@ -518,7 +510,7 @@
                   <button
                     onClick={() => sendMessage()}
                     disabled={!inputValue.trim() || loading}
-                    className="absolute right-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 text-sm font-medium"
+                    className="absolute right-2 px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 text-sm font-medium"
                   >
                     Send
                   </button>

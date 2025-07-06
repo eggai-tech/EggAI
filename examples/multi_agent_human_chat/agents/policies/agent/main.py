@@ -4,6 +4,7 @@ import uvicorn
 from eggai import eggai_cleanup
 from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from agents.policies.agent.api.routes import router as api_router
 from agents.policies.agent.config import settings
@@ -52,6 +53,15 @@ app = FastAPI(
     description="API for querying and managing insurance policy documents",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# Add CORS middleware to allow cross-origin requests from the frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(api_router, prefix="/api/v1", tags=["policies"])
