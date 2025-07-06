@@ -115,21 +115,6 @@ async def list_billing_records(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/v1/billing/{policy_number}", response_model=BillingRecord)
-async def get_billing_record(policy_number: str):
-    """Get billing information for a specific policy"""
-    try:
-        if policy_number not in BILLING_DATABASE:
-            raise HTTPException(status_code=404, detail=f"Billing record not found: {policy_number}")
-        
-        return BillingRecord(**BILLING_DATABASE[policy_number])
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting billing record: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
 @app.get("/api/v1/billing/stats", response_model=BillingStats)
 async def get_billing_statistics():
     """Get statistics about all billing records"""
@@ -175,6 +160,28 @@ async def get_billing_statistics():
         )
     except Exception as e:
         logger.error(f"Error calculating statistics: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/api/v1/billing/{policy_number}", response_model=BillingRecord)
+async def get_billing_record(policy_number: str):
+    """Get billing information for a specific policy"""
+    try:
+        # Find the record in the list
+        record = None
+        for billing_record in BILLING_DATABASE:
+            if billing_record["policy_number"] == policy_number:
+                record = billing_record
+                break
+        
+        if not record:
+            raise HTTPException(status_code=404, detail=f"Billing record not found: {policy_number}")
+        
+        return BillingRecord(**record)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting billing record: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

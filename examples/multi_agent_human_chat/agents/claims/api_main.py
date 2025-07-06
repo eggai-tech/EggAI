@@ -116,21 +116,6 @@ async def list_claims(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/v1/claims/{claim_number}", response_model=ClaimRecord)
-async def get_claim(claim_number: str):
-    """Get detailed information about a specific claim"""
-    try:
-        claim = get_claim_record(claim_number)
-        if not claim:
-            raise HTTPException(status_code=404, detail=f"Claim not found: {claim_number}")
-        return claim
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting claim: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
 @app.get("/api/v1/claims/stats", response_model=ClaimStats)
 async def get_claims_statistics():
     """Get statistics about all claims"""
@@ -163,6 +148,21 @@ async def get_claims_statistics():
         )
     except Exception as e:
         logger.error(f"Error calculating statistics: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/api/v1/claims/{claim_number}", response_model=ClaimRecord)
+async def get_claim(claim_number: str):
+    """Get detailed information about a specific claim"""
+    try:
+        claim = get_claim_record(claim_number)
+        if not claim:
+            raise HTTPException(status_code=404, detail=f"Claim not found: {claim_number}")
+        return claim
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting claim: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

@@ -8,6 +8,7 @@ EXAMPLE_POLICIES: List[Dict] = [
         "policy_category": "home",
         "premium_amount": 500,
         "due_date": "2026-03-01",
+        "status": "active",
     },
     {
         "policy_number": "B67890",
@@ -15,6 +16,7 @@ EXAMPLE_POLICIES: List[Dict] = [
         "policy_category": "life",
         "premium_amount": 300,
         "due_date": "2026-03-15",
+        "status": "active",
     },
     {
         "policy_number": "C24680",
@@ -22,6 +24,7 @@ EXAMPLE_POLICIES: List[Dict] = [
         "policy_category": "auto",
         "premium_amount": 400,
         "due_date": "2026-03-01",
+        "status": "active",
     },
 ]
 
