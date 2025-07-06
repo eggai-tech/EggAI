@@ -377,11 +377,33 @@ class TestInitTokenMetrics:
     ):
         """Test that init_token_metrics sets the global application name."""
         test_name = "test_application"
-        init_token_metrics(application_name=test_name)
+        init_token_metrics(application_name=test_name, force_init=True)
 
         from libraries.tracing.init_metrics import _application_name
 
         assert _application_name == test_name
+
+    @patch("libraries.tracing.init_metrics.start_metrics_server")
+    @patch("libraries.tracing.init_metrics.patch_tracking_lm")
+    @patch.dict("os.environ", {"CI": "true"})
+    def test_init_token_metrics_skips_in_ci(self, mock_patch, mock_start_server):
+        """Test that init_token_metrics is skipped in CI environment."""
+        init_token_metrics()
+
+        # Should not call any initialization functions
+        mock_patch.assert_not_called()
+        mock_start_server.assert_not_called()
+
+    @patch("libraries.tracing.init_metrics.start_metrics_server")
+    @patch("libraries.tracing.init_metrics.patch_tracking_lm")
+    @patch.dict("os.environ", {"CI": "true"})
+    def test_init_token_metrics_force_init_in_ci(self, mock_patch, mock_start_server):
+        """Test that init_token_metrics can be forced to run in CI environment."""
+        init_token_metrics(force_init=True)
+
+        # Should call initialization functions even in CI when forced
+        mock_patch.assert_called_once()
+        mock_start_server.assert_called_once_with(9091)
 
 
 class TestMetricsIntegration:
