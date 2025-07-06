@@ -102,8 +102,8 @@ class RetrievalAPIClient:
                         logger.error(f"Process stdout: {stdout.decode()}")
                     if stderr:
                         logger.error(f"Process stderr: {stderr.decode()}")
-                except:
-                    logger.error("Could not read process output")
+                except Exception as e:
+                    logger.error(f"Could not read process output: {e}")
                 break
 
             if await self.check_api_health():
