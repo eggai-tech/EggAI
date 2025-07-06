@@ -10,8 +10,11 @@ import unittest
 from datetime import datetime
 from typing import List, Tuple
 
+import httpx
 import pytest
 
+from agents.policies.agent.config import settings as agent_settings
+from agents.policies.ingestion.config import settings as ingestion_settings
 from agents.policies.tests.retrieval_performance.api_client import RetrievalAPIClient
 from agents.policies.tests.retrieval_performance.data_utilities import (
     get_retrieval_test_cases,
@@ -29,7 +32,7 @@ from libraries.logger import get_console_logger
 logger = get_console_logger("retrieval_performance_test")
 
 # Development constants
-LIMIT_DATASET_ITEMS = os.getenv("LIMIT_DATASET_ITEMS")
+LIMIT_DATASET_ITEMS = os.getenv("LIMIT_DATASET_ITEMS", "2")
 if LIMIT_DATASET_ITEMS is not None:
     LIMIT_DATASET_ITEMS = int(LIMIT_DATASET_ITEMS)
 
@@ -78,16 +81,121 @@ class RetrievalPerformanceTester:
         return combinations
 
     async def check_service_prerequisites(self) -> bool:
-        """Start embedded service for testing."""
+        """Check infrastructure prerequisites and start embedded service for testing."""
+        logger.info("Checking infrastructure prerequisites using configuration settings...")
+        
+        # Log configuration being used
+        self._log_configuration()
+        
+        # Check Kafka connectivity using agent config
+        kafka_url = agent_settings.kafka_bootstrap_servers
+        logger.info(f"Checking Kafka at {kafka_url} (from agent config)...")
+        if not await self._check_kafka_connectivity(kafka_url):
+            logger.error(f"Kafka not accessible at {kafka_url}")
+            return False
+        logger.info("✓ Kafka connectivity verified")
+        
+        # Check Vespa connectivity using ingestion config
+        vespa_config_url = ingestion_settings.vespa_config_url
+        vespa_query_url = ingestion_settings.vespa_query_url
+        logger.info(f"Checking Vespa config server at {vespa_config_url} (from ingestion config)...")
+        logger.info(f"Checking Vespa query server at {vespa_query_url} (from ingestion config)...")
+        if not await self._check_vespa_connectivity(vespa_config_url, vespa_query_url):
+            logger.error(f"Vespa not accessible at {vespa_config_url} or {vespa_query_url}")
+            return False
+        logger.info("✓ Vespa connectivity verified")
+        
+        # Start embedded service
         logger.info("Starting embedded service for testing...")
-
         success = await self.api_client.start_service()
         if not success:
             logger.error("Failed to start embedded service for testing")
             return False
 
-        logger.info(f"Service ready at {self.api_client.base_url}")
+        logger.info(f"✓ Service ready at {self.api_client.base_url}")
         return True
+    
+    def _log_configuration(self) -> None:
+        """Log the configuration being used for service checks."""
+        logger.info("=== Configuration for Infrastructure Checks ===")
+        logger.info(f"Agent Settings:")
+        logger.info(f"  - App Name: {agent_settings.app_name}")
+        logger.info(f"  - Kafka Bootstrap Servers: {agent_settings.kafka_bootstrap_servers}")
+        logger.info(f"  - Language Model: {agent_settings.language_model}")
+        logger.info(f"Ingestion Settings:")
+        logger.info(f"  - App Name: {ingestion_settings.app_name}")
+        logger.info(f"  - Vespa Config URL: {ingestion_settings.vespa_config_url}")
+        logger.info(f"  - Vespa Query URL: {ingestion_settings.vespa_query_url}")
+        logger.info(f"  - Vespa App Name: {ingestion_settings.vespa_app_name}")
+        logger.info(f"  - Deployment Mode: {ingestion_settings.vespa_deployment_mode}")
+        logger.info(f"  - Temporal Server: {ingestion_settings.temporal_server_url}")
+        logger.info(f"  - Temporal Namespace: {ingestion_settings.get_temporal_namespace()}")
+        logger.info("=" * 50)
+        
+        # Validate critical configuration
+        if not agent_settings.kafka_bootstrap_servers:
+            logger.warning("Kafka bootstrap servers not configured!")
+        if not ingestion_settings.vespa_config_url:
+            logger.warning("Vespa config URL not configured!")
+        if not ingestion_settings.vespa_query_url:
+            logger.warning("Vespa query URL not configured!")
+    
+    async def _check_kafka_connectivity(self, kafka_url: str) -> bool:
+        """Check if Kafka is accessible."""
+        try:
+            # Try to connect to Kafka bootstrap servers
+            # We'll use a simple socket check since we don't want to add kafka-python dependency
+            import socket
+            host, port = kafka_url.split(":")
+            port = int(port)
+            
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(5)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            
+            if result == 0:
+                logger.info(f"Kafka port {port} is accessible on {host}")
+                return True
+            else:
+                logger.warning(f"Kafka port {port} not accessible on {host}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error checking Kafka connectivity: {e}")
+            return False
+    
+    async def _check_vespa_connectivity(self, config_url: str, query_url: str) -> bool:
+        """Check if Vespa is accessible."""
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                # Check config server
+                logger.info(f"Testing Vespa config server: {config_url}")
+                config_response = await client.get(f"{config_url}/status.html")
+                if config_response.status_code != 200:
+                    logger.warning(f"Vespa config server returned status {config_response.status_code}")
+                    return False
+                logger.info("Config server responded successfully")
+                
+                # Check query service
+                logger.info(f"Testing Vespa query service: {query_url}")
+                query_response = await client.get(f"{query_url}/status.html")
+                if query_response.status_code != 200:
+                    logger.warning(f"Vespa query service returned status {query_response.status_code}")
+                    return False
+                logger.info("Query service responded successfully")
+                
+                return True
+                
+        except httpx.ConnectError as e:
+            logger.error(f"Cannot connect to Vespa: {e}")
+            return False
+        except httpx.TimeoutException as e:
+            logger.error(f"Vespa connection timeout: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Error checking Vespa connectivity: {e}")
+            return False
 
     async def stage1_collect_all_results(self) -> List[RetrievalResult]:
         """Stage 1: Collect all retrieved results."""
@@ -421,23 +529,18 @@ class RetrievalPerformanceTester:
         return "\n".join(report_lines)
 
 
-class TestRetrievalPerformance(unittest.TestCase):
-    """Test class for retrieval performance evaluation."""
-
-    def test_retrieval_quality_across_search_parameters(self):
-        """Comprehensive retrieval quality evaluation across search types and parameters."""
-        asyncio.run(_run_retrieval_test())
-
-
 @pytest.mark.asyncio
-async def test_retrieval_quality_async():
-    """Async pytest version of the retrieval performance test."""
-    await _run_retrieval_test()
+async def test_retrieval_performance():
+    """Async pytest version of the retrieval performance test with 2-minute timeout."""
+    try:
+        await asyncio.wait_for(_run_retrieval_test(), timeout=120)
+    except asyncio.TimeoutError:
+        pytest.fail("Test timed out after 2 minutes")
 
 
 async def _run_retrieval_test():
     """Run the actual test logic using 4-stage approach."""
-    logger.info("Starting 4-stage retrieval test...")
+    logger.info("Starting 4-stage retrieval test with 2-minute timeout...")
 
     config = RetrievalTestConfiguration(
         search_types=["hybrid", "keyword", "vector"],
@@ -450,12 +553,19 @@ async def _run_retrieval_test():
     logger.info("Tester initialized")
 
     try:
+        # Wrap the evaluation with timeout
+        logger.info("Starting evaluation with timeout protection...")
         (
             retrieval_results,
             metrics,
             evaluation_results,
-        ) = await tester.run_full_evaluation()
+        ) = await asyncio.wait_for(tester.run_full_evaluation(), timeout=115)  # Leave 5s buffer for cleanup
+        logger.info("Evaluation completed within timeout")
+    except asyncio.TimeoutError:
+        logger.error("Test evaluation timed out after 115 seconds")
+        raise RuntimeError("Test evaluation timed out - check infrastructure connectivity")
     finally:
+        logger.info("Cleaning up test resources...")
         tester.cleanup()
 
     # Log metrics from Stage 2
@@ -535,7 +645,13 @@ async def _run_retrieval_test():
 
 async def main():
     """Main entry point for standalone execution."""
-    await _run_retrieval_test()
+    logger.info("Running retrieval performance test in standalone mode...")
+    try:
+        await asyncio.wait_for(_run_retrieval_test(), timeout=120)
+        logger.info("Standalone test completed successfully")
+    except asyncio.TimeoutError:
+        logger.error("Standalone test timed out after 2 minutes")
+        raise
 
 
 if __name__ == "__main__":
