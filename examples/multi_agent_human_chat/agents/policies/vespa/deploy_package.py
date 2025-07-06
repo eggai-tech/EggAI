@@ -115,7 +115,7 @@ def deploy_to_vespa(
     try:
         response = httpx.get(f"{config_server_url}/application/v2/tenant/default/application/default/environment/prod/region/default/instance/default", timeout=10.0)
         pre_deployment_generation = response.json().get("generation", 0) if response.status_code == 200 else 0
-    except:
+    except Exception as _:
         pre_deployment_generation = 0
 
     # Check if schema exists
@@ -187,12 +187,12 @@ def deploy_to_vespa(
                                         return True
                                     else:
                                         logger.warning(f"Generation {current_gen} deployed but services not converged yet")
-                            except:
+                            except Exception as _:
                                 pass
                             
                             logger.warning(f"Generation {current_gen} deployed but full verification failed - may need manual check")
                             return False
-                except:
+                except Exception as _:
                     pass
                 logger.error("Deployment verification failed after 100 seconds")
                 return False
