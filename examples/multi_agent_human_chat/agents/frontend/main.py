@@ -1,7 +1,8 @@
 import asyncio
-import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+import aiofiles
 import uvicorn
 from eggai import eggai_cleanup
 from eggai.transport import eggai_set_default_transport
@@ -44,15 +45,15 @@ api = FastAPI(lifespan=lifespan)
 @api.get("/", response_class=HTMLResponse)
 async def read_root():
     try:
-        html_file_path = os.path.join(settings.default_public_dir, "index.html")
+        html_file_path = Path(settings.default_public_dir) / "index.html"
         logger.debug(f"Reading HTML file from: {html_file_path}")
 
-        if not os.path.isfile(html_file_path):
+        if not html_file_path.is_file():
             logger.error(f"File not found: {html_file_path}")
             raise FileNotFoundError(f"File not found: {html_file_path}")
 
-        with open(html_file_path, "r", encoding="utf-8") as file:
-            file_content = file.read()
+        async with aiofiles.open(html_file_path, "r", encoding="utf-8") as file:
+            file_content = await file.read()
 
         return HTMLResponse(content=file_content, status_code=200)
 
@@ -68,15 +69,15 @@ async def read_root():
 @api.get("/admin.html", response_class=HTMLResponse)
 async def read_admin():
     try:
-        html_file_path = os.path.join(settings.default_public_dir, "admin.html")
+        html_file_path = Path(settings.default_public_dir) / "admin.html"
         logger.debug(f"Reading admin HTML file from: {html_file_path}")
 
-        if not os.path.isfile(html_file_path):
+        if not html_file_path.is_file():
             logger.error(f"File not found: {html_file_path}")
             raise FileNotFoundError(f"File not found: {html_file_path}")
 
-        with open(html_file_path, "r", encoding="utf-8") as file:
-            file_content = file.read()
+        async with aiofiles.open(html_file_path, "r", encoding="utf-8") as file:
+            file_content = await file.read()
 
         return HTMLResponse(content=file_content, status_code=200)
 
