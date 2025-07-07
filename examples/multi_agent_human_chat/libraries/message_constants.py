@@ -13,6 +13,7 @@ from libraries.subscribe import (
     AgentName,
     AuditCategory,
     MessageType,
+    OffsetReset,
 )
 
 # Re-export for convenience
@@ -20,4 +21,5 @@ __all__ = [
     "MessageType",
     "AgentName", 
     "AuditCategory",
+    "OffsetReset",
 ]

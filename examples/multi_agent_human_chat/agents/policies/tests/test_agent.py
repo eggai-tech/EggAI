@@ -15,7 +15,7 @@ from libraries.channels import channels, clear_channels
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.kafka_transport import create_kafka_transport
 from libraries.logger import get_console_logger
-from libraries.subscribe import subscribe
+from libraries.subscribe import MessageType, OffsetReset, subscribe
 from libraries.tracing import TracedMessage
 
 from ..agent.config import settings
@@ -312,7 +312,7 @@ def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
 @test_agent.subscribe(
     channel=test_channel,
     filter_by_message=lambda event: event.get("type") != "user_message",
-    auto_offset_reset="latest",
+    auto_offset_reset=OffsetReset.LATEST,
     group_id="test_policies_agent_group_agents",
 )
 async def _handle_agents_response(event: TracedMessage):
@@ -326,9 +326,9 @@ async def _handle_agents_response(event: TracedMessage):
 @subscribe(
     agent=test_agent,
     channel=human_channel,
-    message_type="agent_message",
+    message_type=MessageType.AGENT_MESSAGE,
     group_id="test_policies_agent_group_human",
-    auto_offset_reset="latest",
+    auto_offset_reset=OffsetReset.LATEST,
 )
 async def _handle_human_response(event: TracedMessage):
     await _response_queue.put(event)
@@ -346,7 +346,7 @@ _agent_request_count = 0
         "agent_message_stream_chunk",
         "agent_message_stream_end",
     ],
-    auto_offset_reset="latest",
+    auto_offset_reset=OffsetReset.LATEST,
     group_id="test_policies_agent_group_stream",
 )
 async def _handle_stream_response(event: TracedMessage):

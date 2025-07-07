@@ -8,7 +8,7 @@ from opentelemetry import trace
 
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
-from libraries.subscribe import subscribe_to_agent_requests
+from libraries.subscribe import MessageType, subscribe_to_agent_requests
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
 from libraries.tracing.otel import safe_set_attribute
 
@@ -161,7 +161,7 @@ async def process_escalation_request(
 @subscribe_to_agent_requests(
     agent=ticketing_agent,
     channel=agents_channel,
-    request_type="escalation_request",
+    request_type=MessageType.ESCALATION_REQUEST,
     group_id=GROUP_ID,
 )
 @traced_handler("handle_ticketing_request")

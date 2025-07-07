@@ -18,7 +18,7 @@ from agents.policies.agent.reasoning import process_policies
 from agents.policies.agent.types import ChatMessage
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
-from libraries.subscribe import subscribe_to_agent_requests
+from libraries.subscribe import MessageType, subscribe_to_agent_requests
 from libraries.tracing import (
     TracedMessage,
     create_tracer,
@@ -168,7 +168,7 @@ async def process_policy_request(
 @subscribe_to_agent_requests(
     agent=policies_agent,
     channel=agents_channel,
-    request_type="policy_request",
+    request_type=MessageType.POLICY_REQUEST,
     group_id=CONSUMER_GROUP_ID,
 )
 @traced_handler("handle_policy_request")

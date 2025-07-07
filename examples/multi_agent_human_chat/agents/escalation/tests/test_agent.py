@@ -22,12 +22,11 @@ eggai_set_default_transport(
 
 from agents.escalation.config import (
     AGENT_NAME,
-    MSG_TYPE_STREAM_END,
     MSG_TYPE_TICKETING_REQUEST,
 )
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
-from libraries.subscribe import subscribe
+from libraries.subscribe import MessageType, OffsetReset, subscribe
 from libraries.tracing import TracedMessage
 
 from ..agent import ticketing_agent as escalation_agent
@@ -151,9 +150,9 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
 @subscribe(
     agent=test_agent,
     channel=human_stream_channel,
-    message_type=MSG_TYPE_STREAM_END,
+    message_type=MessageType.AGENT_MESSAGE_STREAM_END,
     group_id="test_escalation_agent_group",
-    auto_offset_reset="latest",
+    auto_offset_reset=OffsetReset.LATEST,
 )
 async def handle_agent_response(event):
     """Handle agent responses during testing."""

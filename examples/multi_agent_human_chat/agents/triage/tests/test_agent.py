@@ -20,7 +20,7 @@ from agents.triage.config import Settings
 from libraries.channels import channels, clear_channels
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
-from libraries.subscribe import subscribe
+from libraries.subscribe import MessageType, OffsetReset, subscribe
 from libraries.tracing import TracedMessage
 
 from ..agent import triage_agent
@@ -186,7 +186,7 @@ _response_queue: asyncio.Queue[TracedMessage] = asyncio.Queue()
 @test_agent.subscribe(
     channel=agents_channel,
     filter_by_message=lambda event: event.get("type") != "user_message",
-    auto_offset_reset="latest",
+    auto_offset_reset=OffsetReset.LATEST,
     group_id="test_agent_group-agents",
 )
 async def _handle_response(event: TracedMessage):
@@ -196,9 +196,9 @@ async def _handle_response(event: TracedMessage):
 @subscribe(
     agent=test_agent,
     channel=test_channel,
-    message_type="agent_message",
+    message_type=MessageType.AGENT_MESSAGE,
     group_id="test_agent_group-human",
-    auto_offset_reset="latest",
+    auto_offset_reset=OffsetReset.LATEST,
 )
 async def _handle_test_message(event: TracedMessage):
     await _response_queue.put(event)
@@ -207,9 +207,9 @@ async def _handle_test_message(event: TracedMessage):
 @subscribe(
     agent=test_agent,
     channel=test_stream_channel,
-    message_type="agent_message_stream_end",
+    message_type=MessageType.AGENT_MESSAGE_STREAM_END,
     group_id="test_agent_group-human",
-    auto_offset_reset="latest",
+    auto_offset_reset=OffsetReset.LATEST,
 )
 async def _handle_test_stream_message(event: TracedMessage):
     await _response_queue.put(event)

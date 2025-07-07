@@ -130,6 +130,13 @@ class AuditCategory(str, Enum):
     OTHER = "Other"
 
 
+class OffsetReset(str, Enum):
+    """Kafka consumer offset reset options."""
+    LATEST = "latest"      # Start reading at the latest record
+    EARLIEST = "earliest"  # Start reading at the earliest record  
+    NONE = "none"         # Throw exception if no previous offset is found
+
+
 # Base message data payloads
 class MessageData(TypedDict):
     """Base message data payload."""
@@ -386,7 +393,7 @@ class SubscribeConfig(TypedDict, total=False):
     """Configuration options for subscribe decorator."""
     filter_by_message: MessageFilter
     group_id: str
-    auto_offset_reset: Literal["latest", "earliest", "none"]
+    auto_offset_reset: OffsetReset
     enable_auto_commit: bool
     max_poll_records: int
     max_poll_interval_ms: int
@@ -400,7 +407,7 @@ def subscribe(
     source: Optional[Union[str, AgentName]] = None,
     filter_func: Optional[MessageFilter] = None,
     group_id: Optional[str] = None,
-    auto_offset_reset: Literal["latest", "earliest", "none"] = "latest",
+    auto_offset_reset: Union[OffsetReset, Literal["latest", "earliest", "none"]] = OffsetReset.LATEST,
     **kwargs: Any
 ) -> Callable[[HandlerT], HandlerT]:
     """
@@ -449,6 +456,7 @@ __all__ = [
     "MessageType",
     "AgentName", 
     "AuditCategory",
+    "OffsetReset",
     
     # Data payload types
     "MessageData",
