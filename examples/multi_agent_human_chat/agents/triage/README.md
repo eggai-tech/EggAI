@@ -2,6 +2,14 @@
 
 The Triage Agent analyzes incoming messages and routes them to the appropriate specialized agent using ML-based classification.
 
+- **Purpose**: Analyzes and routes user messages to appropriate agents
+- **Key Features**:
+  - ML-based message classification (v0-v4 classifiers)
+  - Routes to: Billing, Claims, Policies, or Escalation
+  - Handles small talk directly
+  - Supports multiple classifier implementations
+- **Channels**: Listens on `agents`, publishes routing decisions
+
 ## Quick Start
 
 ```bash

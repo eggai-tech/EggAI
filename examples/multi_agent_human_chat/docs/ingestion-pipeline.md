@@ -41,6 +41,7 @@ Document ingestion is a complex multi-step process that requires:
 ## Ingestion Pipeline Stages
 
 ### 1. Document Verification
+
 ```python
 # Checks if document already exists in Vespa
 # Prevents duplicate processing
@@ -48,6 +49,7 @@ Document ingestion is a complex multi-step process that requires:
 ```
 
 ### 2. Document Loading (DocLing)
+
 ```python
 # Uses DocLing DocumentConverter
 # Supports PDF, Markdown, DOCX formats
@@ -55,6 +57,7 @@ Document ingestion is a complex multi-step process that requires:
 ```
 
 ### 3. Hierarchical Chunking
+
 ```python
 # GPT-2 tokenizer with smart boundaries
 # Config: max_tokens=500, min_tokens=100
@@ -63,6 +66,7 @@ Document ingestion is a complex multi-step process that requires:
 ```
 
 ### 4. Vespa Indexing
+
 ```python
 # BM25 text search with category filtering
 # Schema: id, title, text, category, source_file
@@ -72,6 +76,7 @@ Document ingestion is a complex multi-step process that requires:
 ## Running the Ingestion
 
 ### Start the Worker
+
 ```bash
 # Start Temporal and Vespa services
 make docker-up
@@ -81,19 +86,23 @@ make start-policies-document-ingestion
 ```
 
 ### Trigger Ingestion
+
 Documents in `agents/policies/ingestion/documents/` are automatically ingested on startup:
+
 - `auto.md` - Auto insurance policies
 - `home.md` - Home insurance policies  
 - `health.md` - Health insurance policies
 - `life.md` - Life insurance policies
 
 ### Monitor Progress
+
 - **Temporal UI**: http://localhost:8081
 - **Vespa Status**: http://localhost:19071
 
 ## Vespa Search Integration
 
 ### Query Format
+
 ```python
 # BM25 text search with optional category filter
 results = retrieve_policies(
@@ -103,6 +112,7 @@ results = retrieve_policies(
 ```
 
 ### Result Structure
+
 ```json
 {
   "content": "The Insurer agrees to indemnify...",
@@ -121,6 +131,7 @@ results = retrieve_policies(
 The Policies Agent uses a ReAct (Reasoning + Acting) pattern with two tools:
 
 ### Tool 1: Personal Policy Lookup
+
 ```python
 get_personal_policy_details(policy_number: str)
 # Returns specific policy data from database
@@ -128,6 +139,7 @@ get_personal_policy_details(policy_number: str)
 ```
 
 ### Tool 2: Document Search
+
 ```python
 search_policy_documentation(query: str, category: str = None)
 # Searches Vespa-indexed policy documents
@@ -135,13 +147,16 @@ search_policy_documentation(query: str, category: str = None)
 ```
 
 ### Decision Logic
+
 The agent analyzes queries to determine:
+
 - **Personal queries**: Require policy number (e.g., "What's my premium for A12345?")
 - **General queries**: Search documentation (e.g., "What does fire damage cover?")
 
 ## Configuration
 
 ### Temporal Settings
+
 ```yaml
 # agents/policies/ingestion/config.py
 temporal_server_url: "localhost:7233"
@@ -150,6 +165,7 @@ temporal_task_queue: "policy-rag"
 ```
 
 ### Vespa Configuration
+
 ```yaml
 # Chunking parameters
 max_tokens: 500

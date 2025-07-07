@@ -64,54 +64,57 @@ make start-all
 
 Open http://localhost:8000 to start chatting!
 
-The chat interface now includes:
+The chat interface includes example questions to get started:
+
 - **Support categories** with clickable example questions
 - **Policy Inquiries** - Coverage and policy details
 - **Billing & Payments** - Premiums and payment info  
 - **Claims Support** - File claims and check status
 - **General Support** - Escalations and other help
 
-Just click any example question to get started!
+You can also interact with the system using free-form natural language.  
+Simply type your request into the chat input at the bottom of the interface.
 
-**Example queries:**
-- "What's my premium for policy B67890?"
-- "I want to file a claim"
-- "What does my home insurance cover?"
-- "I have a complaint about my service"
+Here are some example prompts you can try:
 
-**Platform Services:**
-All services are accessible directly from the chat UI header, or visit:
-- Chat UI: http://localhost:8000
-- Admin Dashboard: http://localhost:8000/admin.html - System monitoring
-- Redpanda Console: http://localhost:8082 - Message queue monitoring
-- Temporal UI: http://localhost:8081 - Workflow management
-- Grafana: http://localhost:3000 - Metrics & dashboards
-- MLflow: http://localhost:5001 - ML experiment tracking
-- Vespa Status: http://localhost:19071 - Search engine status
-- Prometheus: http://localhost:9090 - Metrics collection
+- _"What's my premium for policy B67890?"_
+- _"I want to file a claim"_
+- _"What does my home insurance cover?"_
+- _"I have a complaint about my service"_
+
+The system will automatically route your request to the appropriate agent.
+
+**Platform Services:**  
+All services are accessible directly from the chat UI header,  
+or you can open them individually via their URLs:
+
+| Service     | Local URL                            | Description                            | Product URL                              |
+|-------------|--------------------------------------|----------------------------------------|-------------------------------------------|
+| Chat UI     | [http://localhost:8000](http://localhost:8000)   | Main chat interface                    |                                           |
+| Redpanda    | [http://localhost:8082](http://localhost:8082)   | Kafka-compatible message queue         | [redpanda.com](https://redpanda.com)       |
+| Vespa       | [http://localhost:19071](http://localhost:19071) | Vector search engine and ranking       | [vespa.ai](https://vespa.ai)               |
+| Temporal    | [http://localhost:8081](http://localhost:8081)   | Orchestration engine for workflows     | [temporal.io](https://temporal.io)         |
+| MLflow      | [http://localhost:5001](http://localhost:5001)   | Machine learning experiment tracking   | [mlflow.org](https://mlflow.org)           |
+| Grafana     | [http://localhost:3000](http://localhost:3000)   | Visualization and dashboarding tool    | [grafana.com](https://grafana.com)         |
+| Prometheus  | [http://localhost:9090](http://localhost:9090)   | Metrics collection and time-series DB  | [prometheus.io](https://prometheus.io)     |
 
 ## System Overview
 
 ![Architecture](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-multi-agent-insurance-support-system.svg)
 
 **Specialized Agents:**
-- **Frontend** - WebSocket gateway for user connections
-- **Triage** - ML-based routing to appropriate agents
-- **Billing** - Payment inquiries and premium information
-- **Claims** - Claims status and filing
-- **Policies** - RAG-powered policy document search
-- **Escalation** - Complex issues and complaints
-- **Audit** - Compliance logging
+
+|   | Agent       | Description                                      | Documentation                              |
+|---|-------------|--------------------------------------------------|---------------------------------------------|
+| ![Frontend Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/frontend-agent.png) | Frontend    | Gateway for user interaction           | [Frontend Agent Docs](agents/frontend/README.md)     |
+| ![Triage Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/triage-agent.png) | Triage      | ML-based routing to appropriate agents           | [Triage Agent Docs](agents/triage/README.md)         |
+| ![Billing Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/billing-agent.png) | Billing     | Payment inquiries and premium information        | [Billing Agent Docs](agents/billing/README.md)       |
+| ![Claims Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/claims-agent.png) | Claims      | Claims status and filing                         | [Claims Agent Docs](agents/claims/README.md)         |
+| ![Policies Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/policies-agent.png) | Policies    | RAG-powered policy document search               | [Policies Agent Docs](agents/policies/README.md)     |
+| ![Escalation Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/escalation-agent.png) | Escalation  | Complex issues and complaints                    | [Escalation Agent Docs](agents/escalation/README.md) |
+| ![Ausdit Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/audit-agent.png) | Audit       | Compliance logging                               | [Audit Agent Docs](agents/audit/README.md)           |
 
 **Infrastructure:** Redpanda (Kafka), Vespa (Vector Search), Temporal (Workflows), MLflow, Grafana, Prometheus
-
-## Testing
-
-```bash
-make test        # Run all tests
-make lint        # Check code quality
-make format      # Format code
-```
 
 ## Documentation
 
@@ -124,38 +127,12 @@ make format      # Format code
 - [Retrieval Performance Testing](docs/retrieval-performance-testing.md) - Evaluation metrics and benchmarks
 - [Advanced Topics](docs/advanced-topics.md) - Multi-environment deployment, optimization, and training
 
-## Advanced Topics
+## Development
 
-### Multi-Environment Deployment
-
-Run multiple isolated instances using deployment namespaces:
+### Testing
 
 ```bash
-export DEPLOYMENT_NAMESPACE=pr-123  # or staging, prod, etc.
-make start-all
-```
-
-This prefixes Kafka topics, Temporal namespaces, and Vespa app names.
-
-### Agent Optimization
-
-```bash
-make compile-billing-optimizer   # Optimize billing agent
-make compile-all                # Optimize all agents
-```
-
-### Custom Model Training
-
-```bash
-make train-triage-classifier-v3  # Train baseline classifier
-make train-triage-classifier-v5  # Train attention-based classifier
-```
-
-View results in MLflow at http://localhost:5001
-
-## Cleaning Up
-
-```bash
-make docker-down  # Stop infrastructure
-make clean       # Remove virtual environment
+make test        # Run all tests
+make lint        # Check code quality
+make format      # Format code
 ```

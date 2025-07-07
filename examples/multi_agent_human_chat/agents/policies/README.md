@@ -2,6 +2,14 @@
 
 The Policies Agent provides policy information using RAG (Retrieval-Augmented Generation) to search policy documents.
 
+- **Purpose**: Answers policy coverage questions using RAG
+- **Key Features**:
+  - Vector-based policy document search
+  - Contextual answer generation
+  - Multi-document retrieval
+  - Vespa-powered search backend
+- **API**: Also provides REST API on port 8003
+
 ## Quick Start
 
 ```bash

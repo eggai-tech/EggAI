@@ -2,6 +2,14 @@
 
 The Frontend Agent provides a WebSocket gateway for real-time communication between users and the multi-agent system.
 
+- **Purpose**: Manages WebSocket connections between users and backend
+- **Key Features**:
+  - Real-time bidirectional communication
+  - Connection state management
+  - Message buffering for offline connections
+  - Optional content moderation via Guardrails
+- **Channels**: Listens on `human`, publishes to `agents`
+
 ## Quick Start
 
 ```bash
