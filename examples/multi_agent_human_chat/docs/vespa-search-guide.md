@@ -5,6 +5,7 @@ This guide explains how to work with Vespa to explore policy data and utilize di
 ## Overview
 
 The system uses Vespa as a search engine with support for:
+
 - **Keyword search** - Traditional BM25 text matching
 - **Vector search** - Semantic similarity using embeddings
 - **Hybrid search** - Combines keyword and vector search
@@ -12,16 +13,19 @@ The system uses Vespa as a search engine with support for:
 ## Accessing Vespa
 
 ### Vespa Web Interface
+
 - **URL**: http://localhost:19071
 - **Query endpoint**: http://localhost:8080/search/
 
 ### REST API (via Policies Agent)
+
 - **URL**: http://localhost:8003
 - **Endpoints**: `/search`, `/documents`, `/categories`
 
 ## Search Types
 
 ### 1. Keyword Search (BM25)
+
 Traditional text matching using BM25 ranking.
 
 ```bash
@@ -43,6 +47,7 @@ curl -X POST http://localhost:8003/search \
 ```
 
 ### 2. Vector Search (Semantic)
+
 Uses embeddings to find semantically similar content.
 
 ```bash
@@ -57,6 +62,7 @@ curl -X POST http://localhost:8003/search \
 ```
 
 ### 3. Hybrid Search
+
 Combines keyword and vector search with configurable weighting.
 
 ```bash
@@ -75,28 +81,33 @@ curl -X POST http://localhost:8003/search \
 ### Available Profiles
 
 1. **default** - Standard BM25 text ranking
-   ```
+
+   ```python
    nativeRank(title, text)
    ```
 
 2. **with_position** - Considers chunk position (earlier chunks ranked higher)
-   ```
+
+   ```python
    nativeRank(title, text) * (1.0 - 0.3 * attribute(chunk_position))
    ```
 
 3. **semantic** - Pure vector similarity
-   ```
+
+   ```python
    closeness(field, embedding)
    ```
 
 4. **hybrid** - Weighted combination (alpha controls balance)
-   ```
+
+   ```python
    (1.0 - alpha) * nativeRank + alpha * closeness
    ```
 
 ## Exploring Data
 
 ### List All Documents
+
 ```bash
 # Get all documents
 curl "http://localhost:8003/documents"
@@ -106,6 +117,7 @@ curl "http://localhost:8003/documents?category=home"
 ```
 
 ### Search with Filters
+
 ```bash
 # Search within a category
 curl -X POST http://localhost:8003/search \
@@ -118,6 +130,7 @@ curl -X POST http://localhost:8003/search \
 ```
 
 ### Get Document Categories
+
 ```bash
 curl "http://localhost:8003/categories"
 ```
@@ -125,6 +138,7 @@ curl "http://localhost:8003/categories"
 ## Advanced Queries
 
 ### Direct YQL Queries
+
 For complex queries, use Vespa's YQL (Yahoo Query Language):
 
 ```bash
@@ -159,6 +173,7 @@ curl -X POST http://localhost:8080/search/ \
 ## Schema Details
 
 ### Document Fields
+
 - `id` - Unique document identifier
 - `title` - Document title (searchable)
 - `text` - Main content (searchable)
@@ -170,6 +185,7 @@ curl -X POST http://localhost:8080/search/ \
 - `embedding` - 384-dimensional vector
 
 ### Indexing Configuration
+
 - Text fields use BM25 indexing
 - Embeddings use HNSW index for fast similarity search
 - Categories are attributes for filtering
@@ -190,6 +206,7 @@ curl -X POST http://localhost:8080/search/ \
 ## Troubleshooting
 
 ### No Results
+
 ```bash
 # Check document count
 curl "http://localhost:8080/search/?yql=select * from policy_document | all()"
@@ -199,17 +216,20 @@ make start-policies-document-ingestion
 ```
 
 ### Slow Queries
+
 - Check Vespa resource usage
 - Consider using keyword search for simple queries
 - Reduce `max_hits` parameter
 
 ### Embedding Errors
+
 - Ensure embedding model is loaded
 - Check vector dimensions (must be 384)
 
 ## Examples
 
 ### Finding Specific Coverage
+
 ```bash
 # What does home insurance cover for water damage?
 curl -X POST http://localhost:8003/search \
@@ -223,6 +243,7 @@ curl -X POST http://localhost:8003/search \
 ```
 
 ### Comparing Policies
+
 ```bash
 # Get all deductible information across categories
 curl -X POST http://localhost:8003/search \

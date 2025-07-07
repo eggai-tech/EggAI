@@ -38,32 +38,41 @@ The system uses a sophisticated, configurable performance calculator that adapts
 ### Metric Categories & Weights
 
 #### Retrieval Metrics (30% total weight)
+
 Core performance metrics always available:
+
 - **`success_rate`** (15%): Percentage of queries returning results without errors
 - **`avg_total_hits`** (10%): Average number of documents retrieved per query
 - **`avg_retrieval_time`** (5%): Average response time in milliseconds
 
 #### LLM Judge Metrics (40% total weight - when enabled)
+
 AI-powered quality assessment:
+
 - **`avg_quality_score`** (20%): LLM-judged overall quality (0.0-1.0)
 - **`pass_rate`** (15%): Percentage passing LLM quality threshold (≥0.7)
 - **`avg_completeness_score`** (5%): Content completeness for answering
 
 #### Context Metrics (20% total weight - when LLM enabled)
+
 Context-based similarity and relevance:
+
 - **`avg_recall_score`** (8%): Whether relevant context was found
 - **`avg_precision_at_k`** (7%): Precision of top-K results (K=5)
 - **`avg_ndcg_score`** (5%): Normalized Discounted Cumulative Gain
 
 #### Position Metrics (10% total weight - when LLM enabled)
+
 Ranking quality and position analysis:
+
 - **`avg_best_position`** (5%): Average position of best matching result
 - **`hit_rate_top_3`** (5%): Percentage with relevant results in top 3
 
 ### Adaptive Scoring Modes
 
 #### Retrieval-Only Mode (No LLM Judge)
-```
+
+```bash
 • Active Metrics: 3 (retrieval category only)
 • Weight Distribution: Retrieval 100%
 • Use Case: Fast performance testing, CI/CD pipelines
@@ -71,7 +80,8 @@ Ranking quality and position analysis:
 ```
 
 #### Full Evaluation Mode (With LLM Judge)
-```
+
+```bash
 • Active Metrics: 11 (all categories)
 • Weight Distribution: 
   - Retrieval: 30%
@@ -101,6 +111,7 @@ Ranking quality and position analysis:
 ### Prerequisites
 
 **Environment Requirements:**
+
 - Ensure all required environment variables are set in `.env`
 - Vespa and Kafka services must be running
 - Tests perform automatic end-to-end setup:
@@ -118,12 +129,14 @@ docker logs -f vespa-container
 ```
 
 ### Run Tests with LLM Judge (Default)
+
 ```bash
 # Requires OpenAI API key in .env
 make test-policies-retrieval-performance
 ```
 
 ### Run Tests Without LLM Judge
+
 ```python
 # Configure the test to skip LLM evaluation
 config = RetrievalTestConfiguration(enable_llm_judge=False)
@@ -149,11 +162,13 @@ The test follows an end-to-end 5-stage pattern:
 ## Configuration Options
 
 ### Search Types
+
 - `hybrid`: Combines keyword and vector search
 - `keyword`: Traditional keyword-based search
 - `vector`: Semantic vector search
 
 ### Max Hits Values
+
 - `1`: Retrieve only top result
 - `5`: Retrieve top 5 results
 - `10`: Retrieve top 10 results
@@ -165,12 +180,14 @@ The test follows an end-to-end 5-stage pattern:
 ### Test Data
 
 **Sample Documents** (Auto-ingested during test):
+
 - `agents/policies/ingestion/documents/life.md` → category: "life"
 - `agents/policies/ingestion/documents/auto.md` → category: "auto" 
 - `agents/policies/ingestion/documents/home.md` → category: "home"
 - `agents/policies/ingestion/documents/health.md` → category: "health"
 
 **Test Queries** in `agents/policies/tests/retrieval_performance/filtered_qa_pairs.json`:
+
 ```json
 {
   "question": "What is the purpose of the Accidental Death Benefit Rider?",
@@ -187,7 +204,7 @@ The test follows an end-to-end 5-stage pattern:
 
 The test automatically displays the best performing combination:
 
-```
+```bash
 BEST PERFORMING COMBINATION (RETRIEVAL-ONLY)
 ============================================================
 Search Type: KEYWORD
@@ -215,11 +232,13 @@ Results are logged to MLflow under experiment `retrieval_performance_evaluation`
 ### Key MLflow Metrics
 
 **Retrieval-Only Mode**:
+
 - `avg_retrieval_time_ms`: Response time performance
 - `avg_total_hits`: Average documents retrieved
 - `success_rate`: Query success percentage
 
 **With LLM Judge**:
+
 - `avg_quality_score`: LLM-judged quality (0.0-1.0)
 - `pass_rate`: Percentage passing quality threshold
 - `avg_recall_score`: Context matching success
@@ -240,7 +259,6 @@ METRICS_CONFIG: Dict[str, MetricDefinition] = {
     # Add custom metrics...
 }
 ```
-
 
 ## Related Documentation
 

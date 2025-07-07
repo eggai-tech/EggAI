@@ -2,6 +2,14 @@
 
 The Claims Agent manages insurance claim inquiries, status checks, and new claim filing.
 
+- **Purpose**: Manages insurance claims inquiries
+- **Key Features**:
+  - Retrieves claim status
+  - Files new claims
+  - Updates existing claims
+  - Provides estimated payouts
+- **Tools**: `get_claim_status`, `create_claim`, `update_claim`
+
 ## Quick Start
 
 ```bash
@@ -12,29 +20,13 @@ make start-claims
 python -m agents.claims.main
 ```
 
-## Features
-
-- Process new insurance claims
-- Check claim status by claim number
-- Handle claim documentation requests
-- Provide claim history information
-
-## Configuration
+### Configuration
 
 Key environment variables:
+
 ```bash
 CLAIMS_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it  # Or openai/gpt-4o-mini
 CLAIMS_PROMETHEUS_METRICS_PORT=9093
-```
-
-## Testing
-
-```bash
-# Run all claims tests
-make test-claims-agent
-
-# Run specific test files
-pytest agents/claims/tests/test_agent.py -v
 ```
 
 ## Tools
@@ -55,15 +47,23 @@ The agent uses ReAct pattern with these tools:
 
 ## Example Interactions
 
-```
-User: "I want to file a claim for my car accident"
-Agent: Asks for policy number and incident details, then files claim
-
-User: "What's the status of claim CL789012?"
-Agent: Retrieves and provides current claim status
-```
+> **User**: _"I want to file a claim for my car accident"_  
+> **Agent**: Asks for policy number and incident details, then files claim
+>
+> **User**: _"What's the status of claim CL789012?"_  
+> **Agent**: Retrieves and provides current claim status
 
 ## Development
+
+### Testing
+
+```bash
+# Run all claims tests
+make test-claims-agent
+
+# Run specific test files
+pytest agents/claims/tests/test_agent.py -v
+```
 
 ### Running with Custom Settings
 
@@ -76,6 +76,7 @@ make start-claims
 ### Optimization
 
 Optimize the agent's responses:
+
 ```bash
 make compile-claims-optimizer
 ```

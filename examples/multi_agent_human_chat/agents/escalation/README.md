@@ -2,6 +2,14 @@
 
 The Escalation Agent handles complex issues, complaints, and requests that require special attention or human intervention.
 
+- **Purpose**: Handles complex issues requiring human attention
+- **Key Features**:
+  - Multi-step escalation workflow
+  - State-based conversation management
+  - Support ticket creation
+  - Handles complaints and technical issues
+- **Workflow**: Reason → Details → Confirmation → Ticket Creation
+
 ## Quick Start
 
 ```bash
@@ -22,6 +30,7 @@ python -m agents.escalation.main
 ## Configuration
 
 Key environment variables:
+
 ```bash
 ESCALATION_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it  # Or openai/gpt-4o-mini
 ESCALATION_PROMETHEUS_METRICS_PORT=9094
@@ -78,6 +87,7 @@ make start-escalation
 ### Database Management
 
 The agent uses SQLite for ticket storage:
+
 ```python
 # Database schema
 CREATE TABLE tickets (
@@ -94,6 +104,7 @@ CREATE TABLE tickets (
 ### Optimization
 
 Optimize the agent's responses:
+
 ```bash
 make compile-escalation-optimizer
 ```

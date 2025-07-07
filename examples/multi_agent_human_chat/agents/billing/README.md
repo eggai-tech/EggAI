@@ -2,6 +2,14 @@
 
 The Billing Agent handles all payment and financial inquiries for insurance policies.
 
+- **Purpose**: Handles financial and payment inquiries
+- **Key Features**:
+  - Retrieves billing information by policy number
+  - Provides premium amounts and due dates
+  - Updates payment information
+  - Privacy controls (requires policy number)
+- **Tools**: `get_billing_info`, `update_billing_info`
+
 ## Quick Start
 
 ```bash
@@ -12,29 +20,13 @@ make start-billing
 python -m agents.billing.main
 ```
 
-## Features
-
-- Retrieve billing information by policy number
-- Provide premium amounts and due dates
-- Update payment information
-- Privacy-aware (requires policy number for access)
-
-## Configuration
+### Configuration
 
 Key environment variables:
+
 ```bash
 BILLING_LANGUAGE_MODEL=lm_studio/gemma-3-12b-it  # Or openai/gpt-4o-mini
 BILLING_PROMETHEUS_METRICS_PORT=9092
-```
-
-## Testing
-
-```bash
-# Run all billing tests
-make test-billing-agent
-
-# Run specific test files
-pytest agents/billing/tests/test_agent.py -v
 ```
 
 ## Tools
@@ -61,6 +53,16 @@ Agent: Checks policy number first, then provides due date
 
 ## Development
 
+### Testing
+
+```bash
+# Run all billing tests
+make test-billing-agent
+
+# Run specific test files
+pytest agents/billing/tests/test_agent.py -v
+```
+
 ### Running with Custom Settings
 
 ```bash
@@ -72,6 +74,7 @@ make start-billing
 ### Optimization
 
 Optimize the agent's responses:
+
 ```bash
 make compile-billing-optimizer
 ```

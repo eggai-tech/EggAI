@@ -80,52 +80,61 @@ graph TB
 
 ### Message Flow Components
 
-**Frontend Agent (WebSocket Gateway)**
+#### Frontend Agent (WebSocket Gateway)**
+
 - Manages WebSocket connections
 - Handles reconnections and buffering
 - Publishes to Human Channel
 
-**Human Channel**
+#### Human Channel
+
 - Primary channel for user messages
 - Subscribed by Triage and Audit agents
 - Carries user requests and agent responses
 
-**Agents Channel**
+#### Agents Channel
+
 - Secondary channel for routed messages
 - Subscribed by specialized agents
 - Carries messages after triage routing
 
 ### Agent Components
 
-**Triage Agent**
+#### Triage Agent
+
 - Classifies user intent using ML models (v0-v5)
 - Routes to appropriate specialized agent
 - Handles small talk directly
 
-**Specialized Agents**
+#### Specialized Agents
+
 - **Billing**: Payment info, premiums, due dates
 - **Claims**: Claim status, filing, updates
 - **Policies**: RAG-based document search
 - **Escalation**: Complex issues, complaints
 
-**Audit Agent**
+#### Audit Agent
+
 - Monitors all channels
 - Creates structured audit logs
 - Provides compliance trail
 
 ### Infrastructure Services
 
-**Redpanda (Kafka-compatible)**
+#### Redpanda (Kafka-compatible)
+
 - Message broker for all channels
 - Ensures reliable message delivery
 - Provides topic management
 
-**Vespa**
+#### Vespa
+
 - Vector search engine
 - Stores policy documents
 - Powers RAG for Policies agent
 
-**Temporal**
+#### Temporal
+
 - Workflow orchestration
 - Manages document ingestion
 - Provides durability and retries
@@ -154,18 +163,21 @@ graph LR
 ## Data Flow Patterns
 
 ### 1. Synchronous Request-Response
-```
+
+```bash
 User → Frontend → Human Channel → Triage → Agent → Response
 ```
 
 ### 2. Asynchronous Processing
-```
+
+```bash
 Documents → Temporal Workflow → Vespa Index
 User Query → Policies Agent → Vespa Search → Response
 ```
 
 ### 3. Audit Trail
-```
+
+```bash
 All Messages → Audit Agent → Audit Logs Channel → Storage
 ```
 

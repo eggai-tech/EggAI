@@ -9,6 +9,7 @@ The chat interface has been enhanced to provide users with clear guidance on wha
 ### 1. Platform Services Links
 
 Added quick access to all platform services in the chat header:
+
 - **Redpanda Console** (🦜) - Message queue monitoring at http://localhost:8082
 - **Temporal UI** (⏰) - Workflow management at http://localhost:8081
 - **Grafana** (📊) - Metrics & dashboards at http://localhost:3000
@@ -21,6 +22,7 @@ The platform links are collapsible to keep the UI clean.
 ### 2. Welcome Screen with Support Categories
 
 When users first open the chat, they see:
+
 - A welcoming message
 - Four support categories with relevant icons
 - Example questions for each category
@@ -29,6 +31,7 @@ When users first open the chat, they see:
 ### 3. Support Categories
 
 #### Policy Inquiries 📋
+
 - Questions about insurance coverage and policy details
 - Examples:
   - "What does my home insurance policy cover?"
@@ -37,6 +40,7 @@ When users first open the chat, they see:
   - "Does my auto policy cover rental cars?"
 
 #### Billing & Payments 💳
+
 - Premium amounts, payment methods, and billing questions
 - Examples:
   - "What's my premium for policy B67890?"
@@ -45,6 +49,7 @@ When users first open the chat, they see:
   - "Can I see my billing history?"
 
 #### Claims Support 🔧
+
 - File new claims or check existing claim status
 - Examples:
   - "I want to file a claim for my car accident"
@@ -53,6 +58,7 @@ When users first open the chat, they see:
   - "Show me my claim history"
 
 #### General Support 🎫
+
 - Other questions or issues requiring assistance
 - Examples:
   - "I need to speak with a manager"
@@ -127,6 +133,7 @@ const supportCategories = [
 ## Screenshots
 
 The enhanced UI shows:
+
 - Welcome message at the top
 - Four category cards in a 2x2 grid
 - Each card has an icon, title, description, and clickable examples

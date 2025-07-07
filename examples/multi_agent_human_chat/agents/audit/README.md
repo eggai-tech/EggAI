@@ -2,6 +2,17 @@
 
 The Audit Agent monitors all system activity for compliance, security, and operational insights.
 
+- **Purpose**: Monitors and logs all system activity
+- **Key Features**:
+  - Captures all messages on `human` and `agents` channels
+  - Categorizes messages by domain
+  - Creates standardized audit records
+  - Publishes to `audit_logs` channel
+- **Purpose**:
+  - Compliance reporting
+  - Message filtering and analysis
+  - Real-time monitoring of system health
+
 ## Quick Start
 
 ```bash
@@ -12,17 +23,10 @@ make start-audit
 python -m agents.audit.main
 ```
 
-## Features
-
-- Logs all inter-agent communications
-- Tracks user interactions and agent responses
-- Compliance reporting capabilities
-- Message filtering and analysis
-- Real-time monitoring of system health
-
-## Configuration
+### Configuration
 
 Key environment variables:
+
 ```bash
 AUDIT_PROMETHEUS_METRICS_PORT=9096
 AUDIT_LOG_LEVEL=INFO
@@ -48,7 +52,22 @@ The Audit Agent monitors:
    - Policy number usage
    - Sensitive information handling
 
-## Log Format
+### Querying Audit Logs
+
+#### Example Queries
+
+```python
+# Find all billing-related messages
+grep '"source": "Billing"' audit_logs/audit.log
+
+# Track specific user session
+grep '"connection_id": "user-123"' audit_logs/audit.log
+
+# Find errors
+grep '"level": "ERROR"' audit_logs/audit.log
+```
+
+### Log Format
 
 ```json
 {
@@ -62,7 +81,9 @@ The Audit Agent monitors:
 }
 ```
 
-## Testing
+## Development
+
+### Testing
 
 ```bash
 # Run audit agent tests
@@ -71,23 +92,6 @@ make test-audit-agent
 # Run specific test files
 pytest agents/audit/tests/test_agent.py -v
 ```
-
-## Querying Audit Logs
-
-### Example Queries
-
-```python
-# Find all billing-related messages
-grep '"source": "Billing"' audit_logs/audit.log
-
-# Track specific user session
-grep '"connection_id": "user-123"' audit_logs/audit.log
-
-# Find errors
-grep '"level": "ERROR"' audit_logs/audit.log
-```
-
-## Development
 
 ### Custom Log Processing
 
@@ -106,6 +110,7 @@ audit_agent.add_processor(analyze_pii)
 ### Integration with External Systems
 
 Export audit logs to external systems:
+
 - Elasticsearch for search
 - Splunk for analysis
 - S3 for long-term storage
