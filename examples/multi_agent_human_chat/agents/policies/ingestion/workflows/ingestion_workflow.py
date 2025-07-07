@@ -27,6 +27,8 @@ class DocumentIngestionWorkflowInput(BaseModel):
     index_name: Optional[str] = "policies_index"
     force_rebuild: bool = False
     request_id: Optional[str] = None
+    source: Optional[str] = "filesystem"  # "filesystem" or "minio"
+    metadata: Optional[Dict[str, Any]] = None  # Additional metadata for MinIO documents
 
 
 class DocumentIngestionResult(BaseModel):
@@ -71,12 +73,17 @@ class DocumentIngestionWorkflow:
         Returns:
             DocumentIngestionResult with ingestion results or error information
         """
+        # Handle both dict and object inputs for backward compatibility
+        if isinstance(input_data, dict):
+            input_data = DocumentIngestionWorkflowInput(**input_data)
+            
         workflow.logger.info(
             f"Starting document ingestion workflow for file: {input_data.file_path}, "
             f"category: {input_data.category}, "
             f"index_name: {input_data.index_name}, "
             f"force_rebuild: {input_data.force_rebuild}, "
-            f"request_id: {input_data.request_id}"
+            f"request_id: {input_data.request_id}, "
+            f"source: {input_data.source}"
         )
 
         # Step 1: Verify if file already exists in index
@@ -112,7 +119,7 @@ class DocumentIngestionWorkflow:
         workflow.logger.info("Starting document loading")
         load_result = await workflow.execute_activity(
             load_document_activity,
-            args=[input_data.file_path],
+            args=[input_data.file_path, input_data.source, input_data.metadata],
             start_to_close_timeout=timedelta(minutes=5),
         )
 

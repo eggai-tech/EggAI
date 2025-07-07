@@ -1,6 +1,7 @@
+from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
 from agents.policies.agent.api.dependencies import (
     get_document_service,
@@ -445,6 +446,118 @@ async def get_personal_policy(policy_number: str):
         logger.error(f"Get policy error: {e}", exc_info=True)
         raise HTTPException(
             status_code=500, detail="Internal server error while retrieving policy"
+        )
+
+
+@router.post("/kb/upload")
+async def upload_document(
+    file: UploadFile = File(...),
+    category: str = Query("general", description="Document category"),
+):
+    """
+    Upload a document to MinIO for processing.
+    
+    The document will be:
+    1. Uploaded to MinIO inbox folder
+    2. Automatically processed by the watcher workflow
+    3. Indexed in Vespa if not already present
+    
+    Supported formats: PDF, DOCX, Markdown, Text
+    """
+    try:
+        # Validate category
+        validated_category = validate_category(category)
+        
+        # Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+            
+        # Check file extension
+        allowed_extensions = {'.pdf', '.docx', '.md', '.txt'}
+        file_ext = Path(file.filename).suffix.lower()
+        if file_ext not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type. Allowed: {', '.join(allowed_extensions)}"
+            )
+            
+        # Read file content
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty file")
+            
+        # Upload to MinIO
+        from agents.policies.ingestion.minio_client import MinIOClient
+        
+        async with MinIOClient() as minio_client:
+            metadata = await minio_client.upload_to_inbox(
+                filename=file.filename,
+                content=content,
+                mime_type=file.content_type or "application/octet-stream"
+            )
+            
+        logger.info(f"Uploaded document {file.filename} with ID {metadata.document_id}")
+        
+        return {
+            "message": "Document uploaded successfully",
+            "filename": file.filename,
+            "document_id": metadata.document_id,
+            "sha256": metadata.sha256,
+            "size": metadata.file_size,
+            "status": "queued_for_processing"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Internal server error during upload"
+        )
+
+
+@router.get("/kb/upload/status")
+async def get_upload_status():
+    """
+    Get the status of the MinIO upload system.
+    
+    Returns information about:
+    - Files in inbox awaiting processing
+    - Recently processed files
+    - Failed files with errors
+    """
+    try:
+        from agents.policies.ingestion.minio_client import MinIOClient
+        
+        async with MinIOClient() as minio_client:
+            # Get files from different folders
+            inbox_files = await minio_client.list_inbox_files()
+            
+            # Get recent processed files (simplified for now)
+            processed_count = 0
+            failed_count = 0
+            
+            # TODO: Implement listing for processed and failed folders
+            
+        return {
+            "inbox_count": len(inbox_files),
+            "inbox_files": [
+                {
+                    "filename": f["filename"],
+                    "size": f["size"],
+                    "last_modified": f["last_modified"].isoformat() if f["last_modified"] else None,
+                    "document_id": f["metadata"].get("document_id")
+                }
+                for f in inbox_files
+            ],
+            "processed_count": processed_count,
+            "failed_count": failed_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Get upload status error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Internal server error while getting upload status"
         )
 
 
