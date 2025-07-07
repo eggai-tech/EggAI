@@ -7,6 +7,7 @@ logger = get_console_logger("billing_agent.data")
 BILLING_DATABASE = [
     {
         "policy_number": "A12345",
+        "customer_name": "John Doe",
         "billing_cycle": "Monthly",
         "amount_due": 120.0,
         "due_date": "2026-02-01",
@@ -14,6 +15,7 @@ BILLING_DATABASE = [
     },
     {
         "policy_number": "B67890",
+        "customer_name": "Jane Smith",
         "billing_cycle": "Quarterly",
         "amount_due": 300.0,
         "due_date": "2026-03-15",
@@ -21,6 +23,7 @@ BILLING_DATABASE = [
     },
     {
         "policy_number": "C24680",
+        "customer_name": "Robert Johnson",
         "billing_cycle": "Annual",
         "amount_due": 1000.0,
         "due_date": "2026-12-01",

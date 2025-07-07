@@ -62,7 +62,7 @@ async def test_dspy_modules():
                     example, prediction, _ = results[i]
                     logger.error(f"\n{'=' * 80}\nFAILING TEST #{i}:")
                     logger.error(f"CONVERSATION:\n{example.chat_history}")
-                    logger.error(f"EXPECTED AGENT: {example.target_agent.value}")
+                    logger.error(f"EXPECTED AGENT: {example.target_agent if isinstance(example.target_agent, str) else example.target_agent.value}")
                     logger.error(f"PREDICTED AGENT: {str(prediction)}")
                     logger.error(f"{'=' * 80}")
 

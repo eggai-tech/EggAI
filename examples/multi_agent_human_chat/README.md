@@ -50,7 +50,7 @@ Edit `.env` and uncomment the OpenAI model lines:
 # OPENAI_API_KEY=your-api-key-here
 ```
 
-### 3. Start Services
+### 3. Start Platform Services
 
 ```bash
 make docker-up  # Start all required services (Kafka, Vespa, Temporal, etc.)
@@ -64,18 +64,31 @@ make start-all
 
 Open http://localhost:8000 to start chatting!
 
+The chat interface now includes:
+- **Support categories** with clickable example questions
+- **Policy Inquiries** - Coverage and policy details
+- **Billing & Payments** - Premiums and payment info  
+- **Claims Support** - File claims and check status
+- **General Support** - Escalations and other help
+
+Just click any example question to get started!
+
 **Example queries:**
 - "What's my premium for policy B67890?"
 - "I want to file a claim"
 - "What does my home insurance cover?"
 - "I have a complaint about my service"
 
-**Useful links:**
+**Platform Services:**
+All services are accessible directly from the chat UI header, or visit:
 - Chat UI: http://localhost:8000
-- Grafana Dashboards: http://localhost:3000
-- Redpanda Console: http://localhost:8082
-- Temporal UI: http://localhost:8081
-- MLflow: http://localhost:5001
+- Admin Dashboard: http://localhost:8000/admin.html - System monitoring
+- Redpanda Console: http://localhost:8082 - Message queue monitoring
+- Temporal UI: http://localhost:8081 - Workflow management
+- Grafana: http://localhost:3000 - Metrics & dashboards
+- MLflow: http://localhost:5001 - ML experiment tracking
+- Vespa Status: http://localhost:19071 - Search engine status
+- Prometheus: http://localhost:9090 - Metrics collection
 
 ## System Overview
 
@@ -104,10 +117,12 @@ make format      # Format code
 
 - [System Architecture](docs/system-architecture.md) - High-level design, component interactions, and communication flow
 - [Agent Overview](docs/agents-overview.md) - Detailed agent descriptions and testing guide
+- [UI Enhancements](docs/ui-enhancements.md) - Support categories and example questions
 - [Ingestion Pipeline](docs/ingestion-pipeline.md) - Temporal workflows and Vespa integration
 - [Vespa Search Guide](docs/vespa-search-guide.md) - Search types, ranking profiles, and data exploration
-- [Model Training](docs/model-training.md) - Custom classifier training
+- [Model Training](docs/model-training.md) - Custom classifier training guide
 - [Retrieval Performance Testing](docs/retrieval-performance-testing.md) - Evaluation metrics and benchmarks
+- [Advanced Topics](docs/advanced-topics.md) - Multi-environment deployment, optimization, and training
 
 ## Advanced Topics
 

@@ -160,7 +160,7 @@ class DocumentService:
             # Get all documents
             all_results = await self.vespa_client.search_documents(
                 query="",  # Get all documents
-                max_hits=10000,  # Get all results
+                max_hits=400,  # Respect Vespa's configured limit
             )
 
             if not all_results:

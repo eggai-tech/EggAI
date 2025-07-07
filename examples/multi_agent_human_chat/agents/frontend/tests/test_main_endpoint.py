@@ -33,11 +33,10 @@ def test_read_root_error(temp_public_dir, monkeypatch):
     """When reading index.html raises an error, GET / returns 500."""
     html_file = temp_public_dir / "index.html"
     html_file.write_text("data", encoding="utf-8")
-    # Simulate open() throwing an unexpected error
-    # Simulate open() throwing an unexpected error
-    import builtins
+    # Simulate aiofiles.open() throwing an unexpected error
+    import aiofiles
     monkeypatch.setattr(
-        builtins,
+        aiofiles,
         'open',
         lambda *args, **kwargs: (_ for _ in ()).throw(Exception("fail")),
     )

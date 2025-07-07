@@ -102,3 +102,23 @@ class ReindexResponse(BaseModel):
     workflow_id: str
     total_documents_submitted: int
     policy_ids: List[str]
+
+
+class PersonalPolicy(BaseModel):
+    """Personal policy model for API responses."""
+    
+    policy_number: str
+    name: str
+    policy_category: str
+    premium_amount: float
+    due_date: str
+    status: str = "active"
+    coverage_amount: Optional[float] = None
+    deductible: Optional[float] = None
+
+
+class PolicyListResponse(BaseModel):
+    """Response model for listing personal policies."""
+    
+    policies: List[PersonalPolicy]
+    total: int

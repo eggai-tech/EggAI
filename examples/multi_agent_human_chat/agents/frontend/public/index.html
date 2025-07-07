@@ -2,8 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Multi-Agent Chat</title>
+    <title>Insurance Support Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
       window.tailwind = {
         config: {
@@ -12,21 +13,139 @@
       };
     </script>
     <style>
+      * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
       #messages::-webkit-scrollbar {
         width: 8px;
       }
       #messages::-webkit-scrollbar-thumb {
-        background-color: rgba(100, 100, 100, 0.3);
-        border-radius: 4px;
+        background-color: rgba(0, 0, 0, 0.06);
+        border-radius: 8px;
+      }
+      #messages::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .dark #messages::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.2);
       }
       html,
-      body {
+      body,
+      #root {
         height: 100%;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      
+      /* Markdown Styles */
+      .markdown-content {
+        line-height: 1.6;
+      }
+      .markdown-content p {
+        margin-bottom: 0.75rem;
+      }
+      .markdown-content p:last-child {
+        margin-bottom: 0;
+      }
+      .markdown-content strong {
+        font-weight: 600;
+      }
+      .markdown-content em {
+        font-style: italic;
+      }
+      .markdown-content code {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 3px;
+        padding: 0.125rem 0.25rem;
+        font-family: monospace;
+        font-size: 0.875em;
+      }
+      .dark .markdown-content code {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      .markdown-content pre {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+        padding: 1rem;
+        overflow-x: auto;
+        margin-bottom: 0.75rem;
+      }
+      .dark .markdown-content pre {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      .markdown-content pre code {
+        background-color: transparent;
+        padding: 0;
+      }
+      .markdown-content ul,
+      .markdown-content ol {
+        margin-bottom: 0.75rem;
+        padding-left: 1.5rem;
+      }
+      .markdown-content ul {
+        list-style-type: disc;
+      }
+      .markdown-content ol {
+        list-style-type: decimal;
+      }
+      .markdown-content li {
+        margin-bottom: 0.25rem;
+      }
+      .markdown-content h1,
+      .markdown-content h2,
+      .markdown-content h3,
+      .markdown-content h4,
+      .markdown-content h5,
+      .markdown-content h6 {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        margin-top: 1rem;
+      }
+      .markdown-content h1 { font-size: 1.5rem; }
+      .markdown-content h2 { font-size: 1.25rem; }
+      .markdown-content h3 { font-size: 1.125rem; }
+      .markdown-content blockquote {
+        border-left: 4px solid #e5e7eb;
+        padding-left: 1rem;
+        margin: 0.75rem 0;
+        color: #6b7280;
+      }
+      .dark .markdown-content blockquote {
+        border-left-color: #374151;
+        color: #9ca3af;
+      }
+      .markdown-content a {
+        color: #2563eb;
+        text-decoration: underline;
+      }
+      .dark .markdown-content a {
+        color: #60a5fa;
+      }
+      .markdown-content a:hover {
+        color: #1d4ed8;
+      }
+      .dark .markdown-content a:hover {
+        color: #93bbfc;
       }
     </style>
   </head>
-  <body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
-    <div id="root"></div>
+  <body class="bg-gray-50 dark:bg-gray-950 min-h-screen">
+    <div id="root" class="h-full"></div>
 
     <!-- Babel Standalone to transform our JSX/ES6 in the browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -42,46 +161,106 @@
 
       const AGENTS = {
         TriageAgent: {
-          emoji: "🔍",
-          bgColor: "bg-purple-100",
-          darkBgColor: "dark:bg-purple-700",
-          textColor: "text-purple-800",
-          darkTextColor: "dark:text-purple-200",
+          bgColor: "bg-gray-100",
+          darkBgColor: "dark:bg-gray-800",
         },
         PoliciesAgent: {
-          emoji: "🛡️",
-          bgColor: "bg-blue-100",
-          darkBgColor: "dark:bg-blue-700",
-          textColor: "text-blue-800",
-          darkTextColor: "dark:text-blue-200",
+          bgColor: "bg-gray-100",
+          darkBgColor: "dark:bg-gray-800",
         },
         TicketingAgent: {
-          emoji: "🎫",
-          bgColor: "bg-yellow-100",
-          darkBgColor: "dark:bg-yellow-700",
-          textColor: "text-yellow-800",
-          darkTextColor: "dark:text-yellow-200",
+          bgColor: "bg-gray-100",
+          darkBgColor: "dark:bg-gray-800",
         },
         BillingAgent: {
-          emoji: "💳",
-          bgColor: "bg-red-100",
-          darkBgColor: "dark:bg-red-700",
-          textColor: "text-red-800",
-          darkTextColor: "dark:text-red-200",
+          bgColor: "bg-gray-100",
+          darkBgColor: "dark:bg-gray-800",
         },
       };
+
+      const supportCategories = [
+        {
+          title: "Policies",
+          examples: [
+            "View my policy details",
+            "What does my home insurance cover?",
+            "What's my deductible amount?",
+            "Download policy documents",
+          ],
+        },
+        {
+          title: "Billing",
+          examples: [
+            "Check my premium",
+            "When is my next payment due?",
+            "Update payment method",
+            "View billing history",
+          ],
+        },
+        {
+          title: "Claims",
+          examples: [
+            "File a new claim",
+            "Check claim status",
+            "Upload claim documents",
+            "View claim history",
+          ],
+        },
+        {
+          title: "Other Inquiries",
+          examples: [
+            "Request manager assistance",
+            "Report an issue",
+            "Account access problems",
+            "General questions",
+          ],
+        },
+      ];
+
+      const platformServices = [
+        { name: "Redpanda", url: "http://localhost:8082" },
+        { name: "Temporal", url: "http://localhost:8081" },
+        { name: "Grafana", url: "http://localhost:3000" },
+        { name: "MLflow", url: "http://localhost:5001" },
+        { name: "Vespa", url: "http://localhost:19071" },
+        { name: "Prometheus", url: "http://localhost:9090" },
+      ];
 
       function App() {
         const [messages, setMessages] = useState([]);
         const [darkMode, setDarkMode] = useState(false);
-        const [connectionStatus, setConnectionStatus] =
-          useState("Connecting...");
+        const [connectionStatus, setConnectionStatus] = useState("Connecting...");
         const [inputValue, setInputValue] = useState("");
         const [connectionId, setConnectionId] = useState(null);
         const [loading, setLoading] = useState(false);
         const [streamingMessages, setStreamingMessages] = useState({});
         const wsRef = useRef(null);
         const messagesEndRef = useRef(null);
+
+        // Markdown parsing function
+        const parseMarkdown = (text) => {
+          if (!text) return '';
+          
+          // Configure marked options for security
+          marked.setOptions({
+            breaks: true,
+            gfm: true,
+            sanitize: false, // We'll use React's built-in XSS protection
+          });
+          
+          return marked.parse(text);
+        };
+
+        // Render markdown content safely
+        const MarkdownContent = ({ content }) => {
+          const html = parseMarkdown(content);
+          return (
+            <div 
+              className="markdown-content"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          );
+        };
 
         useEffect(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -99,7 +278,7 @@
         }, []);
 
         function initWebSocket() {
-          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
           const uri = `${protocol}//${window.location.host}/ws`;
           const socket = new WebSocket(uri);
           wsRef.current = socket;
@@ -108,7 +287,6 @@
             try {
               const data = JSON.parse(event.data);
               
-              // Handle connection establishment
               if (!connectionId && data.connection_id) {
                 setConnectionId(data.connection_id);
                 localStorage.setItem("connection_id", data.connection_id);
@@ -122,13 +300,10 @@
                 return;
               }
               
-              // Handle streaming messages
+              // Handle streaming messages (same as before)
               if (data.type === "assistant_message_stream_start") {
-                // Start of a streaming message
                 const sender = data.sender || "TriageAgent";
                 const messageId = data.message_id || `stream-${Date.now()}`;
-                
-                console.log("Starting new message stream from", sender);
                 
                 setStreamingMessages(prev => ({
                   ...prev,
@@ -141,21 +316,15 @@
                 
                 setLoading(true);
               } else if (data.type === "assistant_message_stream_chunk") {
-                // Chunk of a streaming message
                 const sender = data.sender || "TriageAgent";
                 const chunk = data.content || "";
                 const chunkIndex = data.chunk_index || 0;
                 const messageId = data.message_id || Object.keys(streamingMessages)[0];
                 
-                console.log(`Received chunk ${chunkIndex}:`, chunk);
-                
-                // Update the same message each time by appending the chunk
                 setStreamingMessages(prev => {
-                  // Find the most recent message if messageId not provided
                   const targetId = messageId || Object.keys(prev)[Object.keys(prev).length - 1];
-                  if (!targetId) return prev; // No message to update
+                  if (!targetId) return prev;
                   
-                  // Get existing message or create new one
                   const currentMessage = prev[targetId] || { 
                     sender, 
                     text: "",
@@ -163,94 +332,43 @@
                     chunkIndex: 0
                   };
                   
-                  // Create updated message with new chunk
                   const updatedMessage = {
                     ...currentMessage,
-                    sender, // Ensure sender is set
+                    sender,
                     text: currentMessage.text + chunk,
                     chunkIndex: chunkIndex
                   };
                   
-                  // Return updated state with the same message ID
                   return {
                     ...prev,
                     [targetId]: updatedMessage
                   };
                 });
                 
-                // Keep loading indicator active while streaming
-                setLoading(true);
-              } else if (data.type === "assistant_message_stream_waiting_message") {
-                // Waiting message to show while agent is processing
-                const sender = data.sender || "TriageAgent";
-                const waitingMessage = data.content || "I'm thinking about this...";
-                const messageId = `waiting-${Date.now()}`;
-                
-                console.log("Received waiting message:", waitingMessage);
-                
-                // Create or update a waiting message in the streaming messages
-                setStreamingMessages(prev => {
-                  // Check if we already have a waiting message for this sender
-                  const existingWaitingKey = Object.keys(prev).find(key => 
-                    prev[key].sender === sender && prev[key].isWaiting);
-                    
-                  if (existingWaitingKey) {
-                    // Update existing waiting message
-                    return {
-                      ...prev,
-                      [existingWaitingKey]: {
-                        ...prev[existingWaitingKey],
-                        text: waitingMessage,
-                      }
-                    };
-                  } else {
-                    // Create new waiting message
-                    return {
-                      ...prev,
-                      [messageId]: {
-                        sender,
-                        text: waitingMessage,
-                        messageId,
-                        isWaiting: true,
-                        toolUsage: true,
-                      }
-                    };
-                  }
-                });
-                
-                // Keep loading indicator active
                 setLoading(true);
               } else if (data.type === "assistant_message_stream_end") {
-                // End of a streaming message
                 const sender = data.sender || "TriageAgent";
                 const finalContent = data.content || "";
                 const messageId = data.message_id || Object.keys(streamingMessages)[0];
                 
-                console.log("Stream end received, final content:", finalContent);
-                
-                // Get the accumulated content from streaming state or use the final content
                 setStreamingMessages(prev => {
-                  // Find all waiting messages from this sender to remove
                   const waitingKeys = Object.keys(prev).filter(key => 
                     prev[key].sender === sender && prev[key].isWaiting);
                   
                   const targetId = messageId || Object.keys(prev)
                     .filter(k => !waitingKeys.includes(k))[0];
                     
-                  if (!targetId) return prev; // No message to update
+                  if (!targetId) return prev;
                   
-                  // Move the complete message to regular messages
                   const streamText = prev[targetId]?.text || "";
                   const finalText = finalContent || streamText;
                   
-                  // Add to regular messages
                   setMessages(existing => [...existing, { 
                     sender, 
                     text: finalText,
-                    id: targetId  // Keep the same ID
+                    id: targetId
                   }]);
                   
-                  // Remove all streaming messages from this sender
                   const newState = {};
                   Object.keys(prev).forEach(key => {
                     if (prev[key].sender !== sender) {
@@ -260,10 +378,8 @@
                   return newState;
                 });
                 
-                // Turn off loading indicator
                 setLoading(false);
               } else if (data.type === "assistant_message") {
-                // Regular non-streaming message
                 const sender = data.sender || "TriageAgent";
                 const content = data.content || "";
                 setMessages((prev) => [...prev, { sender, text: content }]);
@@ -271,13 +387,6 @@
               }
             } catch (error) {
               console.error("Error processing message:", error);
-              setMessages((prev) => [
-                ...prev,
-                {
-                  sender: "System",
-                  text: "An error occurred while processing a message.",
-                },
-              ]);
               setLoading(false);
             }
           };
@@ -290,12 +399,12 @@
           };
         }
 
-        function sendMessage() {
-          const text = inputValue.trim();
-          if (!text || !wsRef.current) return;
+        function sendMessage(text = null) {
+          const messageText = text || inputValue.trim();
+          if (!messageText || !wsRef.current) return;
           if (wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ payload: text }));
-            setMessages((prev) => [...prev, { sender: "You", text }]);
+            wsRef.current.send(JSON.stringify({ payload: messageText }));
+            setMessages((prev) => [...prev, { sender: "You", text: messageText }]);
             setInputValue("");
             setLoading(true);
           } else {
@@ -311,161 +420,226 @@
         }
 
         return (
-          <div className="flex flex-col h-50 p-4">
-            <div className="w-full max-w-6xl mx-auto flex-1 flex flex-col">
-              <div className="bg-blue-500 dark:bg-gray-700 text-white p-4 rounded-t-lg flex justify-between items-center">
-                <h2 className="text-lg font-semibold">Support Chat</h2>
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm">{connectionStatus}</span>
-                  <button
-                    className="text-2xl"
-                    onClick={toggleDarkMode}
-                    title="Toggle Dark Mode"
-                  >
-                    {darkMode ? "☀️" : "🌒"}
-                  </button>
+          <div className="h-full flex flex-col">
+            {/* Header */}
+            <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+              <div className="max-w-7xl mx-auto px-6">
+                <div className="flex justify-between items-center h-16">
+                  <div className="flex items-center">
+                    <a href="/" className="text-xl font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      Insurance Portal
+                    </a>
+                  </div>
+                  <nav className="hidden md:flex items-center space-x-8">
+                    {platformServices.map((service, idx) => (
+                      <a
+                        key={idx}
+                        href={service.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+                      >
+                        {service.name}
+                      </a>
+                    ))}
+                    <span className="text-xs text-gray-400 px-4">|</span>
+                    <a
+                      href="/admin.html"
+                      className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+                    >
+                      Admin
+                    </a>
+                    <button
+                      className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ml-4"
+                      onClick={toggleDarkMode}
+                      title="Toggle Dark Mode"
+                    >
+                      {darkMode ? (
+                        <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                      )}
+                    </button>
+                  </nav>
                 </div>
               </div>
-              <div
-                id="messages"
-                className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-700"
-              >
+            </header>
+            
+            {/* Messages Area */}
+            <div
+              id="messages"
+              className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950"
+            >
+              <>
+                {messages.filter(m => m.sender !== "System").length === 0 && (
+                  <div className="max-w-7xl mx-auto px-6">
+                    <div className="py-16">
+                      <h2 className="text-3xl font-light text-gray-900 dark:text-gray-100 mb-12">
+                        How can we help you today?
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {supportCategories.map((category, idx) => (
+                          <div key={idx}>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                              {category.title}
+                            </h3>
+                            <div className="space-y-2">
+                              {category.examples.map((example, exIdx) => (
+                                <button
+                                  key={exIdx}
+                                  onClick={() => {
+                                    setInputValue(example);
+                                    sendMessage(example);
+                                  }}
+                                  className="block w-full text-left text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all duration-150"
+                                >
+                                  {example}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 {messages.map((msg, i) => {
                   if (msg.sender === "System") {
                     return (
-                      <div key={i} className="flex justify-center mb-4">
-                        <div className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 p-2 rounded-lg max-w-2xl w-full text-center italic">
-                          {msg.text}
+                      <div key={i} className="py-2">
+                        <div className="max-w-7xl mx-auto px-6">
+                          <div className="text-center text-xs text-gray-400 dark:text-gray-500 py-2">
+                            {msg.text}
+                          </div>
                         </div>
                       </div>
                     );
                   }
                   if (msg.sender === "You") {
                     return (
-                      <div key={i} className="flex justify-end mb-4">
-                        <div className="mr-3 bg-green-100 dark:bg-green-700 text-green-800 dark:text-green-200 p-2 rounded-lg max-w-2xl">
-                          <p className="text-sm">{msg.text}</p>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            You
-                          </span>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <div className="w-10 h-10 rounded-full bg-green-200 dark:bg-green-600 flex items-center justify-center text-2xl">
-                            🙂
+                      <div key={i} className="py-4 fade-in">
+                        <div className="max-w-7xl mx-auto px-6">
+                          <div className="flex gap-3 justify-end">
+                            <div className="max-w-[70%] bg-blue-600 text-white rounded-lg px-5 py-3">
+                              <p className="text-sm leading-relaxed">
+                                {msg.text}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
                     );
                   }
                   const agent = AGENTS[msg.sender] || {
-                    emoji: "💬",
-                    bgColor: "bg-gray-200",
-                    darkBgColor: "dark:bg-gray-600",
-                    textColor: "text-gray-800",
-                    darkTextColor: "dark:text-gray-200",
+                    bgColor: "bg-gray-100",
+                    darkBgColor: "dark:bg-gray-800",
                   };
                   return (
-                    <div key={i} className="flex mb-4">
-                      <div className="flex-shrink-0">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl
-                          ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
-                        >
-                          {agent.emoji}
+                    <div key={i} className="py-4 fade-in">
+                      <div className="max-w-7xl mx-auto px-6">
+                        <div className="flex gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-medium text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                {msg.sender}
+                              </span>
+                            </div>
+                            <div className="max-w-[48rem] text-gray-700 dark:text-gray-300 text-sm leading-relaxed bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4">
+                              <MarkdownContent content={msg.text} />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div
-                        className={`ml-3 p-2 rounded-lg max-w-2xl
-                        ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {msg.sender}
-                        </span>
                       </div>
                     </div>
                   );
                 })}
 
-                {/* Display streaming messages - these should be displayed before regular messages */}
+                {/* Streaming messages */}
                 {Object.entries(streamingMessages).map(([msgId, msg]) => {
                   const agent = AGENTS[msg.sender] || {
-                    emoji: "💬",
-                    bgColor: "bg-gray-200",
-                    darkBgColor: "dark:bg-gray-600",
-                    textColor: "text-gray-800",
-                    darkTextColor: "dark:text-gray-200",
+                    bgColor: "bg-gray-100",
+                    darkBgColor: "dark:bg-gray-800",
                   };
                   return (
-                    <div key={`stream-${msgId}`} className="flex mb-4">
-                      <div className="flex-shrink-0">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-2xl
-                          ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
-                        >
-                          {agent.emoji}
+                    <div key={`stream-${msgId}`} className="py-4 fade-in">
+                      <div className="max-w-7xl mx-auto px-6">
+                        <div className="flex gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-medium text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                {msg.sender}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {msg.isWaiting ? 
+                                  (msg.toolUsage ? 'Using tools...' : 'Thinking...') : 
+                                  'Typing...'
+                                }
+                              </span>
+                            </div>
+                            <div className="max-w-[48rem] text-gray-700 dark:text-gray-300 text-sm leading-relaxed bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4">
+                              <MarkdownContent content={msg.text} />
+                              <span className="animate-pulse ml-0.5 inline-block h-4 w-1 bg-gray-400"></span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div
-                        className={`ml-3 p-2 rounded-lg max-w-2xl
-                        ${agent.bgColor} ${agent.darkBgColor} ${agent.textColor} ${agent.darkTextColor}`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">
-                          {msg.text}
-                          {/* Add blinking cursor at the end of streaming text */}
-                          <span className="animate-pulse ml-0.5 inline-block h-4 w-2 bg-current"></span>
-                        </p>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {msg.sender} {msg.isWaiting ? 
-                            (msg.toolUsage ? '(using tools...)' : '(thinking...)') : 
-                            (msg.totalChunks > 0 ? 
-                              `(typing... ${msg.chunkIndex}/${msg.totalChunks})` : 
-                              '(typing...)')
-                          }
-                        </span>
                       </div>
                     </div>
                   );
                 })}
 
                 {loading && Object.keys(streamingMessages).length === 0 && (
-                  <div className="flex mb-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-2xl">
-                        {/* Tailwind's animate-spin will rotate the spinner */}
-                        <span className="animate-spin">⏳</span>
+                  <div className="py-4 fade-in">
+                    <div className="max-w-7xl mx-auto px-6">
+                      <div className="flex gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-32"></div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="ml-3 p-2 rounded-lg max-w-2xl bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200">
-                      <p className="text-sm">Agent is typing...</p>
                     </div>
                   </div>
                 )}
 
                 <div ref={messagesEndRef} />
-              </div>
-              <div className="p-4 border-t dark:border-gray-600 flex items-center bg-gray-100 dark:bg-gray-800">
-                <input
-                  type="text"
-                  placeholder="Type your message..."
-                  className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg p-2
-                           bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                />
-                <button
-                  onClick={sendMessage}
-                  className="ml-2 bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700"
-                >
-                  Send
-                </button>
+              </>
+            </div>
+            
+            {/* Input Area */}
+            <div className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+              <div className="max-w-7xl mx-auto px-6 py-4">
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Ask a question..."
+                    className="flex-1 pl-4 pr-12 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg
+                               text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-150"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => sendMessage()}
+                    disabled={!inputValue.trim() || loading}
+                    className="absolute right-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 text-sm font-medium"
+                  >
+                    Send
+                  </button>
+                </div>
               </div>
             </div>
           </div>
