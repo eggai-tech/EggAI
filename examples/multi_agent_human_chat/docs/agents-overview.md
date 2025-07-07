@@ -6,21 +6,19 @@ This document provides a comprehensive overview of all agents in the EggAI syste
 
 The EggAI system consists of specialized agents that work together to handle insurance-related customer inquiries:
 
-|   | Agent       | Description                                      | Documentation                              |
-|---|-------------|--------------------------------------------------|---------------------------------------------|
-| ![Frontend Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/frontend-agent.png) | Frontend    | Gateway for user interaction           | [Frontend Agent Docs](../agents/frontend/README.md)     |
-| ![Triage Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/triage-agent.png) | Triage      | ML-based routing to appropriate agents           | [Triage Agent Docs](../agents/triage/README.md)         |
-| ![Billing Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/billing-agent.png) | Billing     | Payment inquiries and premium information        | [Billing Agent Docs](../agents/billing/README.md)       |
-| ![Claims Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/claims-agent.png) | Claims      | Claims status and filing                         | [Claims Agent Docs](../agents/claims/README.md)         |
-| ![Policies Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/policies-agent.png) | Policies    | RAG-powered policy document search               | [Policies Agent Docs](../agents/policies/README.md)     |
-| ![Escalation Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/escalation-agent.png) | Escalation  | Complex issues and complaints                    | [Escalation Agent Docs](../agents/escalation/README.md) |
-| ![Ausdit Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/audit-agent.png) | Audit       | Compliance logging                               | [Audit Agent Docs](../agents/audit/README.md)           |
-
+| Agent       | Description                                      | Documentation                              |
+|-------------|--------------------------------------------------|---------------------------------------------|
+| Frontend    | Gateway for user interaction           | [Frontend Agent Docs](../agents/frontend/README.md)     |
+| Triage      | ML-based routing to appropriate agents           | [Triage Agent Docs](../agents/triage/README.md)         |
+| Billing     | Payment inquiries and premium information        | [Billing Agent Docs](../agents/billing/README.md)       |
+| Claims      | Claims status and filing                         | [Claims Agent Docs](../agents/claims/README.md)         |
+| Policies    | RAG-powered policy document search               | [Policies Agent Docs](../agents/policies/README.md)     |
+| Escalation  | Complex issues and complaints                    | [Escalation Agent Docs](../agents/escalation/README.md) |
+| Audit       | Compliance logging                               | [Audit Agent Docs](../agents/audit/README.md)           |
 
 ## Agent Details
 
 ### Frontend Agent
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/frontend-agent.png" width="40"/>
 
 - **Purpose**: Manages WebSocket connections between users and backend
 - **Key Features**: 
@@ -33,7 +31,6 @@ The EggAI system consists of specialized agents that work together to handle ins
 **See: [Frontend Agent Documentation](../agents/frontend/README.md)**
 
 ### Triage Agent
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/triage-agent.png" width="40"/>
 
 - **Purpose**: Analyzes and routes user messages to appropriate agents
 - **Key Features**:
@@ -46,7 +43,6 @@ The EggAI system consists of specialized agents that work together to handle ins
 **See: [Triage Agent Documentation](../agents/triage/README.md)**
 
 ### Billing Agent
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/billing-agent.png" width="40"/>
 
 - **Purpose**: Handles financial and payment inquiries
 - **Key Features**:
@@ -59,7 +55,6 @@ The EggAI system consists of specialized agents that work together to handle ins
 **See: [Billing Agent Documentation](../agents/billing/README.md)**
 
 ### Claims Agent
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/claims-agent.png" width="40"/>
 
 - **Purpose**: Manages insurance claims inquiries
 - **Key Features**:
@@ -72,7 +67,6 @@ The EggAI system consists of specialized agents that work together to handle ins
 **See: [Claims Agent Documentation](../agents/claims/README.md)**
 
 ### Policies Agent
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/policies-agent.png" width="40"/>
 
 - **Purpose**: Answers policy coverage questions using RAG
 - **Key Features**:
@@ -85,7 +79,6 @@ The EggAI system consists of specialized agents that work together to handle ins
 **See: [Policies Agent Documentation](../agents/policies/README.md)**
 
 ### Escalation Agent
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/escalation-agent.png" width="40"/>
 
 - **Purpose**: Handles complex issues requiring human attention
 - **Key Features**:
@@ -98,7 +91,6 @@ The EggAI system consists of specialized agents that work together to handle ins
 **See: [Escalation Agent Documentation](../agents/escalation/README.md)**
 
 ### Audit Agent
-<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/audit-agent.png" width="40"/>
 
 - **Purpose**: Monitors and logs all system activity
 - **Key Features**:

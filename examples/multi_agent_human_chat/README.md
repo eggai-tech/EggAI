@@ -104,15 +104,15 @@ or you can open them individually via their URLs:
 
 **Specialized Agents:**
 
-|   | Agent       | Description                                      | Documentation                              |
-|---|-------------|--------------------------------------------------|---------------------------------------------|
-| ![Frontend Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/frontend-agent.png) | Frontend    | Gateway for user interaction           | [Frontend Agent Docs](agents/frontend/README.md)     |
-| ![Triage Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/triage-agent.png) | Triage      | ML-based routing to appropriate agents           | [Triage Agent Docs](agents/triage/README.md)         |
-| ![Billing Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/billing-agent.png) | Billing     | Payment inquiries and premium information        | [Billing Agent Docs](agents/billing/README.md)       |
-| ![Claims Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/claims-agent.png) | Claims      | Claims status and filing                         | [Claims Agent Docs](agents/claims/README.md)         |
-| ![Policies Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/policies-agent.png) | Policies    | RAG-powered policy document search               | [Policies Agent Docs](agents/policies/README.md)     |
-| ![Escalation Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/escalation-agent.png) | Escalation  | Complex issues and complaints                    | [Escalation Agent Docs](agents/escalation/README.md) |
-| ![Ausdit Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/audit-agent.png) | Audit       | Compliance logging                               | [Audit Agent Docs](agents/audit/README.md)           |
+| Agent       | Description                                      | Documentation                              |
+|-------------|--------------------------------------------------|---------------------------------------------|
+| Frontend    | Gateway for user interaction           | [Frontend Agent Docs](agents/frontend/README.md)     |
+| Triage      | ML-based routing to appropriate agents           | [Triage Agent Docs](agents/triage/README.md)         |
+| Billing     | Payment inquiries and premium information        | [Billing Agent Docs](agents/billing/README.md)       |
+| Claims      | Claims status and filing                         | [Claims Agent Docs](agents/claims/README.md)         |
+| Policies    | RAG-powered policy document search               | [Policies Agent Docs](agents/policies/README.md)     |
+| Escalation  | Complex issues and complaints                    | [Escalation Agent Docs](agents/escalation/README.md) |
+| Audit       | Compliance logging                               | [Audit Agent Docs](agents/audit/README.md)           |
 
 **Infrastructure:** Redpanda (Kafka), Vespa (Vector Search), Temporal (Workflows), MLflow, Grafana, Prometheus
 
