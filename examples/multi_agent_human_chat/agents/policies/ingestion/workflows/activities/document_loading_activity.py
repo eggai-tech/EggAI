@@ -1,8 +1,10 @@
 import os
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any, Dict
 
+import aiofiles
 from docling.document_converter import DocumentConverter
 from temporalio import activity
 
@@ -36,9 +38,15 @@ async def load_document_activity(file_path: str, source: str = "filesystem", met
             
             # Create temporary file for processing
             suffix = Path(original_filename).suffix
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-                tmp_file.write(content)
-                tmp_file_path = tmp_file.name
+            
+            # Create a unique temporary file path
+            tmp_dir = tempfile.gettempdir()
+            tmp_filename = f"doc_{uuid.uuid4().hex}{suffix}"
+            tmp_file_path = os.path.join(tmp_dir, tmp_filename)
+            
+            # Write content asynchronously
+            async with aiofiles.open(tmp_file_path, 'wb') as tmp_file:
+                await tmp_file.write(content)
                 
             try:
                 converter = DocumentConverter()
@@ -65,7 +73,8 @@ async def load_document_activity(file_path: str, source: str = "filesystem", met
                 }
             finally:
                 # Clean up temporary file
-                os.unlink(tmp_file_path)
+                if tmp_file_path and os.path.exists(tmp_file_path):
+                    os.unlink(tmp_file_path)
                 
         # Handle filesystem source (original behavior)
         file_path_obj = Path(file_path)
