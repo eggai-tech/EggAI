@@ -27,6 +27,7 @@ from agents.escalation.config import (
 )
 from libraries.dspy_set_language_model import dspy_set_language_model
 from libraries.logger import get_console_logger
+from libraries.subscribe import subscribe
 from libraries.tracing import TracedMessage
 
 from ..agent import ticketing_agent as escalation_agent
@@ -147,11 +148,12 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
     return "\n".join([f"{m['role']}: {m['content']}" for m in chat_messages])
 
 
-@test_agent.subscribe(
+@subscribe(
+    agent=test_agent,
     channel=human_stream_channel,
-    filter_by_message=lambda event: event.get("type") == MSG_TYPE_STREAM_END,
-    auto_offset_reset="latest",
+    message_type=MSG_TYPE_STREAM_END,
     group_id="test_escalation_agent_group",
+    auto_offset_reset="latest",
 )
 async def handle_agent_response(event):
     """Handle agent responses during testing."""

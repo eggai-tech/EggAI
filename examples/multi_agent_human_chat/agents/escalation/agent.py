@@ -8,6 +8,7 @@ from opentelemetry import trace
 
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
+from libraries.subscribe import subscribe_to_agent_requests
 from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
 from libraries.tracing.otel import safe_set_attribute
 
@@ -17,7 +18,6 @@ from .config import (
     MSG_TYPE_STREAM_CHUNK,
     MSG_TYPE_STREAM_END,
     MSG_TYPE_STREAM_START,
-    MSG_TYPE_TICKETING_REQUEST,
     dspy_model_config,
     settings,
 )
@@ -158,10 +158,10 @@ async def process_escalation_request(
             )
 
 
-@ticketing_agent.subscribe(
+@subscribe_to_agent_requests(
+    agent=ticketing_agent,
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == MSG_TYPE_TICKETING_REQUEST,
-    auto_offset_reset="latest",
+    request_type="escalation_request",
     group_id=GROUP_ID,
 )
 @traced_handler("handle_ticketing_request")

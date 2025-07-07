@@ -5,11 +5,12 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
-from agents.claims.config import MESSAGE_TYPE_CLAIM_REQUEST, model_config, settings
+from agents.claims.config import model_config, settings
 from agents.claims.dspy_modules.claims import process_claims
 from agents.claims.types import ChatMessage
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
+from libraries.subscribe import subscribe_to_agent_requests
 from libraries.tracing import (
     TracedMessage,
     create_tracer,
@@ -203,10 +204,10 @@ async def process_claims_request(
             )
 
 
-@claims_agent.subscribe(
+@subscribe_to_agent_requests(
+    agent=claims_agent,
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_CLAIM_REQUEST,
-    auto_offset_reset="latest",
+    request_type="claim_request",
     group_id="claims_agent_group",
 )
 @traced_handler("handle_claim_request")

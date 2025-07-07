@@ -36,10 +36,12 @@ audit_logs_channel = Channel(channels.audit_logs)
 response_queue = asyncio.Queue()
 
 
-@test_agent.subscribe(
+from libraries.subscribe import subscribe_to_audit_logs
+
+
+@subscribe_to_audit_logs(
+    agent=test_agent,
     channel=audit_logs_channel,
-    filter_by_message=lambda event: event.get("type") == "audit_log",
-    auto_offset_reset="latest",
     group_id="test_audit_agent_group",
 )
 async def _handle_audit_response(event: TracedMessage):

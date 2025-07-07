@@ -7,10 +7,11 @@ from eggai import Agent, Channel
 
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
+from libraries.subscribe import subscribe_to_agent_requests
 from libraries.tracing import TracedMessage, create_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
 
-from .config import MESSAGE_TYPE_BILLING_REQUEST, settings
+from .config import settings
 from .types import ChatMessage
 from .utils import get_conversation_string, process_billing_request
 
@@ -25,10 +26,10 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
-@billing_agent.subscribe(
+@subscribe_to_agent_requests(
+    agent=billing_agent,
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_BILLING_REQUEST,
-    auto_offset_reset="latest",
+    request_type="billing_request",
     group_id="billing_agent_group",
 )
 @traced_handler("handle_billing_request")
