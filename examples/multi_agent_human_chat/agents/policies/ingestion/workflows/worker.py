@@ -16,8 +16,19 @@ from agents.policies.ingestion.workflows.activities.document_loading_activity im
 from agents.policies.ingestion.workflows.activities.document_verification_activity import (
     verify_document_activity,
 )
+from agents.policies.ingestion.workflows.activities.minio_activities import (
+    check_document_exists_activity,
+    download_from_minio_activity,
+    initialize_minio_buckets_activity,
+    move_to_failed_activity,
+    move_to_processed_activity,
+    scan_minio_inbox_activity,
+)
 from agents.policies.ingestion.workflows.ingestion_workflow import (
     DocumentIngestionWorkflow,
+)
+from agents.policies.ingestion.workflows.minio_watcher_workflow import (
+    MinIOInboxWatcherWorkflow,
 )
 
 logger = None
@@ -55,12 +66,19 @@ async def run_policy_documentation_worker(
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[DocumentIngestionWorkflow],
+        workflows=[DocumentIngestionWorkflow, MinIOInboxWatcherWorkflow],
         activities=[
             load_document_activity,
             chunk_document_activity,
             verify_document_activity,
             index_document_activity,
+            # MinIO activities
+            scan_minio_inbox_activity,
+            check_document_exists_activity,
+            move_to_processed_activity,
+            move_to_failed_activity,
+            download_from_minio_activity,
+            initialize_minio_buckets_activity,
         ],
     )
 

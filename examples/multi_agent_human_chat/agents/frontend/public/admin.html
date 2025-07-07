@@ -50,6 +50,7 @@
         { name: "MLflow", url: "http://localhost:5001" },
         { name: "Vespa", url: "http://localhost:19071" },
         { name: "Prometheus", url: "http://localhost:9090" },
+        { name: "MinIO", url: "http://localhost:9001" },
       ];
 
       function App() {
@@ -361,7 +362,7 @@
                               : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                           }`}
                         >
-                          {tab === 'knowledge' ? 'KB' : tab}
+                          {tab === 'knowledge' ? 'Documents' : tab}
                         </button>
                       ))}
                     </nav>
@@ -388,7 +389,7 @@
                 >
                   {['overview', 'policies', 'claims', 'billing', 'knowledge', 'system'].map(tab => (
                     <option key={tab} value={tab}>
-                      {tab === 'knowledge' ? 'Knowledge Base' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {tab === 'knowledge' ? 'Documents' : tab.charAt(0).toUpperCase() + tab.slice(1)}
                     </option>
                   ))}
                 </select>
@@ -977,6 +978,7 @@
                         {service.name === "MLflow" && "Machine learning experiment tracking"}
                         {service.name === "Vespa" && "Vector search and document storage"}
                         {service.name === "Prometheus" && "Metrics collection and monitoring"}
+                        {service.name === "MinIO" && "Object storage for artifacts and data"}
                       </p>
                       <div className="mt-4 flex items-center text-sm">
                         <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
