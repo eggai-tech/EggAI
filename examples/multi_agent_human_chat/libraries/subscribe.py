@@ -496,8 +496,6 @@ __all__ = [
     # Main functions
     "subscribe",
     "typed_subscribe",
-    "subscribe_to_audit_logs",
-    "subscribe_to_agent_requests",
     
     # Handler types
     "BillingHandler",
@@ -518,43 +516,3 @@ UserMessageHandler = Callable[[Union[UserMessage, TracedMessage], KafkaMessage],
 AuditHandler = Callable[[Union[TracedMessage, Dict], KafkaMessage], Optional[Union[TracedMessage, Dict]]]
 
 
-# Convenience decorators for specific message types
-def subscribe_to_audit_logs(
-    agent: Agent,
-    channel: Channel,
-    group_id: Optional[str] = None,
-    **kwargs: Any
-) -> Callable[[HandlerT], HandlerT]:
-    """Subscribe to audit log messages with proper typing."""
-    return subscribe(
-        agent=agent,
-        channel=channel,
-        message_type=MessageType.AUDIT_LOG,
-        source=AgentName.AUDIT,
-        group_id=group_id or f"{agent.name}_audit_group",
-        **kwargs
-    )
-
-
-def subscribe_to_agent_requests(
-    agent: Agent,
-    channel: Channel,
-    request_type: Union[
-        Literal["billing_request", "claim_request", "policy_request", "escalation_request"],
-        MessageType
-    ],
-    group_id: Optional[str] = None,
-    **kwargs: Any
-) -> Callable[[HandlerT], HandlerT]:
-    """Subscribe to specific agent request messages."""
-    # Convert string to enum if needed
-    if isinstance(request_type, str):
-        request_type = MessageType(request_type)
-    
-    return subscribe(
-        agent=agent,
-        channel=channel,
-        message_type=request_type,
-        group_id=group_id or f"{agent.name}_group",
-        **kwargs
-    )

@@ -7,7 +7,7 @@ from eggai import Agent, Channel
 
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
-from libraries.subscribe import MessageType, subscribe_to_agent_requests
+from libraries.subscribe import MessageType, subscribe
 from libraries.tracing import TracedMessage, create_tracer, traced_handler
 from libraries.tracing.init_metrics import init_token_metrics
 
@@ -26,10 +26,10 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
-@subscribe_to_agent_requests(
+@subscribe(
     agent=billing_agent,
     channel=agents_channel,
-    request_type=MessageType.BILLING_REQUEST,
+    message_type=MessageType.BILLING_REQUEST,
     group_id="billing_agent_group",
 )
 @traced_handler("handle_billing_request")

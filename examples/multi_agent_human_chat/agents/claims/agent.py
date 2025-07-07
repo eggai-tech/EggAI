@@ -10,7 +10,7 @@ from agents.claims.dspy_modules.claims import process_claims
 from agents.claims.types import ChatMessage
 from libraries.channels import channels, clear_channels
 from libraries.logger import get_console_logger
-from libraries.subscribe import MessageType, subscribe_to_agent_requests
+from libraries.subscribe import MessageType, subscribe
 from libraries.tracing import (
     TracedMessage,
     create_tracer,
@@ -204,10 +204,10 @@ async def process_claims_request(
             )
 
 
-@subscribe_to_agent_requests(
+@subscribe(
     agent=claims_agent,
     channel=agents_channel,
-    request_type=MessageType.CLAIM_REQUEST,
+    message_type=MessageType.CLAIM_REQUEST,
     group_id="claims_agent_group",
 )
 @traced_handler("handle_claim_request")
