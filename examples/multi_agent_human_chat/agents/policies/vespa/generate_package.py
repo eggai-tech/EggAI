@@ -27,7 +27,7 @@ from vespa.package import (
     ValidationID,
 )
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("vespa_package_generator")
 

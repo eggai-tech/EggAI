@@ -6,10 +6,15 @@ from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry import trace
 
-from libraries.channels import channels, clear_channels
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
-from libraries.tracing.otel import safe_set_attribute
+from libraries.communication.channels import channels, clear_channels
+from libraries.communication.messaging import MessageType, subscribe
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import (
+    TracedMessage,
+    format_span_as_traceparent,
+    traced_handler,
+)
+from libraries.observability.tracing.otel import safe_set_attribute
 
 from .config import (
     AGENT_NAME,
@@ -17,7 +22,6 @@ from .config import (
     MSG_TYPE_STREAM_CHUNK,
     MSG_TYPE_STREAM_END,
     MSG_TYPE_STREAM_START,
-    MSG_TYPE_TICKETING_REQUEST,
     dspy_model_config,
     settings,
 )
@@ -158,10 +162,10 @@ async def process_escalation_request(
             )
 
 
-@ticketing_agent.subscribe(
+@subscribe(
+    agent=ticketing_agent,
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == MSG_TYPE_TICKETING_REQUEST,
-    auto_offset_reset="latest",
+    message_type=MessageType.ESCALATION_REQUEST,
     group_id=GROUP_ID,
 )
 @traced_handler("handle_ticketing_request")
@@ -212,7 +216,7 @@ async def handle_other_messages(msg: TracedMessage) -> None:
 if __name__ == "__main__":
 
     async def run():
-        from libraries.dspy_set_language_model import dspy_set_language_model
+        from libraries.ml.dspy.language_model import dspy_set_language_model
 
         dspy_set_language_model(settings)
         await clear_channels()

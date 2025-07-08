@@ -5,13 +5,18 @@ import dspy.streaming
 from eggai import Agent, Channel
 from opentelemetry import trace
 
-from agents.triage.config import GROUP_ID, MESSAGE_TYPE_USER_MESSAGE, settings
+from agents.triage.config import GROUP_ID, settings
 from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import AGENT_REGISTRY, TargetAgent
-from libraries.channels import channels
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
-from libraries.tracing.otel import safe_set_attribute
+from libraries.communication.channels import channels
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import (
+    TracedMessage,
+    format_span_as_traceparent,
+    traced_handler,
+)
+from libraries.observability.tracing.otel import safe_set_attribute
 
 _CLASSIFIER_PATHS = {
     "v0": ("agents.triage.dspy_modules.classifier_v0", "classifier_v0"),
@@ -143,11 +148,12 @@ def get_current_classifier() -> Callable[..., Any]:
 current_classifier = get_current_classifier()
 
 
-@triage_agent.subscribe(
+@subscribe(
+    agent=triage_agent,
     channel=human_channel,
-    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_USER_MESSAGE,
-    auto_offset_reset="latest",
+    message_type=MessageType.USER_MESSAGE,
     group_id=GROUP_ID,
+    auto_offset_reset=OffsetReset.LATEST,
 )
 @traced_handler("handle_user_message")
 async def handle_user_message(msg: TracedMessage) -> None:

@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 
 from agents.triage.config import Settings
 from agents.triage.models import ClassifierMetrics, TargetAgent
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
 
 load_dotenv()
 

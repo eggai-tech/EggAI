@@ -7,7 +7,7 @@ from typing import List
 
 import dspy
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("claims_agent.dataset")
 

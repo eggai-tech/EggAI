@@ -2,17 +2,18 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import SettingsConfigDict
 
-from libraries.types import BaseAgentConfig
+from libraries.communication.messaging import AgentName, MessageType
+from libraries.core import BaseAgentConfig
 
 from .types import DspyModelConfig
 
 load_dotenv()
 
-AGENT_NAME = "Ticketing"
-MSG_TYPE_TICKETING_REQUEST = "ticketing_request"
-MSG_TYPE_STREAM_START = "agent_message_stream_start"
-MSG_TYPE_STREAM_CHUNK = "agent_message_stream_chunk"
-MSG_TYPE_STREAM_END = "agent_message_stream_end"
+AGENT_NAME = AgentName.ESCALATION
+MSG_TYPE_TICKETING_REQUEST = MessageType.ESCALATION_REQUEST
+MSG_TYPE_STREAM_START = MessageType.AGENT_MESSAGE_STREAM_START
+MSG_TYPE_STREAM_CHUNK = MessageType.AGENT_MESSAGE_STREAM_CHUNK
+MSG_TYPE_STREAM_END = MessageType.AGENT_MESSAGE_STREAM_END
 GROUP_ID = "escalation_agent_group"
 
 

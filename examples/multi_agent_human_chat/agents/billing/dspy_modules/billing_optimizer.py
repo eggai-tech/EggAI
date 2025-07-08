@@ -15,8 +15,8 @@ from libraries.dspy_copro import SimpleCOPRO, save_and_log_optimized_instruction
 litellm.drop_params = True
 
 from agents.billing.config import settings
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
 
 from .billing_dataset import (
     as_dspy_examples,
@@ -78,7 +78,7 @@ class BillingSignature(dspy.Signature):
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
 
 
-from libraries.tracing import TracedReAct
+from libraries.observability.tracing import TracedReAct
 
 
 # Mock tools for optimization (these won't actually be called during optimization)

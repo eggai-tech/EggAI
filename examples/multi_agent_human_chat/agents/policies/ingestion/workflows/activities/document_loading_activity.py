@@ -9,7 +9,7 @@ from docling.document_converter import DocumentConverter
 from temporalio import activity
 
 from agents.policies.ingestion.minio_client import MinIOClient
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("ingestion.document_loading")
 

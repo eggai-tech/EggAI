@@ -17,10 +17,11 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from agents.triage.agent import handle_user_message
 from agents.triage.config import Settings
-from libraries.channels import channels, clear_channels
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage
+from libraries.communication.channels import channels, clear_channels
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 from ..agent import triage_agent
 from ..data_sets.loader import load_dataset_triage_testing
@@ -185,30 +186,32 @@ _response_queue: asyncio.Queue[TracedMessage] = asyncio.Queue()
 @test_agent.subscribe(
     channel=agents_channel,
     filter_by_message=lambda event: event.get("type") != "user_message",
-    auto_offset_reset="latest",
+    auto_offset_reset=OffsetReset.LATEST,
     group_id="test_agent_group-agents",
 )
 async def _handle_response(event: TracedMessage):
     await _response_queue.put(event)
 
 
-@test_agent.subscribe(
+@subscribe(
+    agent=test_agent,
     channel=test_channel,
-    filter_by_message=lambda event: event.get("type") == "agent_message",
-    auto_offset_reset="latest",
+    message_type=MessageType.AGENT_MESSAGE,
     group_id="test_agent_group-human",
+    auto_offset_reset=OffsetReset.LATEST,
 )
 async def _handle_test_message(event: TracedMessage):
     await _response_queue.put(event)
 
 
-@test_agent.subscribe(
+@subscribe(
+    agent=test_agent,
     channel=test_stream_channel,
-    filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
-    auto_offset_reset="latest",
+    message_type=MessageType.AGENT_MESSAGE_STREAM_END,
     group_id="test_agent_group-human",
+    auto_offset_reset=OffsetReset.LATEST,
 )
-async def _handle_test_message(event: TracedMessage):
+async def _handle_test_stream_message(event: TracedMessage):
     await _response_queue.put(event)
 
 

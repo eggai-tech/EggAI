@@ -5,7 +5,7 @@ from docling_core.types import DoclingDocument
 from temporalio import activity
 from transformers import GPT2TokenizerFast
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("ingestion.document_chunking")
 

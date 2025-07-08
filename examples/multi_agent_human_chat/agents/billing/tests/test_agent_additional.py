@@ -11,7 +11,7 @@ from agents.billing.agent import (
     process_billing_request,
 )
 from agents.billing.config import MESSAGE_TYPE_BILLING_REQUEST
-from libraries.tracing import TracedMessage
+from libraries.observability.tracing import TracedMessage
 
 
 @pytest.mark.asyncio

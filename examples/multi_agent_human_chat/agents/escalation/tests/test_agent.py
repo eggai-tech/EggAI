@@ -11,7 +11,7 @@ from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
 from agents.escalation.config import settings
-from libraries.kafka_transport import create_kafka_transport
+from libraries.communication.transport import create_kafka_transport
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(
@@ -22,12 +22,12 @@ eggai_set_default_transport(
 
 from agents.escalation.config import (
     AGENT_NAME,
-    MSG_TYPE_STREAM_END,
     MSG_TYPE_TICKETING_REQUEST,
 )
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 from ..agent import ticketing_agent as escalation_agent
 from ..types import ChatMessage
@@ -147,11 +147,12 @@ def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
     return "\n".join([f"{m['role']}: {m['content']}" for m in chat_messages])
 
 
-@test_agent.subscribe(
+@subscribe(
+    agent=test_agent,
     channel=human_stream_channel,
-    filter_by_message=lambda event: event.get("type") == MSG_TYPE_STREAM_END,
-    auto_offset_reset="latest",
+    message_type=MessageType.AGENT_MESSAGE_STREAM_END,
     group_id="test_escalation_agent_group",
+    auto_offset_reset=OffsetReset.LATEST,
 )
 async def handle_agent_response(event):
     """Handle agent responses during testing."""

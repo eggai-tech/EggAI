@@ -8,8 +8,8 @@ from agents.policies.agent.services.embeddings import (
     combine_text_for_embedding,
     generate_embeddings_batch,
 )
-from libraries.logger import get_console_logger
-from libraries.vespa import DocumentMetadata, PolicyDocument, VespaClient
+from libraries.integrations.vespa import DocumentMetadata, PolicyDocument, VespaClient
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("ingestion.document_indexing")
 

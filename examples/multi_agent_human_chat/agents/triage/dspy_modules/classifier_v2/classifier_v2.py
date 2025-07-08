@@ -9,7 +9,7 @@ from agents.triage.models import (
     TargetAgent,
     formatted_agent_registry,
 )
-from libraries.dspy_set_language_model import dspy_set_language_model
+from libraries.ml.dspy.language_model import dspy_set_language_model
 
 settings = Settings()
 

@@ -4,9 +4,9 @@ from typing import Optional, Tuple
 from agents.claims.types import ClaimRecord
 
 # Logging and tracing setup
-from libraries.logger import get_console_logger
-from libraries.tracing import create_tracer
-from libraries.tracing.otel import safe_set_attribute
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import create_tracer
+from libraries.observability.tracing.otel import safe_set_attribute
 
 from .claims_errors import ErrorCategory, ErrorResponse, get_user_friendly_error
 from .claims_validators import ALLOWED_FIELDS, FIELD_VALIDATORS, FieldValidators

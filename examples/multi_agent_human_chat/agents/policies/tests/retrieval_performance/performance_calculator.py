@@ -8,7 +8,7 @@ for retrieval combinations, regardless of whether LLM judge is enabled.
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 from .metrics_config import (
     NORMALIZATION_FUNCTIONS,

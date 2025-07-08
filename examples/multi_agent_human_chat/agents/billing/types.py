@@ -2,9 +2,9 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from libraries.types import ChatMessage as ChatMessage
-from libraries.types import ModelConfig as BaseModelConfig
-from libraries.types import ModelResult as ModelResult
+from libraries.communication.protocol import ChatMessage as ChatMessage
+from libraries.core import ModelConfig as BaseModelConfig
+from libraries.core import ModelResult as ModelResult
 
 
 class ModelConfig(BaseModelConfig):

@@ -4,8 +4,8 @@ from datetime import datetime
 import mlflow
 import pytest
 
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
 
 from ..dspy_modules.classifier_v2.classifier_v2 import classifier_v2, settings
 from ..dspy_modules.evaluation.evaluate import run_evaluation

@@ -1,7 +1,7 @@
 import time
 from typing import List
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 from .context_metrics import ContextMetrics
 from .llm_judge import LLMJudge

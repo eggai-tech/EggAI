@@ -7,8 +7,8 @@ from dspy.streaming import StreamResponse
 
 from agents.billing.config import settings
 from agents.billing.types import ModelConfig
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedReAct, create_tracer
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedReAct, create_tracer
 
 from .billing_data import (
     get_billing_info,
@@ -174,7 +174,7 @@ async def process_billing(
 if __name__ == "__main__":
 
     async def run():
-        from libraries.tracing import init_telemetry
+        from libraries.observability.tracing import init_telemetry
 
         init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
 

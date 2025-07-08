@@ -7,8 +7,8 @@ from sentence_transformers import SentenceTransformer
 from agents.policies.agent.services.document_service import DocumentService
 from agents.policies.agent.services.reindex_service import ReindexService
 from agents.policies.agent.services.search_service import SearchService
-from libraries.logger import get_console_logger
-from libraries.vespa import VespaClient
+from libraries.integrations.vespa import VespaClient
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("policies_api_dependencies")
 

@@ -1,14 +1,14 @@
 import dspy
 
-from libraries.logger import get_console_logger
-from libraries.test_utils import (
+from libraries.observability.logger import get_console_logger
+from libraries.testing.utils import (
     MLflowTracker as MLflowTracker,
 )
-from libraries.test_utils import (
+from libraries.testing.utils import (
     create_conversation_string,
     create_message_list,
 )
-from libraries.test_utils import (
+from libraries.testing.utils import (
     setup_mlflow_tracking as setup_mlflow_tracking,
 )
 
@@ -65,7 +65,7 @@ def get_test_cases():
     return test_cases
 
 # Import wait_for_agent_response from shared test utils
-from libraries.test_utils import wait_for_agent_response as _wait_for_agent_response
+from libraries.testing.utils import wait_for_agent_response as _wait_for_agent_response
 
 
 async def wait_for_agent_response(

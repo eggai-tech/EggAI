@@ -10,19 +10,27 @@ from agents.triage.attention_net.attention_based_classifier import (
 from agents.triage.attention_net.config import AttentionNetSettings
 from agents.triage.config import Settings
 from agents.triage.models import ClassifierMetrics, TargetAgent
-from libraries.mlflow_utils import find_model
+from libraries.ml.mlflow import find_model
 
 load_dotenv()
 settings = Settings()
 nn_settings = AttentionNetSettings()
 
-checkpoint_path = find_model(
-    settings.classifier_v5_model_name, version=settings.classifier_v5_model_version
-)
-attention_net = torch.load(checkpoint_path, weights_only=False)
-attention_net.eval()
-# create wrapper
-model = AttentionBasedClassifierWrapper(attention_net)
+# Lazy loading of the model to avoid import-time failures
+_model = None
+
+def get_model():
+    """Get or initialize the attention-based classifier model."""
+    global _model
+    if _model is None:
+        checkpoint_path = find_model(
+            settings.classifier_v5_model_name, version=settings.classifier_v5_model_version
+        )
+        attention_net = torch.load(checkpoint_path, weights_only=False)
+        attention_net.eval()
+        # create wrapper
+        _model = AttentionBasedClassifierWrapper(attention_net)
+    return _model
 
 
 @dataclass
@@ -42,6 +50,7 @@ def classifier_v5(chat_history: str) -> ClassificationResult:
     time_start = perf_counter()
     # IMPORTANT: the model expects the chat history to be a list of strings, each string being a message in the chat
     chat_history = chat_history.split("\n")
+    model = get_model()
     probs, _, attention_weights, attention_pooled_repr = model.predict_probab(
         chat_history, return_logits=True
     )

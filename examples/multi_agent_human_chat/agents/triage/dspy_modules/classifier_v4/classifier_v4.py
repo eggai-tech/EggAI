@@ -10,8 +10,8 @@ from agents.triage.models import (
     TargetAgent,
     formatted_agent_registry,
 )
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
 
 settings = Settings()
 logger = get_console_logger("triage_classifier_v4")

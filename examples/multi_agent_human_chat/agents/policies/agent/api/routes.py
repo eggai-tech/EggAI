@@ -31,7 +31,7 @@ from agents.policies.agent.tools.retrieval.full_document_retrieval import (
     get_document_chunk_range,
     retrieve_full_document_async,
 )
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("policies_api_routes")
 

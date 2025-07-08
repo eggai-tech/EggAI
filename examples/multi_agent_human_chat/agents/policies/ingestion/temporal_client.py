@@ -10,7 +10,7 @@ from agents.policies.ingestion.workflows.ingestion_workflow import (
     DocumentIngestionWorkflow,
     DocumentIngestionWorkflowInput,
 )
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("ingestion.temporal_client")
 

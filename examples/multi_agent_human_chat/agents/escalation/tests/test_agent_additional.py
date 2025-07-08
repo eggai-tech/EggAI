@@ -14,7 +14,7 @@ from agents.escalation.config import (
     MSG_TYPE_STREAM_END,
     MSG_TYPE_TICKETING_REQUEST,
 )
-from libraries.tracing import TracedMessage
+from libraries.observability.tracing import TracedMessage
 
 
 @pytest.mark.asyncio

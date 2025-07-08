@@ -3,7 +3,7 @@ from typing import List, Optional
 from sentence_transformers import SentenceTransformer
 
 from agents.policies.agent.config import settings
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.embeddings")
 

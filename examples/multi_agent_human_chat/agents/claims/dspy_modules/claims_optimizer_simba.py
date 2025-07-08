@@ -20,9 +20,9 @@ from agents.claims.dspy_modules.claims_dataset import (
 )
 
 # Direct use of dspy.SIMBA
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedReAct
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedReAct
 
 logger = get_console_logger("claims_optimizer_simba")
 

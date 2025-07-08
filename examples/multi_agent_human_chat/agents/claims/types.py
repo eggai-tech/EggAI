@@ -5,20 +5,17 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, TypedDic
 
 from pydantic import BaseModel, Field, field_validator
 
-from libraries.types import (
+from libraries.communication.protocol import (
     ChatMessage as ChatMessage,
 )
-from libraries.types import (
+from libraries.communication.protocol import (
     MessageData as MessageData,
 )
-from libraries.types import (
+from libraries.core import (
     ModelConfig as BaseModelConfig,
 )
-from libraries.types import (
+from libraries.core import (
     ModelResult as ModelResult,
-)
-from libraries.types import (
-    TracedMessageDict as TracedMessageDict,
 )
 
 

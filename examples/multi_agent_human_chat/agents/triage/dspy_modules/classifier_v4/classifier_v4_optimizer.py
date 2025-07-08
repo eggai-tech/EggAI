@@ -13,8 +13,8 @@ from agents.triage.data_sets.loader import (
     load_dataset_triage_training,
 )
 from agents.triage.dspy_modules.classifier_v4.classifier_v4 import classifier_v4_program
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("triage_optimizer_v4")
 

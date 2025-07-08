@@ -14,10 +14,11 @@ from agents.billing.tests.utils import (
     setup_mlflow_tracking,
     wait_for_agent_response,
 )
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.communication.transport import create_kafka_transport
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 logger = get_console_logger("billing_agent.tests.agent")
 
@@ -50,11 +51,12 @@ def test_components(setup_kafka_transport):
     # Configure language model for billing agent
     dspy_lm = dspy_set_language_model(settings, overwrite_cache_enabled=False)
     
-    @test_agent.subscribe(
+    @subscribe(
+        agent=test_agent,
         channel=human_stream_channel,
-        filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
-        auto_offset_reset="latest",
+        message_type=MessageType.AGENT_MESSAGE_STREAM_END,
         group_id="test_billing_agent_group",
+        auto_offset_reset=OffsetReset.LATEST,
     )
     async def _handle_response(event):
         """Handler for capturing agent responses."""

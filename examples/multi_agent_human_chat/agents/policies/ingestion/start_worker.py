@@ -12,8 +12,8 @@ from agents.policies.ingestion.workflows.worker import (
     run_policy_documentation_worker,
 )
 from agents.policies.vespa.deploy_package import deploy_to_vespa
-from libraries.logger import get_console_logger
-from libraries.tracing import init_telemetry
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import init_telemetry
 
 logger = get_console_logger("ingestion.start_worker")
 
@@ -26,7 +26,7 @@ async def initialize_minio_and_migrate():
         import hashlib
 
         from agents.policies.ingestion.minio_client import MinIOClient
-        from libraries.vespa import VespaClient
+        from libraries.integrations.vespa import VespaClient
         
         # Initialize MinIO buckets
         async with MinIOClient() as minio_client:

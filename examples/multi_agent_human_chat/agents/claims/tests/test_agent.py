@@ -10,10 +10,11 @@ import pytest
 from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.communication.transport import create_kafka_transport
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 from ..config import settings
 
@@ -191,11 +192,12 @@ def _markdown_table(rows: List[List[str]], headers: List[str]) -> str:
     return "\n".join(lines)
 
 
-@test_agent.subscribe(
+@subscribe(
+    agent=test_agent,
     channel=human_stream_channel,
-    filter_by_message=lambda event: event.get("type") == "agent_message_stream_end",
-    auto_offset_reset="latest",
+    message_type=MessageType.AGENT_MESSAGE_STREAM_END,
     group_id="test_claims_agent_group",
+    auto_offset_reset=OffsetReset.LATEST,
 )
 async def _handle_response(event):
     logger.info(f"Received event: {event}")

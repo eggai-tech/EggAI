@@ -4,7 +4,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 from torch import nn
 
-from libraries.device_utils import get_device
+from libraries.ml.device import get_device
 
 
 class GatedAttentionPooling(nn.Module):

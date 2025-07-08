@@ -5,12 +5,13 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 
-from libraries.channels import channels, clear_channels
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, create_tracer, traced_handler
-from libraries.tracing.init_metrics import init_token_metrics
+from libraries.communication.channels import channels, clear_channels
+from libraries.communication.messaging import MessageType, subscribe
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage, create_tracer, traced_handler
+from libraries.observability.tracing.init_metrics import init_token_metrics
 
-from .config import MESSAGE_TYPE_BILLING_REQUEST, settings
+from .config import settings
 from .types import ChatMessage
 from .utils import get_conversation_string, process_billing_request
 
@@ -25,10 +26,10 @@ init_token_metrics(
     port=settings.prometheus_metrics_port, application_name=settings.app_name
 )
 
-@billing_agent.subscribe(
+@subscribe(
+    agent=billing_agent,
     channel=agents_channel,
-    filter_by_message=lambda msg: msg.get("type") == MESSAGE_TYPE_BILLING_REQUEST,
-    auto_offset_reset="latest",
+    message_type=MessageType.BILLING_REQUEST,
     group_id="billing_agent_group",
 )
 @traced_handler("handle_billing_request")
@@ -91,7 +92,7 @@ async def handle_other_messages(msg: TracedMessage) -> None:
 if __name__ == "__main__":
 
     async def run():
-        from libraries.dspy_set_language_model import dspy_set_language_model
+        from libraries.ml.dspy.language_model import dspy_set_language_model
 
         from .dspy_modules.billing import process_billing
 

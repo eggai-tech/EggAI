@@ -2,10 +2,10 @@ from typing import Literal
 
 from pydantic import Field
 
-from libraries.types import (
+from libraries.communication.protocol import (
     ChatMessage as ChatMessage,
 )
-from libraries.types import (
+from libraries.core import (
     ModelConfig as BaseModelConfig,
 )
 

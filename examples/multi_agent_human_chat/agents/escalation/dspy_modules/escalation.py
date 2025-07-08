@@ -7,8 +7,8 @@ import dspy
 from dspy import Prediction
 from dspy.streaming import StreamResponse
 
-from libraries.logger import get_console_logger
-from libraries.tracing import (
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import (
     TracedReAct,
     create_tracer,
     traced_dspy_function,
@@ -192,8 +192,8 @@ if __name__ == "__main__":
 
     async def run():
         from agents.escalation.config import settings
-        from libraries.dspy_set_language_model import dspy_set_language_model
-        from libraries.tracing import init_telemetry
+        from libraries.ml.dspy.language_model import dspy_set_language_model
+        from libraries.observability.tracing import init_telemetry
 
         init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
         dspy_set_language_model(settings)

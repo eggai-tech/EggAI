@@ -3,7 +3,7 @@ from typing import List
 
 import mlflow
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 from .models import EvaluationResult, RetrievalResult
 

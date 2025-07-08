@@ -12,7 +12,7 @@ from agents.claims.agent import (
     handle_other_messages,
     process_claims_request,
 )
-from libraries.tracing import TracedMessage
+from libraries.observability.tracing import TracedMessage
 
 
 @pytest.mark.asyncio

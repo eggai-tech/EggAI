@@ -114,7 +114,13 @@ or you can open them individually via their URLs:
 | ![Escalation Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/escalation-agent.png) | Escalation  | Complex issues and complaints                    | [Escalation Agent Docs](agents/escalation/README.md) |
 | ![Ausdit Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/audit-agent.png) | Audit       | Compliance logging                               | [Audit Agent Docs](agents/audit/README.md)           |
 
-**Infrastructure:** Redpanda (Kafka), Vespa (Vector Search), Temporal (Workflows), MLflow, Grafana, Prometheus
+## Testing
+
+```bash
+make test        # Run all tests
+make lint        # Check code quality
+make format      # Format code
+```
 
 ## Documentation
 

@@ -5,10 +5,14 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 from eggai import Channel
 
-from libraries.channels import channels
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, create_tracer, format_span_as_traceparent
-from libraries.tracing.otel import safe_set_attribute
+from libraries.communication.channels import channels
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import (
+    TracedMessage,
+    create_tracer,
+    format_span_as_traceparent,
+)
+from libraries.observability.tracing.otel import safe_set_attribute
 
 from .dspy_modules.billing import process_billing
 from .types import ChatMessage, ModelConfig

@@ -9,10 +9,14 @@ from dspy.streaming import StreamResponse
 
 from agents.claims.config import settings
 from agents.claims.types import ModelConfig
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedReAct, create_tracer, traced_dspy_function
-from libraries.tracing.otel import safe_set_attribute
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import (
+    TracedReAct,
+    create_tracer,
+    traced_dspy_function,
+)
+from libraries.observability.tracing.otel import safe_set_attribute
 
 logger = get_console_logger("claims_agent.dspy")
 
@@ -246,7 +250,7 @@ async def process_claims(
 if __name__ == "__main__":
 
     async def run():
-        from libraries.tracing import init_telemetry
+        from libraries.observability.tracing import init_telemetry
 
         init_telemetry(settings.app_name, endpoint=settings.otel_endpoint)
         # Initialize the DSPy model with the configured language model

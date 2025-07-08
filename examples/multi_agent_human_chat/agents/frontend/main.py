@@ -9,9 +9,9 @@ from eggai.transport import eggai_set_default_transport
 from fastapi import FastAPI, HTTPException
 from starlette.responses import HTMLResponse
 
-from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
-from libraries.tracing import init_telemetry
+from libraries.communication.transport import create_kafka_transport
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import init_telemetry
 
 from .config import settings
 

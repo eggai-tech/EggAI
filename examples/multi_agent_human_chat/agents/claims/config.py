@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import SettingsConfigDict
 
-from libraries.types import BaseAgentConfig
+from libraries.core import BaseAgentConfig
 
 from .types import ModelConfig
 
