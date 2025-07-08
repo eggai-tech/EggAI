@@ -1,4 +1,4 @@
-# Custom Model Training Guide
+# Custom Classifiers Model Training Guide
 
 This guide explains how to train custom classifiers for the Triage Agent to improve response latency and reduce costs.
 
@@ -52,6 +52,43 @@ make train-triage-classifier-v3
 
 ```bash
 make test-triage-classifier-v3
+```
+
+### Available Models
+
+1. **Baseline Few-Shot Classifier (v3)**
+
+   ```bash
+   make train-triage-classifier-v3
+   ```
+
+   - Uses few-shot learning with examples
+   - Good baseline performance
+   - Requires training data
+
+2. **Attention-Based Classifier (v5)**
+
+   ```bash
+   make train-triage-classifier-v5
+   ```
+
+   - Advanced neural architecture
+   - Best performance on complex queries
+   - Requires GPU for optimal training
+
+### Monitoring Training Progress
+
+View training metrics and model performance:
+
+- MLflow UI: <http://localhost:5001>
+- Experiments are organized by model version
+- Compare runs across different hyperparameters
+
+### Evaluating Models
+
+```bash
+make test-triage-classifier-v3  # Test baseline model
+make test-triage-classifier-v5  # Test attention model
 ```
 
 ### Results
