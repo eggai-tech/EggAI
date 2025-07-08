@@ -1,4 +1,4 @@
-# Advanced Topics
+# Deployment
 
 ## Multi-Environment Deployment
 
@@ -14,13 +14,15 @@ make start-all
 ```
 
 This configuration will:
+
 - Prefix all Kafka topics (e.g., `pr-123-agents`, `pr-123-human`)
 - Create separate Temporal namespaces for workflow isolation
 - Use distinct Vespa application names for document storage
 
-### Example Use Cases
+#### Example Use Cases
 
 1. **Pull Request Previews**
+
    ```bash
    export DEPLOYMENT_NAMESPACE=pr-${PR_NUMBER}
    make docker-up
@@ -28,78 +30,18 @@ This configuration will:
    ```
 
 2. **Staging Environment**
+
    ```bash
    export DEPLOYMENT_NAMESPACE=staging
    make start-all
    ```
 
 3. **Production Deployment**
+
    ```bash
    export DEPLOYMENT_NAMESPACE=prod
    make start-all
    ```
-
-## Agent Optimization
-
-Optimize agent responses using DSPy's SIMBA optimizer:
-
-### Individual Agent Optimization
-
-```bash
-make compile-billing-optimizer     # Optimize billing agent
-make compile-claims-optimizer      # Optimize claims agent
-make compile-policies-optimizer    # Optimize policies agent
-make compile-escalation-optimizer  # Optimize escalation agent
-```
-
-### Batch Optimization
-
-```bash
-make compile-all  # Optimize all agents sequentially
-```
-
-### Triage Classifier Optimization
-
-```bash
-make compile-triage-classifier-v2  # Few-shot classifier
-make compile-triage-classifier-v4  # Zero-shot COPRO optimizer
-```
-
-## Custom Model Training
-
-Train custom triage classifiers for improved routing accuracy:
-
-### Available Models
-
-1. **Baseline Few-Shot Classifier (v3)**
-   ```bash
-   make train-triage-classifier-v3
-   ```
-   - Uses few-shot learning with examples
-   - Good baseline performance
-   - Requires training data
-
-2. **Attention-Based Classifier (v5)**
-   ```bash
-   make train-triage-classifier-v5
-   ```
-   - Advanced neural architecture
-   - Best performance on complex queries
-   - Requires GPU for optimal training
-
-### Monitoring Training Progress
-
-View training metrics and model performance:
-- MLflow UI: http://localhost:5001
-- Experiments are organized by model version
-- Compare runs across different hyperparameters
-
-### Evaluating Models
-
-```bash
-make test-triage-classifier-v3  # Test baseline model
-make test-triage-classifier-v5  # Test attention model
-```
 
 ## Performance Tuning
 
@@ -126,6 +68,7 @@ make start-policies-document-ingestion &
 ### Vespa Optimization
 
 Configure Vespa for your data volume:
+
 - Adjust memory settings in `docker-compose.yml`
 - Configure ranking profiles in `agents/policies/vespa/schemas/`
 - Monitor query performance in Vespa metrics
@@ -134,7 +77,8 @@ Configure Vespa for your data volume:
 
 ### Grafana Dashboards
 
-Access pre-configured dashboards at http://localhost:3000:
+Access pre-configured dashboards at <http://localhost:3000>:
+
 - Agent performance metrics
 - Message throughput
 - Error rates and latencies
@@ -142,6 +86,7 @@ Access pre-configured dashboards at http://localhost:3000:
 ### Prometheus Metrics
 
 Each agent exposes metrics on different ports:
+
 - Frontend: 9090
 - Triage: 9091
 - Billing: 9092
@@ -153,6 +98,7 @@ Each agent exposes metrics on different ports:
 ### Distributed Tracing
 
 OpenTelemetry traces are collected and can be viewed in:
+
 - Jaeger UI (if configured)
 - MLflow trace viewer
 - Custom trace analysis tools

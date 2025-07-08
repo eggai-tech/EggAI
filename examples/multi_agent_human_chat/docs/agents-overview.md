@@ -4,6 +4,8 @@ This document provides a comprehensive overview of all agents in the EggAI syste
 
 ## System Architecture
 
+![Architecture](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/architecture-multi-agent-insurance-support-system.svg)
+
 The EggAI system consists of specialized agents that work together to handle insurance-related customer inquiries:
 
 | Agent       | Description                                      | Documentation                              |
