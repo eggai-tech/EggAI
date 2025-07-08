@@ -184,9 +184,6 @@ schema_name: "policy_document"
 3. Restart the ingestion worker
 4. Documents will be automatically processed
 
-## Related Documentation
+---
 
-- [Agents Overview](agents-overview.md) - Complete agent descriptions
-- [Model Training](model-training.md) - Custom classifier training
-- Temporal Docs: https://docs.temporal.io
-- Vespa Docs: https://docs.vespa.ai
+**Previous:** [ReAct Framework with DSPy](react-framework-dspy.md) | **Next:** [RAG with Vespa](agentic-rag.md)

@@ -129,3 +129,8 @@ OpenTelemetry traces are collected and can be viewed in:
    - Regular Vespa index backups
    - Temporal workflow history backup
    - Database backup strategies
+
+
+---
+
+**Previous:** [Performance Optimization](agent-optimization.md) | **[Back to Documentation](../../README.md#documentation)**

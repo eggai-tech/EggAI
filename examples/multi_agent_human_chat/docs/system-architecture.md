@@ -242,3 +242,7 @@ sequenceDiagram
     HumanChannel-->>Frontend: Send response
     Frontend-->>User: Display response
 ```
+
+---
+
+**Next:** [Agent Capabilities Overview](agents-overview.md)
