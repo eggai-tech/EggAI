@@ -4,7 +4,7 @@ from typing import Dict, List
 from temporalio import activity
 
 from agents.policies.ingestion.minio_client import MinIOClient
-from libraries.vespa import VespaClient
+from libraries.integrations.vespa import VespaClient
 
 logger = logging.getLogger(__name__)
 

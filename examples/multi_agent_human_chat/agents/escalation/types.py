@@ -2,20 +2,17 @@ from typing import Literal, Optional, TypedDict
 
 from pydantic import BaseModel, Field
 
-from libraries.types import (
+from libraries.communication.protocol import (
     ChatMessage as ChatMessage,
 )
-from libraries.types import (
+from libraries.communication.protocol import (
     MessageData as MessageData,
 )
-from libraries.types import (
+from libraries.core import (
     ModelConfig as BaseModelConfig,
 )
-from libraries.types import (
+from libraries.core import (
     ModelResult as ModelResult,
-)
-from libraries.types import (
-    TracedMessageDict as TracedMessageDict,
 )
 
 TicketDepartment = Literal["Technical Support", "Billing", "Sales"]

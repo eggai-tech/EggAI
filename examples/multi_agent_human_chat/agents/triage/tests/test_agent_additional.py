@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from agents.triage.agent import handle_others, handle_user_message
 from agents.triage.models import TargetAgent
-from libraries.tracing import TracedMessage
+from libraries.observability.tracing import TracedMessage
 
 
 @dataclass

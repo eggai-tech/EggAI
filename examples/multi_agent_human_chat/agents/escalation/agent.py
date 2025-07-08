@@ -6,11 +6,15 @@ from dspy.streaming import StreamResponse
 from eggai import Agent, Channel
 from opentelemetry import trace
 
-from libraries.channels import channels, clear_channels
-from libraries.logger import get_console_logger
-from libraries.subscribe import MessageType, subscribe
-from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
-from libraries.tracing.otel import safe_set_attribute
+from libraries.communication.channels import channels, clear_channels
+from libraries.communication.messaging import MessageType, subscribe
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import (
+    TracedMessage,
+    format_span_as_traceparent,
+    traced_handler,
+)
+from libraries.observability.tracing.otel import safe_set_attribute
 
 from .config import (
     AGENT_NAME,
@@ -212,7 +216,7 @@ async def handle_other_messages(msg: TracedMessage) -> None:
 if __name__ == "__main__":
 
     async def run():
-        from libraries.dspy_set_language_model import dspy_set_language_model
+        from libraries.ml.dspy.language_model import dspy_set_language_model
 
         dspy_set_language_model(settings)
         await clear_channels()

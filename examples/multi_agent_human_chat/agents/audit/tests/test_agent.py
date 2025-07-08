@@ -11,7 +11,7 @@ from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
 from agents.audit.config import settings
-from libraries.kafka_transport import create_kafka_transport
+from libraries.communication.transport import create_kafka_transport
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(
@@ -23,9 +23,9 @@ eggai_set_default_transport(
 from agents.audit.agent import audit_agent, audit_message
 from agents.audit.config import MESSAGE_CATEGORIES
 from agents.audit.types import AuditCategory
-from libraries.channels import channels
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage
+from libraries.communication.channels import channels
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 logger = get_console_logger("audit_agent.tests")
 
@@ -36,7 +36,7 @@ audit_logs_channel = Channel(channels.audit_logs)
 response_queue = asyncio.Queue()
 
 
-from libraries.subscribe import AgentName, MessageType, subscribe
+from libraries.communication.messaging import AgentName, MessageType, subscribe
 
 
 @subscribe(
@@ -52,7 +52,7 @@ async def _handle_audit_response(event: TracedMessage):
 
 @pytest.fixture(scope="module", autouse=True)
 async def setup_agents():
-    from libraries.tracing import init_telemetry
+    from libraries.observability.tracing import init_telemetry
 
     init_telemetry(app_name="test_audit_agent")
 
@@ -96,8 +96,8 @@ async def send_message_and_wait(
         assert audit_response.type == "audit_log", (
             f"Expected message type 'audit_log', got '{audit_response.type}'"
         )
-        assert audit_response.source == "AuditAgent", (
-            f"Expected source 'AuditAgent', got '{audit_response.source}'"
+        assert audit_response.source == "Audit", (
+            f"Expected source 'Audit', got '{audit_response.source}'"
         )
 
         if audit_response.data.get("message_id"):

@@ -1,10 +1,10 @@
 from enum import Enum
 from typing import Literal, Optional, TypedDict
 
-from libraries.types import (
+from libraries.communication.protocol import (
     MessageData,
 )
-from libraries.types import (
+from libraries.core import (
     ModelConfig as BaseModelConfig,
 )
 

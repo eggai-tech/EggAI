@@ -6,7 +6,7 @@ from agents.policies.agent.tools.database.example_data import (
     EXAMPLE_POLICIES,
     USE_EXAMPLE_DATA,
 )
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.tools.database")
 tracer = trace.get_tracer("policies_agent_tools_database")

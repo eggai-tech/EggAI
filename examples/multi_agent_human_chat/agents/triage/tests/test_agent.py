@@ -17,11 +17,11 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from agents.triage.agent import handle_user_message
 from agents.triage.config import Settings
-from libraries.channels import channels, clear_channels
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
-from libraries.subscribe import MessageType, OffsetReset, subscribe
-from libraries.tracing import TracedMessage
+from libraries.communication.channels import channels, clear_channels
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 from ..agent import triage_agent
 from ..data_sets.loader import load_dataset_triage_testing

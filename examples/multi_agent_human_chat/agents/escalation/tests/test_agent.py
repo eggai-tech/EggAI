@@ -11,7 +11,7 @@ from eggai import Agent, Channel
 from eggai.transport import eggai_set_default_transport
 
 from agents.escalation.config import settings
-from libraries.kafka_transport import create_kafka_transport
+from libraries.communication.transport import create_kafka_transport
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(
@@ -24,10 +24,10 @@ from agents.escalation.config import (
     AGENT_NAME,
     MSG_TYPE_TICKETING_REQUEST,
 )
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
-from libraries.subscribe import MessageType, OffsetReset, subscribe
-from libraries.tracing import TracedMessage
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 from ..agent import ticketing_agent as escalation_agent
 from ..types import ChatMessage

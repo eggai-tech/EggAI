@@ -16,17 +16,17 @@ from agents.policies.agent.config import (
 )
 from agents.policies.agent.reasoning import process_policies
 from agents.policies.agent.types import ChatMessage
-from libraries.channels import channels, clear_channels
-from libraries.logger import get_console_logger
-from libraries.subscribe import MessageType, subscribe
-from libraries.tracing import (
+from libraries.communication.channels import channels, clear_channels
+from libraries.communication.messaging import MessageType, subscribe
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import (
     TracedMessage,
     create_tracer,
     format_span_as_traceparent,
     traced_handler,
 )
-from libraries.tracing.init_metrics import init_token_metrics
-from libraries.tracing.otel import safe_set_attribute
+from libraries.observability.tracing.init_metrics import init_token_metrics
+from libraries.observability.tracing.otel import safe_set_attribute
 
 policies_agent = Agent(name=AGENT_NAME)
 logger = get_console_logger("policies_agent.handler")
@@ -228,7 +228,7 @@ async def handle_other_messages(msg: TracedMessage) -> None:
 if __name__ == "__main__":
 
     async def run():
-        from libraries.dspy_set_language_model import dspy_set_language_model
+        from libraries.ml.dspy.language_model import dspy_set_language_model
 
         dspy_set_language_model(settings)
 

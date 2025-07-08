@@ -10,7 +10,7 @@ from typing import List, Optional
 
 import aiohttp
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 from .models import ParameterCombination, RetrievalResult, RetrievalTestCase
 

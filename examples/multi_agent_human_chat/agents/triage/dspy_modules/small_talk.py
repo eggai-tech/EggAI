@@ -6,8 +6,8 @@ from dspy import Prediction
 from dspy.streaming import StreamResponse
 
 from agents.triage.config import Settings
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.tracing import init_telemetry
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.tracing import init_telemetry
 
 settings = Settings()
 

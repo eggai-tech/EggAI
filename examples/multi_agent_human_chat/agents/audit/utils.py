@@ -1,8 +1,8 @@
 from typing import Dict, Optional, Union
 from uuid import uuid4
 
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 logger = get_console_logger("audit_agent")
 

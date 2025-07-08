@@ -14,11 +14,11 @@ from agents.billing.tests.utils import (
     setup_mlflow_tracking,
     wait_for_agent_response,
 )
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
-from libraries.subscribe import MessageType, OffsetReset, subscribe
-from libraries.tracing import TracedMessage
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.communication.transport import create_kafka_transport
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
 
 logger = get_console_logger("billing_agent.tests.agent")
 

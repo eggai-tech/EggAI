@@ -1,6 +1,6 @@
 import json
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("billing_agent.data")
 

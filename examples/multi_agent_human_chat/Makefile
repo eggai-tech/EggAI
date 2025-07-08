@@ -160,7 +160,7 @@ test-audit-agent:
 
 test-libraries:
 	@echo "Running tests for libraries module..."
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest libraries/tests/ -v \
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest libraries/testing/tests/ -v \
        --cov=libraries --cov-report=xml:coverage.xml --cov-report=term --cov-append \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html

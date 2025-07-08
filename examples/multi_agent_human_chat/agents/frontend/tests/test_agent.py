@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from starlette.websockets import WebSocket, WebSocketState
 
 from agents.frontend.types import MessageType
-from libraries.kafka_transport import create_kafka_transport
-from libraries.tracing import TracedMessage
+from libraries.communication.transport import create_kafka_transport
+from libraries.observability.tracing import TracedMessage
 
 from ..agent import (
     add_websocket_gateway,

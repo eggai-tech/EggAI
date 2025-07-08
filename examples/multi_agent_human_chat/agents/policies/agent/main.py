@@ -9,10 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from agents.policies.agent.api.routes import router as api_router
 from agents.policies.agent.config import settings
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.kafka_transport import create_kafka_transport
-from libraries.logger import get_console_logger
-from libraries.tracing import init_telemetry
+from libraries.communication.transport import create_kafka_transport
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import init_telemetry
 
 eggai_set_default_transport(
     lambda: create_kafka_transport(

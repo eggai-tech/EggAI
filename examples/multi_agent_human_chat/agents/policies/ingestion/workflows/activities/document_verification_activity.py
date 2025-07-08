@@ -4,8 +4,8 @@ from typing import Any, Dict
 
 from temporalio import activity
 
-from libraries.logger import get_console_logger
-from libraries.vespa import VespaClient
+from libraries.integrations.vespa import VespaClient
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("ingestion.document_verification")
 

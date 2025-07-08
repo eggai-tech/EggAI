@@ -8,10 +8,10 @@ from fastapi import FastAPI, Query
 from opentelemetry import trace
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage
-from libraries.tracing.init_metrics import init_token_metrics
-from libraries.tracing.otel import (
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage
+from libraries.observability.tracing.init_metrics import init_token_metrics
+from libraries.observability.tracing.otel import (
     extract_span_context,
     safe_set_attribute,
     traced_handler,

@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional
 from opentelemetry import trace
 
 from agents.policies.agent.utils import run_async_safe
-from libraries.logger import get_console_logger
-from libraries.vespa import VespaClient
+from libraries.integrations.vespa import VespaClient
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("policies_agent.tools.retrieval")
 tracer = trace.get_tracer("policies_agent_tools_retrieval")

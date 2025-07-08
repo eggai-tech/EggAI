@@ -17,8 +17,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from libraries.logger import get_console_logger
-from libraries.vespa import VespaClient
+from libraries.integrations.vespa import VespaClient
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("drop_index")
 

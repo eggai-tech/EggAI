@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional
 
-from libraries.logger import get_console_logger
-from libraries.vespa import VespaClient
+from libraries.integrations.vespa import VespaClient
+from libraries.observability.logger import get_console_logger
 
 if TYPE_CHECKING:
     from agents.policies.agent.api.models import PolicyDocument

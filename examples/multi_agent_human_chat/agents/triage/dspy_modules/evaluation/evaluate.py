@@ -14,8 +14,8 @@ from agents.triage.config import Settings
 from agents.triage.data_sets.loader import as_dspy_examples, load_dataset_triage_testing
 from agents.triage.dspy_modules.classifier_v1 import classifier_v1
 from agents.triage.dspy_modules.evaluation.report import generate_report
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
 
 settings = Settings()
 

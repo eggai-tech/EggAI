@@ -21,7 +21,7 @@ from agents.triage.baseline_model.utils import (
     setup_logging,
     unroll_dataset,
 )
-from libraries.device_utils import get_device
+from libraries.ml.device import get_device
 
 logger = logging.getLogger("attention_net_trainer")
 

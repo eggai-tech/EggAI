@@ -13,7 +13,7 @@ from agents.claims.dspy_modules.claims_data import (
     get_claim_record,
 )
 from agents.claims.types import ClaimRecord
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("claims_api")
 

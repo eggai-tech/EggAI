@@ -37,7 +37,7 @@ logger = None
 def _get_logger():
     global logger
     if logger is None:
-        from libraries.logger import get_console_logger
+        from libraries.observability.logger import get_console_logger
 
         logger = get_console_logger("ingestion.worker")
     return logger

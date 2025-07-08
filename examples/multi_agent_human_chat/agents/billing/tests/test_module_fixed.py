@@ -4,7 +4,7 @@ import pytest
 from dspy import Prediction
 
 from agents.billing.dspy_modules.evaluation.metrics import precision_metric
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("billing_agent.tests.module")
 

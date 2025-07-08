@@ -15,7 +15,7 @@ sys.path.insert(0, str(project_root))
 
 
 from agents.policies.vespa.generate_package import generate_package_artifacts
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("vespa_deployment")
 

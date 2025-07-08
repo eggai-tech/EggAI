@@ -4,11 +4,11 @@ from uuid import uuid4
 from eggai import Agent, Channel
 from faststream.kafka import KafkaMessage
 
-from libraries.channels import channels
-from libraries.logger import get_console_logger
-from libraries.tracing import TracedMessage, create_tracer, traced_handler
-from libraries.tracing.init_metrics import init_token_metrics
-from libraries.tracing.otel import safe_set_attribute
+from libraries.communication.channels import channels
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedMessage, create_tracer, traced_handler
+from libraries.observability.tracing.init_metrics import init_token_metrics
+from libraries.observability.tracing.otel import safe_set_attribute
 
 from .config import audit_config, settings
 from .types import AuditCategory, AuditEvent

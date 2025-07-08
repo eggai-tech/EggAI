@@ -3,7 +3,7 @@ from typing import Dict
 
 from starlette.websockets import WebSocket, WebSocketState
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 
 class WebSocketManager:

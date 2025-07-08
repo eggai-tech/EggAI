@@ -8,11 +8,15 @@ from opentelemetry import trace
 from agents.triage.config import GROUP_ID, settings
 from agents.triage.dspy_modules.small_talk import chatty
 from agents.triage.models import AGENT_REGISTRY, TargetAgent
-from libraries.channels import channels
-from libraries.logger import get_console_logger
-from libraries.subscribe import MessageType, OffsetReset, subscribe
-from libraries.tracing import TracedMessage, format_span_as_traceparent, traced_handler
-from libraries.tracing.otel import safe_set_attribute
+from libraries.communication.channels import channels
+from libraries.communication.messaging import MessageType, OffsetReset, subscribe
+from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import (
+    TracedMessage,
+    format_span_as_traceparent,
+    traced_handler,
+)
+from libraries.observability.tracing.otel import safe_set_attribute
 
 _CLASSIFIER_PATHS = {
     "v0": ("agents.triage.dspy_modules.classifier_v0", "classifier_v0"),

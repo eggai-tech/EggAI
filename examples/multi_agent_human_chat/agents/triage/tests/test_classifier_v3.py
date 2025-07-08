@@ -12,7 +12,7 @@ import pytest
 
 from agents.triage.baseline_model.classifier_v3 import classifier_v3, settings
 from agents.triage.data_sets.loader import load_dataset_triage_testing
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("test_classifier_v3")
 

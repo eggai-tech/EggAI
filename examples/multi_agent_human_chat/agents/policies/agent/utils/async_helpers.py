@@ -2,7 +2,7 @@ import asyncio
 import concurrent.futures
 from typing import Any, Coroutine, TypeVar
 
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("async_helpers")
 

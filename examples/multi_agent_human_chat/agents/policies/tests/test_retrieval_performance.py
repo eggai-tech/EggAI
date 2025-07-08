@@ -42,7 +42,7 @@ from agents.policies.tests.retrieval_performance.performance_calculator import (
     PerformanceCalculator,
 )
 from agents.policies.vespa.deploy_package import deploy_to_vespa
-from libraries.logger import get_console_logger
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("retrieval_performance_test")
 

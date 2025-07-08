@@ -8,28 +8,28 @@ from agents.claims.dspy_modules.claims import (
     process_claims,
     truncate_long_history,
 )
-from libraries.shared_test_utils import (
+from libraries.testing.utils.dspy_helpers import (
     test_model_config_validation as shared_model_config,
 )
-from libraries.shared_test_utils import (
+from libraries.testing.utils.dspy_helpers import (
     test_optimized_dspy_basic as shared_dspy_basic,
 )
-from libraries.shared_test_utils import (
+from libraries.testing.utils.dspy_helpers import (
     test_optimized_dspy_empty_conversation as shared_dspy_empty,
 )
-from libraries.shared_test_utils import (
+from libraries.testing.utils.dspy_helpers import (
     test_signature_fields as shared_signature_fields,
 )
-from libraries.shared_test_utils import (
+from libraries.testing.utils.dspy_helpers import (
     test_signature_structure as shared_signature_structure,
 )
-from libraries.shared_test_utils import (
+from libraries.testing.utils.dspy_helpers import (
     test_truncate_long_history_edge_cases as shared_truncate_edge_cases,
 )
-from libraries.shared_test_utils import (
+from libraries.testing.utils.dspy_helpers import (
     test_truncate_long_history_return_structure as shared_truncate_structure,
 )
-from libraries.shared_test_utils import (
+from libraries.testing.utils.dspy_helpers import (
     test_truncate_long_history_with_config as shared_truncate_config,
 )
 

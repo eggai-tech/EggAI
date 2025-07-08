@@ -36,8 +36,8 @@ from agents.claims.dspy_modules.claims_dataset import (
     as_dspy_examples,
     create_claims_dataset,
 )
-from libraries.dspy_set_language_model import dspy_set_language_model
-from libraries.logger import get_console_logger
+from libraries.ml.dspy.language_model import dspy_set_language_model
+from libraries.observability.logger import get_console_logger
 
 logger = get_console_logger("claims_optimizer")
 
@@ -102,7 +102,7 @@ class ClaimsSignature(dspy.Signature):
 
 
 # Create the unoptimized react program
-from libraries.tracing import TracedReAct
+from libraries.observability.tracing import TracedReAct
 
 
 # Mock tools for optimization (these won't actually be called during optimization)

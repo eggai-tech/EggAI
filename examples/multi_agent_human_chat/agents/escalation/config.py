@@ -2,8 +2,8 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import SettingsConfigDict
 
-from libraries.subscribe import AgentName, MessageType
-from libraries.types import BaseAgentConfig
+from libraries.communication.messaging import AgentName, MessageType
+from libraries.core import BaseAgentConfig
 
 from .types import DspyModelConfig
 
