@@ -1,50 +1,125 @@
-# Agentic RAG – Introduction into RAG
+# RAG with Vespa
 
-## What is RAG?
+## Overview
 
-Retrieval-Augmented Generation (RAG) combines traditional information retrieval with large language models (LLMs). Instead of generating answers purely from internal training data, RAG fetches relevant external documents at runtime and provides them as context to the model. This leads to more accurate, up-to-date, and verifiable responses.
+Retrieval-Augmented Generation (RAG) enhances LLM responses by retrieving relevant documents at runtime. Our implementation uses Vespa for vector search and combines it with agent reasoning.
 
-## RAG vs. Agentic RAG
+## Architecture
 
-While RAG is typically a single-step query + generate process, **Agentic RAG** introduces reasoning and control by breaking the process into multiple steps, handled by autonomous agents. These agents can:
+```
+User Query → Policies Agent → Vespa Search → LLM Generation
+                ↓
+            ReAct Loop
+         (reason, search, refine)
+```
 
-- Analyze user intent  
-- Decompose complex questions  
-- Fetch documents iteratively  
-- Verify retrieved facts  
-- Generate responses in stages  
+## Vespa Integration
 
-Agentic RAG enables **multi-step reasoning**, **tool use**, and **task coordination**, turning simple retrieval into an active decision-making process.
+### Document Schema
+```json
+{
+  "fields": {
+    "id": "string",
+    "title": "string", 
+    "text": "string",
+    "category": "string",
+    "embedding": "tensor<float>(x[384])"
+  }
+}
+```
 
-## Key Concepts
+### Search Types
 
-- **Tokenization**: The process of splitting text into smaller units (tokens) that the model can understand. Tokens can be words, parts of words, or punctuation. LLMs have token limits that affect how much context they can process.
+| Type | Use Case | Example |
+|------|----------|---------|
+| **BM25** | Keyword matching | "fire damage coverage" |
+| **Vector** | Semantic similarity | "What's covered in floods?" |
+| **Hybrid** | Best of both | "home insurance water damage" |
 
-- **Embedding**: A vector representation of text used to compare semantic similarity. RAG systems use embeddings to find relevant content.
+## Agentic RAG Implementation
 
-- **Context Window**: The maximum number of tokens a model can handle in a single request. Retrieved content must fit within this limit.
+### 1. Query Analysis
+```python
+# Agent analyzes intent
+if has_policy_number(query):
+    use_personal_lookup()
+else:
+    use_document_search()
+```
 
-- **Chunking**: Breaking long documents into smaller pieces to make them retrievable and fit within the model’s context window.
+### 2. Iterative Retrieval
+```python
+# ReAct agent can search multiple times
+results = search_policy_documentation(
+    query="fire coverage",
+    category="home"
+)
+if not sufficient(results):
+    results += search_policy_documentation(
+        query="property damage",
+        category="home"
+    )
+```
 
-- **Vector Store**: A database optimized for similarity search using embeddings.
+### 3. Context Construction
+```python
+# Build prompt with retrieved chunks
+context = "\n".join([r.content for r in results[:5]])
+prompt = f"Context:\n{context}\n\nQuestion: {query}"
+```
 
-## How It Works
+## Configuration
 
-1. **User Query**  
-   A user asks a question or submits input.
+### Chunking Strategy
+- **Max tokens**: 500 (fits in context window)
+- **Min tokens**: 100 (maintains coherence)
+- **Overlap**: 2 sentences (preserves context)
 
-2. **Embedding & Retrieval**  
-   The system generates an embedding of the query and retrieves semantically similar chunks from a vector store.
+### Retrieval Settings
+- **Top K**: 5 documents
+- **Score threshold**: 0.7
+- **Category filtering**: Optional
 
-3. **Prompt Construction**  
-   Retrieved chunks are added to the prompt along with the original question.
+## Performance Optimization
 
-4. **Generation**  
-   The language model uses the combined context to generate a grounded response.
+1. **Pre-filtering**: Use categories to reduce search space
+2. **Caching**: Store frequent queries
+3. **Batch processing**: Index documents in parallel
+4. **Relevance tuning**: Adjust BM25 weights
 
-**In Agentic RAG**:  
-Agents may iterate through this loop, ask follow-up questions, or call tools before generating a final output.
+## Example Flow
 
+```python
+# User: "Does my home insurance cover earthquake damage?"
+
+# 1. Agent reasoning
+Thought: General coverage question, search home policies
+
+# 2. Vespa search
+Action: search_policy_documentation(
+    query="earthquake damage coverage",
+    category="home"
+)
+
+# 3. Retrieved chunks
+Result: [
+    "Natural disasters including earthquakes...",
+    "Standard policies exclude earthquake damage...",
+    "Additional earthquake coverage available..."
+]
+
+# 4. Generated response
+Response: "Standard home insurance policies typically 
+exclude earthquake damage. You would need to purchase 
+additional earthquake coverage as a separate policy 
+or endorsement."
+```
+
+## Monitoring
+
+- **Search latency**: < 100ms target
+- **Retrieval accuracy**: Track relevance scores
+- **Coverage gaps**: Log queries with no results
 
 ---
 
