@@ -382,7 +382,7 @@ async def test_websocket_manager_send_message(mock_websocket, connection_id):
     message_data = {"type": "test", "content": "Hello"}
 
     # Mock the logger import to avoid import issues
-    with patch("libraries.logger.get_console_logger") as mock_logger:
+    with patch("libraries.observability.logger.get_console_logger") as mock_logger:
         mock_logger.return_value = MagicMock()
         await manager.send_message_to_connection(connection_id, message_data)
 
@@ -395,7 +395,7 @@ async def test_websocket_manager_send_message_no_connection(connection_id):
     manager = WebSocketManager()
 
     message_data = {"type": "test", "content": "Hello"}
-    with patch("libraries.logger.get_console_logger") as mock_logger:
+    with patch("libraries.observability.logger.get_console_logger") as mock_logger:
         mock_logger.return_value = MagicMock()
         await manager.send_message_to_connection(connection_id, message_data)
 
@@ -426,7 +426,7 @@ async def test_websocket_manager_send_to_message_id(
     message_data = {"type": "test", "content": "Hello"}
 
     # Mock the logger import to avoid import issues
-    with patch("libraries.logger.get_console_logger") as mock_logger:
+    with patch("libraries.observability.logger.get_console_logger") as mock_logger:
         mock_logger.return_value = MagicMock()
         await manager.send_to_message_id(message_id, message_data)
 
@@ -530,7 +530,7 @@ async def test_websocket_manager_send_message_error(mock_websocket, connection_i
     message_data = {"type": "test", "content": "Hello"}
 
     # Mock the logger import to avoid import issues
-    with patch("libraries.logger.get_console_logger") as mock_logger:
+    with patch("libraries.observability.logger.get_console_logger") as mock_logger:
         mock_logger.return_value = MagicMock()
         # Should not raise exception
         await manager.send_message_to_connection(connection_id, message_data)

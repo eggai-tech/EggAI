@@ -436,9 +436,24 @@ def patch_tracking_lm():
     print("✓ Patched TrackingLM to export OpenTelemetry semantic convention metrics")
 
 
+# Track if metrics server is already started
+_metrics_server_started = False
+
 def start_metrics_server(port: int = 9091):
-    start_http_server(port)
-    print(f"✓ Prometheus metrics server started on port {port}")
+    global _metrics_server_started
+    if _metrics_server_started:
+        print(f"⚠️  Metrics server already running, skipping start on port {port}")
+        return
+    try:
+        start_http_server(port)
+        _metrics_server_started = True
+        print(f"✓ Prometheus metrics server started on port {port}")
+    except OSError as e:
+        if "Address already in use" in str(e):
+            print(f"⚠️  Port {port} already in use, metrics server may be running in another process")
+            _metrics_server_started = True
+        else:
+            raise
 
 
 def init_token_metrics(port: int = 9091, application_name: str = "unknown", force_init: bool = False):

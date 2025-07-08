@@ -331,6 +331,11 @@ class TestPatchTrackingLM:
 class TestStartMetricsServer:
     """Test cases for start_metrics_server function."""
 
+    def setup_method(self):
+        """Reset the global metrics server state before each test."""
+        import libraries.observability.tracing.init_metrics as init_metrics
+        init_metrics._metrics_server_started = False
+
     @patch("libraries.observability.tracing.init_metrics.start_http_server")
     def test_start_metrics_server_default_port(self, mock_start_server):
         """Test starting metrics server with default port."""
