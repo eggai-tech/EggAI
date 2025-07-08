@@ -38,16 +38,21 @@ cp .env.example .env
 ### 2. Configure Language Models
 
 #### Option A: Local Models (Default - No API Keys Required)
+
 1. Download and install [LM Studio](https://lmstudio.ai/)
 2. Launch LM Studio and load a compatible model (e.g., gemma-3-12b-it-qat)
 3. Start the local server (should run on http://localhost:1234)
 
 #### Option B: OpenAI Models
-Edit `.env` and uncomment the OpenAI model lines:
+
+Edit `.env` and uncomment the OpenAI model lines for every agent:
+
 ```bash
 # Uncomment these lines in .env
+# TRIAGE_LANGUAGE_MODEL_API_BASE=https://api.openai.com/v1
 # TRIAGE_LANGUAGE_MODEL=openai/gpt-4o-mini
 # OPENAI_API_KEY=your-api-key-here
+[...]
 ```
 
 ### 3. Start Platform Services
@@ -83,6 +88,8 @@ Here are some example prompts you can try:
 - _"I have a complaint about my service"_
 
 The system will automatically route your request to the appropriate agent.
+
+To get a general understanding of how the system works, please take a look at the  [_"Simple Flow Example"_](docs/simple_example_flow.md).
 
 **Platform Services:**  
 All services are accessible directly from the chat UI header,  
