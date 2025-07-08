@@ -38,16 +38,21 @@ cp .env.example .env
 ### 2. Configure Language Models
 
 #### Option A: Local Models (Default - No API Keys Required)
+
 1. Download and install [LM Studio](https://lmstudio.ai/)
 2. Launch LM Studio and load a compatible model (e.g., gemma-3-12b-it-qat)
 3. Start the local server (should run on http://localhost:1234)
 
 #### Option B: OpenAI Models
-Edit `.env` and uncomment the OpenAI model lines:
+
+Edit `.env` and uncomment the OpenAI model lines for every agent:
+
 ```bash
 # Uncomment these lines in .env
+# TRIAGE_LANGUAGE_MODEL_API_BASE=https://api.openai.com/v1
 # TRIAGE_LANGUAGE_MODEL=openai/gpt-4o-mini
 # OPENAI_API_KEY=your-api-key-here
+[...]
 ```
 
 ### 3. Start Platform Services
@@ -84,6 +89,8 @@ Here are some example prompts you can try:
 
 The system will automatically route your request to the appropriate agent.
 
+To get a general understanding of how the system works, please take a look at the  [_"Simple Flow Example"_](docs/simple_example_flow.md).
+
 **Platform Services:**  
 All services are accessible directly from the chat UI header,  
 or you can open them individually via their URLs:
@@ -104,15 +111,15 @@ or you can open them individually via their URLs:
 
 **Specialized Agents:**
 
-|   | Agent       | Description                                      | Documentation                              |
-|---|-------------|--------------------------------------------------|---------------------------------------------|
-| ![Frontend Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/frontend-agent.png) | Frontend    | Gateway for user interaction           | [Frontend Agent Docs](agents/frontend/README.md)     |
-| ![Triage Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/triage-agent.png) | Triage      | ML-based routing to appropriate agents           | [Triage Agent Docs](agents/triage/README.md)         |
-| ![Billing Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/billing-agent.png) | Billing     | Payment inquiries and premium information        | [Billing Agent Docs](agents/billing/README.md)       |
-| ![Claims Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/claims-agent.png) | Claims      | Claims status and filing                         | [Claims Agent Docs](agents/claims/README.md)         |
-| ![Policies Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/policies-agent.png) | Policies    | RAG-powered policy document search               | [Policies Agent Docs](agents/policies/README.md)     |
-| ![Escalation Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/escalation-agent.png) | Escalation  | Complex issues and complaints                    | [Escalation Agent Docs](agents/escalation/README.md) |
-| ![Ausdit Agent](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/avatar/audit-agent.png) | Audit       | Compliance logging                               | [Audit Agent Docs](agents/audit/README.md)           |
+| Agent       | Description                                      | Documentation                              |
+|-------------|--------------------------------------------------|---------------------------------------------|
+| Frontend    | Gateway for user interaction           | [Frontend Agent Docs](agents/frontend/README.md)     |
+| Triage      | ML-based routing to appropriate agents           | [Triage Agent Docs](agents/triage/README.md)         |
+| Billing     | Payment inquiries and premium information        | [Billing Agent Docs](agents/billing/README.md)       |
+| Claims      | Claims status and filing                         | [Claims Agent Docs](agents/claims/README.md)         |
+| Policies    | RAG-powered policy document search               | [Policies Agent Docs](agents/policies/README.md)     |
+| Escalation  | Complex issues and complaints                    | [Escalation Agent Docs](agents/escalation/README.md) |
+| Audit       | Compliance logging                               | [Audit Agent Docs](agents/audit/README.md)           |
 
 ## Testing
 
