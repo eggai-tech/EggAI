@@ -260,3 +260,7 @@ curl -X POST http://localhost:8003/search \
 - [Ingestion Pipeline](ingestion-pipeline.md) - How documents are indexed
 - [Retrieval Performance Testing](retrieval-performance-testing.md) - Search quality metrics
 - Vespa Documentation: https://docs.vespa.ai
+
+---
+
+**Previous:** [RAG with Vespa](agentic-rag.md) | **Next:** [Agent & Prompt Optimization](advanced-topics/agent-optimization.md)

@@ -102,26 +102,18 @@ Here are some example prompts you can try:
 
 The system will automatically route your request to the appropriate agent.
 
-To get a general understanding of how the system works, please take a look at the  [_"Simple Flow Example"_](docs/simple_example_flow.md).
-
 ## Documentation
 
-- [High-Level System Architecture](docs/system-architecture.md) - Design, component interactions, and communication flow
-  - [Simple Flow Example](docs/simple_example_flow.md) - An easy to understand high level explainantion
-  - [Chat UI](docs/ui.md) - A quick intro to the chat UI
-  - [Agent Overview](docs/agents-overview.md) - Agent descriptions
-- Multi Agent System
-  - Communication - Kafka/Redpanda as communication layer
-  - Building an Agent - Quickstart into EggAI SDK and DSPy
-- [Agentic RAG](docs/agentic-rag.md) - Introduction into RAG
-  - [Ingestion Pipeline](docs/ingestion-pipeline.md) - Temporal workflows and Vespa integration
-  - ?? Retrival (Policies agent) explained more detailed ??
-  - [Vespa Search Guide](docs/vespa-search-guide.md) - Search types, ranking profiles, and data exploration
-  - [Retrieval Performance Testing](docs/retrieval-performance-testing.md) - Evaluation metrics and benchmarks
-- Advanced Topics:
-  - [Multi-Environment Deployment](docs/advanced-topics//multi-environment-deployment.md)
-  - [Agent Optimization](docs/advanced-topics/agent-optimization.md)
-  - [Custom Classifiers Model Training](docs/advanced-topics/model-training.md)
+- [System Architecture](docs/system-architecture.md)
+- [Agent Capabilities Overview](docs/agents-overview.md)
+- [Multi-Agent Communication](docs/multi-agent-communication.md)
+- [Building Agents Guide](docs/building-agents-eggai.md)
+- [ReAct Framework with DSPy](docs/react-framework-dspy.md)
+- [Document Ingestion with Temporal](docs/ingestion-pipeline.md)
+- [RAG with Vespa](docs/agentic-rag.md)
+- [Vespa Search Guide](docs/vespa-search-guide.md)
+- [Agent & Prompt Optimization](docs/advanced-topics/agent-optimization.md)
+- [Deployment Guide](docs/advanced-topics/multi-environment-deployment.md)
 
 ## Development
 

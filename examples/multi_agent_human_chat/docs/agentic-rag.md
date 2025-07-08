@@ -44,3 +44,8 @@ Agentic RAG enables **multi-step reasoning**, **tool use**, and **task coordinat
 
 **In Agentic RAG**:  
 Agents may iterate through this loop, ask follow-up questions, or call tools before generating a final output.
+
+
+---
+
+**Previous:** [Document Ingestion with Temporal](ingestion-pipeline.md) | **Next:** [Vespa Search Guide](vespa-search-guide.md)

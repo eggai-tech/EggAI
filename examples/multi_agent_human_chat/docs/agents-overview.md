@@ -134,3 +134,8 @@ make test-triage-agent
 ## Configuration
 
 Agents are configured via environment variables with the pattern `{AGENT_NAME}_*`. See each agent's `config.py` for available settings.
+
+
+---
+
+**Previous:** [System Architecture](system-architecture.md) | **Next:** [Multi-Agent Communication](multi-agent-communication.md)
