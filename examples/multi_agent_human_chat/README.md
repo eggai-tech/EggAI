@@ -102,8 +102,6 @@ Here are some example prompts you can try:
 
 The system will automatically route your request to the appropriate agent.
 
-To get a general understanding of how the system works, please review the [_System Workflow Overview_](docs/simple_example_flow.md).
-
 ## Documentation
 
 - [System Architecture](docs/system-architecture.md)
