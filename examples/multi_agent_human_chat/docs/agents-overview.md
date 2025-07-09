@@ -4,7 +4,7 @@
 
 | Agent | Purpose | Key Capabilities |
 |-------|---------|------------------|
-| **Frontend** | Web UI & WebSocket gateway | Serves chat interface, manages connections, buffers messages |
+| **Frontend** | Web UI & WebSocket gateway | Serves chat interface, manages connections, handles reconnections |
 | **Triage** | Request routing | Classifies intent (ML), routes to specialists, handles greetings |
 | **Billing** | Payment & premiums | Retrieves/updates billing info, payment dates, amounts |
 | **Claims** | Claims processing | Files new claims, checks status, updates info, estimates |
@@ -37,10 +37,6 @@ make start-triage
 make start-billing
 # etc.
 ```
-
-## Configuration
-
-Environment variables: `{AGENT_NAME}_LANGUAGE_MODEL`, `{AGENT_NAME}_API_BASE`, etc.
 
 ---
 
