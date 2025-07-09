@@ -3,7 +3,9 @@ from typing import Any, Dict, List, Optional
 
 from opentelemetry import trace
 
-from agents.policies.agent.services.embeddings import generate_embedding, generate_embedding_async
+from agents.policies.agent.services.embeddings import (
+    generate_embedding_async,
+)
 from agents.policies.agent.utils import run_async_safe
 from libraries.integrations.vespa import VespaClient
 from libraries.observability.logger import get_console_logger
