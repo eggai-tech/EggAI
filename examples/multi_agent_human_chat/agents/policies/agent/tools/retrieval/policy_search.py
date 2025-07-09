@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from opentelemetry import trace
 
+from agents.policies.agent.services.embeddings import generate_embedding, generate_embedding_async
 from agents.policies.agent.utils import run_async_safe
 from libraries.integrations.vespa import VespaClient
 from libraries.observability.logger import get_console_logger
@@ -95,6 +96,35 @@ def format_citation(result: Dict[str, Any]) -> str:
     return source_file
 
 
+async def _hybrid_search_with_embedding(
+    vespa_client: VespaClient, 
+    query: str, 
+    category: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """Perform hybrid search with async embedding generation.
+    
+    Args:
+        vespa_client: Vespa client instance
+        query: Search query
+        category: Optional category filter
+        
+    Returns:
+        List of search results
+    """
+    # Generate embedding asynchronously
+    query_embedding = await generate_embedding_async(query)
+    
+    # Perform hybrid search
+    results = await vespa_client.hybrid_search(
+        query=query,
+        query_embedding=query_embedding,
+        category=category,
+        alpha=0.7  # Default weight for vector search (70% vector, 30% keyword)
+    )
+    
+    return results
+
+
 @tracer.start_as_current_span("retrieve_policies")
 def retrieve_policies(
     query: str, category: Optional[str] = None, include_metadata: bool = True
@@ -117,8 +147,11 @@ def retrieve_policies(
         # Get Vespa client
         vespa_client = _get_vespa_client()
 
-        # Run async search using our utility
-        results = run_async_safe(vespa_client.search_documents(query, category))
+        # Use hybrid search with async embedding generation
+        logger.info("Using hybrid search with embeddings")
+        results = run_async_safe(
+            _hybrid_search_with_embedding(vespa_client, query, category)
+        )
 
         # Convert results to the expected format with enhanced metadata
         formatted_results = []
