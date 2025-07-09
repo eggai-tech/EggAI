@@ -103,30 +103,33 @@ class TestPolicySearch:
         agents.policies.agent.tools.retrieval.policy_search._VESPA_CLIENT = None
         
         with patch("agents.policies.agent.tools.retrieval.policy_search.VespaClient") as MockVespaClient:
-            # Setup mock
-            mock_instance = MockVespaClient.return_value
-            mock_instance.search_documents = AsyncMock(return_value=[
-                {
-                    "id": "doc1",
-                    "text": "Auto insurance covers collision damage",
-                    "category": "auto",
-                    "source_file": "auto.md",
-                    "chunk_index": 0,
-                    "page_numbers": [1],
-                    "page_range": "1",
-                    "headings": ["Coverage"]
-                }
-            ])
-            
-            # Execute search
-            result = search_policy_documentation("collision damage")
-            
-            # Verify
-            # Result is JSON-formatted string
-            parsed_result = json.loads(result)
-            assert len(parsed_result) > 0
-            assert "Auto insurance covers collision damage" in parsed_result[0]["content"]
-            assert parsed_result[0]["category"] == "auto"
+            with patch("agents.policies.agent.tools.retrieval.policy_search.generate_embedding_async") as mock_embedding:
+                # Setup mocks
+                mock_instance = MockVespaClient.return_value
+                mock_instance.hybrid_search = AsyncMock(return_value=[
+                    {
+                        "id": "doc1",
+                        "text": "Auto insurance covers collision damage",
+                        "category": "auto",
+                        "source_file": "auto.md",
+                        "chunk_index": 0,
+                        "page_numbers": [1],
+                        "page_range": "1",
+                        "headings": ["Coverage"],
+                        "relevance": 0.95
+                    }
+                ])
+                mock_embedding.return_value = [0.1] * 768  # Mock embedding vector
+                
+                # Execute search
+                result = search_policy_documentation("collision damage")
+                
+                # Verify
+                # Result is JSON-formatted string
+                parsed_result = json.loads(result)
+                assert len(parsed_result) > 0
+                assert "Auto insurance covers collision damage" in parsed_result[0]["content"]
+                assert parsed_result[0]["category"] == "auto"
     
     def test_search_policy_documentation_with_category(self):
         """Test search with category filter."""
@@ -135,28 +138,32 @@ class TestPolicySearch:
         agents.policies.agent.tools.retrieval.policy_search._VESPA_CLIENT = None
         
         with patch("agents.policies.agent.tools.retrieval.policy_search.VespaClient") as MockVespaClient:
-            mock_instance = MockVespaClient.return_value
-            mock_instance.search_documents = AsyncMock(return_value=[
-                {
-                    "id": "home1",
-                    "text": "Home insurance covers water damage",
-                    "category": "home",
-                    "source_file": "home.md",
-                    "chunk_index": 0,
-                    "page_numbers": [1],
-                    "page_range": "1",
-                    "headings": ["Water Coverage"]
-                }
-            ])
-            
-            # Execute search with category
-            result = search_policy_documentation("water damage", category="home")
-            
-            # Verify category was used in search
-            mock_instance.search_documents.assert_called_once()
-            call_args = mock_instance.search_documents.call_args
-            assert call_args[0][0] == "water damage"  # query
-            assert call_args[0][1] == "home"  # category
+            with patch("agents.policies.agent.tools.retrieval.policy_search.generate_embedding_async") as mock_embedding:
+                mock_instance = MockVespaClient.return_value
+                mock_instance.hybrid_search = AsyncMock(return_value=[
+                    {
+                        "id": "home1",
+                        "text": "Home insurance covers water damage",
+                        "category": "home",
+                        "source_file": "home.md",
+                        "chunk_index": 0,
+                        "page_numbers": [1],
+                        "page_range": "1",
+                        "headings": ["Water Coverage"],
+                        "relevance": 0.92
+                    }
+                ])
+                mock_embedding.return_value = [0.1] * 768  # Mock embedding vector
+                
+                # Execute search with category
+                result = search_policy_documentation("water damage", category="home")
+                
+                # Verify category was used in search
+                mock_instance.hybrid_search.assert_called_once()
+                call_args = mock_instance.hybrid_search.call_args
+                # hybrid_search uses kwargs
+                assert call_args[1]["query"] == "water damage"
+                assert call_args[1]["category"] == "home"
     
     def test_search_policy_documentation_no_results(self):
         """Test search with no results."""
@@ -165,12 +172,14 @@ class TestPolicySearch:
         agents.policies.agent.tools.retrieval.policy_search._VESPA_CLIENT = None
         
         with patch("agents.policies.agent.tools.retrieval.policy_search.VespaClient") as MockVespaClient:
-            mock_instance = MockVespaClient.return_value
-            mock_instance.search_documents = AsyncMock(return_value=[])
-            
-            result = search_policy_documentation("nonexistent coverage")
-            
-            assert result == "Policy information not found."
+            with patch("agents.policies.agent.tools.retrieval.policy_search.generate_embedding_async") as mock_embedding:
+                mock_instance = MockVespaClient.return_value
+                mock_instance.hybrid_search = AsyncMock(return_value=[])
+                mock_embedding.return_value = [0.1] * 768  # Mock embedding vector
+                
+                result = search_policy_documentation("nonexistent coverage")
+                
+                assert result == "Policy information not found."
     
     def test_search_policy_documentation_multiple_results(self):
         """Test search with multiple results."""
@@ -179,47 +188,52 @@ class TestPolicySearch:
         agents.policies.agent.tools.retrieval.policy_search._VESPA_CLIENT = None
         
         with patch("agents.policies.agent.tools.retrieval.policy_search.VespaClient") as MockVespaClient:
-            mock_instance = MockVespaClient.return_value
-            mock_instance.search_documents = AsyncMock(return_value=[
-                {
-                    "id": "doc1",
-                    "text": "Coverage type 1",
-                    "category": "auto",
-                    "source_file": "auto.md",
-                    "chunk_index": 0,
-                    "page_numbers": [1],
-                    "page_range": "1",
-                    "headings": []
-                },
-                {
-                    "id": "doc2",
-                    "text": "Coverage type 2",
-                    "category": "auto",
-                    "source_file": "auto.md",
-                    "chunk_index": 1,
-                    "page_numbers": [2],
-                    "page_range": "2",
-                    "headings": []
-                },
-                {
-                    "id": "doc3",
-                    "text": "Coverage type 3",
-                    "category": "auto",
-                    "source_file": "auto.md",
-                    "chunk_index": 2,
-                    "page_numbers": [3],
-                    "page_range": "3",
-                    "headings": []
-                }
-            ])
-            
-            result = search_policy_documentation("coverage")
-            
-            # Result is JSON-formatted string with top 2 results
-            parsed_result = json.loads(result)
-            assert len(parsed_result) == 2  # Only top 2 results
-            assert "Coverage type 1" in parsed_result[0]["content"]
-            assert "Coverage type 2" in parsed_result[1]["content"]
+            with patch("agents.policies.agent.tools.retrieval.policy_search.generate_embedding_async") as mock_embedding:
+                mock_instance = MockVespaClient.return_value
+                mock_instance.hybrid_search = AsyncMock(return_value=[
+                    {
+                        "id": "doc1",
+                        "text": "Coverage type 1",
+                        "category": "auto",
+                        "source_file": "auto.md",
+                        "chunk_index": 0,
+                        "page_numbers": [1],
+                        "page_range": "1",
+                        "headings": [],
+                        "relevance": 0.9
+                    },
+                    {
+                        "id": "doc2",
+                        "text": "Coverage type 2",
+                        "category": "auto",
+                        "source_file": "auto.md",
+                        "chunk_index": 1,
+                        "page_numbers": [2],
+                        "page_range": "2",
+                        "headings": [],
+                        "relevance": 0.85
+                    },
+                    {
+                        "id": "doc3",
+                        "text": "Coverage type 3",
+                        "category": "auto",
+                        "source_file": "auto.md",
+                        "chunk_index": 2,
+                        "page_numbers": [3],
+                        "page_range": "3",
+                        "headings": [],
+                        "relevance": 0.8
+                    }
+                ])
+                mock_embedding.return_value = [0.1] * 768  # Mock embedding vector
+                
+                result = search_policy_documentation("coverage")
+                
+                # Result is JSON-formatted string with top 2 results
+                parsed_result = json.loads(result)
+                assert len(parsed_result) == 2  # Only top 2 results
+                assert "Coverage type 1" in parsed_result[0]["content"]
+                assert "Coverage type 2" in parsed_result[1]["content"]
     
     def test_search_policy_documentation_error_handling(self):
         """Test error handling in search."""
@@ -228,12 +242,15 @@ class TestPolicySearch:
         agents.policies.agent.tools.retrieval.policy_search._VESPA_CLIENT = None
         
         with patch("agents.policies.agent.tools.retrieval.policy_search.VespaClient") as MockVespaClient:
-            mock_instance = MockVespaClient.return_value
-            mock_instance.search_documents = AsyncMock(side_effect=Exception("Search failed"))
-            
-            # The function catches exceptions and returns "Policy information not found."
-            result = search_policy_documentation("test query")
-            assert result == "Policy information not found."
+            with patch("agents.policies.agent.tools.retrieval.policy_search.generate_embedding_async") as mock_embedding:
+                mock_instance = MockVespaClient.return_value
+                mock_instance.hybrid_search = AsyncMock(side_effect=Exception("Search failed"))
+                mock_embedding.return_value = [0.1] * 768  # Mock embedding vector
+                
+                # The function catches exceptions in retrieve_policies which returns [],
+                # then search_policy_documentation returns "Policy information not found."
+                result = search_policy_documentation("test query")
+                assert result == "Policy information not found."
 
 
 class TestFullDocumentRetrieval:
