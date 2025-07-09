@@ -296,4 +296,4 @@ To integrate with the main system:
 
 ---
 
-**Previous:** [Multi-Agent Communication](multi-agent-communication.md) | **Next:** [ReAct Framework with DSPy](react-framework-dspy.md)
+**Previous:** [Multi-Agent Communication](multi-agent-communication.md) | **Next:** [Document Ingestion with Temporal](ingestion-pipeline.md)

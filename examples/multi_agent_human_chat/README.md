@@ -108,7 +108,6 @@ The system will automatically route your request to the appropriate agent.
 - [Agent Capabilities Overview](docs/agents-overview.md)
 - [Multi-Agent Communication](docs/multi-agent-communication.md)
 - [Building Agents Guide](docs/building-agents-eggai.md)
-- [ReAct Framework with DSPy](docs/react-framework-dspy.md)
 - [Document Ingestion with Temporal](docs/ingestion-pipeline.md)
 - [RAG with Vespa](docs/agentic-rag.md)
 - [Vespa Search Guide](docs/vespa-search-guide.md)
