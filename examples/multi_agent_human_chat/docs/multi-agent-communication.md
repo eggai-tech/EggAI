@@ -124,22 +124,6 @@ All messages include distributed tracing headers:
 
 This enables end-to-end observability through Grafana and Tempo.
 
-## Error Handling
-
-### Retry Logic
-
-The SDK implements automatic retry for transient failures:
-- Exponential backoff
-- Maximum retry attempts: 3
-- Dead letter queue for failed messages
-
-### Circuit Breaker
-
-Agents implement circuit breaker patterns:
-- Open circuit after 5 consecutive failures
-- Half-open state after 30 seconds
-- Automatic recovery on success
-
 ## Best Practices
 
 ### 1. Message Design
@@ -152,32 +136,35 @@ Agents implement circuit breaker patterns:
 - Reserve `human_stream` for user-facing responses
 - Implement proper error messages for user communication
 
-### 3. Performance
+### 3. Error Handling
+- Implement retry with exponential backoff (3 attempts)
+- Consider dead letter queues for failed messages
+- Use circuit breakers to prevent cascading failures
+- Log errors for debugging and monitoring
+
+### 4. Performance
 - Batch messages when possible
 - Use streaming for large responses
 - Implement proper backpressure handling
 
-### 4. Security
+### 5. Security
 - Validate all incoming messages
 - Sanitize user input
 - Use SSL/TLS for production deployments
 
 ## Configuration
 
-Agent communication is configured through environment variables:
+Message bus configuration via environment variables:
 
 ```bash
-# Kafka Configuration
+# Kafka/Redpanda Connection
 KAFKA_BOOTSTRAP_SERVERS=localhost:19092
+
+# Security (Production)
 KAFKA_SECURITY_PROTOCOL=SSL
 KAFKA_SSL_CA_LOCATION=/path/to/ca-cert
 KAFKA_SSL_CERT_LOCATION=/path/to/cert
 KAFKA_SSL_KEY_LOCATION=/path/to/key
-
-# Agent Configuration
-AGENT_NAME=billing
-AGENT_CONSUMER_GROUP=billing-agents
-AGENT_MAX_CONCURRENT_MESSAGES=10
 ```
 
 ## Monitoring

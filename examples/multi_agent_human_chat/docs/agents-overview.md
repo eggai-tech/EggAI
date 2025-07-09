@@ -4,13 +4,13 @@
 
 | Agent | Purpose | Key Capabilities |
 |-------|---------|------------------|
-| **Frontend** | WebSocket gateway | Connection management, message buffering, content moderation |
-| **Triage** | Intent classification & routing | ML classifiers (v0-v5), routes to specialists, handles greetings |
-| **Billing** | Payment inquiries | Get/update billing info, premium amounts, payment dates |
-| **Claims** | Claims management | File claims, check status, update info, estimate payouts |
-| **Policies** | Document search (RAG) | Vector search, contextual answers, REST API (:8003) |
-| **Escalation** | Complex issues | Multi-step workflow, ticket creation, complaint handling |
-| **Audit** | Compliance logging | Monitor all channels, categorize messages, audit trail |
+| **Frontend** | Web UI & WebSocket gateway | Serves chat interface, manages connections, buffers messages |
+| **Triage** | Request routing | Classifies intent (ML), routes to specialists, handles greetings |
+| **Billing** | Payment & premiums | Retrieves/updates billing info, payment dates, amounts |
+| **Claims** | Claims processing | Files new claims, checks status, updates info, estimates |
+| **Policies** | Coverage & documents | Personal policy data, RAG document search, coverage Q&A |
+| **Escalation** | Complex issues | Multi-step workflows, support tickets, complaints |
+| **Audit** | Compliance tracking | Logs all messages, categorizes by domain, audit trail |
 
 ## Message Flow
 
