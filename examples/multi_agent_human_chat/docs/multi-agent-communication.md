@@ -12,7 +12,7 @@ The multi-agent system uses an event-driven architecture where agents communicat
 
 The system uses Redpanda (Kafka-compatible) as the central message bus for all agent communication:
 
-- **Broker**: `localhost:19092` (configurable via `KAFKA_BOOTSTRAP_SERVERS`)
+- **Broker**: Kafka bootstrap servers
 - **Protocol**: Event streaming with consumer groups
 - **Message Format**: JSON with distributed tracing headers
 - **Delivery Guarantees**: At-least-once delivery
