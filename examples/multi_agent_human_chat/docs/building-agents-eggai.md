@@ -196,6 +196,20 @@ eggai_set_default_transport(
 async def test():
     test_agent = Agent("test")
     agents_channel = Channel(channels.agents)
+    human_stream_channel = Channel(channels.human_stream)
+    
+    # Set up response capture
+    response_received = asyncio.Event()
+    captured_response = None
+    
+    @test_agent.subscribe(
+        channel=human_stream_channel,
+        filter_by_message=lambda msg: msg.get("type") == "agent_message" and msg.get("source") == "GDPR"
+    )
+    async def capture_response(message):
+        nonlocal captured_response
+        captured_response = message
+        response_received.set()
     
     await test_agent.start()
     
@@ -211,9 +225,29 @@ async def test():
         )
     )
     
-    await asyncio.sleep(2)
-    await test_agent.stop()
-    print("Test completed!")
+    # Wait for response
+    try:
+        await asyncio.wait_for(response_received.wait(), timeout=15.0)
+        print("✅ Response received!")
+        
+        # Verify response
+        assert captured_response is not None, "No response received"
+        assert captured_response.get("type") == "agent_message", "Wrong message type"
+        assert captured_response.get("source") == "GDPR", "Wrong source"
+        
+        answer = captured_response.get("data", {}).get("message", "")
+        assert "right to erasure" in answer.lower() or "article 17" in answer.lower(), \
+            f"Response doesn't mention right to erasure or Article 17: {answer}"
+        
+        print(f"✅ Response validated: {answer[:100]}...")
+        print("✅ All tests passed!")
+        
+    except asyncio.TimeoutError:
+        print("❌ Timeout: No response received within 15 seconds")
+    except AssertionError as e:
+        print(f"❌ Test failed: {e}")
+    finally:
+        await test_agent.stop()
 
 if __name__ == "__main__":
     asyncio.run(test())
