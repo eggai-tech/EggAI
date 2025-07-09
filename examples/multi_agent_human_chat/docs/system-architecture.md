@@ -99,7 +99,7 @@ graph TB
 - Temporal orchestrates document ingestion
 - Hybrid search (keyword + vector)
 
-## Infrastructure Services
+## Platform Services
 
 | Service | Purpose | Port |
 |---------|---------|------|
