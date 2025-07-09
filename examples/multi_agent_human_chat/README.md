@@ -102,18 +102,30 @@ Here are some example prompts you can try:
 
 The system will automatically route your request to the appropriate agent.
 
+To get a general understanding of how the system works, please take a look at the  [_"Simple User Journey"_](docs/simple_example_flow.md).
+
 ## Documentation
 
-- [System Architecture](docs/system-architecture.md)
-- [Agent Capabilities Overview](docs/agents-overview.md)
-- [Multi-Agent Communication](docs/multi-agent-communication.md)
-- [Building Agents Guide](docs/building-agents-eggai.md)
-- [ReAct Framework with DSPy](docs/react-framework-dspy.md)
-- [Document Ingestion with Temporal](docs/ingestion-pipeline.md)
-- [RAG with Vespa](docs/agentic-rag.md)
+**First Steps:**
+
+- [Simple User Journey](docs/simple_example_flow.md)
+- [What is Agentic RAG](docs/agentic-rag.md)
+
+**Technical Insights:**
+
+- [High-Level System Architecture](docs/system-architecture.md)
+- [Agent Overview](docs/agents-overview.md)
+- [Multi-Agent Communication](docs/agent-communication.md)
+- Building an Agent
+- [Ingestion Pipeline](docs/ingestion-pipeline.md)
 - [Vespa Search Guide](docs/vespa-search-guide.md)
+- [Retrieval Performance Testing](docs/retrieval-performance-testing.md)
+
+**Advanced Topics:**
+
+- [Deployment Guide](docs/advanced-topics//multi-environment-deployment.md)
 - [Agent & Prompt Optimization](docs/advanced-topics/agent-optimization.md)
-- [Deployment Guide](docs/advanced-topics/multi-environment-deployment.md)
+- [Custom Classifiers Model Training](docs/advanced-topics/model-training.md)
 
 ## Development
 
