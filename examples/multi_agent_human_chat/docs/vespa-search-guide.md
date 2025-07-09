@@ -203,29 +203,6 @@ curl -X POST http://localhost:8080/search/ \
 
 4. **Monitor Vespa metrics**: http://localhost:19071/state/v1/metrics
 
-## Troubleshooting
-
-### No Results
-
-```bash
-# Check document count
-curl "http://localhost:8080/search/?yql=select * from policy_document | all()"
-
-# Verify indexing completed
-make start-policies-document-ingestion
-```
-
-### Slow Queries
-
-- Check Vespa resource usage
-- Consider using keyword search for simple queries
-- Reduce `max_hits` parameter
-
-### Embedding Errors
-
-- Ensure embedding model is loaded
-- Check vector dimensions (must be 384)
-
 ## Examples
 
 ### Finding Specific Coverage
