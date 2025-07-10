@@ -659,6 +659,10 @@ class RetrievalPerformanceTester:
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(
+    not os.getenv("OPENAI_API_KEY"),
+    reason="OPENAI_API_KEY environment variable is not set"
+)
 async def test_retrieval_performance():
     """Async pytest version of the retrieval performance test with 8-minute timeout."""
     try:
