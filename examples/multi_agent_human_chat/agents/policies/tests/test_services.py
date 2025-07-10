@@ -24,6 +24,8 @@ def mock_vespa_client():
     """Create a mock Vespa client."""
     client = MagicMock(spec=VespaClient)
     client.search_documents = AsyncMock()
+    client.vector_search = AsyncMock()
+    client.hybrid_search = AsyncMock()
     client.app = MagicMock()
     
     # Mock the app.query method for vector search
@@ -177,14 +179,8 @@ class TestSearchService:
         query = "collision damage"
         mock_results = create_mock_documents("auto", 1)
         
-        # Mock for hybrid search - create mock hits
-        mock_hit = MagicMock()
-        mock_hit.fields = mock_results[0]
-        mock_hit.relevance = 0.95
-        
-        mock_query_result = MagicMock()
-        mock_query_result.hits = [mock_hit]
-        mock_vespa_client.app.query.return_value = mock_query_result
+        # Mock hybrid_search to return the mock results
+        mock_vespa_client.hybrid_search.return_value = mock_results
         
         # Execute - use vector_search with a request object
         from agents.policies.agent.api.models import VectorSearchRequest
@@ -209,10 +205,8 @@ class TestSearchService:
         query = "water damage"
         category = "home"
         
-        # Mock empty results
-        mock_query_result = MagicMock()
-        mock_query_result.hits = []
-        mock_vespa_client.app.query.return_value = mock_query_result
+        # Mock empty results - VectorSearchRequest defaults to hybrid search
+        mock_vespa_client.hybrid_search.return_value = []
         
         # Execute - use vector_search with a request object
         from agents.policies.agent.api.models import VectorSearchRequest
@@ -227,10 +221,14 @@ class TestSearchService:
         assert isinstance(result, SearchResponse)
         assert result.category == category
         assert result.total_hits == 0
-        # Verify the category filter was applied in the YQL query
-        mock_vespa_client.app.query.assert_called_once()
-        call_args = mock_vespa_client.app.query.call_args
-        assert f"category contains '{category}'" in call_args[1]["yql"]
+        # Verify the hybrid_search was called with correct parameters
+        mock_vespa_client.hybrid_search.assert_called_once_with(
+            query=query,
+            query_embedding=[0.1, 0.2, 0.3],
+            category=category,
+            max_hits=10,
+            alpha=0.7
+        )
     
     @pytest.mark.asyncio
     async def test_search_documents_with_limit(self, search_service, mock_vespa_client):
@@ -240,17 +238,8 @@ class TestSearchService:
         limit = 5
         mock_docs = create_mock_documents()[:limit]
         
-        # Create mock hits
-        mock_hits = []
-        for doc in mock_docs:
-            mock_hit = MagicMock()
-            mock_hit.fields = doc
-            mock_hit.relevance = 0.9
-            mock_hits.append(mock_hit)
-        
-        mock_query_result = MagicMock()
-        mock_query_result.hits = mock_hits
-        mock_vespa_client.app.query.return_value = mock_query_result
+        # Mock hybrid_search to return the mock results
+        mock_vespa_client.hybrid_search.return_value = mock_docs
         
         # Execute - use vector_search with a request object
         from agents.policies.agent.api.models import VectorSearchRequest
@@ -264,7 +253,7 @@ class TestSearchService:
         # Verify
         assert isinstance(result, SearchResponse)
         assert len(result.documents) <= limit
-        assert result.total_hits == len(mock_hits)
+        assert result.total_hits == len(mock_docs)
     
     @pytest.mark.asyncio
     async def test_vector_search(self, search_service, mock_vespa_client):
@@ -273,17 +262,8 @@ class TestSearchService:
         request = VectorSearchRequest(query="find similar content", max_hits=3)
         mock_results = create_mock_documents("auto", 2)
         
-        # Create mock hits
-        mock_hits = []
-        for doc in mock_results:
-            mock_hit = MagicMock()
-            mock_hit.fields = doc
-            mock_hit.relevance = 0.9
-            mock_hits.append(mock_hit)
-        
-        mock_query_result = MagicMock()
-        mock_query_result.hits = mock_hits
-        mock_vespa_client.app.query.return_value = mock_query_result
+        # Mock hybrid_search to return the mock results (default search type)
+        mock_vespa_client.hybrid_search.return_value = mock_results
         
         # Mock embedding generation
         with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
@@ -302,7 +282,7 @@ class TestSearchService:
     async def test_search_error_handling(self, search_service, mock_vespa_client):
         """Test error handling in search."""
         # Setup mock to raise exception
-        mock_vespa_client.app.query.side_effect = Exception("Search failed")
+        mock_vespa_client.hybrid_search.side_effect = Exception("Search failed")
         
         # Execute and verify exception is raised
         with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:

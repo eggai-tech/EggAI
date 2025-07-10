@@ -40,6 +40,10 @@ def mock_vespa_client():
     # Mock search_documents for keyword search
     client.search_documents = AsyncMock(return_value=[])
     
+    # Mock vector and hybrid search methods
+    client.vector_search = AsyncMock(return_value=[])
+    client.hybrid_search = AsyncMock(return_value=[])
+    
     client.app = MagicMock()
     
     # Mock query results for vector search - return empty by default
@@ -265,15 +269,9 @@ class TestSearchEndpoints:
     
     def test_search_documents_success(self, test_client, mock_search_service, mock_vespa_client):
         """Test basic document search."""
-        # Setup mock - need to mock the actual vespa query result
-        mock_hit = MagicMock()
-        mock_hit.fields = create_mock_documents()[0]
-        mock_hit.relevance = 0.9
-        
-        mock_query_result = MagicMock()
-        mock_query_result.hits = [mock_hit]
-        
-        mock_vespa_client.app.query = AsyncMock(return_value=mock_query_result)
+        # Setup mock - mock the hybrid_search method (default search type)
+        mock_results = create_mock_documents()[:1]
+        mock_vespa_client.hybrid_search.return_value = mock_results
         
         response = test_client.post(
             "/api/v1/kb/search/vector",
@@ -329,9 +327,8 @@ class TestSearchEndpoints:
     
     def test_vector_search_success(self, test_client, mock_search_service, mock_vespa_client):
         """Test vector search endpoint."""
-        # Setup mock - need to mock the actual vespa query result
-        mock_hit = MagicMock()
-        mock_hit.fields = {
+        # Setup mock - mock the hybrid_search method (default search type)
+        mock_result = {
             "id": "auto_001",
             "title": "Auto Policy",
             "text": "Vector search result",
@@ -342,12 +339,7 @@ class TestSearchEndpoints:
             "page_numbers": [],
             "headings": []
         }
-        mock_hit.relevance = 0.95
-        
-        mock_query_result = MagicMock()
-        mock_query_result.hits = [mock_hit]
-        
-        mock_vespa_client.app.query = AsyncMock(return_value=mock_query_result)
+        mock_vespa_client.hybrid_search.return_value = [mock_result]
         
         response = test_client.post(
             "/api/v1/kb/search/vector",

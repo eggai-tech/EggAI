@@ -1,5 +1,6 @@
 import asyncio
 from datetime import timedelta
+from pathlib import Path
 from typing import Dict, List
 
 from temporalio import workflow
@@ -68,8 +69,10 @@ class MinIOInboxWatcherWorkflow:
                 document_id = metadata.get('document_id')
                 
                 if not document_id:
-                    workflow.logger.warning(f"File {file_key} missing document_id, skipping")
-                    continue
+                    # Use filename (without extension) as document_id
+                    filename = Path(file_key).name
+                    document_id = Path(filename).stem
+                    metadata['document_id'] = document_id
                     
                 # Check if document already exists (prevent re-indexing)
                 exists = await workflow.execute_activity(
@@ -87,22 +90,22 @@ class MinIOInboxWatcherWorkflow:
                     )
                     continue
                     
-                # Trigger ingestion workflow
-                workflow.logger.info(f"Starting ingestion for {file_key}")
+                # Process the document
+                workflow.logger.info(f"Processing {file_key}")
                 try:
                     await workflow.execute_child_workflow(
                         DocumentIngestionWorkflow,
                         args=[{
-                            "file_path": file_key,  # MinIO key
+                            "file_path": file_key,
                             "force_rebuild": False,
                             "source": "minio",
                             "metadata": metadata
                         }],
                         id=f"document-ingestion-{document_id}",
-                        start_to_close_timeout=timedelta(minutes=10)
+                        execution_timeout=timedelta(minutes=10)
                     )
                     
-                    # Move to processed on success
+                    # Move to processed folder on success
                     await workflow.execute_activity(
                         move_to_processed_activity,
                         args=[file_key],

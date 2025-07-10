@@ -95,20 +95,24 @@ class SearchService:
                         f"from policy_document where category contains '{request.category}' and",
                     )
 
-                # Execute search
-                search_results = await self.vespa_client.app.query(
-                    yql=yql,
-                    query=request.query if request.search_type == "hybrid" else None,
-                    ranking="semantic" if request.search_type == "vector" else "hybrid",
-                    hits=request.max_hits,
-                    body={"input.query(query_embedding)": query_embedding},
-                )
-
-                # Process results
-                for hit in search_results.hits:
-                    result = hit.fields
-                    result["relevance"] = hit.relevance
-                    results.append(result)
+                # Execute search based on search type
+                if request.search_type == "vector":
+                    # Use VespaClient's vector_search method
+                    results = await self.vespa_client.vector_search(
+                        query_embedding=query_embedding,
+                        category=request.category,
+                        max_hits=request.max_hits,
+                        ranking_profile="semantic"
+                    )
+                else:
+                    # Use VespaClient's hybrid_search method
+                    results = await self.vespa_client.hybrid_search(
+                        query=request.query,
+                        query_embedding=query_embedding,
+                        category=request.category,
+                        max_hits=request.max_hits,
+                        alpha=0.7  # 70% semantic, 30% keyword
+                    )
 
             else:
                 # Keyword search
