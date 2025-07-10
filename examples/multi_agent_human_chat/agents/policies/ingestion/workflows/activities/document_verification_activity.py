@@ -14,16 +14,6 @@ logger = get_console_logger("ingestion.document_verification")
 async def verify_document_activity(
     file_path: str, index_name: str = "policies_index", force_rebuild: bool = False
 ) -> Dict[str, Any]:
-    """Verify if a document already exists in Vespa search index.
-
-    Args:
-        file_path: Path to the document file to verify
-        index_name: Index name (preserved for compatibility)
-        force_rebuild: Whether to skip verification and force processing
-
-    Returns:
-        Dict with verification results and skip recommendation
-    """
     logger.info(f"Verifying document existence in Vespa: {file_path}")
 
     try:

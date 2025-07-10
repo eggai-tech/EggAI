@@ -6,13 +6,9 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Load environment variables at module level
 load_dotenv()
 
-
 class Settings(BaseSettings):
-    """Settings for the policies document ingestion service."""
-
     app_name: str = Field(default="policies_document_ingestion")
     
     # Deployment configuration
@@ -64,7 +60,6 @@ class Settings(BaseSettings):
             self.deployment_namespace = os.getenv("DEPLOYMENT_NAMESPACE")
     
     def get_temporal_namespace(self) -> str:
-        """Get the Temporal namespace, using deployment namespace as fallback."""
         if self.temporal_namespace:
             return self.temporal_namespace
         if self.deployment_namespace:
@@ -73,14 +68,12 @@ class Settings(BaseSettings):
     
     @property
     def temporal_task_queue(self) -> str:
-        """Get the Temporal task queue with namespace prefix if configured."""
         if self.deployment_namespace:
             return f"{self.deployment_namespace}-{self.temporal_task_queue_base}"
         return self.temporal_task_queue_base
     
     @property
     def vespa_app_name(self) -> str:
-        """Get the Vespa app name with namespace prefix if configured."""
         if self.deployment_namespace:
             return f"{self.deployment_namespace}-{self.vespa_app_name_base}"
         return self.vespa_app_name_base

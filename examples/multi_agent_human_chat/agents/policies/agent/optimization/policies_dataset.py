@@ -9,8 +9,6 @@ PolicyCategory = Literal["auto", "life", "home", "health"]
 
 @dataclass
 class PoliciesExample:
-    """Example for Policies Agent dataset."""
-
     chat_history: str
     expected_response: str
     policy_category: Optional[PolicyCategory] = None
@@ -19,11 +17,6 @@ class PoliciesExample:
 
 
 def create_policies_dataset() -> List[PoliciesExample]:
-    """Create a dataset of policies examples.
-
-    Returns:
-        List[PoliciesExample]: A list of examples for policies scenarios.
-    """
     # Known policies data from the mock database
     policies_data = [
         {
@@ -174,16 +167,6 @@ User: {policy["policy_number"]}"""
 
 
 def as_dspy_examples(examples: List[PoliciesExample]) -> List[dspy.Example]:
-    """Convert PoliciesExample objects to simplified dspy.Example objects.
-
-    For the simplified signature, we only need chat_history and final_response.
-
-    Args:
-        examples (List[PoliciesExample]): List of policies examples.
-
-    Returns:
-        List[dspy.Example]: List of dspy.Example objects for the simplified model.
-    """
     return [
         dspy.Example(
             chat_history=example.chat_history, final_response=example.expected_response

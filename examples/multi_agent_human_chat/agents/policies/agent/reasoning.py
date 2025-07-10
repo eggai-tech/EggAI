@@ -169,7 +169,6 @@ def truncate_long_history(
     if len(chat_history) <= max_length and len(lines) <= max_lines:
         return result
 
-    # Perform truncation - keep the last 30 lines like the claims agent
     truncated_lines = lines[-max_lines:]  # Keep last 30 lines
     truncated_history = "\n".join(truncated_lines)
 

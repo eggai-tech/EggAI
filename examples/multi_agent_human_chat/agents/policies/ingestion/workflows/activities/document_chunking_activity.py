@@ -11,7 +11,6 @@ logger = get_console_logger("ingestion.document_chunking")
 
 
 def extract_page_numbers(chunk: Any) -> List[int]:
-    """Extract page numbers from chunk metadata."""
     page_numbers = set()
 
     try:
@@ -29,7 +28,6 @@ def extract_page_numbers(chunk: Any) -> List[int]:
 
 
 def extract_headings(chunk: Any) -> List[str]:
-    """Extract section headings from chunk text by parsing markdown."""
     headings = []
 
     try:
@@ -69,7 +67,6 @@ def extract_headings(chunk: Any) -> List[str]:
 
 
 def extract_section_path(chunk: Any, document: DoclingDocument) -> List[str]:
-    """Extract the hierarchical section path for a chunk."""
     section_path = []
 
     try:
@@ -88,14 +85,6 @@ def extract_section_path(chunk: Any, document: DoclingDocument) -> List[str]:
 
 @activity.defn
 async def chunk_document_activity(load_result: Dict[str, Any]) -> Dict[str, Any]:
-    """Enhanced document chunking with metadata extraction.
-
-    Args:
-        load_result: Result from document loading activity containing document data
-
-    Returns:
-        Dict with success status, list of document chunks with metadata, and document statistics
-    """
     logger.info("Starting enhanced document chunking with metadata extraction")
 
     try:

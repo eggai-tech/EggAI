@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 @activity.defn
 async def scan_minio_inbox_activity() -> List[Dict]:
-    """Scan MinIO inbox folder for new files"""
     async with MinIOClient() as client:
         files = await client.list_inbox_files()
         logger.info(f"Found {len(files)} files in MinIO inbox")
@@ -20,9 +19,6 @@ async def scan_minio_inbox_activity() -> List[Dict]:
 
 @activity.defn
 async def check_document_exists_activity(document_id: str) -> bool:
-    """
-    Check if document already exists in Vespa or MinIO processed folder
-    """
     # First check MinIO processed folder
     async with MinIOClient() as client:
         if await client.file_exists_in_processed(document_id):
@@ -52,7 +48,6 @@ async def check_document_exists_activity(document_id: str) -> bool:
 
 @activity.defn
 async def move_to_processed_activity(source_key: str) -> str:
-    """Move file from inbox to processed folder"""
     async with MinIOClient() as client:
         dest_key = await client.move_file(source_key, "processed")
         logger.info(f"Moved {source_key} to {dest_key}")
@@ -61,7 +56,6 @@ async def move_to_processed_activity(source_key: str) -> str:
 
 @activity.defn
 async def move_to_failed_activity(source_key: str, error: str) -> str:
-    """Move file to failed folder with error metadata"""
     async with MinIOClient() as client:
         dest_key = await client.move_file(source_key, "failed")
         await client.add_error_metadata(dest_key, error)
@@ -71,7 +65,6 @@ async def move_to_failed_activity(source_key: str, error: str) -> str:
 
 @activity.defn
 async def download_from_minio_activity(key: str) -> Dict:
-    """Download file content and metadata from MinIO"""
     async with MinIOClient() as client:
         content, metadata = await client.download_file(key)
         
@@ -85,7 +78,6 @@ async def download_from_minio_activity(key: str) -> Dict:
 
 @activity.defn
 async def initialize_minio_buckets_activity() -> bool:
-    """Initialize MinIO bucket structure"""
     try:
         async with MinIOClient() as client:
             await client.initialize_buckets()

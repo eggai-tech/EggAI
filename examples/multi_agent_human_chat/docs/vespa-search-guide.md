@@ -232,6 +232,32 @@ curl -X POST http://localhost:8003/search \
   }'
 ```
 
+## Agent API Endpoints
+
+The Policies Agent provides REST endpoints that handle the Vespa integration:
+
+### Unified Search Endpoint (Recommended)
+```bash
+POST http://localhost:8001/api/v1/kb/search/vector
+{
+  "query": "your question",
+  "search_type": "hybrid",  # or "vector", "keyword"
+  "max_hits": 5,
+  "category": "auto"  # optional filter
+}
+```
+
+Note: Despite the endpoint path containing "vector", this endpoint handles all search types (vector, hybrid, and keyword) based on the `search_type` parameter.
+
+### Direct Keyword Search
+```bash
+POST http://localhost:8001/api/v1/kb/search
+{
+  "query": "exact terms",
+  "category": "home"
+}
+```
+
 ## Related Documentation
 
 - [Ingestion Pipeline](ingestion-pipeline.md) - How documents are indexed

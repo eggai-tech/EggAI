@@ -58,11 +58,23 @@ Document ingestion is a complex multi-step process that requires:
 # Continuous polling workflow (default: 30s interval)
 # Monitors MinIO inbox folder for new documents
 # Auto-generates document_id from filename if missing
-# Triggers child workflows for each new file
+# Triggers DocumentIngestionWorkflow as child workflow
 # Handles file movement: inbox → processed/failed
 ```
 
-### 2. Document Verification
+### 2. Document Ingestion Workflow (Child)
+[`agents/policies/ingestion/workflows/ingestion_workflow.py`](../agents/policies/ingestion/workflows/ingestion_workflow.py)
+
+```python
+# Orchestrates the complete document processing pipeline:
+# 1. Verify document doesn't already exist
+# 2. Load document using DocLing
+# 3. Chunk document with metadata extraction
+# 4. Generate embeddings and index to Vespa
+# Supports both filesystem and MinIO sources
+```
+
+### 3. Document Verification
 [`agents/policies/ingestion/workflows/activities/document_verification_activity.py`](../agents/policies/ingestion/workflows/activities/document_verification_activity.py)
 
 ```python
@@ -72,7 +84,7 @@ Document ingestion is a complex multi-step process that requires:
 # SHA256 hash validation
 ```
 
-### 3. Document Loading (DocLing)
+### 4. Document Loading (DocLing)
 [`agents/policies/ingestion/workflows/activities/document_loading_activity.py`](../agents/policies/ingestion/workflows/activities/document_loading_activity.py)
 
 ```python
@@ -82,7 +94,7 @@ Document ingestion is a complex multi-step process that requires:
 # Downloads from MinIO when source="minio"
 ```
 
-### 4. Hierarchical Chunking
+### 5. Hierarchical Chunking
 [`agents/policies/ingestion/workflows/activities/document_chunking_activity.py`](../agents/policies/ingestion/workflows/activities/document_chunking_activity.py)
 
 ```python
@@ -92,7 +104,7 @@ Document ingestion is a complex multi-step process that requires:
 # 2-sentence overlap between chunks
 ```
 
-### 5. Vespa Indexing
+### 6. Vespa Indexing
 [`agents/policies/ingestion/workflows/activities/document_indexing_activity.py`](../agents/policies/ingestion/workflows/activities/document_indexing_activity.py)
 
 ```python
@@ -104,6 +116,31 @@ Document ingestion is a complex multi-step process that requires:
 # Enhanced metadata: page numbers, headings, chunk relationships
 ```
 
+## Temporal Workflow Details
+
+### Activity Configuration
+```python
+# Default retry policy for all activities
+retry_policy = RetryPolicy(
+    maximum_attempts=3,
+    initial_interval=timedelta(seconds=1),
+    maximum_interval=timedelta(seconds=10),
+    backoff_coefficient=2
+)
+
+# Activity timeouts
+activity_options = ActivityOptions(
+    start_to_close_timeout=timedelta(minutes=5),
+    retry_policy=retry_policy
+)
+```
+
+### Error Handling
+- Failed documents are moved to MinIO failed folder
+- Activities automatically retry with exponential backoff
+- Workflow history preserved for debugging
+- Child workflows isolated to prevent cascading failures
+
 ## Key Files
 
 ### Workflows
@@ -111,14 +148,9 @@ Document ingestion is a complex multi-step process that requires:
 - **MinIO Watcher**: [`agents/policies/ingestion/workflows/minio_watcher_workflow.py`](../agents/policies/ingestion/workflows/minio_watcher_workflow.py)
 - **Worker Entry Point**: [`agents/policies/ingestion/start_worker.py`](../agents/policies/ingestion/start_worker.py)
 
-### Activities
-- **MinIO Activities**: [`agents/policies/ingestion/workflows/activities/minio_activities.py`](../agents/policies/ingestion/workflows/activities/minio_activities.py)
-- **All Activities**: [`agents/policies/ingestion/workflows/activities/`](../agents/policies/ingestion/workflows/activities/)
-
 ### Supporting Files
-- **MinIO Client**: [`agents/policies/ingestion/minio_client.py`](../agents/policies/ingestion/minio_client.py)
-- **Vespa Client**: [`libraries/integrations/vespa.py`](../libraries/integrations/vespa.py)
 - **Configuration**: [`agents/policies/ingestion/config.py`](../agents/policies/ingestion/config.py)
+- **Vespa Client**: [`libraries/integrations/vespa/vespa_client.py`](../libraries/integrations/vespa/vespa_client.py)
 
 ## Running the Ingestion
 

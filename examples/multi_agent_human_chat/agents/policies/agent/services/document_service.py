@@ -12,20 +12,10 @@ logger = get_console_logger("document_service")
 
 
 class DocumentService:
-    """Service for managing policy documents."""
-
     def __init__(self, vespa_client: VespaClient):
         self.vespa_client = vespa_client
 
     def create_policy_document(self, doc_data: dict) -> PolicyDocument:
-        """Convert raw document data to PolicyDocument model.
-        
-        Args:
-            doc_data: Raw document data from Vespa
-            
-        Returns:
-            PolicyDocument instance
-        """
         from agents.policies.agent.api.models import PolicyDocument
         
         # Generate citation
@@ -59,16 +49,6 @@ class DocumentService:
         limit: int = 20,
         offset: int = 0
     ) -> List[PolicyDocument]:
-        """List all documents with optional filtering and pagination.
-        
-        Args:
-            category: Optional category filter
-            limit: Number of documents to return
-            offset: Offset for pagination
-            
-        Returns:
-            List of PolicyDocument instances
-        """
         try:
             # Use an empty query to get all documents
             query = ""  # Empty query will match all documents
@@ -96,14 +76,6 @@ class DocumentService:
             raise
 
     async def get_document_by_id(self, doc_id: str) -> Optional[PolicyDocument]:
-        """Get a specific document by ID.
-        
-        Args:
-            doc_id: Document ID
-            
-        Returns:
-            PolicyDocument if found, None otherwise
-        """
         try:
             # Try to retrieve by document ID
             result = await self.vespa_client.get_document(
@@ -120,11 +92,6 @@ class DocumentService:
             raise
 
     async def get_categories_stats(self) -> List[dict]:
-        """Get document count statistics by category.
-        
-        Returns:
-            List of category statistics
-        """
         try:
             # Get all documents to count by category
             all_results = await self.vespa_client.search_documents(
@@ -151,11 +118,6 @@ class DocumentService:
             raise
 
     async def clear_all_documents(self) -> dict:
-        """Clear all documents from the index.
-        
-        Returns:
-            Dictionary with deletion statistics
-        """
         try:
             # Get all documents
             all_results = await self.vespa_client.search_documents(

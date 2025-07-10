@@ -14,11 +14,6 @@ _EXECUTOR: Optional[ThreadPoolExecutor] = None
 
 
 def get_embedding_model() -> SentenceTransformer:
-    """Get or initialize the embedding model singleton.
-
-    Using all-MiniLM-L6-v2 which provides good quality embeddings
-    with 384 dimensions and fast inference.
-    """
     global _EMBEDDING_MODEL
 
     if _EMBEDDING_MODEL is None:
@@ -38,7 +33,6 @@ def get_embedding_model() -> SentenceTransformer:
 
 
 def get_executor() -> ThreadPoolExecutor:
-    """Get or initialize the thread pool executor for CPU-bound operations."""
     global _EXECUTOR
     
     if _EXECUTOR is None:
@@ -50,14 +44,6 @@ def get_executor() -> ThreadPoolExecutor:
 
 
 def generate_embedding(text: str) -> List[float]:
-    """Generate embedding for a single text.
-
-    Args:
-        text: Text to embed
-
-    Returns:
-        List of float values representing the embedding
-    """
     if not text or not text.strip():
         logger.warning("Empty text provided for embedding generation")
         return []
@@ -74,15 +60,6 @@ def generate_embedding(text: str) -> List[float]:
 def generate_embeddings_batch(
     texts: List[str], batch_size: int = 32
 ) -> List[List[float]]:
-    """Generate embeddings for multiple texts in batches.
-
-    Args:
-        texts: List of texts to embed
-        batch_size: Number of texts to process at once
-
-    Returns:
-        List of embeddings, one per input text
-    """
     if not texts:
         return []
 
@@ -127,17 +104,6 @@ def combine_text_for_embedding(
     headings: Optional[List[str]] = None,
     category: Optional[str] = None,
 ) -> str:
-    """Combine multiple text fields for richer embedding.
-
-    Args:
-        text: Main text content
-        title: Document title
-        headings: Section headings
-        category: Document category
-
-    Returns:
-        Combined text optimized for embedding
-    """
     parts = []
 
     if category:
@@ -155,14 +121,6 @@ def combine_text_for_embedding(
 
 
 async def generate_embedding_async(text: str) -> List[float]:
-    """Generate embedding for a single text asynchronously.
-    
-    Args:
-        text: Text to embed
-        
-    Returns:
-        List of float values representing the embedding
-    """
     if not text or not text.strip():
         logger.warning("Empty text provided for embedding generation")
         return []
@@ -187,15 +145,6 @@ async def generate_embedding_async(text: str) -> List[float]:
 async def generate_embeddings_batch_async(
     texts: List[str], batch_size: int = 32
 ) -> List[List[float]]:
-    """Generate embeddings for multiple texts asynchronously in batches.
-    
-    Args:
-        texts: List of texts to embed
-        batch_size: Number of texts to process at once
-        
-    Returns:
-        List of embeddings, one per input text
-    """
     if not texts:
         return []
     

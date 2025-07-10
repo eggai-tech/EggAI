@@ -19,7 +19,6 @@ logger = get_console_logger("ingestion.start_worker")
 
 
 async def initialize_minio_and_migrate():
-    """Initialize MinIO buckets and migrate existing documents."""
     logger.info("Initializing MinIO and checking for migration needs...")
     
     try:
@@ -108,7 +107,6 @@ async def initialize_minio_and_migrate():
 
 
 async def start_minio_watcher(client):
-    """Start the MinIO inbox watcher workflow."""
     try:
         workflow_id = "minio-inbox-watcher"
         poll_interval = int(os.getenv("MINIO_POLL_INTERVAL", "30"))
@@ -148,7 +146,6 @@ async def start_minio_watcher(client):
 
 
 async def trigger_initial_document_ingestion():
-    """Trigger initial document ingestion for all 4 policy documents."""
     logger.info("Starting initial document ingestion for all 4 policies...")
 
     policy_ids = ["auto", "home", "health", "life"]
@@ -208,7 +205,6 @@ async def trigger_initial_document_ingestion():
 
 
 async def main():
-    """Main function to start the worker."""
     # Initialize telemetry
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)
 

@@ -20,19 +20,9 @@ with workflow.unsafe.imports_passed_through():
 
 @workflow.defn
 class MinIOInboxWatcherWorkflow:
-    """
-    Continuously monitors MinIO inbox folder for new documents
-    and triggers ingestion workflows
-    """
     
     @workflow.run
     async def run(self, poll_interval_seconds: int = 30) -> None:
-        """
-        Main workflow execution that polls MinIO inbox
-        
-        Args:
-            poll_interval_seconds: How often to check for new files (default: 30s)
-        """
         workflow.logger.info(f"Starting MinIO inbox watcher with {poll_interval_seconds}s interval")
         
         while True:
@@ -61,7 +51,6 @@ class MinIOInboxWatcherWorkflow:
             await asyncio.sleep(poll_interval_seconds)
             
     async def _process_files(self, files: List[Dict]) -> None:
-        """Process files found in inbox"""
         for file_info in files:
             try:
                 file_key = file_info['key']

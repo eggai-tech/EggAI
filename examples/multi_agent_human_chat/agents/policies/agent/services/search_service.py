@@ -11,8 +11,8 @@ from libraries.observability.logger import get_console_logger
 if TYPE_CHECKING:
     from agents.policies.agent.api.models import (
         PolicyDocument,
+        SearchRequest,
         SearchResponse,
-        VectorSearchRequest,
     )
 
 logger = get_console_logger("search_service")
@@ -61,11 +61,11 @@ class SearchService:
             chunk_position=doc_data.get("chunk_position"),
         )
 
-    async def vector_search(self, request: VectorSearchRequest) -> SearchResponse:
-        """Perform vector-based semantic search.
+    async def search(self, request: SearchRequest) -> SearchResponse:
+        """Perform search based on the specified search type (vector, hybrid, or keyword).
         
         Args:
-            request: Vector search request parameters
+            request: Search request parameters with search type
             
         Returns:
             SearchResponse object
@@ -133,5 +133,5 @@ class SearchService:
             )
 
         except Exception as e:
-            logger.error(f"Vector search error: {e}")
+            logger.error(f"Search error: {e}")
             raise

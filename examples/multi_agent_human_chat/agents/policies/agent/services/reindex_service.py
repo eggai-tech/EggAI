@@ -14,19 +14,12 @@ logger = get_console_logger("reindex_service")
 
 
 class ReindexService:
-    """Service for reindexing policy documents."""
-
     def __init__(self, vespa_client: VespaClient):
         self.vespa_client = vespa_client
         # Get base path for documents
         self.base_path = Path(__file__).parent.parent.parent / "ingestion" / "documents"
 
     async def clear_existing_documents(self) -> int:
-        """Clear all existing documents from Vespa.
-        
-        Returns:
-            Number of documents cleared
-        """
         try:
             # Get count of existing documents first
             existing_results = await self.vespa_client.search_documents(
@@ -59,11 +52,6 @@ class ReindexService:
             raise
 
     async def get_indexing_status(self) -> dict:
-        """Get current indexing status and statistics.
-        
-        Returns:
-            Dictionary with indexing statistics
-        """
         try:
             # Get all documents to analyze (respecting Vespa's limit)
             all_results = await self.vespa_client.search_documents(
@@ -128,14 +116,6 @@ class ReindexService:
             raise
 
     def _get_document_configs(self, policy_ids: Optional[List[str]] = None) -> List[dict]:
-        """Get document configurations to reindex.
-        
-        Args:
-            policy_ids: Optional list of policy IDs to filter
-            
-        Returns:
-            List of document configurations
-        """
         # Define document configurations
         all_configs = [
             {"file": "auto.md", "category": "auto"},
@@ -160,16 +140,6 @@ class ReindexService:
         config: dict,
         force_rebuild: bool
     ) -> tuple[bool, str, Optional[str]]:
-        """Queue a single document for ingestion.
-        
-        Args:
-            temporal_client: Temporal client instance
-            config: Document configuration
-            force_rebuild: Whether to force rebuild
-            
-        Returns:
-            Tuple of (success, policy_id, error_message)
-        """
         file_path = self.base_path / config["file"]
         
         if not file_path.exists():
@@ -205,16 +175,6 @@ class ReindexService:
     def _create_reindex_response(
         self, documents_queued: int, queued_policy_ids: List[str], errors: List[str]
     ) -> ReindexResponse:
-        """Create appropriate ReindexResponse based on operation results.
-        
-        Args:
-            documents_queued: Number of documents successfully queued
-            queued_policy_ids: List of policy IDs that were queued
-            errors: List of error messages encountered
-            
-        Returns:
-            ReindexResponse with appropriate status
-        """
         from agents.policies.agent.api.models import ReindexResponse
         
         if documents_queued == 0 and errors:
@@ -240,14 +200,6 @@ class ReindexService:
             )
 
     async def reindex_documents(self, request: ReindexRequest) -> ReindexResponse:
-        """Reindex policy documents.
-        
-        Args:
-            request: Reindexing request parameters
-            
-        Returns:
-            ReindexResponse with operation results
-        """
         from agents.policies.agent.api.models import ReindexResponse
         
         errors = []

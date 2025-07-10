@@ -175,6 +175,28 @@ open http://localhost:8501
 
 ## Configuration
 
+### Hybrid Search Strategy
+The Policies Agent uses a sophisticated hybrid search approach:
+
+- **70% Vector Similarity**: Semantic understanding of queries
+- **30% BM25 Keyword Matching**: Exact term matching for precision
+- **Multiple Ranking Profiles**: 
+  - `default`: Pure BM25 for keyword search
+  - `semantic`: Pure vector similarity
+  - `hybrid`: Combined scoring (recommended)
+  - `with_position`: Considers chunk position in document
+
+### Tool Selection Logic
+```python
+# DSPy ReAct pattern determines tool usage:
+if policy_number_detected:
+    use get_personal_policy_details()
+elif needs_documentation:
+    use search_policy_documentation() with hybrid search
+else:
+    provide direct answer from context
+```
+
 ### Search Parameters
 ```python
 # agents/policies/agent/config.py
