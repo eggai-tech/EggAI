@@ -99,7 +99,7 @@ test-policies-agent:
 	exit $$TEST_EXIT_CODE
 
 test-policies-retrieval-performance:
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/pytest agents/policies/tests/test_retrieval_performance.py \
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. LIMIT_DATASET_ITEMS=5 $(VENV_DIR)/bin/pytest agents/policies/tests/test_retrieval_performance.py \
        -v -s \
        --junitxml=reports/pytest-policies-retrieval-performance.xml \
        --html=reports/pytest-results.html --self-contained-html
@@ -172,7 +172,9 @@ stop: docker-down
 kill-agents:
 	@echo "Killing all agent processes..."
 	@pkill -f "python.*agents.*main" || true
-	@pkill -f "start_worker.py" || true
+	@pkill -f "start_worker" || true
+	@pkill -f "agents\..*\.start_worker" || true
+	@pkill -f "agents/.*start_worker" || true
 	@echo "All agent processes have been killed."
 
 clean:

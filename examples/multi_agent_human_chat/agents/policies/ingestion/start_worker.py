@@ -116,12 +116,15 @@ async def start_minio_watcher(client):
         # Check if watcher is already running
         try:
             handle = client.get_workflow_handle(workflow_id)
-            await handle.describe()
-            logger.info("MinIO watcher workflow already running")
-            return
+            desc = await handle.describe()
+            if desc.status == 1:  # WorkflowExecutionStatus.RUNNING
+                logger.info("MinIO watcher workflow already running")
+                return
+            else:
+                logger.info(f"MinIO watcher workflow exists but not running (status: {desc.status})")
         except Exception:
-            # Workflow not found, start it
-            pass
+            # Workflow not found
+            logger.info("MinIO watcher workflow not found")
             
         logger.info("Starting MinIO inbox watcher workflow...")
         

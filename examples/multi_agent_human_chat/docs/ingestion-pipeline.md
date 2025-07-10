@@ -11,26 +11,31 @@ The ingestion pipeline uses **Temporal workflows** to orchestrate durable, fault
 ```mermaid
 graph TB
     subgraph "Document Ingestion (Temporal)"
-        A[Policy Documents] --> B[Initial Ingestion]
-        B --> C[MinIO Storage]
-        C --> D[MinIO Watcher Workflow]
-        D -->|New Files| E[Document Workflow]
+        A[Local Policy Documents] --> B[Initial Ingestion]
+        B --> E[Document Workflow]
+        
+        C[MinIO Inbox] --> D[MinIO Watcher Workflow]
+        D -->|New Files| E
+        
         E --> F[Verification Activity]
-        F --> G[DocLing Loading Activity] 
+        F -->|Exists| K[MinIO Processed Folder]
+        F -->|New| G[DocLing Loading Activity] 
         G --> H[Hierarchical Chunking Activity]
         H --> I[Vespa Indexing Activity]
         I --> J[Vespa Search Engine]
-        D -->|Processed| K[MinIO Processed Folder]
+        I --> K
+        
+        D -->|Failed| L[MinIO Failed Folder]
     end
     
     subgraph "Query Processing (ReAct Agent)"
-        L[User Query] --> M[Policies Agent]
-        M --> N{Query Type?}
-        N -->|Personal Data| O[get_personal_policy_details]
-        N -->|General Info| P[search_policy_documentation]
-        P --> J
-        J --> Q[Retrieved Documents]
-        Q --> R[Contextualized Response]
+        M[User Query] --> N[Policies Agent]
+        N --> O{Query Type?}
+        O -->|Personal Data| P[get_personal_policy_details]
+        O -->|General Info| Q[search_policy_documentation]
+        Q --> J
+        J --> R[Retrieved Documents]
+        R --> S[Contextualized Response]
     end
 ```
 
@@ -47,15 +52,18 @@ Document ingestion is a complex multi-step process that requires:
 ## Ingestion Pipeline Components
 
 ### 1. MinIO Inbox Watcher Workflow
+[`agents/policies/ingestion/workflows/minio_watcher_workflow.py`](../agents/policies/ingestion/workflows/minio_watcher_workflow.py)
 
 ```python
 # Continuous polling workflow (default: 30s interval)
 # Monitors MinIO inbox folder for new documents
+# Auto-generates document_id from filename if missing
 # Triggers child workflows for each new file
 # Handles file movement: inbox → processed/failed
 ```
 
 ### 2. Document Verification
+[`agents/policies/ingestion/workflows/activities/document_verification_activity.py`](../agents/policies/ingestion/workflows/activities/document_verification_activity.py)
 
 ```python
 # Checks both MinIO processed folder and Vespa index
@@ -65,6 +73,7 @@ Document ingestion is a complex multi-step process that requires:
 ```
 
 ### 3. Document Loading (DocLing)
+[`agents/policies/ingestion/workflows/activities/document_loading_activity.py`](../agents/policies/ingestion/workflows/activities/document_loading_activity.py)
 
 ```python
 # Uses DocLing DocumentConverter
@@ -74,6 +83,7 @@ Document ingestion is a complex multi-step process that requires:
 ```
 
 ### 4. Hierarchical Chunking
+[`agents/policies/ingestion/workflows/activities/document_chunking_activity.py`](../agents/policies/ingestion/workflows/activities/document_chunking_activity.py)
 
 ```python
 # GPT-2 tokenizer with smart boundaries
@@ -83,6 +93,7 @@ Document ingestion is a complex multi-step process that requires:
 ```
 
 ### 5. Vespa Indexing
+[`agents/policies/ingestion/workflows/activities/document_indexing_activity.py`](../agents/policies/ingestion/workflows/activities/document_indexing_activity.py)
 
 ```python
 # Hybrid search with both keyword and semantic understanding:
@@ -93,16 +104,35 @@ Document ingestion is a complex multi-step process that requires:
 # Enhanced metadata: page numbers, headings, chunk relationships
 ```
 
+## Key Files
+
+### Workflows
+- **Main Ingestion Workflow**: [`agents/policies/ingestion/workflows/ingestion_workflow.py`](../agents/policies/ingestion/workflows/ingestion_workflow.py)
+- **MinIO Watcher**: [`agents/policies/ingestion/workflows/minio_watcher_workflow.py`](../agents/policies/ingestion/workflows/minio_watcher_workflow.py)
+- **Worker Entry Point**: [`agents/policies/ingestion/start_worker.py`](../agents/policies/ingestion/start_worker.py)
+
+### Activities
+- **MinIO Activities**: [`agents/policies/ingestion/workflows/activities/minio_activities.py`](../agents/policies/ingestion/workflows/activities/minio_activities.py)
+- **All Activities**: [`agents/policies/ingestion/workflows/activities/`](../agents/policies/ingestion/workflows/activities/)
+
+### Supporting Files
+- **MinIO Client**: [`agents/policies/ingestion/minio_client.py`](../agents/policies/ingestion/minio_client.py)
+- **Vespa Client**: [`libraries/integrations/vespa.py`](../libraries/integrations/vespa.py)
+- **Configuration**: [`agents/policies/ingestion/config.py`](../agents/policies/ingestion/config.py)
+
 ## Running the Ingestion
 
 ### Start the Worker
 
 ```bash
-# Start Temporal, Vespa, and MinIO services
-make docker-up
+# Start all services and agents
+make start-all
 
-# Start the ingestion worker
+# Or start just the ingestion worker
 make start-policies-document-ingestion
+
+# Stop all agents
+make kill-agents
 ```
 
 ### Ingestion Process
@@ -115,7 +145,7 @@ make start-policies-document-ingestion
 
 2. **Auto-Migration**: After initial indexing, documents are automatically migrated to MinIO processed folder
 
-3. **Continuous Monitoring**: MinIO watcher workflow starts and monitors the inbox folder every 30 seconds
+3. **Continuous Monitoring**: MinIO watcher workflow automatically starts on worker startup and monitors the inbox folder every 30 seconds
 
 ### Monitor Progress
 
@@ -196,10 +226,9 @@ temporal_task_queue: "policy-rag"
 
 ```yaml
 # Environment variables
-MINIO_ENDPOINT: "localhost:9000"
-MINIO_ACCESS_KEY: "minioadmin"
-MINIO_SECRET_KEY: "minioadmin"
-MINIO_BUCKET_NAME: "policy-documents"
+MINIO_ENDPOINT_URL: "http://localhost:9000"
+MINIO_ACCESS_KEY: "user"
+MINIO_SECRET_KEY: "password"
 MINIO_POLL_INTERVAL: "30"  # seconds
 ```
 
@@ -221,8 +250,9 @@ schema_name: "policy_document"
 ### Method 1: Direct Upload to MinIO
 1. Upload file to MinIO inbox folder via:
    - MinIO Console (http://localhost:9001)
-   - AWS CLI: `aws s3 cp file.md s3://policy-documents/inbox/`
+   - AWS CLI: `aws s3 cp file.md s3://documents/inbox/`
 2. Watcher workflow automatically detects and processes the file
+3. File is moved to processed/ or failed/ folder based on result
 
 ### Method 2: Add to Source Code
 1. Add markdown file to `agents/policies/ingestion/documents/`

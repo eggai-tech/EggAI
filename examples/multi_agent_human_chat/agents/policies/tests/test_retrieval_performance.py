@@ -1,8 +1,8 @@
 """
 Retrieval Performance Test Suite
 
-4-stage testing: Collect -> Metrics -> LLM Judge -> Report
-Results logged to MLflow for tracking and analysis.
+Tests different search configurations to find optimal settings.
+Tracks results in MLflow for analysis.
 """
 import asyncio
 import os
@@ -676,6 +676,7 @@ async def _run_retrieval_test():
         max_hits_values=[1, 5, 10],
         max_query_workers=5,
         max_eval_workers=3,
+        enable_llm_judge=True  # Enable by default for quality evaluation
     )
 
     tester = RetrievalPerformanceTester(config=config)
@@ -711,34 +712,6 @@ async def _run_retrieval_test():
         )
         logger.info("Summary report generated")
         logger.info(f"\n{summary_report}")
-
-        # Find and display best combination
-        best_combo = tester.find_best_combination(retrieval_results, evaluation_results)
-        if best_combo:
-            logger.info("=" * 60)
-            logger.info("BEST PERFORMING COMBINATION")
-            logger.info("=" * 60)
-            logger.info(f"Search Type: {best_combo['search_type'].upper()}")
-            logger.info(f"Max Hits: {best_combo['max_hits']}")
-            logger.info(f"Quality Score: {best_combo['avg_quality']:.3f}")
-            logger.info(f"Pass Rate: {best_combo['pass_rate']:.1%}")
-            logger.info(f"Avg Retrieval Time: {best_combo['avg_retrieval_time']:.1f}ms")
-            logger.info(f"Composite Score: {best_combo['composite_score']:.3f}")
-            logger.info("=" * 60)
-
-            # Recommendation
-            if best_combo["avg_quality"] >= 0.8:
-                logger.info(
-                    "RECOMMENDATION: This combination provides excellent retrieval quality!"
-                )
-            elif best_combo["avg_quality"] >= 0.7:
-                logger.info(
-                    "RECOMMENDATION: This combination provides good retrieval quality."
-                )
-            else:
-                logger.info(
-                    "RECOMMENDATION: Consider tuning parameters for better quality."
-                )
 
     # Find and display best combination using unified performance calculator
     calculator = PerformanceCalculator(has_llm_judge=bool(evaluation_results))
@@ -777,6 +750,13 @@ async def _run_retrieval_test():
             logger.info("RECOMMENDATION: Moderate performance - consider parameter tuning.")
         else:
             logger.info("RECOMMENDATION: Poor performance - significant optimization needed.")
+            
+        # Warning if no LLM judge
+        if not evaluation_results:
+            logger.warning("")
+            logger.warning("⚠️  WARNING: Test ran without LLM quality evaluation!")
+            logger.warning("⚠️  Results may be misleading - only retrieval metrics were used.")
+            logger.warning("⚠️  For accurate results, ensure OPENAI_API_KEY is set and enable_llm_judge=True")
         
         # Log metrics summary
         metrics_summary = calculator.get_metrics_summary()

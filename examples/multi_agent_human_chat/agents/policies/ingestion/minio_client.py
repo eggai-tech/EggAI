@@ -147,7 +147,7 @@ class MinIOClient:
                         'key': obj['Key'],
                         'filename': Path(obj['Key']).name,
                         'size': obj['Size'],
-                        'last_modified': obj['LastModified'],
+                        'last_modified': obj['LastModified'].isoformat(),
                         'metadata': head_response.get('Metadata', {})
                     })
                     
