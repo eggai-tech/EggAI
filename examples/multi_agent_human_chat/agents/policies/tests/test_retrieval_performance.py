@@ -659,10 +659,6 @@ class RetrievalPerformanceTester:
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(
-    not os.getenv("OPENAI_API_KEY"),
-    reason="OPENAI_API_KEY environment variable is not set"
-)
 async def test_retrieval_performance():
     """Async pytest version of the retrieval performance test with 8-minute timeout."""
     try:
@@ -675,12 +671,17 @@ async def _run_retrieval_test():
     """Run the actual test logic using 4-stage approach."""
     logger.info("Starting 4-stage retrieval test with 8-minute timeout...")
 
+    # Check if OPENAI_API_KEY is available for LLM judge
+    enable_llm_judge = bool(os.getenv("OPENAI_API_KEY"))
+    if not enable_llm_judge:
+        logger.warning("OPENAI_API_KEY not set, disabling LLM judge for evaluation")
+    
     config = RetrievalTestConfiguration(
         search_types=["hybrid", "keyword", "vector"],
         max_hits_values=[1, 5, 10],
         max_query_workers=5,
         max_eval_workers=3,
-        enable_llm_judge=True  # Enable by default for quality evaluation
+        enable_llm_judge=enable_llm_judge  # Conditionally enable based on API key
     )
 
     tester = RetrievalPerformanceTester(config=config)
