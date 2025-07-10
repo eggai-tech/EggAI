@@ -52,7 +52,6 @@ class MinIOClient:
         )
         
     async def initialize_buckets(self):
-        """Create bucket structure if it doesn't exist"""
         async with self._get_client() as s3:
             try:
                 await s3.head_bucket(Bucket=self.bucket_name)
@@ -74,7 +73,6 @@ class MinIOClient:
                     logger.debug(f"Folder {folder} may already exist: {e}")
                     
     async def generate_document_id(self, content: bytes, filename: str) -> str:
-        """Generate unique document ID based on content hash"""
         content_hash = hashlib.sha256(content).hexdigest()[:16]
         return f"{Path(filename).stem}_{content_hash}"
         
@@ -84,7 +82,6 @@ class MinIOClient:
         content: bytes,
         mime_type: str = "application/octet-stream"
     ) -> MinIODocumentMetadata:
-        """Upload a document to the inbox folder"""
         file_hash = hashlib.sha256(content).hexdigest()
         document_id = await self.generate_document_id(content, filename)
         
@@ -115,15 +112,12 @@ class MinIOClient:
         return metadata
         
     async def list_inbox_files(self) -> List[Dict]:
-        """List all files in the inbox folder"""
         return await self._list_files_in_folder("inbox/")
         
     async def list_processed_files(self) -> List[Dict]:
-        """List all files in the processed folder"""
         return await self._list_files_in_folder("processed/")
         
     async def _list_files_in_folder(self, prefix: str) -> List[Dict]:
-        """List all files in a specific folder"""
         files = []
         async with self._get_client() as s3:
             paginator = s3.get_paginator('list_objects_v2')
@@ -154,7 +148,6 @@ class MinIOClient:
         return files
         
     async def move_file(self, source_key: str, destination_folder: str) -> str:
-        """Move a file from one folder to another"""
         filename = Path(source_key).name
         dest_key = f"{destination_folder}/{filename}"
         
@@ -175,7 +168,6 @@ class MinIOClient:
         return dest_key
         
     async def download_file(self, key: str) -> Tuple[bytes, Dict]:
-        """Download file content and metadata"""
         async with self._get_client() as s3:
             response = await s3.get_object(
                 Bucket=self.bucket_name,
@@ -188,7 +180,6 @@ class MinIOClient:
         return content, metadata
         
     async def file_exists_in_processed(self, document_id: str) -> bool:
-        """Check if a document with given ID exists in processed folder"""
         async with self._get_client() as s3:
             paginator = s3.get_paginator('list_objects_v2')
             async for page in paginator.paginate(
@@ -211,7 +202,6 @@ class MinIOClient:
         return False
         
     async def add_error_metadata(self, key: str, error: str):
-        """Add error metadata to a file in the failed folder"""
         async with self._get_client() as s3:
             # Get existing object
             response = await s3.head_object(

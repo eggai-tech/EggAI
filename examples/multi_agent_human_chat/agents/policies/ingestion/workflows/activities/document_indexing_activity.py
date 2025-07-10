@@ -24,20 +24,6 @@ async def index_document_activity(
     document_stats: Optional[Dict[str, Any]],
     workflow_metadata: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    """Enhanced document indexing with metadata preservation.
-
-    Args:
-        chunks_data: List of document chunks with enhanced metadata
-        file_path: Original file path for metadata
-        category: Document category for metadata
-        index_name: Index name (preserved for compatibility)
-        force_rebuild: Force rebuild flag (preserved for compatibility)
-        document_stats: Document-level statistics from chunking
-        workflow_metadata: Additional metadata from workflow
-
-    Returns:
-        Dict with indexing results and statistics
-    """
     logger.info(
         f"Starting enhanced indexing for {len(chunks_data)} chunks from {file_path}"
     )

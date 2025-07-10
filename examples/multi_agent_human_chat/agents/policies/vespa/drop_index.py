@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""
-Script to drop all documents from Vespa index.
-
-This script removes all policy documents from the Vespa search index,
-effectively clearing the entire index for a fresh start.
-
-Usage:
-    python drop_index.py
-"""
 
 import asyncio
 import sys
@@ -24,7 +15,6 @@ logger = get_console_logger("drop_index")
 
 
 async def get_all_document_ids(vespa_client: VespaClient) -> list[str]:
-    """Get all document IDs from Vespa index."""
     logger.info("Fetching all document IDs from Vespa...")
 
     try:
@@ -52,7 +42,6 @@ async def get_all_document_ids(vespa_client: VespaClient) -> list[str]:
 async def delete_documents_batch(
     vespa_client: VespaClient, document_ids: list[str]
 ) -> dict:
-    """Delete a batch of documents from Vespa using HTTP DELETE."""
     import httpx
 
     logger.info(f"Deleting {len(document_ids)} documents...")
@@ -109,7 +98,6 @@ async def delete_documents_batch(
 
 
 async def drop_index() -> bool:
-    """Drop all documents from Vespa index."""
     logger.info("Starting Vespa index drop operation")
 
     try:
@@ -152,7 +140,6 @@ async def drop_index() -> bool:
 
 
 def main():
-    """Main entry point."""
     print("🗑️  Vespa Index Drop Tool")
     print("=" * 50)
 

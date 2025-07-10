@@ -16,8 +16,8 @@ from agents.policies.agent.api.models import (
     PolicyListResponse,
     ReindexRequest,
     ReindexResponse,
+    SearchRequest,
     SearchResponse,
-    VectorSearchRequest,
 )
 from agents.policies.agent.api.validators import (
     validate_category,
@@ -308,19 +308,19 @@ async def search_documents(
         validated_category = validate_category(category) if category else None
         
         # Create search request
-        request = VectorSearchRequest(
+        request = SearchRequest(
             query=validated_query,
             category=validated_category,
             max_hits=max_hits,
             search_type="keyword"
         )
         
-        result = await search_service.vector_search(request)
+        result = await search_service.search(request)
         
         return {
-            "query": result["query"],
-            "category": result["category"],
-            "total_results": result["total_hits"],
+            "query": result.query,
+            "category": result.category,
+            "total_results": result.total_hits,
             "results": [
                 {
                     "id": doc.id,
@@ -331,7 +331,7 @@ async def search_documents(
                     "document_id": doc.document_id,
                     "relevance": doc.relevance
                 }
-                for doc in result["documents"]
+                for doc in result.documents
             ]
         }
     except HTTPException:
@@ -345,11 +345,11 @@ async def search_documents(
 
 @router.post("/kb/search/vector", response_model=SearchResponse)
 async def vector_search(
-    request: VectorSearchRequest,
+    request: SearchRequest,
     search_service: SearchService = Depends(get_search_service),
 ):
     """
-    Perform semantic vector search on policy documents.
+    Perform search on policy documents.
     
     Supports three search types:
     - **vector**: Pure semantic search using embeddings
@@ -362,7 +362,7 @@ async def vector_search(
         if request.category:
             request.category = validate_category(request.category)
         
-        result = await search_service.vector_search(request)
+        result = await search_service.search(request)
         
         return SearchResponse(
             query=result.query,
@@ -374,7 +374,7 @@ async def vector_search(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Vector search error: {e}", exc_info=True)
+        logger.error(f"Search error: {e}", exc_info=True)
         raise HTTPException(
             status_code=500, detail="Internal server error during search"
         )

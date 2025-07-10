@@ -16,8 +16,6 @@ logger = get_console_logger("ingestion.temporal_client")
 
 
 class TemporalClient:
-    """Client for executing document ingestion workflows via Temporal."""
-
     def __init__(
         self,
         temporal_server_url: str = "localhost:7233",
@@ -30,7 +28,6 @@ class TemporalClient:
         self._client: Optional[Client] = None
 
     async def get_client(self) -> Client:
-        """Get or create the Temporal client."""
         if self._client is None:
             self._client = await Client.connect(
                 self.temporal_server_url, namespace=self.temporal_namespace
@@ -45,19 +42,6 @@ class TemporalClient:
         force_rebuild: bool = False,
         request_id: Optional[str] = None,
     ) -> DocumentIngestionResult:
-        """
-        Asynchronously ingest a single document using DocLing and Temporal workflow.
-
-        Args:
-            file_path: Path to the document file
-            category: Document category
-            index_name: Name of the RAG index
-            force_rebuild: Whether to force rebuild the index
-            request_id: Optional request identifier
-
-        Returns:
-            DocumentIngestionResult with the ingestion results
-        """
         if request_id is None:
             request_id = str(uuid.uuid4())
 
@@ -114,6 +98,5 @@ class TemporalClient:
             )
 
     async def close(self):
-        """Close the Temporal client connection."""
         # No need to explicitly close the client in newer Temporal SDK versions
         self._client = None

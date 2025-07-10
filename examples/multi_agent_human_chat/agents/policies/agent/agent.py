@@ -41,7 +41,6 @@ init_token_metrics(
 
 
 def get_conversation_string(chat_messages: List[ChatMessage]) -> str:
-    """Format chat messages into a conversation string."""
     with tracer.start_as_current_span("get_conversation_string") as span:
         safe_set_attribute(
             span, "chat_messages_count", len(chat_messages) if chat_messages else 0
@@ -72,7 +71,6 @@ async def process_policy_request(
     message_id: str,
     timeout_seconds: float = None,
 ) -> None:
-    """Generate a response to a policy request with streaming output."""
     config = model_config
     if timeout_seconds:
         config = model_config.model_copy(update={"timeout_seconds": timeout_seconds})
@@ -173,7 +171,6 @@ async def process_policy_request(
 )
 @traced_handler("handle_policy_request")
 async def handle_policy_request(msg: TracedMessage) -> None:
-    """Handle incoming policy request messages from the agents channel."""
     try:
         chat_messages: List[ChatMessage] = msg.data.get("chat_messages", [])
         connection_id: str = msg.data.get("connection_id", "unknown")
@@ -221,7 +218,6 @@ async def handle_policy_request(msg: TracedMessage) -> None:
 
 @policies_agent.subscribe(channel=agents_channel)
 async def handle_other_messages(msg: TracedMessage) -> None:
-    """Handle non-policy messages received on the agent channel."""
     logger.debug("Received non-policy message: %s", msg)
 
 

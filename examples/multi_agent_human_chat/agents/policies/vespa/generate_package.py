@@ -33,11 +33,6 @@ logger = get_console_logger("vespa_package_generator")
 
 
 def create_validation_overrides() -> List[Validation]:
-    """Create validation overrides for deployment.
-
-    Returns:
-        List of Validation objects
-    """
     future_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     validations = []
@@ -65,7 +60,6 @@ def create_validation_overrides() -> List[Validation]:
 
 
 def create_policy_document_schema() -> Schema:
-    """Create the enhanced policy_document schema with metadata fields."""
     return Schema(
         name="policy_document",
         document=Document(
@@ -193,11 +187,6 @@ def create_policy_document_schema() -> Schema:
 
 
 def create_application_package(app_name: str = "policies") -> ApplicationPackage:
-    """Create the complete Vespa application package with enhanced schema.
-    
-    Args:
-        app_name: Name of the Vespa application (default: "policies")
-    """
     logger.info(f"Creating enhanced Vespa application package with name: {app_name}")
 
     # Create schema
@@ -216,14 +205,6 @@ def create_application_package(app_name: str = "policies") -> ApplicationPackage
 
 
 def create_hosts_xml(hosts: List[Dict[str, str]]) -> str:
-    """Create hosts.xml content for multi-node deployment.
-
-    Args:
-        hosts: List of host configurations, each with 'name' and 'alias' keys
-
-    Returns:
-        Formatted XML string for hosts.xml
-    """
     root = ET.Element("hosts")
 
     for host in hosts:
@@ -237,15 +218,6 @@ def create_hosts_xml(hosts: List[Dict[str, str]]) -> str:
 
 
 def create_services_xml(node_count: int = 1, redundancy: int = 1) -> str:
-    """Create services.xml content with configurable nodes.
-
-    Args:
-        node_count: Number of nodes in the cluster
-        redundancy: Data redundancy factor
-
-    Returns:
-        Formatted XML string for services.xml
-    """
     root = ET.Element("services", version="1.0")
 
     # Admin cluster
@@ -312,18 +284,6 @@ def save_package_to_zip(
     hosts: Optional[List[Dict[str, str]]] = None,
     services_xml: Optional[Path] = None,
 ) -> Path:
-    """Save the application package as a zip file with deployment configurations.
-
-    Args:
-        app_package: The Vespa application package
-        output_path: Path where to save the zip file
-        deployment_mode: 'local' or 'production'
-        node_count: Number of nodes (for production mode)
-        hosts: Host configurations (for production mode)
-
-    Returns:
-        Path to the created zip file
-    """
     # Create a temporary directory to save the application package
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -376,15 +336,6 @@ def save_package_to_zip(
 
 
 def save_package_metadata(output_path: Path, schema_info: dict) -> Path:
-    """Save package metadata as JSON for reference.
-
-    Args:
-        output_path: Directory where to save the metadata
-        schema_info: Dictionary containing schema information
-
-    Returns:
-        Path to the metadata file
-    """
     metadata_path = output_path / "package-metadata.json"
 
     with open(metadata_path, "w") as f:
@@ -402,17 +353,6 @@ def generate_package_artifacts(
     services_xml: Optional[Path] = None,
     app_name: str = "policies",
 ) -> tuple[Path, Path]:
-    """Generate Vespa package artifacts.
-
-    Args:
-        output_dir: Directory where to save artifacts. If None, uses default location.
-        deployment_mode: 'local' or 'production'
-        node_count: Number of nodes for production deployment
-        hosts: Host configurations for production deployment
-
-    Returns:
-        Tuple of (zip_path, metadata_path)
-    """
     if output_dir is None:
         output_dir = Path(__file__).parent / "artifacts"
 
@@ -477,7 +417,6 @@ def generate_package_artifacts(
 
 
 def main():
-    """Main entry point for package generation."""
     parser = argparse.ArgumentParser(
         description="Generate Vespa application package for policies",
         formatter_class=argparse.RawDescriptionHelpFormatter,

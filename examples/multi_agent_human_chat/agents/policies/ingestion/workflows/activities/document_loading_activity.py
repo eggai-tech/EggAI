@@ -16,16 +16,6 @@ logger = get_console_logger("ingestion.document_loading")
 
 @activity.defn
 async def load_document_activity(file_path: str, source: str = "filesystem", metadata: Dict = None) -> Dict[str, Any]:
-    """Load a document from file path or MinIO using document converter.
-
-    Args:
-        file_path: Path to the document file to load (or MinIO key if source="minio")
-        source: Source of the document ("filesystem" or "minio")
-        metadata: Additional metadata (used for MinIO documents)
-
-    Returns:
-        Dict with success status, loaded document, and metadata
-    """
     logger.info(f"Loading document: {file_path} from {source}")
 
     try:

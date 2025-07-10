@@ -20,8 +20,6 @@ with workflow.unsafe.imports_passed_through():
 
 
 class DocumentIngestionWorkflowInput(BaseModel):
-    """Input schema for the document ingestion workflow."""
-
     file_path: str
     category: Optional[str] = "general"
     index_name: Optional[str] = "policies_index"
@@ -32,8 +30,6 @@ class DocumentIngestionWorkflowInput(BaseModel):
 
 
 class DocumentIngestionResult(BaseModel):
-    """Result schema for the document ingestion workflow."""
-
     request_id: Optional[str]
     success: bool
     file_path: str
@@ -50,29 +46,10 @@ class DocumentIngestionResult(BaseModel):
 
 @workflow.defn
 class DocumentIngestionWorkflow:
-    """
-    Temporal workflow for ingesting a single document.
-
-    This workflow orchestrates the document ingestion process:
-    1. Verify file doesn't already exist in index
-    2. Load document using document converter
-    3. Chunk document hierarchically
-    4. Index chunks in search engine
-    """
-
     @workflow.run
     async def run(
         self, input_data: DocumentIngestionWorkflowInput
     ) -> DocumentIngestionResult:
-        """
-        Execute the document ingestion workflow.
-
-        Args:
-            input_data: The workflow input containing file path and configuration
-
-        Returns:
-            DocumentIngestionResult with ingestion results or error information
-        """
         # Handle both dict and object inputs for backward compatibility
         if isinstance(input_data, dict):
             input_data = DocumentIngestionWorkflowInput(**input_data)

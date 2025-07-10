@@ -46,16 +46,6 @@ def _get_logger():
 async def run_policy_documentation_worker(
     client: Optional[Client] = None,
 ) -> Worker:
-    """
-    Run the Policy Documentation Temporal worker.
-
-    Args:
-        client: Optional Temporal client instance
-
-    Returns:
-        The running worker instance
-    """
-    # Import settings here to avoid circular imports
     from agents.policies.ingestion.config import settings
 
     if client is None:
@@ -93,7 +83,6 @@ async def run_policy_documentation_worker(
 
 
 async def main():
-    """Main function to run the worker standalone."""
     try:
         worker = await run_policy_documentation_worker()
 

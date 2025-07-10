@@ -4,8 +4,6 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class PolicyDocument(BaseModel):
-    """Policy document model for API responses."""
-
     id: str
     title: str
     text: str
@@ -28,8 +26,6 @@ class PolicyDocument(BaseModel):
 
 
 class SearchResponse(BaseModel):
-    """Search response model."""
-
     query: str
     category: Optional[str]
     total_hits: int
@@ -38,8 +34,6 @@ class SearchResponse(BaseModel):
 
 
 class FullDocumentResponse(BaseModel):
-    """Full document response model."""
-
     document_id: str
     category: str
     source_file: str
@@ -54,9 +48,7 @@ class FullDocumentResponse(BaseModel):
     metadata: Dict[str, Any]
 
 
-class VectorSearchRequest(BaseModel):
-    """Vector search request model."""
-
+class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     category: Optional[str] = None
     max_hits: int = Field(10, ge=1, le=100)
@@ -73,15 +65,11 @@ class VectorSearchRequest(BaseModel):
 
 
 class CategoryStats(BaseModel):
-    """Category statistics model."""
-
     name: str
     document_count: int
 
 
 class ReindexRequest(BaseModel):
-    """Reindexing request model."""
-
     force_rebuild: bool = False
     policy_ids: Optional[List[str]] = None  # If None, reindex all
     
@@ -96,17 +84,13 @@ class ReindexRequest(BaseModel):
 
 
 class ReindexResponse(BaseModel):
-    """Reindexing response model."""
-
     status: str
     workflow_id: str
     total_documents_submitted: int
     policy_ids: List[str]
 
 
-class PersonalPolicy(BaseModel):
-    """Personal policy model for API responses."""
-    
+class PersonalPolicy(BaseModel):    
     policy_number: str
     name: str
     policy_category: str
@@ -117,8 +101,6 @@ class PersonalPolicy(BaseModel):
     deductible: Optional[float] = None
 
 
-class PolicyListResponse(BaseModel):
-    """Response model for listing personal policies."""
-    
+class PolicyListResponse(BaseModel):    
     policies: List[PersonalPolicy]
     total: int

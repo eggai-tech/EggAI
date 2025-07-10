@@ -28,7 +28,6 @@ logger = get_console_logger("policies_agent")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Handle application lifecycle events."""
     logger.info("Starting Policies Agent...")
 
     init_telemetry(app_name=settings.app_name, endpoint=settings.otel_endpoint)

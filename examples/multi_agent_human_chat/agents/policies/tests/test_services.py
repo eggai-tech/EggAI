@@ -6,8 +6,8 @@ import pytest
 from agents.policies.agent.api.models import (
     PolicyDocument,
     ReindexRequest,
+    SearchRequest,
     SearchResponse,
-    VectorSearchRequest,
 )
 from agents.policies.agent.services.document_service import DocumentService
 from agents.policies.agent.services.reindex_service import ReindexService
@@ -182,14 +182,14 @@ class TestSearchService:
         # Mock hybrid_search to return the mock results
         mock_vespa_client.hybrid_search.return_value = mock_results
         
-        # Execute - use vector_search with a request object
-        from agents.policies.agent.api.models import VectorSearchRequest
-        request = VectorSearchRequest(query=query, search_type="hybrid")
+        # Execute - use search with a request object
+        from agents.policies.agent.api.models import SearchRequest
+        request = SearchRequest(query=query, search_type="hybrid")
         
         # Mock embedding generation
         with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
-            result = await search_service.vector_search(request)
+            result = await search_service.search(request)
         
         # Verify
         assert isinstance(result, SearchResponse)
@@ -205,17 +205,17 @@ class TestSearchService:
         query = "water damage"
         category = "home"
         
-        # Mock empty results - VectorSearchRequest defaults to hybrid search
+        # Mock empty results - SearchRequest defaults to hybrid search
         mock_vespa_client.hybrid_search.return_value = []
         
-        # Execute - use vector_search with a request object
-        from agents.policies.agent.api.models import VectorSearchRequest
-        request = VectorSearchRequest(query=query, category=category)
+        # Execute - use search with a request object
+        from agents.policies.agent.api.models import SearchRequest
+        request = SearchRequest(query=query, category=category)
         
         # Mock embedding generation
         with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
-            result = await search_service.vector_search(request)
+            result = await search_service.search(request)
         
         # Verify
         assert isinstance(result, SearchResponse)
@@ -241,14 +241,14 @@ class TestSearchService:
         # Mock hybrid_search to return the mock results
         mock_vespa_client.hybrid_search.return_value = mock_docs
         
-        # Execute - use vector_search with a request object
-        from agents.policies.agent.api.models import VectorSearchRequest
-        request = VectorSearchRequest(query=query, max_hits=limit)
+        # Execute - use search with a request object
+        from agents.policies.agent.api.models import SearchRequest
+        request = SearchRequest(query=query, max_hits=limit)
         
         # Mock embedding generation
         with patch("agents.policies.agent.services.search_service.generate_embedding") as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
-            result = await search_service.vector_search(request)
+            result = await search_service.search(request)
         
         # Verify
         assert isinstance(result, SearchResponse)
@@ -259,7 +259,7 @@ class TestSearchService:
     async def test_vector_search(self, search_service, mock_vespa_client):
         """Test vector search functionality."""
         # Setup mock
-        request = VectorSearchRequest(query="find similar content", max_hits=3)
+        request = SearchRequest(query="find similar content", max_hits=3)
         mock_results = create_mock_documents("auto", 2)
         
         # Mock hybrid_search to return the mock results (default search type)
@@ -270,7 +270,7 @@ class TestSearchService:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
             
             # Execute
-            result = await search_service.vector_search(request)
+            result = await search_service.search(request)
             
             # Verify
             assert isinstance(result, SearchResponse)
@@ -289,9 +289,9 @@ class TestSearchService:
             mock_embed.return_value = [0.1, 0.2, 0.3]  # Mock embedding vector
             
             with pytest.raises(Exception) as exc_info:
-                from agents.policies.agent.api.models import VectorSearchRequest
-                request = VectorSearchRequest(query="test query")
-                await search_service.vector_search(request)
+                from agents.policies.agent.api.models import SearchRequest
+                request = SearchRequest(query="test query")
+                await search_service.search(request)
             
             assert "Search failed" in str(exc_info.value)
 
