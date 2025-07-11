@@ -506,7 +506,7 @@ class TestErrorHandling:
     def test_internal_server_error(self, test_client, mock_search_service):
         """Test handling of internal server errors."""
         # Setup mock to raise exception
-        mock_search_service.vector_search = AsyncMock(side_effect=Exception("Database connection failed"))
+        mock_search_service.search = AsyncMock(side_effect=Exception("Database connection failed"))
         
         response = test_client.post(
             "/api/v1/kb/search/vector",
