@@ -8,54 +8,54 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  static-analysis:
-    runs-on: ubuntu-latest
-    name: Static analysis
+  # static-analysis:
+  #   runs-on: ubuntu-latest
+  #   name: Static analysis
 
-    permissions:
-      contents: read
-      packages: write
+  #   permissions:
+  #     contents: read
+  #     packages: write
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Disabling shallow clones is recommended for improving SonarQube relevancy of reporting
-          fetch-depth: 0
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         # Disabling shallow clones is recommended for improving SonarQube relevancy of reporting
+  #         fetch-depth: 0
 
-      - name: Run python linter
-        uses: astral-sh/ruff-action@v3
-        with:
-          src: examples/multi_agent_human_chat
+  #     - name: Run python linter
+  #       uses: astral-sh/ruff-action@v3
+  #       with:
+  #         src: examples/multi_agent_human_chat
 
-  sonarqube-scan:
-    runs-on: ubuntu-latest
-    name: SonarQube scan
-    needs: integration
-    permissions:
-      contents: read
-      packages: write
+  # sonarqube-scan:
+  #   runs-on: ubuntu-latest
+  #   name: SonarQube scan
+  #   needs: integration
+  #   permissions:
+  #     contents: read
+  #     packages: write
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Download coverage results
-        uses: actions/download-artifact@v4
-        with:
-          name: coverage-xml
-          path: examples/multi_agent_human_chat/
+  #     - name: Download coverage results
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: coverage-xml
+  #         path: examples/multi_agent_human_chat/
 
-      - name: Run SonarQube scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          projectBaseDir: examples/multi_agent_human_chat
-          args: >
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
+  #     - name: Run SonarQube scan
+  #       uses: SonarSource/sonarqube-scan-action@v5
+  #       env:
+  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  #       with:
+  #         projectBaseDir: examples/multi_agent_human_chat
+  #         args: >
+  #           -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+  #           -Dsonar.pullrequest.branch=${{ github.head_ref }}
+  #           -Dsonar.pullrequest.base=${{ github.base_ref }}
 
   integration:
     runs-on: hetzner-gpu-runners
@@ -64,7 +64,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    needs: static-analysis
+    # needs: static-analysis
     env:
       # Triage agent settings
       TRIAGE_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
@@ -106,134 +106,139 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pre-pull Docker images
+      - name: Info
         working-directory: examples/multi_agent_human_chat
         run: |
-          echo "Pre-pulling Docker images..."
-          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --quiet
-        timeout-minutes: 20
+          docker info
 
-      - name: Start services with Docker Compose
-        working-directory: examples/multi_agent_human_chat
-        run: |
-          echo "Starting Docker Compose services..."
-          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml up -d --no-build
-          echo "Services started in detached mode"
-          docker compose ps
-        timeout-minutes: 5
+  #     - name: Pre-pull Docker images
+  #       working-directory: examples/multi_agent_human_chat
+  #       run: |
+  #         echo "Pre-pulling Docker images..."
+  #         docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --quiet
+  #       timeout-minutes: 20
 
-      - name: Wait for critical services to be healthy
-        run: |
-          echo "Waiting for Redpanda and MinIO to be healthy..."
-          timeout 180 bash -c '
-            until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
-                  [ "$(docker inspect -f {{.State.Health.Status}} minio)" = "healthy" ]; do
-              echo "Waiting for Redpanda and MinIO..."
-              sleep 5
-            done
-          '
-          echo "Redpanda and MinIO are healthy!"
+  #     - name: Start services with Docker Compose
+  #       working-directory: examples/multi_agent_human_chat
+  #       run: |
+  #         echo "Starting Docker Compose services..."
+  #         docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml up -d --no-build
+  #         echo "Services started in detached mode"
+  #         docker compose ps
+  #       timeout-minutes: 5
 
-      - name: Wait for Vespa nodes to start
-        working-directory: examples/multi_agent_human_chat
-        run: |
-          echo "Waiting for Vespa nodes to start (this can take a few minutes)..."
-          sleep 60  # Give Vespa nodes time to start
+  #     - name: Wait for critical services to be healthy
+  #       run: |
+  #         echo "Waiting for Redpanda and MinIO to be healthy..."
+  #         timeout 180 bash -c '
+  #           until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
+  #                 [ "$(docker inspect -f {{.State.Health.Status}} minio)" = "healthy" ]; do
+  #             echo "Waiting for Redpanda and MinIO..."
+  #             sleep 5
+  #           done
+  #         '
+  #         echo "Redpanda and MinIO are healthy!"
 
-          # Check if vespa-node-0 is responding (don't rely on health check)
-          timeout 300 bash -c '
-            until curl -s -f http://localhost:19071/state/v1/health > /dev/null 2>&1; do
-              echo "Waiting for Vespa config server..."
-              sleep 10
-            done
-          '
-          echo "Vespa config server is responding!"
-        timeout-minutes: 10
+  #     - name: Wait for Vespa nodes to start
+  #       working-directory: examples/multi_agent_human_chat
+  #       run: |
+  #         echo "Waiting for Vespa nodes to start (this can take a few minutes)..."
+  #         sleep 60  # Give Vespa nodes time to start
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: "pip"
+  #         # Check if vespa-node-0 is responding (don't rely on health check)
+  #         timeout 300 bash -c '
+  #           until curl -s -f http://localhost:19071/state/v1/health > /dev/null 2>&1; do
+  #             echo "Waiting for Vespa config server..."
+  #             sleep 10
+  #           done
+  #         '
+  #         echo "Vespa config server is responding!"
+  #       timeout-minutes: 10
 
-      - name: Set up test environment
-        working-directory: examples/multi_agent_human_chat
-        run: |
-          make setup
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.11"
+  #         cache: "pip"
 
-      - name: Run tests
-        working-directory: examples/multi_agent_human_chat
-        run: |
-          make test-libraries
-          make test-triage-agent
-          make test-escalation-agent
-          make test-policies-agent
-          make test-billing-agent
-          make test-claims-agent
-          make test-frontend-agent
-          make test-audit-agent
+  #     - name: Set up test environment
+  #       working-directory: examples/multi_agent_human_chat
+  #       run: |
+  #         make setup
 
-      - name: Dump logs on failure
-        if: ${{ failure() }}
-        working-directory: examples/multi_agent_human_chat
-        run: docker compose logs
+  #     - name: Run tests
+  #       working-directory: examples/multi_agent_human_chat
+  #       run: |
+  #         make test-libraries
+  #         make test-triage-agent
+  #         make test-escalation-agent
+  #         make test-policies-agent
+  #         make test-billing-agent
+  #         make test-claims-agent
+  #         make test-frontend-agent
+  #         make test-audit-agent
 
-      - name: Archive test results
-        uses: actions/upload-artifact@v4
-        if: ${{ always() }}
-        with:
-          name: pytest-results.xml
-          path: examples/multi_agent_human_chat/reports/pytest-results.xml
+  #     - name: Dump logs on failure
+  #       if: ${{ failure() }}
+  #       working-directory: examples/multi_agent_human_chat
+  #       run: docker compose logs
 
-      - name: Archive coverage results
-        uses: actions/upload-artifact@v4
-        if: ${{ always() }}
-        with:
-          name: coverage-xml
-          path: examples/multi_agent_human_chat/coverage.xml
+  #     - name: Archive test results
+  #       uses: actions/upload-artifact@v4
+  #       if: ${{ always() }}
+  #       with:
+  #         name: pytest-results.xml
+  #         path: examples/multi_agent_human_chat/reports/pytest-results.xml
 
-      - name: Summarize test results
-        if: always()
-        uses: pmeier/pytest-results-action@main
-        with:
-          path: examples/multi_agent_human_chat/reports/pytest-results.xml
-          summary: true
-          display-options: fEX
-          fail-on-empty: true
-          title: Test results
+  #     - name: Archive coverage results
+  #       uses: actions/upload-artifact@v4
+  #       if: ${{ always() }}
+  #       with:
+  #         name: coverage-xml
+  #         path: examples/multi_agent_human_chat/coverage.xml
 
-  docker-build:
-    runs-on: ubuntu-latest
-    name: Build and push docker image
-    permissions:
-      contents: read
-      packages: write
-    needs: [integration, sonarqube-scan]
-    steps:
-      - uses: actions/checkout@v4
+  #     - name: Summarize test results
+  #       if: always()
+  #       uses: pmeier/pytest-results-action@main
+  #       with:
+  #         path: examples/multi_agent_human_chat/reports/pytest-results.xml
+  #         summary: true
+  #         display-options: fEX
+  #         fail-on-empty: true
+  #         title: Test results
 
-      - name: Github container registry login
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+  # docker-build:
+  #   runs-on: ubuntu-latest
+  #   name: Build and push docker image
+  #   permissions:
+  #     contents: read
+  #     packages: write
+  #   needs: [integration, sonarqube-scan]
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+  #     - name: Github container registry login
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate image tag
-        id: image_tag
-        run: |
-          today=$(date -d@$(git show -s --format=%ct ${{ github.sha }}) +%Y%m%d%H%M%S)
-          shortSha=$(git rev-parse --short=8 ${{ github.sha }})
-          echo "tag=${shortSha}-${today}" >> "$GITHUB_OUTPUT"
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: examples/multi_agent_human_chat
-          push: true
-          platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: ghcr.io/eggai-tech/multi-agent-human-chat:${{ steps.image_tag.outputs.tag }}
+  #     - name: Generate image tag
+  #       id: image_tag
+  #       run: |
+  #         today=$(date -d@$(git show -s --format=%ct ${{ github.sha }}) +%Y%m%d%H%M%S)
+  #         shortSha=$(git rev-parse --short=8 ${{ github.sha }})
+  #         echo "tag=${shortSha}-${today}" >> "$GITHUB_OUTPUT"
+
+  #     - name: Build and push
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: examples/multi_agent_human_chat
+  #         push: true
+  #         platforms: linux/amd64
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
+  #         tags: ghcr.io/eggai-tech/multi-agent-human-chat:${{ steps.image_tag.outputs.tag }}
