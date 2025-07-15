@@ -58,7 +58,7 @@ jobs:
             -Dsonar.pullrequest.base=${{ github.base_ref }}
 
   integration:
-    runs-on: gpu-runner-github-hosted
+    runs-on: hetzner-gpu-runners
     name: Run integration tests
     timeout-minutes: 45 # Increase timeout for pulling large images
     permissions:
