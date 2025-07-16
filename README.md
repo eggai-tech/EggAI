@@ -12,21 +12,183 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 [![GitHub Issues](https://img.shields.io/github/issues/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/eggai-tech/eggai?style=for-the-badge&logo=github&logoColor=white)](https://github.com/eggai-tech/eggai/stargazers)
 
-`EggAI Multi-Agent Meta Framework` makes it easy to build enterprise-grade multi-agent systems with quality-controlled output, using an async-first, distributed and composable architecture. It provides:
+`EggAI Multi-Agent Meta Framework` makes it easy to build enterprise-grade multi-agent systems with quality-controlled output, using an async-first, distributed and composable architecture. 
+The framework includes:
+- <a href="#eggai-sdk">EggAI SDK</a>:  A lightweight abstraction layer for building agents and facilitating agent-to-agent communication.
+- <a href="#examples">Examples</a>: A curated collection of use cases and best practices that show how to integrate EggAI with leading AI frameworks to create robust AI systems. 
+- <a href="#demo">Demo</a>: A complete, working example: a multi-agent insurance support system that demonstrates the full power of the Meta Framework in action.
 
-- <a href="#examples">Examples</a>: Practical implementation scenarios using popular AI frameworks.
-- <a href="#eggai-sdk">eggai SDK</a>: Slim SDK for asynchronous, distributed multi-agent communication.
 
-### Demo
+### Demo: Multi-Agent Insurance Support System
 
-You can find a more extensive usage of the meta framework in the [Multi-Agent Insurance Support System](examples/multi_agent_human_chat) example.
+To see the Egg AI Meta Framework in action, try our [Multi-Agent Insurance Support System](demo) example.
+This interactive demo showcases how EggAI can be used to orchestrate multiple specialized agents to provide 
+a personalized insurance support. It features billing inquiries, claims processing, policy information retrieval (RAG), and intelligent routing.
 
 ![Multi-Agent Insurance Support System Demo Screenshot](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/support-chat.png)
 
-### Meta Framework
 
-The EggAI Multi-Agent Meta Framework is a framework-agnostic AI orchestration layer designed for flexibility and scalability.
-It enables seamless integration with currently available AI frameworks while being future-ready for upcoming tools.
+## Examples: AI Enablement in Action
+
+EggAI’s SDK is intentionally **simple**, **lightweight**, and **framework-agnostic**, making it easy to integrate with today’s leading AI tools—and future-ready for what’s next. 
+Here we show practical implementation scenarios and integration guides with popular AI frameworks.
+Each example is self-contained and ready to run out of the box.
+We encourage you to explore and **copy/paste** from our examples for your projects.
+
+If you're new to EggAI, we recommend starting with the [Getting Started](examples/getting_started) example to learn the basics of agent definition, communication flows and async orchestration.
+
+<table style="width: 100%;">
+  <tbody>
+    <tr>
+      <td style="width: 15%;">
+        <a href="examples/getting_started">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-00.png" alt="Getting Started" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/getting_started"><strong>Getting Started</strong></a><br/>
+        Orchestrate two agents asynchronously.<br/>
+        <small>Tags: Communication</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/coordinator">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-01.png" alt="Coordinator" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/coordinator"><strong>Coordinator</strong></a><br/>
+        Bridge multiple communication channels.<br/>
+        <small>Tags: Communication, Pattern</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/websocket_gateway">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-02.png" alt="Websocket Gateway" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/websocket_gateway"><strong>Websocket Gateway</strong></a><br/>
+        Real-time interaction via WebSockets.<br/>
+        <small>Tags: Communication, Realtime</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/dspy_react">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/react-agent-dspy.png" alt="DSPy ReAct" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/dspy_react"><strong>DSPy ReAct Agent</strong></a><br/>
+        Advanced Agents with DSPy ReAct.<br/>
+        <small>Tags: DSPy, Tool Calling, React</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/langchain_tool_calling">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-03.png" alt="LangChain Tool Calling" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/langchain_tool_calling"><strong>LangChain Agent</strong></a><br/>
+        Integrate tool calling with LangChain.<br/>
+        <small>Tags: Tool Calling, LangChain</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/litellm_agent">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-05.png" alt="LiteLLM Agent" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/litellm_agent"><strong>LiteLLM Agent</strong></a><br/>
+        Power agents with LiteLLM.<br/>
+        <small>Tags: LiteLLM</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/agent_evaluation_dspy">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-evaluation-dspy.png" alt="Agent Evaluation & DSPy" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/agent_evaluation_dspy"><strong>Agent Evaluation & Optimization with DSPy</strong></a><br/>
+        Data-driven development with DSPy.<br/>
+        <small>Tags: DSPy, Evaluation, Optimization</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/safe_agents_guardrails">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/safe-agents-guardrails.png" alt="Safe Agents with Guardrails AI" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/safe_agents_guardrails"><strong>Safe Agents with Guardrails AI</strong></a><br/>
+        Guarding LLM agents against toxicity and PII leakage.<br/>
+        <small>Tags: DSPy, Guardrails</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/triage_agent">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-agent.png" alt="Triage Agent" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/triage_agent"><strong>Triage Agent</strong></a><br/>
+        Triage Agent with classification and routing.<br/>
+        <small>Tags: Classification, Routing</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/shared_context">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-04.png" alt="Shared Context" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/shared_context"><strong>Shared Context</strong></a><br/>
+        Maintain shared context across agents.<br/>
+        <small>Tags: Communication, Memory</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/multi_agent_conversation">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-06.png" alt="Multi-Agent Conversation" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a><br/>
+        Context-aware multi-agent conversations.<br/>
+        <small>Tags: Communication, Classification, Routing, Chat</small>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="examples/multi_agent_human_chat">
+          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat.png" alt="Multi-Agent Insurance Support System" width="80"/>
+        </a>
+      </td>
+      <td>
+        <a href="examples/multi_agent_human_chat"><strong>Multi-Agent Insurance Support System</strong></a><br/>
+        Insurance support system with a support chat UI.<br/>
+        <small>Tags: Communication, Realtime, Classification, Routing, Chat</small>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## EggAI SDK
+
+**EggAI SDK** includes components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/), see examples below:
 
 #### AI Framework Integrations
 
@@ -271,165 +433,6 @@ async def test_qa_agent():
 ```
 
 </details>
-
-## Examples
-
-Practical implementation scenarios and integration guides with popular AI frameworks. We encourage you to explore and **copy/paste** from our examples for your projects.
-
-If you're new to EggAI, we recommend starting with the [Getting Started](examples/getting_started) example to learn the basics. If you want to see a more extensive multi-agent system in action, check out the [Multi-Agent Insurance Support System](examples/multi_agent_human_chat) example.
-
-<table style="width: 100%;">
-  <tbody>
-    <tr>
-      <td style="width: 15%;">
-        <a href="examples/getting_started">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-00.png" alt="Getting Started" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/getting_started"><strong>Getting Started</strong></a><br/>
-        Orchestrate two agents asynchronously.<br/>
-        <small>Tags: Communication</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/coordinator">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-01.png" alt="Coordinator" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/coordinator"><strong>Coordinator</strong></a><br/>
-        Bridge multiple communication channels.<br/>
-        <small>Tags: Communication, Pattern</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/websocket_gateway">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-02.png" alt="Websocket Gateway" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/websocket_gateway"><strong>Websocket Gateway</strong></a><br/>
-        Real-time interaction via WebSockets.<br/>
-        <small>Tags: Communication, Realtime</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/dspy_react">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/react-agent-dspy.png" alt="DSPy ReAct" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/dspy_react"><strong>DSPy ReAct Agent</strong></a><br/>
-        Advanced Agents with DSPy ReAct.<br/>
-        <small>Tags: DSPy, Tool Calling, React</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/langchain_tool_calling">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-03.png" alt="LangChain Tool Calling" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/langchain_tool_calling"><strong>LangChain Agent</strong></a><br/>
-        Integrate tool calling with LangChain.<br/>
-        <small>Tags: Tool Calling, LangChain</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/litellm_agent">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-05.png" alt="LiteLLM Agent" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/litellm_agent"><strong>LiteLLM Agent</strong></a><br/>
-        Power agents with LiteLLM.<br/>
-        <small>Tags: LiteLLM</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/agent_evaluation_dspy">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/agent-evaluation-dspy.png" alt="Agent Evaluation & DSPy" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/agent_evaluation_dspy"><strong>Agent Evaluation & Optimization with DSPy</strong></a><br/>
-        Data-driven development with DSPy.<br/>
-        <small>Tags: DSPy, Evaluation, Optimization</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/safe_agents_guardrails">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/safe-agents-guardrails.png" alt="Safe Agents with Guardrails AI" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/safe_agents_guardrails"><strong>Safe Agents with Guardrails AI</strong></a><br/>
-        Guarding LLM agents against toxicity and PII leakage.<br/>
-        <small>Tags: DSPy, Guardrails</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/triage_agent">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/triage-agent.png" alt="Triage Agent" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/triage_agent"><strong>Triage Agent</strong></a><br/>
-        Triage Agent with classification and routing.<br/>
-        <small>Tags: Classification, Routing</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/shared_context">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-04.png" alt="Shared Context" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/shared_context"><strong>Shared Context</strong></a><br/>
-        Maintain shared context across agents.<br/>
-        <small>Tags: Communication, Memory</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/multi_agent_conversation">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-06.png" alt="Multi-Agent Conversation" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/multi_agent_conversation"><strong>Multi-Agent Conversation</strong></a><br/>
-        Context-aware multi-agent conversations.<br/>
-        <small>Tags: Communication, Classification, Routing, Chat</small>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <a href="examples/multi_agent_human_chat">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat.png" alt="Multi-Agent Insurance Support System" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/multi_agent_human_chat"><strong>Multi-Agent Insurance Support System</strong></a><br/>
-        Insurance support system with a support chat UI.<br/>
-        <small>Tags: Communication, Realtime, Classification, Routing, Chat</small>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-## EggAI SDK
-
-**EggAI SDK** includes components like `Agent` and `Channel` for decoupled communication in multi-agent systems. Its slim design offers flexibility for enterprise-grade applications and seamless integration with popular AI frameworks such as [DSPy](https://dspy.ai/), [LangChain](https://www.langchain.com/), and [LlamaIndex](https://www.llamaindex.ai/).
 
 ### Installation
 
