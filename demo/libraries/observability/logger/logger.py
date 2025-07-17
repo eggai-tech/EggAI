@@ -4,8 +4,7 @@ import sys
 from typing import Any, Dict, Optional
 
 from colorlog import ColoredFormatter
-
-from libraries.observability.logger.config import settings
+from demo.libraries.observability.logger.settings import settings
 
 # Create a default logging configuration dictionary
 LOGGING_CONFIG = {
