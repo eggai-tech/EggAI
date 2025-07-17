@@ -124,7 +124,6 @@ jobs:
         run: |
           echo "Pre-pulling Docker images..."
           docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --quiet
-        timeout-minutes: 20
 
       - name: Start services with Docker Compose
         working-directory: examples/multi_agent_human_chat
@@ -133,7 +132,7 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml up -d --no-build
           echo "Services started in detached mode"
           docker compose ps
-        timeout-minutes: 5
+        timeout-minutes: 10
 
   #     - name: Wait for critical services to be healthy
   #       run: |
