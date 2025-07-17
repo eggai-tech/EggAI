@@ -2,7 +2,6 @@ import logging
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
-
 from triage_webserver.config import WebServerConfig
 from triage_webserver.database.base import Base
 

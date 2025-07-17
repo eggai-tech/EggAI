@@ -5,7 +5,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-
 from triage_webserver.database.connection import get_db, init_db
 from triage_webserver.models.data_models import Dataset, Example
 from triage_webserver.routes import datasets, examples
