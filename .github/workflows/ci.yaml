@@ -134,84 +134,84 @@ jobs:
           docker compose ps
         timeout-minutes: 10
 
-  #     - name: Wait for critical services to be healthy
-  #       run: |
-  #         echo "Waiting for Redpanda and MinIO to be healthy..."
-  #         timeout 180 bash -c '
-  #           until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
-  #                 [ "$(docker inspect -f {{.State.Health.Status}} minio)" = "healthy" ]; do
-  #             echo "Waiting for Redpanda and MinIO..."
-  #             sleep 5
-  #           done
-  #         '
-  #         echo "Redpanda and MinIO are healthy!"
+      - name: Wait for critical services to be healthy
+        run: |
+          echo "Waiting for Redpanda and MinIO to be healthy..."
+          timeout 180 bash -c '
+            until [ "$(docker inspect -f {{.State.Health.Status}} redpanda)" = "healthy" ] &&
+                  [ "$(docker inspect -f {{.State.Health.Status}} minio)" = "healthy" ]; do
+              echo "Waiting for Redpanda and MinIO..."
+              sleep 5
+            done
+          '
+          echo "Redpanda and MinIO are healthy!"
 
-  #     - name: Wait for Vespa nodes to start
-  #       working-directory: examples/multi_agent_human_chat
-  #       run: |
-  #         echo "Waiting for Vespa nodes to start (this can take a few minutes)..."
-  #         sleep 60  # Give Vespa nodes time to start
+      - name: Wait for Vespa nodes to start
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          echo "Waiting for Vespa nodes to start (this can take a few minutes)..."
+          sleep 60  # Give Vespa nodes time to start
 
-  #         # Check if vespa-node-0 is responding (don't rely on health check)
-  #         timeout 300 bash -c '
-  #           until curl -s -f http://localhost:19071/state/v1/health > /dev/null 2>&1; do
-  #             echo "Waiting for Vespa config server..."
-  #             sleep 10
-  #           done
-  #         '
-  #         echo "Vespa config server is responding!"
-  #       timeout-minutes: 10
+          # Check if vespa-node-0 is responding (don't rely on health check)
+          timeout 300 bash -c '
+            until curl -s -f http://localhost:19071/state/v1/health > /dev/null 2>&1; do
+              echo "Waiting for Vespa config server..."
+              sleep 10
+            done
+          '
+          echo "Vespa config server is responding!"
+        timeout-minutes: 10
 
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.11"
-  #         cache: "pip"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-  #     - name: Set up test environment
-  #       working-directory: examples/multi_agent_human_chat
-  #       run: |
-  #         make setup
+      - name: Set up test environment
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          make setup
 
-  #     - name: Run tests
-  #       working-directory: examples/multi_agent_human_chat
-  #       run: |
-  #         make test-libraries
-  #         make test-triage-agent
-  #         make test-escalation-agent
-  #         make test-policies-agent
-  #         make test-billing-agent
-  #         make test-claims-agent
-  #         make test-frontend-agent
-  #         make test-audit-agent
+      - name: Run tests
+        working-directory: examples/multi_agent_human_chat
+        run: |
+          make test-libraries
+          make test-triage-agent
+          make test-escalation-agent
+          make test-policies-agent
+          make test-billing-agent
+          make test-claims-agent
+          make test-frontend-agent
+          make test-audit-agent
 
-  #     - name: Dump logs on failure
-  #       if: ${{ failure() }}
-  #       working-directory: examples/multi_agent_human_chat
-  #       run: docker compose logs
+      - name: Dump logs on failure
+        if: ${{ failure() }}
+        working-directory: examples/multi_agent_human_chat
+        run: docker compose logs
 
-  #     - name: Archive test results
-  #       uses: actions/upload-artifact@v4
-  #       if: ${{ always() }}
-  #       with:
-  #         name: pytest-results.xml
-  #         path: examples/multi_agent_human_chat/reports/pytest-results.xml
+      - name: Archive test results
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: pytest-results.xml
+          path: examples/multi_agent_human_chat/reports/pytest-results.xml
 
-  #     - name: Archive coverage results
-  #       uses: actions/upload-artifact@v4
-  #       if: ${{ always() }}
-  #       with:
-  #         name: coverage-xml
-  #         path: examples/multi_agent_human_chat/coverage.xml
+      - name: Archive coverage results
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: coverage-xml
+          path: examples/multi_agent_human_chat/coverage.xml
 
-  #     - name: Summarize test results
-  #       if: always()
-  #       uses: pmeier/pytest-results-action@main
-  #       with:
-  #         path: examples/multi_agent_human_chat/reports/pytest-results.xml
-  #         summary: true
-  #         display-options: fEX
-  #         fail-on-empty: true
-  #         title: Test results
+      - name: Summarize test results
+        if: always()
+        uses: pmeier/pytest-results-action@main
+        with:
+          path: examples/multi_agent_human_chat/reports/pytest-results.xml
+          summary: true
+          display-options: fEX
+          fail-on-empty: true
+          title: Test results
 
   # docker-build:
   #   runs-on: ubuntu-latest
