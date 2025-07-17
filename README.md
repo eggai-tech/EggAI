@@ -171,18 +171,6 @@ If you're new to EggAI, we recommend starting with the [Getting Started](example
         <small>Tags: Communication, Classification, Routing, Chat</small>
       </td>
     </tr>
-    <tr>
-      <td>
-        <a href="examples/multi_agent_human_chat">
-          <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/multi-agent-human-chat.png" alt="Multi-Agent Insurance Support System" width="80"/>
-        </a>
-      </td>
-      <td>
-        <a href="examples/multi_agent_human_chat"><strong>Multi-Agent Insurance Support System</strong></a><br/>
-        Insurance support system with a support chat UI.<br/>
-        <small>Tags: Communication, Realtime, Classification, Routing, Chat</small>
-      </td>
-    </tr>
   </tbody>
 </table>
 

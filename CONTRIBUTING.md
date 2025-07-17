@@ -73,7 +73,7 @@ We have a Makefile at the root of the project that simplifies common development
    make install-docs
    
    # Install dependencies for a specific example
-   make install-example EXAMPLE=multi_agent_human_chat
+   make install-example EXAMPLE=agent_evaluation_dspy
    ```
 
 3. Run tests:
@@ -85,7 +85,7 @@ We have a Makefile at the root of the project that simplifies common development
    make test-sdk
    
    # Run tests for a specific example
-   make test-example EXAMPLE=multi_agent_human_chat
+   make test-example EXAMPLE=agent_evaluation_dspy
    ```
 
 4. Clean up:
@@ -120,7 +120,7 @@ If you're working on a specific example:
 
 1. Navigate to the example directory:
    ```bash
-   cd examples/multi_agent_human_chat
+   cd examples/agent_evaluation_dspy
    ```
 2. Install dependencies:
    ```bash
