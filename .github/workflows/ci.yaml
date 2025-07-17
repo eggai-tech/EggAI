@@ -106,10 +106,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Docker Compose plugin
+        run: |
+          mkdir -p ~/.docker/cli-plugins
+          curl -SL https://github.com/docker/compose/releases/download/v2.24.4/docker-compose-linux-x86_64 \
+            -o ~/.docker/cli-plugins/docker-compose
+          chmod +x ~/.docker/cli-plugins/docker-compose
+
       - name: Info
         working-directory: examples/multi_agent_human_chat
         run: |
           docker info
+          docker compose version
 
   #     - name: Pre-pull Docker images
   #       working-directory: examples/multi_agent_human_chat
