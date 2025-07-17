@@ -21,7 +21,7 @@ A multi-agent system where AI agents collaborate to provide personalized insuran
 ```bash
 # Clone the repository
 git clone git@github.com:eggai-tech/EggAI.git
-cd examples/multi_agent_human_chat
+cd demo
 
 # Create virtual environment and install dependencies
 make setup

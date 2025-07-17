@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "examples/multi_agent_human_chat/helm/**"
+      - "demo/helm/**"
 
 permissions:
   contents: write

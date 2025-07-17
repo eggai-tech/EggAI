@@ -25,7 +25,7 @@ jobs:
       - name: Run python linter
         uses: astral-sh/ruff-action@v3
         with:
-          src: examples/multi_agent_human_chat
+          src: demo
 
   sonarqube-scan:
     runs-on: ubuntu-latest
