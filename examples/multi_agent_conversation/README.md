@@ -1,6 +1,6 @@
 # Multi-Agent Conversation
 
-This example showcases how to build a collaborative multi-agent system using the `eggai` SDK. It provides a this CLI Chat interface to interact with multiple agents.
+This example showcases how to build a collaborative multi-agent system using the `eggai` SDK. It provides a CLI Chat interface to interact with multiple agents.
 
 Here is a simplified architecture overview:
 
