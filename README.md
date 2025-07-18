@@ -14,9 +14,9 @@ Documentation: [EggAI Docs](https://docs.egg-ai.com/)
 
 `EggAI Multi-Agent Meta Framework` makes it easy to build enterprise-grade multi-agent systems with quality-controlled output, using an async-first, distributed and composable architecture. 
 The framework includes:
-- <a href="#eggai-sdk">EggAI SDK</a>:  A lightweight abstraction layer for building agents and facilitating agent-to-agent communication.
-- <a href="#examples">Examples</a>: A curated collection of use cases and best practices that show how to integrate EggAI with leading AI frameworks to create robust AI systems. 
-- <a href="#demo">Demo</a>: A complete, working example: a multi-agent insurance support system that demonstrates the full power of the Meta Framework in action.
+- <a href="#eggai-sdk">EggAI SDK</a>:  A lightweight abstraction layer for building agents and enabling agent-to-agent communication.
+- <a href="#examples">Examples</a>: Practical use cases showing how to use the SDK and integrate EggAI with leading AI frameworks.
+- <a href="#demo">Demo</a>: A working multi-agent insurance support system showcasing the Meta Framework in action.
 
 <p>
   <img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/eggai-meta-framework-arch.png" alt="EggAI Meta Framework Architecture" width="100%">
