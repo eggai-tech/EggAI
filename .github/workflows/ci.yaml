@@ -25,7 +25,7 @@ jobs:
       - name: Run python linter
         uses: astral-sh/ruff-action@v3
         with:
-          src: examples/multi_agent_human_chat
+          src: demo
 
   sonarqube-scan:
     runs-on: ubuntu-latest
@@ -44,14 +44,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-xml
-          path: examples/multi_agent_human_chat/
+          path: demo/
 
       - name: Run SonarQube scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          projectBaseDir: examples/multi_agent_human_chat
+          projectBaseDir: demo
           args: >
             -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
@@ -107,14 +107,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Pre-pull Docker images
-        working-directory: examples/multi_agent_human_chat
+        working-directory: demo
         run: |
           echo "Pre-pulling Docker images..."
           docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --quiet
         timeout-minutes: 20
 
       - name: Start services with Docker Compose
-        working-directory: examples/multi_agent_human_chat
+        working-directory: demo
         run: |
           echo "Starting Docker Compose services..."
           docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml up -d --no-build
@@ -135,7 +135,7 @@ jobs:
           echo "Redpanda and MinIO are healthy!"
 
       - name: Wait for Vespa nodes to start
-        working-directory: examples/multi_agent_human_chat
+        working-directory: demo
         run: |
           echo "Waiting for Vespa nodes to start (this can take a few minutes)..."
           sleep 60  # Give Vespa nodes time to start
@@ -156,12 +156,12 @@ jobs:
           cache: "pip"
 
       - name: Set up test environment
-        working-directory: examples/multi_agent_human_chat
+        working-directory: demo
         run: |
           make setup
 
       - name: Run tests
-        working-directory: examples/multi_agent_human_chat
+        working-directory: demo
         run: |
           make test-libraries
           make test-triage-agent
@@ -174,7 +174,7 @@ jobs:
 
       - name: Dump logs on failure
         if: ${{ failure() }}
-        working-directory: examples/multi_agent_human_chat
+        working-directory: demo
         run: docker compose logs
 
       - name: Archive test results
@@ -182,20 +182,20 @@ jobs:
         if: ${{ always() }}
         with:
           name: pytest-results.xml
-          path: examples/multi_agent_human_chat/reports/pytest-results.xml
+          path: demo/reports/pytest-results.xml
 
       - name: Archive coverage results
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
           name: coverage-xml
-          path: examples/multi_agent_human_chat/coverage.xml
+          path: demo/coverage.xml
 
       - name: Summarize test results
         if: always()
         uses: pmeier/pytest-results-action@main
         with:
-          path: examples/multi_agent_human_chat/reports/pytest-results.xml
+          path: demo/reports/pytest-results.xml
           summary: true
           display-options: fEX
           fail-on-empty: true
@@ -231,7 +231,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: examples/multi_agent_human_chat
+          context: demo
           push: true
           platforms: linux/amd64
           cache-from: type=gha

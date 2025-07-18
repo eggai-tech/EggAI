@@ -111,7 +111,7 @@ coverage.xml
 
 # Other
 .DS_Store
-examples/multi_agent_human_chat/temp
+demo/temp
 site
 checkpoints/
 mlruns/
