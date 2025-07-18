@@ -113,11 +113,11 @@ jobs:
             -o ~/.docker/cli-plugins/docker-compose
           chmod +x ~/.docker/cli-plugins/docker-compose
 
-      - name: Info
+      - name: Get necessary utils
         working-directory: examples/multi_agent_human_chat
         run: |
-          docker info
-          docker compose version
+          sudo apt update
+          sudo apt install -y make
 
       - name: Pre-pull Docker images
         working-directory: examples/multi_agent_human_chat
