@@ -59,6 +59,10 @@ test:
        --cov=agents --cov-report=xml:coverage.xml --cov-report=term \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
+	@echo "Running classifier tests for CI coverage..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py agents/triage/tests/test_classifier_v7.py -s \
+       --cov=agents.triage.classifier_v6 --cov=agents.triage.classifier_v7 --cov-append \
+       --cov-report=xml:coverage.xml --cov-report=term
 	@echo "Tests completed."
 
 test-billing-agent:
@@ -157,28 +161,27 @@ test-triage-classifier-v5:
        --html=reports/pytest-results.html --self-contained-html
 
 test-triage-classifier-v6:
-	@echo "Running tests classifier v6 (OpenAI fine-tuned) for triage agent..."
-	@echo "⚠️  Requires TRIAGE_CLASSIFIER_V6_MODEL_ID environment variable"
-	@echo "⚠️  Requires OPENAI_API_KEY environment variable"  
-	@echo "⚠️  This will use OpenAI API and may incur costs"
-	@echo "💡 Run 'make check-triage-classifier-v6-setup' for setup check"
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py -s \
-       --junitxml=reports/pytest-results.xml \
-       --html=reports/pytest-results.html --self-contained-html
+	@echo "Running comprehensive tests for classifier v6 (OpenAI fine-tuned)..."
+	@echo "🧪 Includes unit tests, integration tests, and coverage"
+	@echo "💡 Uses mocked dependencies - no API costs"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py -v \
+       --cov=agents.triage.classifier_v6 --cov-report=term \
+       --junitxml=reports/pytest-v6-results.xml \
+       --html=reports/pytest-v6-results.html --self-contained-html
 
 test-triage-classifier-v7:
-	@echo "Running tests classifier v7 (Gemma3 via HuggingFace) for triage agent..."
-	@echo "💡 Uses fine-tuned model if available, base model otherwise"
-	@echo "⚠️  Requires HuggingFace transformers library"  
-	@echo "💡 Local inference - no API costs"
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v7.py -s \
-       --junitxml=reports/pytest-results.xml \
-       --html=reports/pytest-results.html --self-contained-html
+	@echo "Running comprehensive tests for classifier v7 (Gemma3 via HuggingFace)..."
+	@echo "🧪 Includes unit tests, integration tests, device utils, and coverage"
+	@echo "💡 Uses mocked dependencies - no transformers required for tests"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v7.py -v \
+       --cov=agents.triage.classifier_v7 --cov-report=term \
+       --junitxml=reports/pytest-v7-results.xml \
+       --html=reports/pytest-v7-results.html --self-contained-html
 
 test-triage-classifiers-unit:
 	@echo "Running comprehensive unit tests for classifiers v6 and v7..."
 	@echo "🧪 Unit tests with mocked dependencies - no API calls"
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6_comprehensive.py agents/triage/tests/test_classifier_v7_comprehensive.py -v \
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py agents/triage/tests/test_classifier_v7.py -v \
        --tb=short \
        --junitxml=reports/pytest-classifier-unit-results.xml \
        --html=reports/pytest-classifier-unit-results.html --self-contained-html
@@ -187,9 +190,9 @@ test-triage-classifiers-config:
 	@echo "Running configuration tests for classifiers v6 and v7..."
 	@echo "⚙️  Testing configuration validation and setup"
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest \
-       "agents/triage/tests/test_classifier_v6_comprehensive.py::TestClassifierV6Configuration" \
-       "agents/triage/tests/test_classifier_v7_comprehensive.py::TestClassifierV7Configuration" \
-       "agents/triage/tests/test_classifier_v7_comprehensive.py::TestClassifierV7DeviceUtils" \
+       "agents/triage/tests/test_classifier_v6.py::TestClassifierV6Configuration" \
+       "agents/triage/tests/test_classifier_v7.py::TestClassifierV7Configuration" \
+       "agents/triage/tests/test_classifier_v7.py::TestClassifierV7DeviceUtils" \
        -v --tb=short
 
 test-triage-classifiers-comparison:
@@ -206,9 +209,9 @@ test-triage-classifiers-comprehensive:
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/tests/run_classifier_tests.py --all
 
 test-triage-classifiers-coverage:
-	@echo "Running coverage-focused tests for classifiers v6 and v7..."
-	@echo "📈 Tests designed to maximize code coverage"
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6_coverage.py agents/triage/tests/test_classifier_v7_coverage.py -v \
+	@echo "Running classifiers v6 and v7 with coverage reporting..."
+	@echo "📈 Comprehensive tests designed to maximize code coverage"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py agents/triage/tests/test_classifier_v7.py -v \
        --tb=short \
        --cov=agents.triage.classifier_v6 --cov=agents.triage.classifier_v7 \
        --cov-report=term --cov-report=xml:coverage.xml \
