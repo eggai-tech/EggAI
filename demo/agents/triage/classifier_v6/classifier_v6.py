@@ -26,21 +26,22 @@ class ClassificationResult:
 
 
 class FinetunedClassifier:
-    def __init__(self):
+    def __init__(self, model_id: str = None):
         self._model = None
         self._lm = None
+        self._model_id = model_id or settings.classifier_v6_model_id
     
     def _ensure_loaded(self):
         if self._model is not None:
             return
             
-        if not settings.classifier_v6_model_id:
+        if not self._model_id:
             raise ValueError(
-                "Fine-tuned model not configured. Set TRIAGE_CLASSIFIER_V6_MODEL_ID."
+                "Fine-tuned model not configured. Provide model_id or set TRIAGE_CLASSIFIER_V6_MODEL_ID."
             )
         
         # Create fine-tuned language model
-        self._lm = dspy.LM(f'openai/{settings.classifier_v6_model_id}', max_tokens=150)
+        self._lm = dspy.LM(f'openai/{self._model_id}', max_tokens=150)
         
         # Create classifier (minimal prompt - knowledge is in weights)
         self._model = dspy.Predict(TriageSignature)

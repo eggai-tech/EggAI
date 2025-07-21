@@ -39,7 +39,7 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
         from datasets import Dataset
         from peft import LoraConfig, TaskType, get_peft_model
         from transformers import (
-            AutoModelForCausalLM,
+            AutoModelForSequenceClassification,
             AutoTokenizer,
             BitsAndBytesConfig,
             DataCollatorForLanguageModeling,
@@ -75,7 +75,7 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
         )
         device_map, dtype = get_device_config()
             
-        model = AutoModelForCausalLM.from_pretrained(
+        model = AutoModelForSequenceClassification.from_pretrained(
             model_name,
             quantization_config=quantization_config,
             torch_dtype=dtype,
@@ -95,7 +95,7 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
                 r=v7_settings.lora_r,
                 bias="none",
                 target_modules="all-linear",
-                task_type=TaskType.CAUSAL_LM,
+                task_type=TaskType.SEQ_CLS,
             )
             model = get_peft_model(model, lora_config)
             model.print_trainable_parameters()

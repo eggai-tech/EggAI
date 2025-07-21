@@ -1,8 +1,9 @@
 """Comprehensive tests for classifier v7 - all unit and integration tests in one place."""
 
 import os
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, Mock
 
 # Set tokenizers parallelism to avoid warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -54,15 +55,9 @@ class TestClassifierV7Configuration:
     def test_imports(self):
         """Test v7 imports work correctly."""
         from agents.triage.classifier_v7.classifier_v7 import (
-            classifier_v7, FinetunedClassifier, ClassificationResult
-        )
-        from agents.triage.classifier_v7.data_utils import create_training_examples
-        from agents.triage.classifier_v7.device_utils import (
-            get_device_config, is_cuda_available, is_mps_available
-        )
-        from agents.triage.classifier_v7.model_utils import save_model_id_to_env
-        from agents.triage.classifier_v7.training_utils import (
-            setup_mlflow_tracking, log_training_parameters
+            ClassificationResult,
+            FinetunedClassifier,
+            classifier_v7,
         )
         
         # Verify all imports are successful
@@ -77,7 +72,9 @@ class TestClassifierV7DeviceUtils:
     def test_device_configuration(self):
         """Test v7 device configuration."""
         from agents.triage.classifier_v7.device_utils import (
-            get_device_config, is_cuda_available, is_mps_available
+            get_device_config,
+            is_cuda_available,
+            is_mps_available,
         )
         
         # Test device configuration
@@ -93,7 +90,10 @@ class TestClassifierV7DeviceUtils:
     def test_device_management_utilities(self):
         """Test all v7 device management functions comprehensively."""
         from agents.triage.classifier_v7.device_utils import (
-            get_device_config, move_to_device, get_training_precision, no_grad
+            get_device_config,
+            get_training_precision,
+            move_to_device,
+            no_grad,
         )
         
         # Execute device configuration logic
@@ -229,7 +229,8 @@ class TestClassifierV7TrainingUtils:
     def test_training_utilities(self, mock_log_param, mock_set_exp, mock_autolog):
         """Test v7 training utility functions."""
         from agents.triage.classifier_v7.training_utils import (
-            setup_mlflow_tracking, log_training_parameters
+            log_training_parameters,
+            setup_mlflow_tracking,
         )
         
         run_name = setup_mlflow_tracking('gemma-test')
@@ -261,9 +262,12 @@ class TestClassifierV7Integration:
 
     def test_all_utilities_execution(self):
         """Execute all v7 utility functions for comprehensive coverage."""
-        from agents.triage.classifier_v7.data_utils import create_training_examples
-        from agents.triage.classifier_v7.training_utils import setup_mlflow_tracking, log_training_parameters
         from agents.triage.classifier_v7.classifier_v7 import FinetunedClassifier
+        from agents.triage.classifier_v7.data_utils import create_training_examples
+        from agents.triage.classifier_v7.training_utils import (
+            log_training_parameters,
+            setup_mlflow_tracking,
+        )
         
         # Execute data utilities
         examples = create_training_examples(sample_size=7)

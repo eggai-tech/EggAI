@@ -1,13 +1,14 @@
 
-import random
 from typing import List
 
 import dspy
+import numpy as np
 
 from agents.triage.data_sets.loader import load_dataset_triage_training
 
 
-def create_training_examples(sample_size: int = 20) -> List[dspy.Example]:
+def create_training_examples(sample_size: int = 20, seed: int = 42) -> List[dspy.Example]:
+    """Create training examples with deterministic sampling for reproducible results."""
     training_data = load_dataset_triage_training()
     total_available = len(training_data)
     
@@ -17,7 +18,10 @@ def create_training_examples(sample_size: int = 20) -> List[dspy.Example]:
         actual_size = total_available
     else:
         actual_size = sample_size
-        training_data = random.sample(training_data, actual_size)
+        # Use numpy for deterministic sampling
+        rs = np.random.RandomState(seed)
+        keys = rs.choice(len(training_data), size=actual_size, replace=False)
+        training_data = [training_data[i] for i in keys]
     
     print(f"Using {actual_size}/{total_available} examples")
     

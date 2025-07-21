@@ -1,8 +1,9 @@
 """Comprehensive tests for classifier v6 - all unit and integration tests in one place."""
 
 import os
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 # Set tokenizers parallelism to avoid warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -25,12 +26,9 @@ class TestClassifierV6Configuration:
     def test_imports(self):
         """Test v6 imports work correctly."""
         from agents.triage.classifier_v6.classifier_v6 import (
-            classifier_v6, FinetunedClassifier, ClassificationResult
-        )
-        from agents.triage.classifier_v6.data_utils import create_training_examples
-        from agents.triage.classifier_v6.model_utils import save_model_id_to_env
-        from agents.triage.classifier_v6.training_utils import (
-            setup_mlflow_tracking, log_training_parameters
+            ClassificationResult,
+            FinetunedClassifier,
+            classifier_v6,
         )
         
         # Verify all imports are successful
@@ -70,8 +68,9 @@ class TestClassifierV6Unit:
         # Test error path when no model ID is configured
         with patch('agents.triage.classifier_v6.classifier_v6.settings') as mock_settings:
             mock_settings.classifier_v6_model_id = None
-            with pytest.raises(ValueError, match="Fine-tuned model not configured"):
-                classifier._ensure_loaded()
+            classifier_no_id = FinetunedClassifier(model_id=None)
+            with pytest.raises(ValueError, match="Fine-tuned model not configured. Provide model_id or set TRIAGE_CLASSIFIER_V6_MODEL_ID."):
+                classifier_no_id._ensure_loaded()
 
     @patch('dspy.LM')
     def test_classification_flow(self, mock_lm):
@@ -187,7 +186,8 @@ class TestClassifierV6TrainingUtils:
     def test_training_utilities(self, mock_log_param, mock_set_exp, mock_autolog):
         """Test v6 training utility functions."""
         from agents.triage.classifier_v6.training_utils import (
-            setup_mlflow_tracking, log_training_parameters
+            log_training_parameters,
+            setup_mlflow_tracking,
         )
         
         run_name = setup_mlflow_tracking('test-model')
@@ -233,9 +233,12 @@ class TestClassifierV6Integration:
 
     def test_all_utilities_execution(self):
         """Execute all v6 utility functions for comprehensive coverage."""
-        from agents.triage.classifier_v6.data_utils import create_training_examples
-        from agents.triage.classifier_v6.training_utils import setup_mlflow_tracking, log_training_parameters
         from agents.triage.classifier_v6.classifier_v6 import FinetunedClassifier
+        from agents.triage.classifier_v6.data_utils import create_training_examples
+        from agents.triage.classifier_v6.training_utils import (
+            log_training_parameters,
+            setup_mlflow_tracking,
+        )
         
         # Execute data utilities
         examples = create_training_examples(sample_size=5)

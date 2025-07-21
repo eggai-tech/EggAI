@@ -1,28 +1,9 @@
 """Training utilities for fine-tuning."""
 
-import sys
 from datetime import datetime
-from io import StringIO
 
 import dspy
 import mlflow
-
-
-class OutputCapture:
-    def __init__(self):
-        self.captured = StringIO()
-        self.original_stdout = None
-        
-    def __enter__(self):
-        self.original_stdout = sys.stdout
-        sys.stdout = self.captured
-        return self
-        
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout = self.original_stdout
-        
-    def get_output(self):
-        return self.captured.getvalue()
 
 
 def setup_mlflow_tracking(model_name: str) -> str:

@@ -23,19 +23,24 @@ def no_grad():
 def get_device_config() -> Tuple[Optional[str], torch.dtype]:
     """Get optimal device configuration for model loading.
     
+    Ideally the target device for the model, input, output should be configurable: cuda, mps, cpu
+    
     Returns:
         Tuple of (device_map, dtype) for model loading
     """
     if torch.cuda.is_available():
-        device_map = "auto"
+        device_map = "auto"  # CUDA supports automatic device mapping
         # Use bfloat16 for newer GPUs (compute capability >= 8.0)
         dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
+        print(f"Using CUDA device with {dtype}")
     elif torch.backends.mps.is_available():
         device_map = None  # MPS doesn't support device_map="auto"
         dtype = torch.float16
+        print("Using MPS device with float16")
     else:
-        device_map = None
+        device_map = None  # CPU fallback
         dtype = torch.float32
+        print("Using CPU device with float32")
     
     return device_map, dtype
 
