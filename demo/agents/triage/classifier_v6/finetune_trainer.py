@@ -6,36 +6,20 @@ import dspy
 import mlflow
 from dotenv import load_dotenv
 
+from agents.triage.classifier_v6.data_utils import create_training_examples
+from agents.triage.classifier_v6.model_utils import (
+    extract_model_id_from_dspy,
+    parse_model_id_from_output,
+    save_model_id_to_env,
+)
+from agents.triage.classifier_v6.training_utils import (
+    get_classification_signature,
+    log_training_parameters,
+    perform_fine_tuning,
+    setup_mlflow_tracking,
+    show_training_info,
+)
 from agents.triage.config import Settings
-
-try:
-    from .data_utils import create_training_examples
-    from .model_utils import (
-        extract_model_id_from_dspy,
-        parse_model_id_from_output,
-        save_model_id_to_env,
-    )
-    from .training_utils import (
-        get_classification_signature,
-        log_training_parameters,
-        perform_fine_tuning,
-        setup_mlflow_tracking,
-        show_training_info,
-    )
-except ImportError:
-    from agents.triage.classifier_v6.data_utils import create_training_examples
-    from agents.triage.classifier_v6.model_utils import (
-        extract_model_id_from_dspy,
-        parse_model_id_from_output,
-        save_model_id_to_env,
-    )
-    from agents.triage.classifier_v6.training_utils import (
-        get_classification_signature,
-        log_training_parameters,
-        perform_fine_tuning,
-        setup_mlflow_tracking,
-        show_training_info,
-    )
 
 load_dotenv()
 settings = Settings()

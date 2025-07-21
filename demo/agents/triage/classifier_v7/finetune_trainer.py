@@ -5,30 +5,17 @@ import os
 import mlflow
 from dotenv import load_dotenv
 
-try:
-    from .config import ClassifierV7Settings
-    from .data_utils import create_training_examples
-    from .model_utils import (
-        save_model_id_to_env,
-    )
-    from .training_utils import (
-        log_training_parameters,
-        perform_fine_tuning,
-        setup_mlflow_tracking,
-        show_training_info,
-    )
-except ImportError:
-    from agents.triage.classifier_v7.config import ClassifierV7Settings
-    from agents.triage.classifier_v7.data_utils import create_training_examples
-    from agents.triage.classifier_v7.model_utils import (
-        save_model_id_to_env,
-    )
-    from agents.triage.classifier_v7.training_utils import (
-        log_training_parameters,
-        perform_fine_tuning,
-        setup_mlflow_tracking,
-        show_training_info,
-    )
+from agents.triage.classifier_v7.config import ClassifierV7Settings
+from agents.triage.classifier_v7.data_utils import create_training_examples
+from agents.triage.classifier_v7.model_utils import (
+    save_model_id_to_env,
+)
+from agents.triage.classifier_v7.training_utils import (
+    log_training_parameters,
+    perform_fine_tuning,
+    setup_mlflow_tracking,
+    show_training_info,
+)
 
 load_dotenv()
 v7_settings = ClassifierV7Settings()
@@ -44,14 +31,12 @@ def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
         log_training_parameters(sample_size, model_name, len(trainset))
         
         try:
-            # Use V7-specific configuration with defaults
             if not model_name:
                 model_name = v7_settings.get_model_name()
             
             print(f"Using model: {model_name}")
             print("Using HuggingFace Transformers for fine-tuning")
             
-            # Create dummy parameters for HuggingFace training
             student_classify = None
             teacher_classify = None
             
@@ -62,7 +47,6 @@ def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
             test_result = classify_ft(chat_history="User: I need help with my claim")
             print(f"Test: {test_result}")
             
-            # Generate model ID and save to environment
             import time
             timestamp = int(time.time())
             finetuned_model_id = f"{model_name.replace('/', '-')}-triage-v7-{timestamp}"
@@ -70,12 +54,10 @@ def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
             print(f"Model: {finetuned_model_id}")
             save_model_id_to_env(finetuned_model_id)
             
-            # Register model in MLflow Model Registry
             try:
                 import mlflow.dspy as mlflow_dspy
                 model_name_registry = "triage_classifier_v7_gemma"
                 
-                # Log the model
                 mlflow_dspy.log_model(
                     classify_ft,
                     artifact_path="model",
@@ -92,7 +74,7 @@ def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
             print("Next: source .env")
             
             mlflow.log_param("finetuned_model_id", finetuned_model_id)
-            mlflow.log_metric("estimated_training_cost_usd", 0.0)  # Local training
+            mlflow.log_metric("estimated_training_cost_usd", 0.0)
             
             return finetuned_model_id
             
@@ -106,7 +88,7 @@ def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
 
 if __name__ == "__main__":
     sample_size = int(os.getenv("FINETUNE_SAMPLE_SIZE", "100"))
-    model_name = os.getenv("FINETUNE_BASE_MODEL", None)  # Use settings.language_model by default
+    model_name = os.getenv("FINETUNE_BASE_MODEL", None)
     
     show_training_info()
     
