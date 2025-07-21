@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-all check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-coverage test-triage-classifiers-all check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -205,6 +205,16 @@ test-triage-classifiers-comprehensive:
 	@echo "📋 Includes unit, integration, and comparison tests"
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/tests/run_classifier_tests.py --all
 
+test-triage-classifiers-coverage:
+	@echo "Running coverage-focused tests for classifiers v6 and v7..."
+	@echo "📈 Tests designed to maximize code coverage"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6_coverage.py agents/triage/tests/test_classifier_v7_coverage.py -v \
+       --tb=short \
+       --cov=agents.triage.classifier_v6 --cov=agents.triage.classifier_v7 \
+       --cov-report=term --cov-report=xml:coverage.xml \
+       --junitxml=reports/pytest-coverage-results.xml \
+       --html=reports/pytest-coverage-results.html --self-contained-html
+
 test-triage-classifiers-all:
 	@echo "Running all classifier tests (v0-v7 + comprehensive coverage)..."
 	@echo "🚀 Complete classifier test suite"
@@ -218,6 +228,7 @@ test-triage-classifiers-all:
 	@make test-triage-classifier-v7
 	@make test-triage-classifiers-unit
 	@make test-triage-classifiers-comparison
+	@make test-triage-classifiers-coverage
 	@echo "✅ All classifier tests completed!"
 
 test-triage-agent:
