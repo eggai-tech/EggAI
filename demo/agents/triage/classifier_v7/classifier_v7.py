@@ -41,7 +41,8 @@ class FinetunedClassifier:
         
         if os.path.exists(model_path) and os.path.exists(os.path.join(model_path, "config.json")):
             logger.info(f"Loading fine-tuned Gemma3 model from: {model_path}")
-            self._load_finetuned_model(model_path)
+            base_model_name = v7_settings.get_model_name()
+            self._load_finetuned_model(model_path, base_model_name)
         else:
             logger.info(f"Fine-tuned model not found at {model_path}")
             logger.info(f"Loading base model: {v7_settings.get_model_name()}")
@@ -49,16 +50,13 @@ class FinetunedClassifier:
                 logger.info("Using QAT (Quantized Aware Training) model variant")
             self._load_base_model()
     
-    def _load_finetuned_model(self, model_path):
+    def _load_finetuned_model(self, model_path, base_model_name):
         """Load the fine-tuned HuggingFace model"""
         try:
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
             
             # Load tokenizer
             self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-            
-            # Load base model first
-            base_model_name = v7_settings.get_model_name()
             
             # Use shared device configuration
             from .device_utils import get_device_config, move_to_device
