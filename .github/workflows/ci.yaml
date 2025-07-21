@@ -165,6 +165,8 @@ jobs:
         run: |
           make test-libraries
           make test-triage-agent
+          make test-triage-classifier-v6
+          make test-triage-classifier-v7
           make test-escalation-agent
           make test-policies-agent
           make test-billing-agent
