@@ -51,13 +51,13 @@ class TestClassifierV6Unit:
         mock_predict_instance = MagicMock()
         mock_predict.return_value = mock_predict_instance
         
-        with patch.dict(os.environ, {'TRIAGE_CLASSIFIER_V6_MODEL_ID': 'ft:test-model'}):
-            classifier = FinetunedClassifier()
-            classifier._ensure_loaded()
-            
-            assert classifier._lm is not None
-            assert classifier._model is not None
-            mock_lm.assert_called_once()
+        # Test with explicit model_id parameter
+        classifier = FinetunedClassifier(model_id='ft:test-model')
+        classifier._ensure_loaded()
+        
+        assert classifier._lm is not None
+        assert classifier._model is not None
+        mock_lm.assert_called_once()
 
     def test_error_handling(self):
         """Test v6 error handling paths."""
@@ -111,21 +111,21 @@ class TestClassifierV6Unit:
         mock_predict_instance.return_value.target_agent = 'PolicyAgent'
         mock_predict.return_value = mock_predict_instance
         
-        with patch.dict(os.environ, {'TRIAGE_CLASSIFIER_V6_MODEL_ID': 'ft:test-model'}):
-            classifier = FinetunedClassifier()
-            
-            # Execute loading
-            classifier._ensure_loaded()
-            assert classifier._lm is not None
-            assert classifier._model is not None
-            
-            # Execute classification
-            result = classifier.classify("User: What is my policy coverage?")
-            assert result == 'PolicyAgent'
-            
-            # Execute metrics
-            metrics = classifier.get_metrics()
-            assert metrics is not None
+        # Test with explicit model_id parameter
+        classifier = FinetunedClassifier(model_id='ft:test-model')
+        
+        # Execute loading
+        classifier._ensure_loaded()
+        assert classifier._lm is not None
+        assert classifier._model is not None
+        
+        # Execute classification
+        result = classifier.classify("User: What is my policy coverage?")
+        assert result == 'PolicyAgent'
+        
+        # Execute metrics
+        metrics = classifier.get_metrics()
+        assert metrics is not None
 
 
 class TestClassifierV6DataUtils:
@@ -204,15 +204,18 @@ class TestClassifierV6Integration:
         """Test constructor with real parameter validation."""
         from agents.triage.classifier_v6.classifier_v6 import FinetunedClassifier
         
-        # Test with no model_id (should use settings)
-        classifier_default = FinetunedClassifier()
-        assert classifier_default is not None
-        assert classifier_default._model_id is not None
-        
         # Test with explicit model_id
         custom_model = "ft:gpt-4o-mini-custom-123"
         classifier_custom = FinetunedClassifier(model_id=custom_model)
         assert classifier_custom._model_id == custom_model
+        
+        # Test with environment variable set
+        with patch.dict(os.environ, {'TRIAGE_CLASSIFIER_V6_MODEL_ID': 'ft:env-model'}):
+            # Need to reload settings to pick up env var
+            with patch('agents.triage.classifier_v6.classifier_v6.settings') as mock_settings:
+                mock_settings.classifier_v6_model_id = 'ft:env-model'
+                classifier_env = FinetunedClassifier()
+                assert classifier_env._model_id == 'ft:env-model'
 
     def test_error_handling_integration(self):
         """Test error handling with real implementation."""
