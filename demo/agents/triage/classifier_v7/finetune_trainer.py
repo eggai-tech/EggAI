@@ -36,7 +36,7 @@ v7_settings = ClassifierV7Settings()
 os.environ["DSPY_CACHEDIR"] = "./dspy_cache"
 
 
-def train_finetune_model(sample_size: int = 20, model_name: str = None) -> str:
+def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
     run_name = setup_mlflow_tracking(model_name)
     
     with mlflow.start_run(run_name=run_name):
@@ -105,7 +105,7 @@ def train_finetune_model(sample_size: int = 20, model_name: str = None) -> str:
 
 
 if __name__ == "__main__":
-    sample_size = int(os.getenv("FINETUNE_SAMPLE_SIZE", "20"))
+    sample_size = int(os.getenv("FINETUNE_SAMPLE_SIZE", "100"))
     model_name = os.getenv("FINETUNE_BASE_MODEL", None)  # Use settings.language_model by default
     
     show_training_info()

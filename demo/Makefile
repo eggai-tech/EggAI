@@ -27,8 +27,8 @@ train-triage-classifier-v6:
 
 train-triage-classifier-v7:
 	@echo "Training triage classifier v7 (Gemma3 via HuggingFace)..."
-	@echo "💡 Default: 20 examples (LoRA fine-tuning)"
-	@echo "💡 Custom: export FINETUNE_SAMPLE_SIZE=100 (or -1 for full dataset)"
+	@echo "💡 Default: 100 examples (LoRA fine-tuning)"
+	@echo "💡 Custom: export FINETUNE_SAMPLE_SIZE=200 (or -1 for full dataset)"
 	@echo "⚠️  Requires: pip install transformers peft datasets accelerate bitsandbytes"
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v7/finetune_trainer.py
 

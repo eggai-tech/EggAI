@@ -6,7 +6,7 @@ import dspy
 from agents.triage.data_sets.loader import load_dataset_triage_training
 
 
-def create_training_examples(sample_size: int = 20) -> List[dspy.Example]:
+def create_training_examples(sample_size: int = 100) -> List[dspy.Example]:
     training_data = load_dataset_triage_training()
     total_available = len(training_data)
     

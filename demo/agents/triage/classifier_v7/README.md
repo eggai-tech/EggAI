@@ -13,7 +13,7 @@ Local Gemma3 fine-tuning for triage classification using HuggingFace Transformer
 ## Quick Start
 
 ```bash
-# Train with default settings (20 examples, Gemma 3-1b)
+# Train with default settings (100 examples, Gemma 3-1b)
 make train-triage-classifier-v7
 
 # Use the trained model
@@ -33,7 +33,7 @@ print(result.target_agent)  # e.g., "ClaimsAgent"
 
 ```bash
 # More training examples
-FINETUNE_SAMPLE_SIZE=100 make train-triage-classifier-v7
+FINETUNE_SAMPLE_SIZE=200 make train-triage-classifier-v7
 
 # Different Gemma model
 TRIAGE_V7_MODEL_NAME=google/gemma-3-2b-it make train-triage-classifier-v7
@@ -45,4 +45,4 @@ TRIAGE_V7_USE_QAT_MODEL=true make train-triage-classifier-v7
 make test-triage-classifier-v7
 ```
 
-**Defaults**: Gemma 3-1b, LoRA rank 16, 20 training examples
+**Defaults**: Gemma 3-1b, LoRA rank 16, 100 training examples
