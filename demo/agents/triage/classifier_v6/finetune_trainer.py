@@ -54,16 +54,14 @@ def train_finetune_model(sample_size: int = 20, model_name: str = "gpt-4o-mini-2
             
             finetuned_model_id = extract_model_id_from_dspy(classify_ft)
             
-            if not finetuned_model_id:
-                finetuned_model_id = "manual-configuration-required"
+            if not finetuned_model_id or not finetuned_model_id.startswith('ft:'):
+                error_msg = "Failed to extract fine-tuned model ID from training process. Check OpenAI dashboard for the model ID."
+                print(f"Error: {error_msg}")
+                raise RuntimeError(error_msg)
             
-            if finetuned_model_id and finetuned_model_id.startswith('ft:'):
-                print(f"Model: {finetuned_model_id}")
-                save_model_id_to_env(finetuned_model_id)
-                print("Next: source .env")
-            else:
-                print("Could not extract model ID. Check OpenAI dashboard.")
-                finetuned_model_id = "manual-configuration-required"
+            print(f"Model: {finetuned_model_id}")
+            save_model_id_to_env(finetuned_model_id)
+            print("Next: source .env")
             
             mlflow.log_param("finetuned_model_id", finetuned_model_id)
             
