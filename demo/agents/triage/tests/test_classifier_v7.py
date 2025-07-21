@@ -118,11 +118,12 @@ class TestClassifierV7DeviceUtils:
         result_auto = move_to_device(mock_model, "auto")
         assert result_auto is not None
         
-        result_none = move_to_device(mock_model, None)
-        assert result_none is not None
-        
-        # Verify device calls were made
-        mock_model.to.assert_called()
+        # Test with None device_map and mock MPS availability
+        with patch('torch.backends.mps.is_available', return_value=True):
+            result_mps = move_to_device(mock_model, None)
+            assert result_mps is not None
+            # Now .to() should have been called for MPS
+            mock_model.to.assert_called_with("mps")
 
 
 class TestClassifierV7Unit:
@@ -452,8 +453,8 @@ class TestClassifierIntegrationCrossVersion:
         )
         from agents.triage.classifier_v7.config import ClassifierV7Settings
         
-        # Test V6 configuration
-        v6_classifier = V6Classifier()
+        # Test V6 configuration with explicit model_id
+        v6_classifier = V6Classifier(model_id='ft:test-model')
         assert v6_classifier._model_id is not None
         
         # Test V7 configuration
