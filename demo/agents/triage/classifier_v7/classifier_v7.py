@@ -77,16 +77,7 @@ class FinetunedClassifier:
             # Move to appropriate device
             self.model = move_to_device(self.model, device_map)
             
-            # Create DSPy wrapper 
-            try:
-                self._lm = self._create_hf_lm()
-                dspy.configure(lm=self._lm)
-                self._model = dspy.Predict(TriageSignature)
-                logger.info("Fine-tuned HuggingFace Gemma3 classifier loaded")
-            except Exception as e:
-                logger.warning(f"Failed to create DSPy LM: {e}")
-                self._model = None
-                self._lm = None
+            logger.info("Fine-tuned HuggingFace Gemma3 classifier loaded")
             
         except ImportError:
             logger.warning("HuggingFace transformers not available, falling back to base model")
@@ -119,61 +110,13 @@ class FinetunedClassifier:
             
             # Move to appropriate device
             self.model = move_to_device(self.model, device_map)
-            
-            # Create DSPy wrapper 
-            try:
-                self._lm = self._create_hf_lm()
-                dspy.configure(lm=self._lm)
-                self._model = dspy.Predict(TriageSignature)
-                logger.info(f"Base HuggingFace model loaded: {model_name}")
-            except Exception as e:
-                logger.warning(f"Failed to create DSPy LM: {e}")
-                self._model = None
-                self._lm = None
+            logger.info(f"Base HuggingFace model loaded: {model_name}")
             
         except ImportError:
             logger.warning("HuggingFace transformers not available, using DSPy fallback")
-            # Fallback to DSPy with dummy LM
-            self._lm = None
-            self._model = None
+            self.model = None
+            self.tokenizer = None
     
-    def _create_hf_lm(self):
-        """Create HuggingFace LM wrapper for DSPy"""
-        class HuggingFaceLM(dspy.LM):
-            def __init__(self, model, tokenizer):
-                super().__init__("local/gemma")
-                self.model = model
-                self.tokenizer = tokenizer
-                
-            def basic_request(self, prompt, **kwargs):
-                from .device_utils import is_cuda_available, is_mps_available, no_grad
-                
-                # Format prompt for classification
-                formatted_prompt = f"<start_of_turn>user\n{prompt}<end_of_turn>\n<start_of_turn>model\n"
-                
-                inputs = self.tokenizer(formatted_prompt, return_tensors="pt")
-                
-                # Move inputs to same device as model
-                if is_mps_available():
-                    inputs = {k: v.to("mps") for k, v in inputs.items()}
-                elif is_cuda_available():
-                    inputs = {k: v.to("cuda") for k, v in inputs.items()}
-                
-                with no_grad():
-                    outputs = self.model(**inputs)
-                    logits = outputs.logits
-                    
-                # Get predicted class (0-4 for 5 agents)
-                predicted_class = logits.argmax(dim=-1).item()
-                agent_names = ['BillingAgent', 'ClaimsAgent', 'PolicyAgent', 'EscalationAgent', 'ChattyAgent']
-                
-                if 0 <= predicted_class < len(agent_names):
-                    return [agent_names[predicted_class]]
-                
-                # Default fallback
-                return ["ChattyAgent"]
-        
-        return HuggingFaceLM(self.model, self.tokenizer)
     
     def classify(self, chat_history: str) -> TargetAgent:
         self._ensure_loaded()
