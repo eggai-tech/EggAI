@@ -26,6 +26,7 @@ _CLASSIFIER_PATHS = {
     "v4": ("agents.triage.dspy_modules.classifier_v4", "classifier_v4"),
     "v5": ("agents.triage.attention_net.classifier_v5", "classifier_v5"),
     "v6": ("agents.triage.classifier_v6.classifier_v6", "classifier_v6"),
+    "v7": ("agents.triage.classifier_v7.classifier_v7", "classifier_v7"),
 }
 
 def build_conversation_string(chat_messages: List[Dict[str, str]]) -> str:
