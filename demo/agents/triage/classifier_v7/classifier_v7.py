@@ -52,7 +52,7 @@ class FinetunedClassifier:
     def _load_finetuned_model(self, model_path):
         """Load the fine-tuned HuggingFace model"""
         try:
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
             
             # Load tokenizer
             self.tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -64,7 +64,7 @@ class FinetunedClassifier:
             from .device_utils import get_device_config, move_to_device
             device_map, dtype = get_device_config()
                 
-            base_model = AutoModelForCausalLM.from_pretrained(
+            base_model = AutoModelForSequenceClassification.from_pretrained(
                 base_model_name,
                 torch_dtype=dtype,
                 device_map=device_map
@@ -95,7 +95,7 @@ class FinetunedClassifier:
     def _load_base_model(self):
         """Load the base model via HuggingFace or fallback to DSPy"""
         try:
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
             
             model_name = v7_settings.get_model_name()
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -110,7 +110,7 @@ class FinetunedClassifier:
             )
             device_map, dtype = get_device_config()
                 
-            self.model = AutoModelForCausalLM.from_pretrained(
+            self.model = AutoModelForSequenceClassification.from_pretrained(
                 model_name,
                 torch_dtype=dtype,
                 device_map=device_map,
@@ -160,25 +160,15 @@ class FinetunedClassifier:
                     inputs = {k: v.to("cuda") for k, v in inputs.items()}
                 
                 with no_grad():
-                    outputs = self.model.generate(
-                        **inputs,
-                        max_new_tokens=20,
-                        temperature=0.1,
-                        do_sample=False,  # Use greedy decoding for consistency
-                        pad_token_id=self.tokenizer.eos_token_id,
-                        eos_token_id=self.tokenizer.eos_token_id
-                    )
-                
-                response = self.tokenizer.decode(
-                    outputs[0][inputs['input_ids'].shape[1]:], 
-                    skip_special_tokens=True
-                ).strip()
-                
-                # Parse the response to extract agent name
+                    outputs = self.model(**inputs)
+                    logits = outputs.logits
+                    
+                # Get predicted class (0-4 for 5 agents)
+                predicted_class = logits.argmax(dim=-1).item()
                 agent_names = ['BillingAgent', 'ClaimsAgent', 'PolicyAgent', 'EscalationAgent', 'ChattyAgent']
-                for agent in agent_names:
-                    if agent in response:
-                        return [agent]
+                
+                if 0 <= predicted_class < len(agent_names):
+                    return [agent_names[predicted_class]]
                 
                 # Default fallback
                 return ["ChattyAgent"]

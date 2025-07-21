@@ -30,26 +30,14 @@ def log_training_parameters(sample_size: int, model_name: str, trainset_size: in
 
 
 def perform_fine_tuning(student_classify, teacher_classify, trainset):
-    import threading
     import time
     
     optimizer = dspy.BootstrapFinetune(num_threads=1)
     
-    print("Starting fine-tuning", end="", flush=True)
-    
-    # Progress indicator that runs during training
-    progress_active = True
-    def show_progress():
-        while progress_active:
-            print(".", end="", flush=True)
-            time.sleep(3)
-    
-    progress_thread = threading.Thread(target=show_progress, daemon=True)
-    progress_thread.start()
+    print("Starting fine-tuning...")
     
     start_time = time.time()
     
-    # Don't capture output so we can see progress in real time
     try:
         classify_ft = optimizer.compile(
             student_classify,
@@ -60,17 +48,15 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
     except Exception as e:
         captured_output = f"Training error: {e}"
         raise
-    finally:
-        progress_active = False
     
     training_time = time.time() - start_time
     
-    print(f"\nCompleted in {training_time:.1f}s")
+    print(f"Completed in {training_time:.1f}s")
     
     mlflow.log_metric("training_time_seconds", training_time)
     mlflow.log_metric("training_success", 1)
     
-    return classify_ft, captured_output
+    return classify_ft
 
 
 def show_training_info():

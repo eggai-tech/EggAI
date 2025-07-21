@@ -40,7 +40,7 @@ def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
             student_classify = None
             teacher_classify = None
             
-            classify_ft, captured_output = perform_fine_tuning(
+            classify_ft = perform_fine_tuning(
                 student_classify, teacher_classify, trainset
             )
             

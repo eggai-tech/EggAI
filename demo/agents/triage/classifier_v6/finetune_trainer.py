@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from agents.triage.classifier_v6.data_utils import create_training_examples
 from agents.triage.classifier_v6.model_utils import (
     extract_model_id_from_dspy,
-    parse_model_id_from_output,
     save_model_id_to_env,
 )
 from agents.triage.classifier_v6.training_utils import (
@@ -46,7 +45,7 @@ def train_finetune_model(sample_size: int = 20, model_name: str = "gpt-4o-mini-2
             teacher_classify = classify.deepcopy()  
             teacher_classify.set_lm(teacher_lm)
             
-            classify_ft, captured_output = perform_fine_tuning(
+            classify_ft = perform_fine_tuning(
                 student_classify, teacher_classify, trainset
             )
             
@@ -56,7 +55,7 @@ def train_finetune_model(sample_size: int = 20, model_name: str = "gpt-4o-mini-2
             finetuned_model_id = extract_model_id_from_dspy(classify_ft)
             
             if not finetuned_model_id:
-                finetuned_model_id = parse_model_id_from_output(captured_output)
+                finetuned_model_id = "manual-configuration-required"
             
             if finetuned_model_id and finetuned_model_id.startswith('ft:'):
                 print(f"Model: {finetuned_model_id}")
