@@ -45,8 +45,8 @@ def get_device_config() -> Tuple[Optional[str], torch.dtype]:
     return device_map, dtype
 
 
-def move_to_device(model, device_map: Optional[str] = None):
-    """Move model to appropriate device if needed.
+def move_to_mps(model, device_map: Optional[str] = None):
+    """Move to mps if available and device_map is None.
     
     Args:
         model: The model to move

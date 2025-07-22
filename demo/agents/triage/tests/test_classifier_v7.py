@@ -92,7 +92,7 @@ class TestClassifierV7DeviceUtils:
         from agents.triage.classifier_v7.device_utils import (
             get_device_config,
             get_training_precision,
-            move_to_device,
+            move_to_mps,
             no_grad,
         )
         
@@ -115,12 +115,12 @@ class TestClassifierV7DeviceUtils:
         mock_model.to = Mock(return_value=mock_model)
         
         # Test different device scenarios
-        result_auto = move_to_device(mock_model, "auto")
+        result_auto = move_to_mps(mock_model, "auto")
         assert result_auto is not None
         
         # Test with None device_map and mock MPS availability
         with patch('torch.backends.mps.is_available', return_value=True):
-            result_mps = move_to_device(mock_model, None)
+            result_mps = move_to_mps(mock_model, None)
             assert result_mps is not None
             # Now .to() should have been called for MPS
             mock_model.to.assert_called_with("mps")
@@ -252,7 +252,7 @@ class TestClassifierV7Integration:
             get_training_precision,
             is_cuda_available,
             is_mps_available,
-            move_to_device,
+            move_to_mps,
             no_grad,
         )
         
@@ -280,7 +280,7 @@ class TestClassifierV7Integration:
         mock_model = MagicMock()
         mock_model.to = MagicMock(return_value=mock_model)
         
-        result = move_to_device(mock_model, "auto")
+        result = move_to_mps(mock_model, "auto")
         assert result is not None
         # Device movement may or may not call .to() depending on device detection
         # The important thing is we got a result back

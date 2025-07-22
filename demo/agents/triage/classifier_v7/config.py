@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ClassifierV7Settings(BaseSettings):
+    n_classes: int = Field(default=5)
     model_config = SettingsConfigDict(
         env_prefix="TRIAGE_V7_",
         env_file=".env",

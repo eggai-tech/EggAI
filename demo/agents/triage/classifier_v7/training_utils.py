@@ -6,13 +6,6 @@ import mlflow
 # Set tokenizers parallelism to avoid warnings during training
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# Import to register custom Gemma3 sequence classification models
-try:
-    from . import gemma3_sequence_classification  # noqa: F401 - needed for registration
-except ImportError:
-    pass
-
-
 def setup_mlflow_tracking(model_name: str) -> str:
     mlflow.dspy.autolog()
     mlflow.set_experiment("triage_classifier")
@@ -84,7 +77,7 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
         from .device_utils import (
             get_device_config,
             get_training_precision,
-            move_to_device,
+            move_to_mps,
         )
         device_map, dtype = get_device_config()
             
@@ -103,7 +96,7 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
         )
         
         # Move to appropriate device
-        model = move_to_device(model, device_map)
+        model = move_to_mps(model, device_map)
         
         # Configure LoRA
         if v7_settings.use_lora:
