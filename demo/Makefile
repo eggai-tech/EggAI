@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-coverage test-triage-classifiers-all check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -17,6 +17,20 @@ train-triage-classifier-v3:
 train-triage-classifier-v5:
 	@echo "Training triage classifier v5..."
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/attention_net/attention_net_trainer.py
+
+train-triage-classifier-v6:
+	@echo "Training triage classifier v6 (OpenAI fine-tuned model)..."
+	@echo "💡 Default: 20 examples (~\$$0.40 for demo)"
+	@echo "💡 Custom: export FINETUNE_SAMPLE_SIZE=100 (or -1 for full dataset)"
+	@echo "⚠️  Requires OPENAI_API_KEY environment variable"
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v6/finetune_trainer.py
+
+train-triage-classifier-v7:
+	@echo "Training triage classifier v7 (Gemma3 via HuggingFace)..."
+	@echo "💡 Default: 100 examples (LoRA fine-tuning)"
+	@echo "💡 Custom: export FINETUNE_SAMPLE_SIZE=200 (or -1 for full dataset)"
+	@echo "⚠️  Requires: pip install transformers peft datasets accelerate bitsandbytes"
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v7/finetune_trainer.py
 
 start-eda-notebook:
 	@echo "Start Exploratory Data Analysis Notebook..."
@@ -45,6 +59,10 @@ test:
        --cov=agents --cov-report=xml:coverage.xml --cov-report=term \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
+	@echo "Running classifier tests for CI coverage..."
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py agents/triage/tests/test_classifier_v7.py -s \
+       --cov=agents.triage.classifier_v6 --cov=agents.triage.classifier_v7 --cov-append \
+       --cov-report=xml:coverage.xml --cov-report=term
 	@echo "Tests completed."
 
 test-billing-agent:
@@ -141,6 +159,80 @@ test-triage-classifier-v5:
 	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v5.py -s \
        --junitxml=reports/pytest-results.xml \
        --html=reports/pytest-results.html --self-contained-html
+
+test-triage-classifier-v6:
+	@echo "Running comprehensive tests for classifier v6 (OpenAI fine-tuned)..."
+	@echo "🧪 Includes unit tests, integration tests, and coverage"
+	@echo "💡 Uses mocked dependencies - no API costs"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py agents/triage/tests/test_shared_data_utils.py -v \
+       --cov=agents.triage.classifier_v6 --cov=agents.triage.shared --cov-report=term \
+       --junitxml=reports/pytest-v6-results.xml \
+       --html=reports/pytest-v6-results.html --self-contained-html
+
+test-triage-classifier-v7:
+	@echo "Running comprehensive tests for classifier v7 (Gemma3 via HuggingFace)..."
+	@echo "🧪 Includes unit tests, integration tests, device utils, and coverage"
+	@echo "💡 Uses mocked dependencies - no transformers required for tests"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v7.py agents/triage/tests/test_shared_data_utils.py -v \
+       --cov=agents.triage.classifier_v7 --cov=agents.triage.shared --cov-report=term \
+       --junitxml=reports/pytest-v7-results.xml \
+       --html=reports/pytest-v7-results.html --self-contained-html
+
+test-triage-classifiers-unit:
+	@echo "Running comprehensive unit tests for classifiers v6 and v7..."
+	@echo "🧪 Unit tests with mocked dependencies - no API calls"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py agents/triage/tests/test_classifier_v7.py -v \
+       --tb=short \
+       --junitxml=reports/pytest-classifier-unit-results.xml \
+       --html=reports/pytest-classifier-unit-results.html --self-contained-html
+
+test-triage-classifiers-config:
+	@echo "Running configuration tests for classifiers v6 and v7..."
+	@echo "⚙️  Testing configuration validation and setup"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest \
+       "agents/triage/tests/test_classifier_v6.py::TestClassifierV6Configuration" \
+       "agents/triage/tests/test_classifier_v7.py::TestClassifierV7Configuration" \
+       "agents/triage/tests/test_classifier_v7.py::TestClassifierV7DeviceUtils" \
+       -v --tb=short
+
+test-triage-classifiers-comparison:
+	@echo "Running comparison tests between classifiers v6 and v7..."
+	@echo "⚖️  Comparing performance, accuracy, and architecture"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_comparison.py -v -s \
+       --tb=short \
+       --junitxml=reports/pytest-comparison-results.xml \
+       --html=reports/pytest-comparison-results.html --self-contained-html
+
+test-triage-classifiers-comprehensive:
+	@echo "Running comprehensive test suite using custom test runner..."
+	@echo "📋 Includes unit, integration, and comparison tests"
+	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/tests/run_classifier_tests.py --all
+
+test-triage-classifiers-coverage:
+	@echo "Running classifiers v6 and v7 with coverage reporting..."
+	@echo "📈 Comprehensive tests designed to maximize code coverage"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py agents/triage/tests/test_classifier_v7.py -v \
+       --tb=short \
+       --cov=agents.triage.classifier_v6 --cov=agents.triage.classifier_v7 \
+       --cov-report=term --cov-report=xml:coverage.xml \
+       --junitxml=reports/pytest-coverage-results.xml \
+       --html=reports/pytest-coverage-results.html --self-contained-html
+
+test-triage-classifiers-all:
+	@echo "Running all classifier tests (v0-v7 + comprehensive coverage)..."
+	@echo "🚀 Complete classifier test suite"
+	@make test-triage-classifier-v0
+	@make test-triage-classifier-v1
+	@make test-triage-classifier-v2
+	@make test-triage-classifier-v3
+	@make test-triage-classifier-v4
+	@make test-triage-classifier-v5
+	@make test-triage-classifier-v6
+	@make test-triage-classifier-v7
+	@make test-triage-classifiers-unit
+	@make test-triage-classifiers-comparison
+	@make test-triage-classifiers-coverage
+	@echo "✅ All classifier tests completed!"
 
 test-triage-agent:
 	@echo "Running tests for triage agent..."

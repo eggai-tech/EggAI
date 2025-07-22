@@ -15,7 +15,12 @@ opentelemetry-sdk==1.33.1
 python-json-logger==2.0.7
 colorlog==6.8.2
 pydantic-settings==2.4.0
-transformers[torch]==4.49.0
+transformers[torch]>=4.51.3
+peft>=0.14.0
+datasets>=3.3.2
+accelerate>=1.4.0
+bitsandbytes>=0.42.0
+trl>=0.15.2
 numpy==2.2.4
 scikit-learn==1.6.1
 aioboto3==13.3.0

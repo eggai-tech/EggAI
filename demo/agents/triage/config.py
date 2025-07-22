@@ -36,6 +36,9 @@ class Settings(BaseAgentConfig):
     classifier_v5_model_version: str = Field(default="1")
     classifier_v5_device: str = Field(default="cuda")
 
+    classifier_v6_model_id: Optional[str] = Field(default=None, description="Fine-tuned OpenAI model ID for classifier v6")
+    classifier_v7_model_id: Optional[str] = Field(default=None, description="Fine-tuned Gemma3 model ID for classifier v7")
+
     copro_dataset_size: int = Field(default=50)
     bootstrap_dataset_size: int = Field(default=30)
     copro_breadth: int = Field(default=10)
