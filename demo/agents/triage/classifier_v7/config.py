@@ -1,8 +1,16 @@
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ClassifierV7Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="TRIAGE_V7_",
+        env_file=".env",
+        env_file_encoding='utf-8',
+        case_sensitive=False,
+        extra='ignore',
+        protected_namespaces=('settings_',)  # Fix pydantic model_ namespace warning
+    )
     """Configuration for Classifier V7 (Gemma3 via HuggingFace)"""
     
     # HuggingFace Gemma model configuration  
@@ -44,7 +52,3 @@ class ClassifierV7Settings(BaseSettings):
             return qat_mapping.get(self.model_name, self.model_name)
         return self.model_name
     
-    class Config:
-        env_prefix = "TRIAGE_V7_"
-        env_file = ".env"
-        extra = "ignore"  # Ignore extra environment variables

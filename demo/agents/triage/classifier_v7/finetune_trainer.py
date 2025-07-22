@@ -2,6 +2,9 @@
 
 import os
 
+# Set tokenizers parallelism to avoid warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 import mlflow
 from dotenv import load_dotenv
 
@@ -40,7 +43,7 @@ def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
             student_classify = None
             teacher_classify = None
             
-            classify_ft = perform_fine_tuning(
+            classify_ft, training_output = perform_fine_tuning(
                 student_classify, teacher_classify, trainset
             )
             
@@ -56,8 +59,10 @@ def train_finetune_model(sample_size: int = 100, model_name: str = None) -> str:
             
             try:
                 import mlflow.dspy as mlflow_dspy
+                
                 model_name_registry = "triage_classifier_v7_gemma"
                 
+                # Log model without signature to avoid validation issues
                 mlflow_dspy.log_model(
                     classify_ft,
                     artifact_path="model",

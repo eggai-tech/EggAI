@@ -35,8 +35,8 @@ def get_device_config() -> Tuple[Optional[str], torch.dtype]:
         print(f"Using CUDA device with {dtype}")
     elif torch.backends.mps.is_available():
         device_map = None  # MPS doesn't support device_map="auto"
-        dtype = torch.float16
-        print("Using MPS device with float16")
+        dtype = torch.float32  # Use float32 for MPS to avoid training issues
+        print("Using MPS device with float32")
     else:
         device_map = None  # CPU fallback
         dtype = torch.float32
@@ -71,7 +71,14 @@ def get_training_precision() -> dict:
     has_cuda = torch.cuda.is_available()
     has_mps = torch.backends.mps.is_available()
     
+    # MPS doesn't handle fp16/bf16 training well, use float32
+    if has_mps:
+        return {
+            "fp16": False,
+            "bf16": False,
+        }
+    
     return {
-        "fp16": has_cuda and not has_mps,
+        "fp16": has_cuda,
         "bf16": has_cuda and torch.cuda.get_device_capability()[0] >= 8,
     }

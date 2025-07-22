@@ -1,6 +1,16 @@
+import os
 from datetime import datetime
 
 import mlflow
+
+# Set tokenizers parallelism to avoid warnings during training
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# Import to register custom Gemma3 sequence classification models
+try:
+    from . import gemma3_sequence_classification  # noqa: F401 - needed for registration
+except ImportError:
+    pass
 
 
 def setup_mlflow_tracking(model_name: str) -> str:
@@ -38,11 +48,14 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
         import torch
         from datasets import Dataset
         from peft import LoraConfig, TaskType, get_peft_model
+
+        # Import sklearn for train/test split
+        from sklearn.model_selection import train_test_split
         from transformers import (
             AutoModelForSequenceClassification,
             AutoTokenizer,
             BitsAndBytesConfig,
-            DataCollatorForLanguageModeling,
+            DataCollatorWithPadding,
             Trainer,
             TrainingArguments,
         )
@@ -75,8 +88,14 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
         )
         device_map, dtype = get_device_config()
             
+        # Load the appropriate config class for this model
+        from transformers import AutoConfig
+        config = AutoConfig.from_pretrained(model_name)
+        config.num_labels = 5  # 5 target agents: Billing, Claims, Policy, Escalation, Chatty
+        
         model = AutoModelForSequenceClassification.from_pretrained(
             model_name,
+            config=config,
             quantization_config=quantization_config,
             torch_dtype=dtype,
             device_map=device_map,
@@ -106,11 +125,49 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
                     param.requires_grad_(True)
         
         # Prepare training data
-        print("Preparing training data...")
-        def format_example(example):
-            return example.chat_history
+        print("Preparing training and evaluation data...")
         
-        texts = [format_example(ex) for ex in trainset]
+        # Create label mapping for sequence classification
+        label_mapping = {
+            "BillingAgent": 0,
+            "ClaimsAgent": 1,
+            "PolicyAgent": 2,
+            "EscalationAgent": 3,
+            "ChattyAgent": 4
+        }
+        
+        # Split data into train (80%) and eval (20%)
+        # Only use stratification if we have enough samples per class
+        target_counts = {}
+        for ex in trainset:
+            target_counts[ex.target_agent] = target_counts.get(ex.target_agent, 0) + 1
+        
+        # Check if we can stratify (each class needs at least 2 samples)
+        can_stratify = len(trainset) >= 10 and all(count >= 2 for count in target_counts.values())
+        
+        if len(trainset) < 10:
+            # For very small datasets, use all for training and create a simple eval set
+            train_examples = trainset
+            eval_examples = trainset[:max(1, len(trainset) // 5)]  # Take ~20% for eval
+            print(f"Small dataset: using all {len(trainset)} for training, {len(eval_examples)} for evaluation")
+        else:
+            train_examples, eval_examples = train_test_split(
+                trainset, 
+                test_size=0.2, 
+                random_state=42,
+                stratify=[ex.target_agent for ex in trainset] if can_stratify else None
+            )
+        
+        print(f"Training examples: {len(train_examples)}")
+        print(f"Evaluation examples: {len(eval_examples)}")
+        
+        # Prepare training data
+        train_texts = [ex.chat_history for ex in train_examples]
+        train_labels = [label_mapping.get(ex.target_agent, 4) for ex in train_examples]
+        
+        # Prepare evaluation data
+        eval_texts = [ex.chat_history for ex in eval_examples]
+        eval_labels = [label_mapping.get(ex.target_agent, 4) for ex in eval_examples]
         
         def tokenize_function(examples):
             # Tokenize the text
@@ -121,18 +178,23 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
                 max_length=v7_settings.max_length,
                 return_tensors=None
             )
-            # For causal LM, labels are the same as input_ids
-            model_inputs["labels"] = model_inputs["input_ids"].copy()
+            # For sequence classification, labels are the class IDs
+            model_inputs["labels"] = examples["labels"]
             return model_inputs
         
-        dataset = Dataset.from_dict({"text": texts})
-        tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=["text"])
+        # Create datasets
+        train_dataset = Dataset.from_dict({"text": train_texts, "labels": train_labels})
+        eval_dataset = Dataset.from_dict({"text": eval_texts, "labels": eval_labels})
         
-        # Training arguments
+        tokenized_train_dataset = train_dataset.map(tokenize_function, batched=True, remove_columns=["text"])
+        tokenized_eval_dataset = eval_dataset.map(tokenize_function, batched=True, remove_columns=["text"])
+        
+        # Training arguments with evaluation
         training_args = TrainingArguments(
             output_dir=v7_settings.output_dir,
             num_train_epochs=v7_settings.num_epochs,
             per_device_train_batch_size=v7_settings.batch_size,
+            per_device_eval_batch_size=v7_settings.batch_size,
             gradient_accumulation_steps=v7_settings.gradient_accumulation_steps,
             optim="adamw_torch",
             learning_rate=v7_settings.learning_rate,
@@ -142,29 +204,88 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
             logging_steps=10,
             save_steps=100,
             save_total_limit=2,
+            # Evaluation configuration
+            eval_strategy="epoch",  # Evaluate after each epoch
+            eval_steps=1,  # How often to evaluate (in epochs)
+            save_strategy="epoch",  # Save after each epoch
+            load_best_model_at_end=True,  # Load best model at end
+            metric_for_best_model="eval_accuracy",  # Use accuracy to determine best model
+            greater_is_better=True,  # Higher accuracy is better
+            # Training configuration
             gradient_checkpointing=False,  # Disable to avoid gradient issues
             dataloader_pin_memory=False,
             report_to="none",  # Disable wandb/tensorboard
             remove_unused_columns=False,
         )
         
-        # Data collator for causal language modeling
-        data_collator = DataCollatorForLanguageModeling(
+        # Data collator for sequence classification
+        data_collator = DataCollatorWithPadding(
             tokenizer=tokenizer,
-            mlm=False,  # No masked language modeling
+            padding='max_length',  # Specify explicit padding strategy
+            max_length=v7_settings.max_length,
         )
         
-        # Use standard Trainer
+        # Define evaluation metrics
+        def compute_metrics(eval_pred):
+            import numpy as np
+            from sklearn.metrics import (
+                accuracy_score,
+                confusion_matrix,
+                precision_recall_fscore_support,
+            )
+            
+            predictions, labels = eval_pred
+            predictions = np.argmax(predictions, axis=1)
+            
+            # Basic metrics
+            accuracy = accuracy_score(labels, predictions)
+            precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted', zero_division=0)
+            
+            # Per-class metrics
+            agent_names = ["BillingAgent", "ClaimsAgent", "PolicyAgent", "EscalationAgent", "ChattyAgent"]
+            precision_per_class, recall_per_class, f1_per_class, support = precision_recall_fscore_support(
+                labels, predictions, average=None, zero_division=0
+            )
+            
+            # Create confusion matrix
+            cm = confusion_matrix(labels, predictions)
+            
+            metrics = {
+                'accuracy': accuracy,
+                'f1': f1,
+                'precision': precision,
+                'recall': recall,
+            }
+            
+            # Add per-class metrics
+            for i, agent_name in enumerate(agent_names):
+                if i < len(precision_per_class):
+                    metrics[f'{agent_name.lower()}_precision'] = precision_per_class[i]
+                    metrics[f'{agent_name.lower()}_recall'] = recall_per_class[i]
+                    metrics[f'{agent_name.lower()}_f1'] = f1_per_class[i]
+                    metrics[f'{agent_name.lower()}_support'] = support[i]
+            
+            return metrics
+        
+        # Use standard Trainer with evaluation
         trainer = Trainer(
             model=model,
             args=training_args,
-            train_dataset=tokenized_dataset,
+            train_dataset=tokenized_train_dataset,
+            eval_dataset=tokenized_eval_dataset,
             data_collator=data_collator,
+            compute_metrics=compute_metrics,
         )
         
         # Train the model
         print("Starting training...")
-        trainer.train()
+        train_result = trainer.train()
+        
+        # Log final evaluation metrics to MLflow
+        final_eval = trainer.evaluate()
+        for key, value in final_eval.items():
+            if key.startswith('eval_'):
+                mlflow.log_metric(f"final_{key}", value)
         
         # Save the model
         print(f"Saving model to {v7_settings.output_dir}")
