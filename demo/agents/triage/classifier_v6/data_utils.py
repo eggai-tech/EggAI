@@ -1,39 +1,22 @@
+"""Data utilities for classifier v6."""
 
 from typing import List
 
 import dspy
-import numpy as np
 
-from agents.triage.data_sets.loader import load_dataset_triage_training
+from agents.triage.shared.data_utils import (
+    create_training_examples as _create_training_examples,
+)
 
 
 def create_training_examples(sample_size: int = 20, seed: int = 42) -> List[dspy.Example]:
-    """Create training examples with deterministic sampling for reproducible results."""
-    training_data = load_dataset_triage_training()
-    total_available = len(training_data)
+    """Create training examples for v6 classifier with default sample size of 20.
     
-    if sample_size == -1:
-        actual_size = total_available
-    elif sample_size > total_available:
-        actual_size = total_available
-    else:
-        actual_size = sample_size
-        # Use numpy for deterministic sampling
-        rs = np.random.RandomState(seed)
-        keys = rs.choice(len(training_data), size=actual_size, replace=False)
-        training_data = [training_data[i] for i in keys]
-    
-    print(f"Using {actual_size}/{total_available} examples")
-    
-    examples = []
-    for case in training_data:
-        target_agent = case.target_agent
-        if hasattr(target_agent, 'value'):
-            target_agent = target_agent.value
+    Args:
+        sample_size: Number of examples to sample (default: 20 for cost-effective OpenAI fine-tuning)
+        seed: Random seed for reproducible sampling
         
-        examples.append(dspy.Example(
-            chat_history=case.conversation,
-            target_agent=target_agent
-        ).with_inputs("chat_history"))
-    
-    return examples
+    Returns:
+        List of DSPy examples for training
+    """
+    return _create_training_examples(sample_size=sample_size, seed=seed)

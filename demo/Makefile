@@ -164,8 +164,8 @@ test-triage-classifier-v6:
 	@echo "Running comprehensive tests for classifier v6 (OpenAI fine-tuned)..."
 	@echo "🧪 Includes unit tests, integration tests, and coverage"
 	@echo "💡 Uses mocked dependencies - no API costs"
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py -v \
-       --cov=agents.triage.classifier_v6 --cov-report=term \
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6.py agents/triage/tests/test_shared_data_utils.py -v \
+       --cov=agents.triage.classifier_v6 --cov=agents.triage.shared --cov-report=term \
        --junitxml=reports/pytest-v6-results.xml \
        --html=reports/pytest-v6-results.html --self-contained-html
 
@@ -173,8 +173,8 @@ test-triage-classifier-v7:
 	@echo "Running comprehensive tests for classifier v7 (Gemma3 via HuggingFace)..."
 	@echo "🧪 Includes unit tests, integration tests, device utils, and coverage"
 	@echo "💡 Uses mocked dependencies - no transformers required for tests"
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v7.py -v \
-       --cov=agents.triage.classifier_v7 --cov-report=term \
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v7.py agents/triage/tests/test_shared_data_utils.py -v \
+       --cov=agents.triage.classifier_v7 --cov=agents.triage.shared --cov-report=term \
        --junitxml=reports/pytest-v7-results.xml \
        --html=reports/pytest-v7-results.html --self-contained-html
 
