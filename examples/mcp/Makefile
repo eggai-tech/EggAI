@@ -1,3 +1,5 @@
+.PHONY: setup start docker-up docker-down clean
+
 PYTHON := python3
 VENV_DIR := .venv
 REQ_FILE := requirements.txt
@@ -5,7 +7,6 @@ DEV_REQ_FILE := dev-requirements.txt
 DOCKER_COMPOSE := docker compose
 SHELL := $(shell which bash)
 
-.PHONY: setup
 setup:
 	@echo "Setting up the environment..."
 	@if [ ! -d "$(VENV_DIR)" ]; then \
@@ -22,35 +23,19 @@ setup:
 	@command -v npx >/dev/null 2>&1 || { echo "npx not found, installing..."; npm install -g npx; }
 	@echo "Environment setup complete."
 
-.PHONY: start-mcp-fetch
-start-mcp-fetch:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.fetch_mcp.mcp_adapter
+start:
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python main.py
 
-.PHONY: start-mcp-filesystem
-start-mcp-filesystem:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.filesystem_mcp.mcp_adapter
-
-.PHONY: start-mcp-chat
-start-mcp-chat:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.chat_agent.agent
-
-.PHONY: start-all
-start-all:
-	@make -j start-mcp-fetch start-mcp-filesystem start-mcp-chat
-
-.PHONY: docker-up
 docker-up:
 	@echo "Starting Docker Compose..."
 	@$(DOCKER_COMPOSE) up -d
 	@echo "Docker Compose started."
 
-.PHONY: docker-down
 docker-down:
 	@echo "Stopping and cleaning up Docker Compose..."
 	@$(DOCKER_COMPOSE) down -v
 	@echo "Docker Compose stopped and cleaned up."
 
-.PHONY: clean
 clean:
 	@echo "Cleaning up the environment..."
 	@rm -rf $(VENV_DIR)
