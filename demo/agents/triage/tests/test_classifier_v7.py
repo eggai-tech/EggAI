@@ -135,7 +135,8 @@ class TestClassifierV7Unit:
         
         classifier = FinetunedClassifier()
         assert classifier is not None
-        assert classifier._model is None  # Before loading
+        assert classifier.model is None  # Before loading
+        assert classifier.tokenizer is None  # Before loading
 
     @patch('os.path.exists', return_value=False)
     def test_model_path_logic(self, mock_exists):
@@ -464,6 +465,8 @@ class TestClassifierIntegrationCrossVersion:
         
         v7_classifier = V7Classifier()
         assert v7_classifier is not None
+
+
 
 
 if __name__ == "__main__":

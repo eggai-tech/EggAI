@@ -108,7 +108,7 @@ def perform_fine_tuning(student_classify, teacher_classify, trainset):
         # Prepare training data
         print("Preparing training data...")
         def format_example(example):
-            return f"<start_of_turn>user\n{example.chat_history}<end_of_turn>\n<start_of_turn>model\n{example.target_agent}<end_of_turn>"
+            return example.chat_history
         
         texts = [format_example(ex) for ex in trainset]
         
