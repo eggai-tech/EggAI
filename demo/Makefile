@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifier-v6-evaluation test-triage-classifier-v7-evaluation test-triage-classifiers-evaluation test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-coverage test-triage-classifiers-all check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifier-v6-evaluation test-triage-classifier-v7-evaluation test-triage-classifiers-evaluation test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-coverage test-triage-classifiers-all eval-triage-classifier-v0 eval-triage-classifier-v1 eval-triage-classifier-v2 eval-triage-classifier-v3 eval-triage-classifier-v4 eval-triage-classifier-v5 eval-triage-classifier-v6 eval-triage-classifier-v7 eval-all-triage-classifiers eval-latest-triage-classifiers check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -257,6 +257,76 @@ test-triage-classifiers-all:
 	@make test-triage-classifiers-comparison
 	@make test-triage-classifiers-coverage
 	@echo "✅ All classifier tests completed!"
+
+# ================================================================================
+# STANDARDIZED EVALUATION INTERFACE
+# ================================================================================
+# These commands provide a consistent interface for MLflow evaluation across all 
+# classifier versions. Use these commands when you want to compare classifier 
+# performance in MLflow.
+
+eval-triage-classifier-v0:
+	@echo "📊 Running MLflow evaluation for classifier v0..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v0
+
+eval-triage-classifier-v1:
+	@echo "📊 Running MLflow evaluation for classifier v1..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v1
+
+eval-triage-classifier-v2:
+	@echo "📊 Running MLflow evaluation for classifier v2..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v2
+
+eval-triage-classifier-v3:
+	@echo "📊 Running MLflow evaluation for classifier v3..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v3
+
+eval-triage-classifier-v4:
+	@echo "📊 Running MLflow evaluation for classifier v4..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v4
+
+eval-triage-classifier-v5:
+	@echo "📊 Running MLflow evaluation for classifier v5..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v5
+
+eval-triage-classifier-v6:
+	@echo "📊 Running MLflow evaluation for classifier v6..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v6-evaluation
+
+eval-triage-classifier-v7:
+	@echo "📊 Running MLflow evaluation for classifier v7..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v7-evaluation
+
+eval-all-triage-classifiers:
+	@echo "🚀 Running MLflow evaluation for ALL classifiers (v0-v7)..."
+	@echo "📈 Complete performance comparison - populate MLflow dashboard"
+	@echo "⏱️  This will take several minutes..."
+	@make eval-triage-classifier-v0
+	@make eval-triage-classifier-v1
+	@make eval-triage-classifier-v2
+	@make eval-triage-classifier-v3
+	@make eval-triage-classifier-v4
+	@make eval-triage-classifier-v5
+	@make eval-triage-classifier-v6
+	@make eval-triage-classifier-v7
+	@echo "✅ All classifier evaluations completed!"
+	@echo "🎯 View results at: http://localhost:5001/#/experiments/4"
+
+eval-latest-triage-classifiers:
+	@echo "🔥 Running MLflow evaluation for latest classifiers (v6 & v7)..."
+	@echo "⚡ Quick comparison of most recent implementations"
+	@make eval-triage-classifier-v6
+	@make eval-triage-classifier-v7
+	@echo "✅ Latest classifier evaluations completed!"
+	@echo "🎯 View results at: http://localhost:5001/#/experiments/4"
 
 test-triage-agent:
 	@echo "Running tests for triage agent..."
