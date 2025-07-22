@@ -6,14 +6,19 @@ from time import perf_counter
 import torch
 from dotenv import load_dotenv
 from peft import PeftModel
-from transformers import AutoTokenizer, AutoConfig, AutoModelForSequenceClassification
+from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
+from triage.classifier_v7.config import ClassifierV7Settings
+from triage.classifier_v7.device_utils import (
+    get_device_config,
+    is_cuda_available,
+    move_to_mps,
+)
 
 # import gemma3_wrapper so for so that Gemma3TextForSequenceClassification is registered
-from agents.triage.classifier_v7.gemma3_wrapper import Gemma3TextForSequenceClassification
-
+from agents.triage.classifier_v7.gemma3_wrapper import (
+    Gemma3TextForSequenceClassification,  # noqa: F401
+)
 from agents.triage.models import ClassifierMetrics, TargetAgent
-from triage.classifier_v7.config import ClassifierV7Settings
-from triage.classifier_v7.device_utils import get_device_config, is_cuda_available, move_to_mps
 
 LABEL_TO_AGENT = {
     0: TargetAgent.BillingAgent,

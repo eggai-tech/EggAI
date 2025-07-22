@@ -2,8 +2,13 @@ from typing import Optional
 
 import torch
 from torch import nn
-from transformers import Gemma3PreTrainedModel, Gemma3TextConfig, Gemma3TextModel, Cache, \
-    AutoModelForSequenceClassification
+from transformers import (
+    AutoModelForSequenceClassification,
+    Cache,
+    Gemma3PreTrainedModel,
+    Gemma3TextConfig,
+    Gemma3TextModel,
+)
 from transformers.modeling_outputs import SequenceClassifierOutputWithPast
 
 
