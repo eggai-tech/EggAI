@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifier-v6-evaluation test-triage-classifier-v7-evaluation test-triage-classifiers-evaluation test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-coverage test-triage-classifiers-all eval-triage-classifier-v0 eval-triage-classifier-v1 eval-triage-classifier-v2 eval-triage-classifier-v3 eval-triage-classifier-v4 eval-triage-classifier-v5 eval-triage-classifier-v6 eval-triage-classifier-v7 eval-all-triage-classifiers eval-latest-triage-classifiers check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifier-v6-evaluation test-triage-classifier-v7-evaluation test-triage-classifiers-evaluation test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-coverage test-triage-classifiers-all eval-triage-classifier-v0 eval-triage-classifier-v1 eval-triage-classifier-v2 eval-triage-classifier-v3 eval-triage-classifier-v4 eval-triage-classifier-v5 eval-triage-classifier-v6 eval-triage-classifier-v7 eval-all-triage-classifiers eval-latest-triage-classifiers check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 serve-triage-classifier-v7 invoke-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -31,6 +31,29 @@ train-triage-classifier-v7:
 	@echo "💡 Custom: export FINETUNE_SAMPLE_SIZE=200 (or -1 for full dataset)"
 	@echo "⚠️  Requires: pip install transformers peft datasets accelerate bitsandbytes"
 	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v7/finetune_trainer.py
+
+serve-triage-classifier-v7:
+	@echo "Serving triage classifier v7 via MLflow..."
+	@echo "💡 Default port: 5000"
+	@echo "💡 Custom: make serve-triage-classifier-v7 PORT=5001"
+	@source $(VENV_DIR)/bin/activate && \
+	MODEL_URI=$$(python3 -c "import mlflow; exp = mlflow.get_experiment_by_name('triage_classifier'); runs = mlflow.search_runs(experiment_ids=[exp.experiment_id], order_by=['start_time DESC'], max_results=1) if exp else None; runs = runs if runs is not None and not runs.empty else mlflow.search_runs(experiment_ids=['0'], order_by=['start_time DESC'], max_results=1); print(f'runs:/{runs.iloc[0][\"run_id\"]}/model' if not runs.empty else 'No models found')"); \
+	if [ "$$MODEL_URI" != "No models found" ]; then \
+		echo "📡 Serving model: $$MODEL_URI"; \
+		echo "🌐 API endpoint: http://127.0.0.1:$${PORT:-5000}/invocations"; \
+		mlflow models serve -m "$$MODEL_URI" -p $${PORT:-5000} --env-manager local; \
+	else \
+		echo "❌ No trained models found. Run 'make train-triage-classifier-v7' first."; \
+	fi
+
+invoke-triage-classifier-v7:
+	@echo "Testing triage classifier v7 API..."
+	@echo "💡 Default: 'User: I want to know my policy due date.'"
+	@echo "💡 Custom: make invoke-triage-classifier-v7 TEXT='Your message here' PORT=5001"
+	@curl -X POST http://127.0.0.1:$${PORT:-5000}/invocations \
+		-H 'Content-Type: application/json' \
+		-d '{"inputs": ["$${TEXT:-User: I want to know my policy due date.}"]}' \
+		2>/dev/null | python3 -m json.tool || echo "❌ Service not running on port $${PORT:-5000}"
 
 start-eda-notebook:
 	@echo "Start Exploratory Data Analysis Notebook..."

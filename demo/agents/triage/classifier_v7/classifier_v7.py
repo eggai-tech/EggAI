@@ -43,7 +43,7 @@ class ClassificationResult:
 
 
 class FinetunedClassifier:
-    def __init__(self, model: Gemma3TextForSequenceClassification = None, tokenizer: AutoTokenizer = None):
+    def __init__(self, model: Gemma3TextForSequenceClassification = None, tokenizer: AutoTokenizer = None, **kwargs):
         self.model = model
         self.tokenizer = tokenizer
     
@@ -73,8 +73,9 @@ class FinetunedClassifier:
         device_map, dtype = get_device_config()
         
         # Load the fine-tuned sequence classification model directly
-        base_model = AutoModelForSequenceClassification.from_pretrained(
+        base_model = Gemma3TextForSequenceClassification.from_pretrained(
             base_model_name,
+            num_labels=len(LABEL_TO_AGENT),
             torch_dtype=dtype,
             device_map=device_map,
             attn_implementation="eager"
@@ -109,12 +110,23 @@ class FinetunedClassifier:
         self.model = move_to_mps(model, device_map)
         logger.info(f"HuggingFace model for classification loaded: {model_name}")
 
-    def classify(self, chat_history: str) -> TargetAgent:
+    def classify(self, chat_history: str) -> ClassificationResult:
         self._ensure_loaded()
         if self.model is None or self.tokenizer is None:
             raise RuntimeError("Model failed to load")
         
-        return self._sequence_classify(chat_history)
+        start_time = perf_counter()
+        target_agent = self._sequence_classify(chat_history)
+        latency_ms = (perf_counter() - start_time) * 1000
+        
+        metrics = ClassifierMetrics(
+            total_tokens=0,
+            prompt_tokens=0, 
+            completion_tokens=0,
+            latency_ms=latency_ms
+        )
+        
+        return ClassificationResult(target_agent=target_agent, metrics=metrics)
 
     def _sequence_classify(self, chat_history: str) -> TargetAgent:
         """Classification using sequence classification head"""
@@ -150,18 +162,7 @@ _classifier = FinetunedClassifier()
 
 
 def classifier_v7(chat_history: str) -> ClassificationResult:
-    start_time = perf_counter()
-    
-    target_agent = _classifier.classify(chat_history)
-    latency_ms = (perf_counter() - start_time) * 1000
-
-    metrics = _classifier.get_metrics()
-    metrics.latency_ms = latency_ms
-
-    return ClassificationResult(
-        target_agent=target_agent,
-        metrics=metrics
-    )
+    return _classifier.classify(chat_history)
 
 if __name__ == "__main__":
     setup_logging()
