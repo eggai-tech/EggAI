@@ -299,7 +299,7 @@ class TestClassifierV6Integration:
         from agents.triage.classifier_v6.finetune_trainer import train_finetune_model
         
         # This should hit real error paths when DSPy/OpenAI is not configured
-        with patch('agents.triage.classifier_v6.data_utils.create_examples') as mock_data:
+        with patch('agents.triage.classifier_v6.data_utils.create_training_examples') as mock_data:
             mock_data.return_value = []  # Empty training set
             
             with patch('mlflow.start_run'), patch('mlflow.log_param'), patch('mlflow.log_metric'):
