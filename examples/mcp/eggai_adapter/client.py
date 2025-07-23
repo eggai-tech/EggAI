@@ -12,7 +12,8 @@ class EggaiAdapterClient:
     def __init__(self, adapter: str):
         self.adapter = adapter
         self.futures: Dict[uuid.UUID, Dict[str, Any]] = {}
-        self.tool_agent = Agent("EggaiAdapterClient" + adapter)
+        self.source = "EggaiAdapterClient" + adapter
+        self.tool_agent = Agent(self.source)
         self.running_task = asyncio.create_task(self.start())
 
     def c(self, suffix: str) -> Channel:
@@ -27,6 +28,14 @@ class EggaiAdapterClient:
                 future["result"] = msg.data
                 future["result_event"].set()
 
+        @self.tool_agent.subscribe(channel=self.c("list.out"))
+        async def handle_tool_list_response(msg: ToolListResponseMessage):
+            call_id = msg.data.call_id
+            if call_id in self.futures:
+                future = self.futures[call_id]
+                future["result"] = msg.data.tools
+                future["result_event"].set()
+
         await self.tool_agent.start()
 
     async def call_tool(self, tool_name: str, parameters: Optional[Dict[str, Any]] = None) -> ToolCallResponse:
@@ -37,7 +46,7 @@ class EggaiAdapterClient:
         }
         await self.c("calls.in").publish(
             ToolCallRequestMessage(
-                source="EggaiAdapterClient" + self.adapter,
+                source=self.source,
                 data=ToolCallRequest(
                     call_id=call_uuid,
                     tool_name=tool_name,
@@ -51,24 +60,23 @@ class EggaiAdapterClient:
         return result
 
     async def retrieve_tools(self) -> List[ExternalTool]:
-        tool_found_event = asyncio.Event()
         call_uuid = uuid.uuid4()
-        discovered_tools: List[ExternalTool] = []
+        self.futures[call_uuid] = {
+            "result_event": asyncio.Event(),
+            "result": None
+        }
 
-        async def handle_tool_list_response(msg: ToolListResponseMessage):
-            if msg.data.call_id == call_uuid and msg.data.tools:
-                discovered_tools.extend(msg.data.tools)
-                tool_found_event.set()
-
-        await self.c("list.out").subscribe(handle_tool_list_response)
         await self.c("list.in").publish(
             ToolListRequestMessage(
-                source="Agent",
+                source=self.source,
                 data=ToolListRequest(
                     call_id=call_uuid,
                     adapter_name=self.adapter
                 )
             )
         )
-        await tool_found_event.wait()
+
+        await self.futures[call_uuid]["result_event"].wait()
+        discovered_tools: List[ExternalTool] = self.futures[call_uuid]["result"]
+        del self.futures[call_uuid]
         return discovered_tools
