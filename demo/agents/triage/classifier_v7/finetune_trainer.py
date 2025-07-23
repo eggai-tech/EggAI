@@ -2,11 +2,10 @@
 import logging
 import os
 
-from mlflow.models import infer_signature
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
 
 from agents.triage.baseline_model.utils import setup_logging
 from agents.triage.classifier_v7.classifier_v7 import FinetunedClassifier
-from agents.triage.data_sets.loader import AGENT_TO_LABEL, translate_agent_str_to_enum
 from agents.triage.shared.data_utils import create_examples
 
 # Set tokenizers parallelism to avoid warnings
@@ -46,26 +45,13 @@ def train_finetune_model(train_sample_size: int, eval_sample_size: int, model_na
 
         logger.info(f"Using base model: {model_name}")
 
-        model, tokenizer = perform_fine_tuning(trainset, testset)
+        perform_fine_tuning(trainset, testset)
 
-        # save the fine-tuned transformer model to mlflow
-        sample = trainset[0]
-        signature = infer_signature(
-            model_input=sample["chat_history"],
-            model_output=AGENT_TO_LABEL[translate_agent_str_to_enum(sample["target_agent"])],
-        )
-        mlflow.transformers.log_model(
-            transformers_model={"model": model, "tokenizer": tokenizer},
-            artifact_path="model",
-            signature=signature,
-            task="text-classification",
-        )
-
-        # return model uri
-        run_id = mlflow.active_run().info.run_id
-        model_uri = f"runs:/{run_id}/model"
-        logger.info(f"Model URI: {model_uri}")
-        return model_uri
+        mlflow.log_artifacts(v7_settings.output_dir, artifact_path="model")
+        # return artifact uri
+        artifact_uri = mlflow.get_artifact_uri("model")
+        logger.info(f"Model artifacts saved to: {artifact_uri}")
+        return artifact_uri
 
 
 if __name__ == "__main__":
@@ -78,14 +64,14 @@ if __name__ == "__main__":
         model_name = v7_settings.get_model_name()
     show_training_info()
     
-    model_uri = train_finetune_model(train_sample_size, eval_sample_size, model_name)
-    logger.info(f"Fine-tuned model saved to mlflow. URI: {model_uri}")
+    artifact_uri = train_finetune_model(train_sample_size, eval_sample_size, model_name)
+    local_path = mlflow.artifacts.download_artifacts(artifact_uri=artifact_uri)
+    # Load the config and override num_labels
+    config = AutoConfig.from_pretrained(model_name)
+    config.num_labels = v7_settings.n_classes
+    model = AutoModelForSequenceClassification.from_pretrained(local_path, config=config)
+    tokenizer = AutoTokenizer.from_pretrained(local_path)
 
-    # test the model on a sample chat history
-    logger.info(f"Loading fine-tuned model from URI: {model_uri} for testing...")
-    model_dict = mlflow.transformers.load_model(model_uri, return_type="components")
-    model = model_dict["model"]
-    tokenizer = model_dict["tokenizer"]
     triage_classifier = FinetunedClassifier(model=model, tokenizer=tokenizer)
 
     chat_history = "User: I want to know my policy due date."

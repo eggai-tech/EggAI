@@ -146,6 +146,8 @@ def perform_fine_tuning(trainset: list, testset: list):
         )
         mlflow.log_params(lora_config.to_dict())
         model = get_peft_model(model, lora_config)
+        # set to train explicitly
+        model.train()
         model.print_trainable_parameters()
 
     logger.info(f"Num train examples: {len(trainset)}")
