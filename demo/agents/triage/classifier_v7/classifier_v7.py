@@ -7,9 +7,10 @@ import torch
 from dotenv import load_dotenv
 from peft import PeftModel
 from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
-from triage.baseline_model.utils import setup_logging
-from triage.classifier_v7.config import ClassifierV7Settings
-from triage.classifier_v7.device_utils import (
+
+from agents.triage.baseline_model.utils import setup_logging
+from agents.triage.classifier_v7.config import ClassifierV7Settings
+from agents.triage.classifier_v7.device_utils import (
     get_device_config,
     is_cuda_available,
     move_to_mps,

@@ -5,7 +5,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import torch
-from triage.shared.data_utils import create_examples
+
+from agents.triage.shared.data_utils import create_examples
 
 # Set tokenizers parallelism to avoid warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -402,7 +403,7 @@ class TestClassifierV7GemmaUtils:
         from agents.triage.classifier_v7.gemma3_wrapper import _compute_loss
         
         logits = torch.tensor([[0.5]])
-        labels = torch.tensor([1.0])
+        labels = torch.tensor([[1.0]])  # Same shape as logits for binary classification
         loss = _compute_loss(logits, labels, 1)
         assert loss is not None
         assert isinstance(loss, torch.Tensor)
@@ -491,10 +492,15 @@ class TestClassifierV7GemmaUtils:
         
         with patch('agents.triage.classifier_v7.gemma3_wrapper.Gemma3TextModel') as mock_model_class:
             mock_model = Mock()
-            mock_model.return_value.last_hidden_state = torch.randn(1, 10, 4)
-            mock_model.return_value.past_key_values = None
-            mock_model.return_value.hidden_states = None
-            mock_model.return_value.attentions = None
+            # Create a mock return value that can be subscripted
+            mock_outputs = Mock()
+            mock_outputs.last_hidden_state = torch.randn(1, 10, 4)
+            mock_outputs.past_key_values = None
+            mock_outputs.hidden_states = None
+            mock_outputs.attentions = None
+            # Make the outputs subscriptable by creating a tuple-like behavior
+            mock_outputs.__getitem__ = Mock(side_effect=lambda x: (None, None, None)[x])
+            mock_model.return_value = mock_outputs
             mock_model_class.return_value = mock_model
             
             model = Gemma3TextForSequenceClassification(config)

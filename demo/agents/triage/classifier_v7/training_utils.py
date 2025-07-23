@@ -5,13 +5,14 @@ from datetime import datetime
 
 import mlflow
 import torch
-from triage.classifier_v7.config import ClassifierV7Settings
-from triage.classifier_v7.device_utils import (
+
+from agents.triage.classifier_v7.config import ClassifierV7Settings
+from agents.triage.classifier_v7.device_utils import (
     get_device_config,
     get_training_precision,
     move_to_mps,
 )
-from triage.data_sets.loader import AGENT_STR_TO_LABEL
+from agents.triage.data_sets.loader import AGENT_STR_TO_LABEL
 
 # Set tokenizers parallelism to avoid warnings during training
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
