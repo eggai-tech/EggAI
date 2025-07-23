@@ -12,14 +12,14 @@ from agents.triage.models import TargetAgent
 class DatasetRow:
     conversation: str
     target_agent: TargetAgent
-    turns: int
-    temperature: float
-    index_batch: int
-    total_batch: int
-    special_case: str
-    model: str
-    agent_distribution: str
-    special_case_distribution: str
+    turns: int = 0  # Number of turns in the conversation
+    temperature: float = 0.7  # Temperature setting for the model
+    index_batch: int = 0  # Index of the batch in the dataset
+    total_batch: int = 0  # Total number of batches in the dataset
+    special_case: str = None  # Special case handling, if any
+    model: str = "openai/gpt-4o-mini"  # Model used for the conversation
+    agent_distribution: str = None
+    special_case_distribution: str = None
 
     def __post_init__(self):
         self.conversation = self.conversation.strip()

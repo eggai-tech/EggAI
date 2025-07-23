@@ -7,6 +7,7 @@ import torch
 from dotenv import load_dotenv
 from peft import PeftModel
 from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
+from triage.baseline_model.utils import setup_logging
 from triage.classifier_v7.config import ClassifierV7Settings
 from triage.classifier_v7.device_utils import (
     get_device_config,
@@ -162,6 +163,7 @@ def classifier_v7(chat_history: str) -> ClassificationResult:
     )
 
 if __name__ == "__main__":
+    setup_logging()
     result = classifier_v7(chat_history="User: I want to know my policy due date.")
-    print(f"Target Agent: {result.target_agent}")
-    print(f"Metrics: {result.metrics}")
+    logger.info(f"Target Agent: {result.target_agent}")
+    logger.info(f"Metrics: {result.metrics}")
