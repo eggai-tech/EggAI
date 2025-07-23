@@ -2,12 +2,10 @@
 import logging
 import os
 
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
-
 from agents.triage.baseline_model.utils import setup_logging
 from agents.triage.classifier_v7.classifier_v7 import FinetunedClassifier
+from agents.triage.data_sets.loader import AGENT_TO_LABEL
 from agents.triage.shared.data_utils import create_examples
-from agents.triage.data_sets.loader import AGENT_TO_LABEL, translate_agent_str_to_enum
 
 # Set tokenizers parallelism to avoid warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -80,7 +78,9 @@ def train_finetune_model(sample_size: int, model_name: str) -> str:
                 if test_tokenizer.pad_token is None:
                     test_tokenizer.pad_token = test_tokenizer.eos_token
                     
-                from agents.triage.classifier_v7.gemma3_wrapper import Gemma3TextForSequenceClassification
+                from agents.triage.classifier_v7.gemma3_wrapper import (
+                    Gemma3TextForSequenceClassification,
+                )
                 base_model = Gemma3TextForSequenceClassification.from_pretrained(
                     base_model_name,
                     num_labels=len(AGENT_TO_LABEL),
