@@ -251,11 +251,11 @@ class TestClassifierV7Unit:
         # Verify path checking was called
         mock_exists.assert_called()
 
-    @patch('os.path.exists', return_value=True)
+    @patch('pathlib.Path.exists', return_value=True)
     @patch('agents.triage.classifier_v7.classifier_v7.AutoTokenizer')
-    @patch('agents.triage.classifier_v7.classifier_v7.AutoModelForSequenceClassification')
+    @patch('agents.triage.classifier_v7.classifier_v7.Gemma3TextForSequenceClassification')
     @patch('agents.triage.classifier_v7.classifier_v7.PeftModel')
-    def test_load_finetuned_model_path(self, mock_peft, mock_auto_model, mock_tokenizer, mock_exists):
+    def test_load_finetuned_model_path(self, mock_peft, mock_gemma_model, mock_tokenizer, mock_exists):
         """Test loading fine-tuned model when path exists."""
         from agents.triage.classifier_v7.classifier_v7 import FinetunedClassifier
         
@@ -264,7 +264,7 @@ class TestClassifierV7Unit:
         mock_tokenizer.from_pretrained.return_value = mock_tokenizer_instance
         
         mock_base_model = Mock()
-        mock_auto_model.from_pretrained.return_value = mock_base_model
+        mock_gemma_model.from_pretrained.return_value = mock_base_model
         
         mock_peft_model = Mock()
         mock_peft.from_pretrained.return_value = mock_peft_model
@@ -283,7 +283,7 @@ class TestClassifierV7Unit:
             
             # Verify the fine-tuned model loading path was taken
             mock_tokenizer.from_pretrained.assert_called()
-            mock_auto_model.from_pretrained.assert_called()
+            mock_gemma_model.from_pretrained.assert_called()
             mock_peft.from_pretrained.assert_called()
 
     @patch('agents.triage.classifier_v7.classifier_v7.AutoTokenizer')
@@ -619,6 +619,15 @@ class TestClassifierV7TrainingUtils:
         mock_tokenizer_instance = Mock()
         mock_tokenizer_instance.pad_token = None
         mock_tokenizer_instance.eos_token = '<eos>'
+        # Make the tokenizer callable and return a dictionary (as real tokenizers do)
+        # Use side_effect to return different batch sizes based on input
+        def mock_tokenizer_fn(texts, **kwargs):
+            batch_size = len(texts) if isinstance(texts, list) else 1
+            return {
+                'input_ids': [[1, 2, 3, 4] for _ in range(batch_size)],
+                'attention_mask': [[1, 1, 1, 1] for _ in range(batch_size)]
+            }
+        mock_tokenizer_instance.side_effect = mock_tokenizer_fn
         mock_tokenizer.from_pretrained.return_value = mock_tokenizer_instance
         
         mock_model_instance = Mock()
@@ -653,7 +662,7 @@ class TestClassifierV7TrainingUtils:
              patch('agents.triage.classifier_v7.training_utils.ClassifierV7Settings') as mock_settings_class, \
              patch('mlflow.log_params'), \
              patch('mlflow.log_metric'), \
-             patch('time.time', side_effect=[0, 100]):
+             patch('time.time', return_value=100):
             
             mock_settings = Mock()
             mock_settings.get_model_name.return_value = 'google/gemma-3-1b-it'
@@ -872,13 +881,15 @@ class TestClassifierV7Integration:
         
         # Test parameter logging
         with patch('mlflow.log_param') as mock_log:
-            log_training_parameters(100, 'google/gemma-3-1b-it', 150)
+            log_training_parameters(100, 50, 'google/gemma-3-1b-it', 150, 75)
             
             logged_params = {call.args[0]: call.args[1] for call in mock_log.call_args_list}
             assert logged_params['version'] == 'v7'
             assert logged_params['model'] == 'google/gemma-3-1b-it'
             assert logged_params['samples'] == 100
-            assert logged_params['examples'] == 150
+            assert logged_params['eval_samples'] == 50
+            assert logged_params['train_examples'] == 150
+            assert logged_params['test_examples'] == 75
 
     def test_base_model_parameter_integration(self):
         """Test model loading with base_model_name parameter passing."""
@@ -929,6 +940,10 @@ class TestClassifierV7Integration:
         with patch('torch.backends.mps.is_available', return_value=True), \
              patch('torch.cuda.is_available', return_value=False):
             
+            # Mock the tensor.to() method to avoid actual MPS calls
+            mock_tokenizer_result['input_ids'].to = Mock(return_value=mock_tokenizer_result['input_ids'])
+            mock_tokenizer_result['attention_mask'].to = Mock(return_value=mock_tokenizer_result['attention_mask'])
+            
             result = classifier._sequence_classify("User: I need help with my claim")
             
             from agents.triage.models import TargetAgent
@@ -937,6 +952,10 @@ class TestClassifierV7Integration:
         # Test CUDA device handling
         with patch('torch.backends.mps.is_available', return_value=False), \
              patch('torch.cuda.is_available', return_value=True):
+            
+            # Mock the tensor.to() method to avoid actual CUDA calls
+            mock_tokenizer_result['input_ids'].to = Mock(return_value=mock_tokenizer_result['input_ids'])
+            mock_tokenizer_result['attention_mask'].to = Mock(return_value=mock_tokenizer_result['attention_mask'])
             
             result = classifier._sequence_classify("User: I need help with my claim")
             assert result == TargetAgent.ClaimsAgent

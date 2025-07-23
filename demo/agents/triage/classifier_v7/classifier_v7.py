@@ -67,48 +67,67 @@ class FinetunedClassifier:
 
     def _load_finetuned_model(self, model_path, base_model_name):
         """Load fine-tuned sequence classification model"""
-        # Load tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        # Use shared device configuration
-        device_map, dtype = get_device_config()
-        
-        # Load the fine-tuned sequence classification model directly
-        base_model = Gemma3TextForSequenceClassification.from_pretrained(
-            base_model_name,
-            num_labels=len(LABEL_TO_AGENT),
-            torch_dtype=dtype,
-            device_map=device_map,
-            attn_implementation="eager"
-        )
-        model = PeftModel.from_pretrained(base_model, model_path)
-        
-        # Move to mps if necessary
-        self.model = move_to_mps(model, device_map)
-        logger.info(f"Fine-tuned sequence classification model loaded from: {model_path}. Base model: {base_model_name}")
+        try:
+            # Load tokenizer
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+            # Use shared device configuration
+            device_map, dtype = get_device_config()
+            
+            # Load the fine-tuned sequence classification model directly
+            base_model = Gemma3TextForSequenceClassification.from_pretrained(
+                base_model_name,
+                num_labels=len(LABEL_TO_AGENT),
+                torch_dtype=dtype,
+                device_map=device_map,
+                attn_implementation="eager"
+            )
+            model = PeftModel.from_pretrained(base_model, model_path)
+            
+            # WORKAROUND: Manually load classifier state since PEFT modules_to_save isn't working correctly
+            import os
+            classifier_state_path = os.path.join(model_path, 'classifier_state.pt')
+            if os.path.exists(classifier_state_path):
+                logger.info("Loading classifier state manually from explicit save...")
+                classifier_state = torch.load(classifier_state_path, map_location='cpu')
+                model.classifier.load_state_dict(classifier_state)
+                logger.info("Manually loaded classifier state")
+            else:
+                logger.warning(f"No explicit classifier state found at {classifier_state_path}. Using PEFT default (may not work correctly).")
+            
+            # Move to mps if necessary
+            self.model = move_to_mps(model, device_map)
+            logger.info(f"Fine-tuned sequence classification model loaded from: {model_path}. Base model: {base_model_name}")
+        except Exception as e:
+            logger.error(f"Failed to load fine-tuned model from {model_path}: {e}")
+            raise RuntimeError("Model failed to load") from e
     
 
     def _load_base_model(self):
         """Load the base model via HuggingFace"""
-        model_name = v7_settings.get_model_name()
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+        try:
+            model_name = v7_settings.get_model_name()
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        device_map, dtype = get_device_config()
-        config = AutoConfig.from_pretrained(model_name)
-        config.num_labels = v7_settings.n_classes  # Set number of classes for classification
+            device_map, dtype = get_device_config()
+            config = AutoConfig.from_pretrained(model_name)
+            config.num_labels = v7_settings.n_classes  # Set number of classes for classification
 
-        model = AutoModelForSequenceClassification.from_pretrained(
-            model_name,
-            config=config,
-            torch_dtype=dtype,
-            device_map=device_map,
-            load_in_4bit=v7_settings.use_4bit and not v7_settings.use_qat_model and is_cuda_available()  # 4-bit only on CUDA
-        )
+            model = AutoModelForSequenceClassification.from_pretrained(
+                model_name,
+                config=config,
+                torch_dtype=dtype,
+                device_map=device_map,
+                load_in_4bit=v7_settings.use_4bit and not v7_settings.use_qat_model and is_cuda_available()  # 4-bit only on CUDA
+            )
 
-        # Move to appropriate device
-        self.model = move_to_mps(model, device_map)
-        logger.info(f"HuggingFace model for classification loaded: {model_name}")
+            # Move to appropriate device
+            self.model = move_to_mps(model, device_map)
+            logger.info(f"HuggingFace model for classification loaded: {model_name}")
+        except Exception as e:
+            logger.error(f"Failed to load base model {v7_settings.get_model_name()}: {e}")
+            raise RuntimeError("Model failed to load") from e
 
     def classify(self, chat_history: str) -> ClassificationResult:
         self._ensure_loaded()
