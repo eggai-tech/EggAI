@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Union, Literal
 
 from fastmcp import FastMCP
 import dotenv
@@ -17,7 +18,7 @@ class Ticket(BaseModel):
     description: str
     status: TicketStatus
 
-_TICKETS = [Ticket(id=1, description="Initial ticket", status=TicketStatus.OPEN)]
+_TICKETS = []
 
 @mcp.tool
 def create_ticket(title: str) -> Ticket:
@@ -28,9 +29,9 @@ def create_ticket(title: str) -> Ticket:
     return new_ticket
 
 @mcp.tool
-def list_tickets() -> list[Ticket]:
+def list_tickets() -> dict[str, list[Ticket]]:
     """List all support tickets."""
-    return _TICKETS
+    return {"tickets": _TICKETS}
 
 @mcp.tool
 def update_ticket(ticket_id: int, status: TicketStatus) -> Ticket:
@@ -45,8 +46,10 @@ def update_ticket(ticket_id: int, status: TicketStatus) -> Ticket:
 def delete_ticket(ticket_id: int) -> str:
     """Delete a support ticket."""
     global _TICKETS
+    if not any(ticket.id == ticket_id for ticket in _TICKETS):
+        return f"Ticket with ID {ticket_id} not found."
     _TICKETS = [ticket for ticket in _TICKETS if ticket.id != ticket_id]
-    return f"Ticket with ID {ticket_id} has been deleted."
+    return f"Ticket with ID {ticket_id} has been successfully deleted."
 
 
 if __name__ == "__main__":

@@ -1,120 +1,142 @@
-# MCP Integration with EggAI
+# EggAI MCP Integration Workshop
 
-> **Connect your agents to external tools seamlessly**
+## Architecture Overview
 
-This example demonstrates how to integrate Model Context Protocol (MCP) servers with EggAI agents, enabling them to access external tools like web APIs and file systems. Learn how to build a two-agent system where one handles user interaction and another processes requests with intelligent tool usage.
+This example demonstrates how to integrate Model Context Protocol (MCP) servers with EggAI agents using a custom adapter layer. The architecture enables agents to access external services through standardized tool interfaces while maintaining async execution and distributed communication.
 
-![MCP Integration Demo](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-mcp.png)
+## Core Concepts
 
-## Agent Architecture
+### Model Context Protocol (MCP)
+MCP is a standard protocol for exposing tools and resources to AI systems. In this example:
+- **MCP Server** (`start_ticket_backend.py`): Exposes ticket management functions as tools
+- **FastMCP Framework**: Provides the MCP server implementation with HTTP/SSE transport
+- **Tool Discovery**: Automatic registration of available functions as callable tools
 
-This example implements a **two-agent system** that demonstrates MCP integration patterns:
+### EggAI Adapter Pattern
+The adapter acts as a bridge between EggAI agents and MCP servers:
 
-**Interface Agent** (`chat_agent/`): Simple console-based user interface  
-- Captures user input from terminal  
-- Displays responses and tool usage notifications  
-- Routes messages to the processing agent via EggAI transport  
+**EggAI Adapter Client** (`eggai_adapter/client.py`):
+- Connects to MCP servers through EggAI's message transport
+- Provides async tool discovery and execution
+- Handles request/response correlation with UUIDs
 
-**Processing Agent** (`mcp_agent/`): Intelligent MCP-enabled agent  
-- Uses DSPy ReAct for structured reasoning  
-- Connects directly to MCP servers (fetch, filesystem)  
-- Decides which tools to use based on user requests  
-- Streams back responses and tool execution updates  
+**MCP Adapter Service** (`eggai_adapter/mcp.py`):
+- Runs as an EggAI agent subscribing to tool channels
+- Translates EggAI messages to MCP protocol calls
+- Returns results through the same channel system
 
-## Quick Start
+### Integration with DSPy ReAct
+The system integrates with DSPy's ReAct reasoning pattern:
 
-```bash
-# Setup everything
-make setup
-make docker-up
+**Tool Conversion** (`eggai_adapter/dspy.py`):
+- Wraps MCP tools as DSPy-compatible functions
+- Maintains async execution through the adapter layer
+- Preserves tool metadata (name, description, parameters)
 
-# Start chatting
-make start
+**Agent Implementation** (`start_agent.py`):
+- Uses DSPy ReAct for structured reasoning
+- Subscribes to EggAI channels for user interaction
+- Executes tools through the adapter client
+
+## Component Architecture
+
 ```
-
-Then try: *"Fetch content from https://example.com and save it to a file"*
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   User Console  │    │   EggAI Agent    │    │  MCP Adapter    │
+│                 │◄───┤                  │◄───┤                 │
+│ start_console.py│    │ start_agent.py   │    │eggai_adapter/   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                ▲                        │
+                                │                        ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │  Kafka/EggAI    │    │   MCP Server    │
+                       │   Transport     │    │                 │
+                       └─────────────────┘    │start_ticket_    │
+                                              │  backend.py     │
+                                              └─────────────────┘
+```
 
 ## Message Flow
 
-```
-User Input → Interface Agent → Processing Agent → MCP Tools → Response
-            ↓ (EggAI)        ↓ (EggAI)       ↓ (stdio)
-        Kafka Queue      Kafka Queue    MCP Servers
-```
+1. **User Input**: Console captures user message and publishes to `human.in` channel
+2. **Agent Processing**: EggAI agent receives message and uses DSPy ReAct for reasoning
+3. **Tool Discovery**: Adapter client retrieves available tools from MCP server
+4. **Tool Execution**: ReAct calls tools through adapter, which forwards to MCP server
+5. **Response**: Results flow back through the adapter to agent, then to console
 
-1. **Interface Agent** receives user input and forwards via EggAI messaging
-2. **Processing Agent** gets the request and uses DSPy ReAct to reason about tool usage
-3. **MCP Integration** connects to external servers (fetch, filesystem) as needed
-4. **Tool Notifications** stream back through the agent chain to keep user informed
-5. **Final Response** delivered to user with complete context of actions taken
+## Channel Architecture
 
-## MCP Integration Features
-
-This implementation shows how to:
-- **Connect MCP Servers**: Direct stdio connections to fetch and filesystem servers
-- **Tool Discovery**: Automatic registration of available MCP tools
-- **Intelligent Selection**: DSPy ReAct reasoning to choose appropriate tools
-- **Streaming Updates**: Real-time notifications of tool execution progress
-- **Error Handling**: Graceful fallbacks when tools fail or are unavailable
-- **Multi-step Workflows**: Chain multiple tool calls to complete complex tasks
-
-## Project Structure
+The system uses EggAI's channel-based communication:
 
 ```
-├── agents/
-│   ├── chat_agent/     # Console interface
-│   └── mcp_agent/      # The thinking agent
-├── sandbox/            # Safe file playground
-└── main.py            # Start here
+Channel("human.in")          # User input
+Channel("human.out")         # Agent responses
+Channel("tools.{adapter}.list.in")   # Tool discovery requests
+Channel("tools.{adapter}.list.out")  # Tool discovery responses  
+Channel("tools.{adapter}.calls.in")  # Tool execution requests
+Channel("tools.{adapter}.calls.out") # Tool execution responses
 ```
 
-## Architecture
+## Key Benefits
 
-This example implements a **two-agent system** with clear separation of concerns:
+**Scalability**: Multiple agents can share the same MCP adapter service
+**Async Execution**: Full async support from console to MCP server
+**Protocol Abstraction**: Agents work with tools without knowing MCP details
+**Distributed Architecture**: Components can run on different machines
+**Tool Reusability**: MCP tools work with any framework through the adapter
 
-### Interface Agent (`chat_agent/`)
-- Lightweight console interface using EggAI's base agent class
-- Handles user input/output with minimal processing
-- Forwards all reasoning tasks to the MCP agent via EggAI messaging
+## Workshop Components
 
-### MCP Agent (`mcp_agent/`)
-- Uses DSPy's ReAct pattern for structured reasoning:
-  1. **Think**: Understand what the user wants
-  2. **Plan**: Decide which tools to use
-  3. **Act**: Execute tools with reasoning
-  4. **Reflect**: Learn from results
-- Direct MCP server connections via stdio
-- Tool wrapper classes that adapt MCP tools to DSPy format
-- Streaming response generation with tool execution updates
+**Backend Service** (`start_ticket_backend.py`):
+- Simple ticket management system
+- Exposes CRUD operations as MCP tools
+- Runs on HTTP with SSE transport
 
-### MCP Servers
-- **Fetch Server**: Web content retrieval
-- **Filesystem Server**: File operations in sandbox
-- Connected via stdio for reliable communication
+**Adapter Service** (`start_ticket_adapter.py`):
+- Bridges EggAI messaging to MCP protocol
+- Handles tool discovery and execution
+- Maintains request correlation
 
-### Key Components
+**Agent Implementation** (`start_agent.py`):
+- DSPy ReAct agent with MCP tool access
+- Subscribes to user input channels
+- Publishes responses back to console
 
-**MCP Integration** (`mcp_manager.py`):
-- Manages connections to multiple MCP servers
-- Automatic tool discovery and registration
-- Error handling and server lifecycle management
+**Console Interface** (`start_console.py`):
+- Simple terminal interface
+- Publishes user input to EggAI channels
+- Displays agent responses
 
-**Agent Communication**:
-- EggAI's Kafka-based messaging for reliable inter-agent communication
-- Async message processing for responsive user experience
-- Streaming updates during tool execution
+## Running the Workshop
 
-## Key Integration Patterns
+1. **Start all services** (runs in parallel):
+   ```bash
+   make services
+   ```
 
-1. **Agent Separation**: Keep interface and processing logic in separate agents
-2. **Tool Wrapping**: Adapt MCP tools to work with your reasoning framework
-3. **Streaming Updates**: Provide real-time feedback during tool execution
-4. **Error Resilience**: Handle MCP server failures gracefully
-5. **Async Design**: Use EggAI's async capabilities for responsive tool usage
+2. **Start the console interface** (in a separate terminal):
+   ```bash
+   make console
+   ```
 
-## Next Steps
+## Technical Implementation
 
-- Add your own MCP servers to extend tool capabilities
-- Implement custom tool selection logic in the processing agent
-- Scale the MCP agent horizontally for high-throughput scenarios
-- Explore multi-agent workflows with specialized MCP integrations
+### Async Tool Execution
+The adapter ensures async execution throughout the stack:
+- DSPy ReAct uses `aforward()` for async reasoning
+- Tool functions are wrapped as async callables
+- MCP client connections are async-aware
+
+### Request Correlation
+Each tool call uses UUID correlation:
+- Client generates UUID for each request
+- Adapter maintains future objects for response handling
+- Responses are matched to original requests
+
+### Error Handling
+Comprehensive error handling at each layer:
+- MCP server errors are captured and forwarded
+- Network failures are handled gracefully
+- Agent continues operation despite tool failures
+
+This architecture demonstrates how to extend EggAI agents with external capabilities while maintaining the framework's async and distributed design principles.

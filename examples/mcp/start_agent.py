@@ -1,37 +1,67 @@
 import asyncio
+import os
 
 import dotenv
+import dspy
 from eggai import Agent, eggai_main, Channel
+from eggai.schemas import Message
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 
 from eggai_adapter.client import EggaiAdapterClient
-from schemas import Ticket, TICKET_ADAPTER_NAME
+from eggai_adapter.dspy import convert_tool_for_dspy
+from schemas import TICKET_ADAPTER_NAME
+
+
+class TicketAssistantSignature(dspy.Signature):
+    """You are an helpful assistant that can interact with external tools to manage support tickets."""
+    conversation_history: str = dspy.InputField()
+    user_message: str = dspy.InputField()
+    assistant_response: str = dspy.OutputField()
+
 
 dotenv.load_dotenv()
+dspy.configure(
+    lm=dspy.LM(model="openai/gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"))
+)
 
 
 @eggai_main
 async def main():
     cl = EggaiAdapterClient(TICKET_ADAPTER_NAME)
     tools = await cl.retrieve_tools()
-    print(f"Discovered {len(tools)} tools for {TICKET_ADAPTER_NAME}:")
-    for tool in tools:
-        print(f"- {tool.name}: {tool.description}")
 
-    res = await cl.call_tool("list_tickets", {})
+    react = dspy.ReAct(
+        signature=TicketAssistantSignature,
+        tools=[convert_tool_for_dspy(cl, tool) for tool in tools],
+        max_iters=5
+    )
 
-    raw_tickets = res.data if res and not res.is_error else []
-    tickets = [Ticket.model_validate(r) for r in raw_tickets] if raw_tickets else []
-    print(f"Retrieved {len(tickets)} tickets:")
-    for ticket in tickets:
-        print(f"- ID: {ticket.id}, Description: {ticket.description}, Status: {ticket.status}")
+    conversation_history = []
 
-    if res.is_error:
-        print(f"Error retrieving tickets: {res.data}")
+    agent = Agent("TicketingAgent")
 
+    @agent.subscribe(channel=Channel("human.in"))
+    async def handle_user_input(message: Message):
+        user_message = message.data.get("user_message")
 
-    agents_channel = Channel("agents")
-    agent = Agent("Agent")
+        conversation_history.append("User: " + user_message)
+
+        response = await react.aforward(
+            conversation_history=conversation_history,
+            user_message=user_message
+        )
+        conversation_history.append("Assistant: " + response.assistant_response)
+
+        await Channel("human.out").publish(
+            Message(
+                type="agent_response",
+                source="TicketingAgent",
+                data={
+                    "assistant_response": response.assistant_response
+                }
+            )
+        )
+
 
     await agent.start()
 
