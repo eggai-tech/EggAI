@@ -2,15 +2,15 @@
 
 import pytest
 
-from agents.triage.shared.data_utils import create_training_examples
+from agents.triage.shared.data_utils import create_examples
 
 
 class TestSharedDataUtils:
     """Test shared data utility functions."""
 
     def test_create_training_examples_basic(self):
-        """Test basic functionality of create_training_examples."""
-        examples = create_training_examples(sample_size=5, seed=42)
+        """Test basic functionality of create_examples."""
+        examples = create_examples(sample_size=5, seed=42)
         assert len(examples) == 5
         
         for example in examples:
@@ -21,8 +21,8 @@ class TestSharedDataUtils:
 
     def test_create_training_examples_deterministic(self):
         """Test deterministic sampling with seed."""
-        examples_1 = create_training_examples(sample_size=5, seed=42)
-        examples_2 = create_training_examples(sample_size=5, seed=42)
+        examples_1 = create_examples(sample_size=5, seed=42)
+        examples_2 = create_examples(sample_size=5, seed=42)
         
         assert len(examples_1) == 5
         assert len(examples_2) == 5
@@ -34,8 +34,8 @@ class TestSharedDataUtils:
 
     def test_create_training_examples_different_seeds(self):
         """Test different seeds produce different results."""
-        examples_1 = create_training_examples(sample_size=5, seed=42)
-        examples_2 = create_training_examples(sample_size=5, seed=999)
+        examples_1 = create_examples(sample_size=5, seed=42)
+        examples_2 = create_examples(sample_size=5, seed=999)
         
         assert len(examples_1) == 5
         assert len(examples_2) == 5
@@ -47,20 +47,20 @@ class TestSharedDataUtils:
 
     def test_create_training_examples_all_data(self):
         """Test getting all available data."""
-        examples_all = create_training_examples(sample_size=-1)
+        examples_all = create_examples(sample_size=-1)
         assert len(examples_all) > 0
         
         # Should be larger than small samples
-        examples_small = create_training_examples(sample_size=5)
+        examples_small = create_examples(sample_size=5)
         assert len(examples_all) > len(examples_small)
 
     def test_create_training_examples_oversample(self):
         """Test requesting more samples than available."""
-        examples_all = create_training_examples(sample_size=-1)
+        examples_all = create_examples(sample_size=-1)
         total_available = len(examples_all)
         
         # Request more than available
-        examples_over = create_training_examples(sample_size=total_available + 1000)
+        examples_over = create_examples(sample_size=total_available + 1000)
         
         # Should return all available data
         assert len(examples_over) == total_available
@@ -68,16 +68,16 @@ class TestSharedDataUtils:
     def test_create_training_examples_edge_cases(self):
         """Test edge cases for sample sizes."""
         # Zero samples
-        examples_zero = create_training_examples(sample_size=0)
+        examples_zero = create_examples(sample_size=0)
         assert len(examples_zero) == 0
         
         # Single sample
-        examples_one = create_training_examples(sample_size=1, seed=42)
+        examples_one = create_examples(sample_size=1, seed=42)
         assert len(examples_one) == 1
 
     def test_create_training_examples_consistent_format(self):
         """Test that all examples have consistent format."""
-        examples = create_training_examples(sample_size=10, seed=42)
+        examples = create_examples(sample_size=10, seed=42)
         
         valid_agents = {'BillingAgent', 'ClaimsAgent', 'PolicyAgent', 'EscalationAgent', 'ChattyAgent'}
         

@@ -39,7 +39,7 @@ class Gemma3TextForSequenceClassification(Gemma3PreTrainedModel):
         self.model = Gemma3TextModel(config)
         # add dropout to slow down overfitting
         self.dropout = nn.Dropout(config.hidden_dropout if hasattr(config, "hidden_dropout") else 0.1)
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        self.classifier = nn.Linear(config.hidden_size, config.num_labels, bias=False)
         # Initialize weights and apply final processing
         self.post_init()
 

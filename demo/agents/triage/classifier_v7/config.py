@@ -22,7 +22,7 @@ class ClassifierV7Settings(BaseSettings):
     
     # Fine-tuning parameters
     learning_rate: float = Field(default=2e-4)
-    num_epochs: int = Field(default=3)
+    num_epochs: int = Field(default=10)
     batch_size: int = Field(default=1)
     gradient_accumulation_steps: int = Field(default=4)
     max_length: int = Field(default=512)

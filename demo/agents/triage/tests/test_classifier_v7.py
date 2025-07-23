@@ -4,6 +4,7 @@ import os
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from triage.shared.data_utils import create_examples
 
 # Set tokenizers parallelism to avoid warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -178,10 +179,9 @@ class TestClassifierV7DataUtils:
 
     def test_create_training_examples(self):
         """Test v7 data utility functions."""
-        from agents.triage.classifier_v7.data_utils import create_training_examples
-        
+
         # Test basic functionality
-        examples = create_training_examples(sample_size=5)
+        examples = create_examples(sample_size=5)
         assert len(examples) == 5
         
         for example in examples:
@@ -192,34 +192,13 @@ class TestClassifierV7DataUtils:
 
     def test_data_utils_edge_cases(self):
         """Test v7 data utilities edge cases."""
-        from agents.triage.classifier_v7.data_utils import create_training_examples
         
         # Test edge cases
-        examples_all = create_training_examples(sample_size=-1)  # All examples
+        examples_all = create_examples(sample_size=-1)  # All examples
         assert len(examples_all) > 0
         
-        examples_large = create_training_examples(sample_size=99999)  # Larger than dataset
+        examples_large = create_examples(sample_size=99999)  # Larger than dataset
         assert len(examples_large) > 0
-
-
-class TestClassifierV7ModelUtils:
-    """Test v7 model utility functions."""
-
-    @patch('builtins.open', create=True)
-    @patch('os.path.exists')
-    def test_save_model_id_to_env(self, mock_exists, mock_open):
-        """Test v7 model utility functions."""
-        from agents.triage.classifier_v7.model_utils import save_model_id_to_env
-        
-        mock_exists.return_value = False
-        mock_file = MagicMock()
-        mock_open.return_value.__enter__.return_value = mock_file
-        
-        result = save_model_id_to_env('gemma-3-test-model-123')
-        assert result is True
-        
-        # Verify file operations were called
-        mock_open.assert_called()
 
 
 class TestClassifierV7TrainingUtils:
@@ -329,11 +308,10 @@ class TestClassifierV7Integration:
 
     def test_deterministic_sampling_integration(self):
         """Test deterministic sampling with real numpy implementation."""
-        from agents.triage.classifier_v7.data_utils import create_training_examples
         
         # Test deterministic sampling
-        examples_1 = create_training_examples(sample_size=7, seed=42)
-        examples_2 = create_training_examples(sample_size=7, seed=42)
+        examples_1 = create_examples(sample_size=7, seed=42)
+        examples_2 = create_examples(sample_size=7, seed=42)
         
         assert len(examples_1) == 7
         assert len(examples_2) == 7
@@ -344,10 +322,10 @@ class TestClassifierV7Integration:
             assert ex1.target_agent == ex2.target_agent
         
         # Test edge cases
-        examples_all = create_training_examples(sample_size=-1)  # All examples
+        examples_all = create_examples(sample_size=-1)  # All examples
         assert len(examples_all) > 7  # Should be larger than sample
         
-        examples_large = create_training_examples(sample_size=99999)  # Larger than dataset
+        examples_large = create_examples(sample_size=99999)  # Larger than dataset
         assert len(examples_large) > 0
         assert len(examples_large) <= len(examples_all)  # Can't be larger than full dataset
 
@@ -425,17 +403,11 @@ class TestClassifierIntegrationCrossVersion:
     """Integration tests that validate consistency between classifier versions."""
 
     def test_data_utils_consistency_integration(self):
-        """Test that both v6 and v7 data utils produce consistent results."""
-        from agents.triage.classifier_v6.data_utils import (
-            create_training_examples as create_v6,
-        )
-        from agents.triage.classifier_v7.data_utils import (
-            create_training_examples as create_v7,
-        )
+        """Test that data utils produce consistent results."""
         
         # Both should use the same deterministic sampling
-        v6_examples = create_v6(sample_size=10, seed=123)
-        v7_examples = create_v7(sample_size=10, seed=123)
+        v6_examples = create_examples(sample_size=10, seed=123)
+        v7_examples = create_examples(sample_size=10, seed=123)
         
         assert len(v6_examples) == len(v7_examples) == 10
         

@@ -16,7 +16,7 @@ from triage.classifier_v7.device_utils import (
 
 # import gemma3_wrapper so for so that Gemma3TextForSequenceClassification is registered
 from agents.triage.classifier_v7.gemma3_wrapper import (
-    Gemma3TextForSequenceClassification,  # noqa: F401
+    Gemma3TextForSequenceClassification,
 )
 from agents.triage.models import ClassifierMetrics, TargetAgent
 
@@ -41,9 +41,9 @@ class ClassificationResult:
 
 
 class FinetunedClassifier:
-    def __init__(self):
-        self.model = None
-        self.tokenizer = None
+    def __init__(self, model: Gemma3TextForSequenceClassification = None, tokenizer: AutoTokenizer = None):
+        self.model = model
+        self.tokenizer = tokenizer
     
     def _ensure_loaded(self):
         if self.model is not None:

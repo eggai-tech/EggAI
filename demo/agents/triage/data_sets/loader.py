@@ -25,8 +25,8 @@ class DatasetRow:
         self.conversation = self.conversation.strip()
         self.target_agent = self.target_agent.strip()
         self.special_case = self.special_case.strip() if self.special_case else None
-        self.agent_distribution = self.agent_distribution.strip()
-        self.special_case_distribution = self.special_case_distribution.strip()
+        self.agent_distribution = self.agent_distribution.strip() if self.agent_distribution else None
+        self.special_case_distribution = self.special_case_distribution.strip() if self.special_case_distribution else None
 
 
 def load_dataset(file_path: Path):
@@ -56,12 +56,30 @@ def translate_agent_str_to_enum(agent_str: str) -> TargetAgent:
         raise ValueError(f"Unknown agent string: {agent_str}")
 
 
+AGENT_TO_LABEL = {
+    TargetAgent.BillingAgent: 0,
+    TargetAgent.PolicyAgent: 1,
+    TargetAgent.ClaimsAgent: 2,
+    TargetAgent.EscalationAgent: 3,
+    TargetAgent.ChattyAgent: 4,
+}
+
+# create str to label mapping for convenience
+AGENT_STR_TO_LABEL = {
+    "BillingAgent": 0,
+    "PolicyAgent": 1,
+    "ClaimsAgent": 2,
+    "EscalationAgent": 3,
+    "ChattyAgent": 4,
+}
+
+
 def load_dataset_triage_testing():
-    return load_dataset(Path(__file__).resolve().parent / "triage-testing.jsonl")
+    return load_dataset(Path(__file__).resolve().parent / "triage-testing-proofread.jsonl")
 
 
 def load_dataset_triage_training():
-    return load_dataset(Path(__file__).resolve().parent / "triage-training.jsonl")
+    return load_dataset(Path(__file__).resolve().parent / "triage-training-proofread.jsonl")
 
 
 def as_dspy_examples(dataset: list[DatasetRow]):
