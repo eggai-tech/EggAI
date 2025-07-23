@@ -3,8 +3,10 @@ source = agents, libraries
 omit = 
     */tests/*
     */test_*.py
+    */*_test.py
     */*_test_*.py
     */shared_test_utils.py
+    */conftest.py
     */__pycache__/*
     */venv/*
     */.venv/*
