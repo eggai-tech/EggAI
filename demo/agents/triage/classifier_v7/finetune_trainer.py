@@ -3,10 +3,11 @@ import logging
 import os
 
 from mlflow.models import infer_signature
-from triage.baseline_model.utils import setup_logging
-from triage.classifier_v7.classifier_v7 import FinetunedClassifier
-from triage.data_sets.loader import AGENT_TO_LABEL, translate_agent_str_to_enum
-from triage.shared.data_utils import create_examples
+
+from agents.triage.baseline_model.utils import setup_logging
+from agents.triage.classifier_v7.classifier_v7 import FinetunedClassifier
+from agents.triage.data_sets.loader import AGENT_TO_LABEL, translate_agent_str_to_enum
+from agents.triage.shared.data_utils import create_examples
 
 # Set tokenizers parallelism to avoid warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
