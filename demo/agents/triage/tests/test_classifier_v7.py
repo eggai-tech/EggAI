@@ -369,7 +369,7 @@ class TestClassifierV7Unit:
             
             # Should classify to ClaimsAgent (index 1)
             from agents.triage.models import TargetAgent
-            assert result == TargetAgent.ClaimsAgent
+            assert result.target_agent == TargetAgent.ClaimsAgent
 
     def test_classify_runtime_error(self):
         """Test classify raises RuntimeError when model fails to load."""
@@ -557,7 +557,7 @@ class TestClassifierV7TrainingUtils:
         run_name = setup_mlflow_tracking('gemma-test')
         assert run_name.startswith('gemma-test_')
         
-        log_training_parameters(50, 'gemma-test', 100, 80)
+        log_training_parameters(50, 20, 'gemma-test', 100, 80)
         mock_log_param.assert_called()
 
     def test_compute_metrics_comprehensive(self):
@@ -566,11 +566,13 @@ class TestClassifierV7TrainingUtils:
 
         from agents.triage.classifier_v7.training_utils import compute_metrics
         
-        # Test with perfect predictions
-        predictions = np.array([[0.1, 0.9, 0.1, 0.1, 0.1],
-                               [0.9, 0.1, 0.1, 0.1, 0.1],
-                               [0.1, 0.1, 0.9, 0.1, 0.1]])
-        labels = np.array([1, 0, 2])
+        # Test with perfect predictions for all 5 classes
+        predictions = np.array([[0.1, 0.9, 0.1, 0.1, 0.1],  # ClaimsAgent
+                               [0.9, 0.1, 0.1, 0.1, 0.1],   # BillingAgent
+                               [0.1, 0.1, 0.9, 0.1, 0.1],   # PolicyAgent
+                               [0.1, 0.1, 0.1, 0.9, 0.1],   # EscalationAgent
+                               [0.1, 0.1, 0.1, 0.1, 0.9]])  # ChattyAgent
+        labels = np.array([1, 0, 2, 3, 4])
         
         metrics = compute_metrics((predictions, labels))
         
@@ -865,7 +867,7 @@ class TestClassifierV7Integration:
         # Test MLflow setup
         with patch('mlflow.dspy.autolog'), patch('mlflow.set_experiment'):
             run_name = setup_mlflow_tracking('gemma-test')
-            assert run_name.startswith('v7_')
+            assert run_name.startswith('gemma-test_')
             # Run name includes timestamp, model name may not be included
         
         # Test parameter logging
