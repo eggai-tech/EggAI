@@ -58,8 +58,8 @@ def train_finetune_model(sample_size: int, model_name: str) -> str:
         )
         mlflow.transformers.log_model(
             transformers_model={"model": model, "tokenizer": tokenizer},
+            artifact_path="model",
             signature=signature,
-            name="model",  # relative path to save model files within MLflow run
         )
 
         # return model uri
