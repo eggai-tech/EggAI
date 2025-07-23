@@ -42,10 +42,11 @@ def setup_mlflow_tracking(model_name: str) -> str:
     return f"{model_name}_{timestamp}"
 
 
-def log_training_parameters(sample_size: int, model_name: str, trainset_size: int, testset_size: int):
+def log_training_parameters(sample_size: int, eval_sample_size: int, model_name: str, trainset_size: int, testset_size: int):
     mlflow.log_param("version", "v7")
     mlflow.log_param("model", model_name)
     mlflow.log_param("samples", sample_size)
+    mlflow.log_param("eval_samples", eval_sample_size)
     mlflow.log_param("train_examples", trainset_size)
     mlflow.log_param("test_examples", testset_size)
 

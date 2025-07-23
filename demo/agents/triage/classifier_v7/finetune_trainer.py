@@ -36,11 +36,12 @@ def train_finetune_model(sample_size: int, model_name: str) -> str:
     with mlflow.start_run(run_name=run_name):
         trainset = create_examples(sample_size, phase="train")
         logger.info(f"Loaded {len(trainset)} training examples")
-        # load the whole test set for evaluation
-        testset = create_examples(-1, phase="test")
+        # load test set for evaluation (configurable size)
+        eval_sample_size = int(os.getenv("EVALUATION_SAMPLE_SIZE", "-1"))
+        testset = create_examples(eval_sample_size, phase="test")
         logger.info(f"Loaded {len(testset)} test examples")
 
-        log_training_parameters(sample_size, model_name, len(trainset), len(testset))
+        log_training_parameters(sample_size, eval_sample_size, model_name, len(trainset), len(testset))
         
         if not model_name:
             model_name = v7_settings.get_model_name()
