@@ -660,9 +660,12 @@ class TestClassifierV7TrainingUtils:
              patch('agents.triage.classifier_v7.training_utils.move_to_mps', return_value=mock_model_instance), \
              patch('agents.triage.classifier_v7.training_utils.torch.cuda.is_available', return_value=False), \
              patch('agents.triage.classifier_v7.training_utils.ClassifierV7Settings') as mock_settings_class, \
+             patch('agents.triage.classifier_v7.training_utils.AutoConfig') as mock_config, \
              patch('mlflow.log_params'), \
              patch('mlflow.log_metric'), \
-             patch('time.time', return_value=100):
+             patch('time.time', return_value=100), \
+             patch('os.path.join', return_value='/fake/output/classifier_state.pt'), \
+             patch('torch.save') as mock_torch_save:
             
             mock_settings = Mock()
             mock_settings.get_model_name.return_value = 'google/gemma-3-1b-it'
@@ -680,6 +683,11 @@ class TestClassifierV7TrainingUtils:
             mock_settings.lora_dropout = 0.1
             mock_settings.lora_r = 8
             mock_settings_class.return_value = mock_settings
+            
+            # Mock the config
+            mock_config_instance = Mock()
+            mock_config_instance.num_labels = 5
+            mock_config.from_pretrained.return_value = mock_config_instance
             
             result = perform_fine_tuning(trainset, testset)
             
