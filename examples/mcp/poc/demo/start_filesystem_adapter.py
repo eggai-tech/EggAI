@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from mcp_adapter import create_filesystem_adapter
+from start_ticket_adapter import create_filesystem_adapter
 from adapter_base import run_adapter
 
 if __name__ == "__main__":
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         print(f"📂 Test files path: {test_files_path}")
         
         from mcp import StdioServerParameters
-        from mcp_adapter import MCPAdapter
+        from start_ticket_adapter import MCPAdapter
         
         # Create filesystem adapter pointing to our test directory
         print("🔧 Creating MCPAdapter...")
