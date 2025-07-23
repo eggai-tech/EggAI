@@ -1,0 +1,29 @@
+{
+  "demo_data": {
+    "external_tools": [
+      {
+        "name": "filesystem",
+        "type": "mcp_server",
+        "description": "File system operations",
+        "capabilities": ["read", "write", "list", "search"]
+      },
+      {
+        "name": "web_search",
+        "type": "rest_api", 
+        "description": "Web search functionality",
+        "capabilities": ["search", "summarize", "extract"]
+      }
+    ],
+    "integration_patterns": {
+      "discovery": "kafka_channels",
+      "execution": "async_messaging",
+      "error_handling": "graceful_fallback"
+    },
+    "metrics": {
+      "tools_available": 12,
+      "successful_calls": 847,
+      "average_response_time": "150ms",
+      "error_rate": "0.02%"
+    }
+  }
+}

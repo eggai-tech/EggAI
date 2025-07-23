@@ -1,5 +1,5 @@
-eggai==0.1.43
-python-dotenv==1.0.1
-mcp==1.4.1
+eggai==0.1.47
+python-dotenv==1.1.1
+mcp==1.12.1
 dspy-ai>=2.6.27
 aioconsole==0.8.1
