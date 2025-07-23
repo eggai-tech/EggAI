@@ -29,6 +29,20 @@ result = classifier_v7(chat_history="User: I need help with my claim")
 print(result.target_agent)  # e.g., "ClaimsAgent"
 ```
 
+## Model Serving with MLFlow
+
+After training the model with `make train-triage-classifier-v7`, you can serve it using MLFlow:
+```bash
+make serve-triage-classifier-v7
+```
+This will start a local server and expose and endpoint for inference: http://127.0.0.1:5000/invocations.
+
+To test the endpoint, you can use send a custom input via:
+
+```bash
+make invoke-triage-classifier-v7 TEXT='Your message here'
+```
+
 ## Configuration
 
 ```bash
