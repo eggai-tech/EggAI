@@ -236,7 +236,7 @@ def perform_fine_tuning(trainset: list, testset: list):
 
     # Save the model
     logger.info(f"Saving model to {v7_settings.output_dir}")
-    trainer.save_model()
+    trainer.save_model(v7_settings.output_dir)
 
     logger.info(f"Gemma3 fine-tuning completed. Model saved to {v7_settings.output_dir}")
 
