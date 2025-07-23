@@ -240,6 +240,12 @@ def perform_fine_tuning(trainset: list, testset: list):
     # Save the model
     logger.info(f"Saving model to {v7_settings.output_dir}")
     trainer.save_model(v7_settings.output_dir)
+    
+    # CRITICAL: Also save classifier state to main output directory for production use
+    if hasattr(model, 'classifier'):
+        classifier_state_path = os.path.join(v7_settings.output_dir, 'classifier_state.pt')
+        torch.save(model.classifier.state_dict(), classifier_state_path)
+        logger.info(f"Saved classifier state to {classifier_state_path} for production use")
 
     logger.info(f"Gemma3 fine-tuning completed. Model saved to {v7_settings.output_dir}")
 
