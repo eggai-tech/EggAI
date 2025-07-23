@@ -192,7 +192,6 @@ def perform_fine_tuning(trainset: list, testset: list):
         warmup_ratio=0.03,
         **get_training_precision(),
         logging_steps=10,
-        save_steps=100,
         save_total_limit=2,
         # Evaluation configuration
         eval_strategy="epoch",  # Evaluate after each epoch
