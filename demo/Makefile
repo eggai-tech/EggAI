@@ -30,14 +30,18 @@ train-triage-classifier-v7:
 	@echo "💡 Default: 100 examples (LoRA fine-tuning)"
 	@echo "💡 Custom: export FINETUNE_SAMPLE_SIZE=200 (or -1 for full dataset)"
 	@echo "⚠️  Requires: pip install transformers peft datasets accelerate bitsandbytes"
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v7/finetune_trainer.py
+	@source $(VENV_DIR)/bin/activate && export MLFLOW_TRACKING_URI=http://localhost:5001 && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v7/finetune_trainer.py
 
 serve-triage-classifier-v7:
 	@echo "Serving triage classifier v7 via MLflow..."
 	@echo "💡 Default port: 5000"
 	@echo "💡 Custom: make serve-triage-classifier-v7 PORT=5001"
 	@source $(VENV_DIR)/bin/activate && \
-	MODEL_URI=$$(python3 -c "import mlflow; exp = mlflow.get_experiment_by_name('triage_classifier'); runs = mlflow.search_runs(experiment_ids=[exp.experiment_id], order_by=['start_time DESC'], max_results=1) if exp else None; runs = runs if runs is not None and not runs.empty else mlflow.search_runs(experiment_ids=['0'], order_by=['start_time DESC'], max_results=1); print(f'runs:/{runs.iloc[0][\"run_id\"]}/model' if not runs.empty else 'No models found')"); \
+	export MLFLOW_TRACKING_URI=http://localhost:5001 && \
+	export MLFLOW_S3_ENDPOINT_URL=http://localhost:9000 && \
+	export AWS_ACCESS_KEY_ID=user && \
+	export AWS_SECRET_ACCESS_KEY=password && \
+	MODEL_URI=$$(python3 -c "import mlflow; exp = mlflow.get_experiment_by_name('triage_classifier'); runs = mlflow.search_runs(experiment_ids=[exp.experiment_id], order_by=['start_time DESC'], max_results=1) if exp else None; print(f'runs:/{runs.iloc[0][\"run_id\"]}/model' if runs is not None and not runs.empty else 'No models found')"); \
 	if [ "$$MODEL_URI" != "No models found" ]; then \
 		echo "📡 Serving model: $$MODEL_URI"; \
 		echo "🌐 API endpoint: http://127.0.0.1:$${PORT:-5000}/invocations"; \

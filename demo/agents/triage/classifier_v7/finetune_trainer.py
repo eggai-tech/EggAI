@@ -66,9 +66,126 @@ def train_finetune_model(sample_size: int, model_name: str) -> str:
             post_training_cls_weights = None
             logger.warning("Could not find classifier weights after training")
         
-        # Save the fine-tuned PEFT model to mlflow with both approaches
-        # First approach: Save artifacts from output directory
-        mlflow.log_artifacts(v7_settings.output_dir, artifact_path="model")
+        # Save the fine-tuned PEFT model to mlflow as a proper MLflow model
+        # Create a custom MLflow model wrapper for PEFT models
+        import mlflow.pyfunc as mlflow_pyfunc
+        
+        class PEFTModelWrapper(mlflow_pyfunc.PythonModel):
+            def __init__(self, model_path, base_model_name):
+                self.model_path = model_path
+                self.base_model_name = base_model_name
+                
+            def load_context(self, context):
+                import os
+
+                import torch
+                from peft import PeftModel
+                from transformers import AutoTokenizer
+
+                from agents.triage.classifier_v7.classifier_v7 import (
+                    FinetunedClassifier,
+                )
+                from agents.triage.classifier_v7.gemma3_wrapper import (
+                    Gemma3TextForSequenceClassification,
+                )
+                
+                # Force CPU for MLflow serving to avoid MPS issues
+                device = "cpu"
+                
+                # Load tokenizer
+                tokenizer = AutoTokenizer.from_pretrained(self.base_model_name)
+                if tokenizer.pad_token is None:
+                    tokenizer.pad_token = tokenizer.eos_token
+                
+                # Load base model on CPU
+                base_model = Gemma3TextForSequenceClassification.from_pretrained(
+                    self.base_model_name,
+                    num_labels=5,
+                    torch_dtype=torch.float32,  # Use float32 for CPU
+                    device_map={"": device},
+                    attn_implementation="eager"
+                )
+                
+                # Load PEFT adapter
+                model = PeftModel.from_pretrained(base_model, context.artifacts["model"])
+                
+                # Load classifier state manually
+                classifier_state_path = os.path.join(context.artifacts["model"], 'classifier_state.pt')
+                if os.path.exists(classifier_state_path):
+                    classifier_state = torch.load(classifier_state_path, map_location=device)
+                    model.classifier.load_state_dict(classifier_state)
+                
+                # Move model to CPU and set to eval mode
+                model = model.to(device)
+                model.eval()
+                
+                # Create classifier with device override
+                self.classifier = FinetunedClassifier(model=model, tokenizer=tokenizer)
+                
+                # Override the _sequence_classify method to force CPU device
+                original_sequence_classify = self.classifier._sequence_classify
+                
+                def cpu_sequence_classify(chat_history):
+                    from agents.triage.classifier_v7.config import ClassifierV7Settings
+                    v7_settings = ClassifierV7Settings()
+                    
+                    inputs = self.classifier.tokenizer(
+                        chat_history,
+                        return_tensors="pt",
+                        truncation=True,
+                        padding=True,
+                        max_length=v7_settings.max_length
+                    )
+                    
+                    # Force inputs to CPU
+                    inputs = {k: v.to("cpu") for k, v in inputs.items()}
+                    
+                    with torch.no_grad():
+                        outputs = self.classifier.model(**inputs)
+                        predictions = torch.nn.functional.softmax(outputs.logits, dim=-1)
+                        predicted_class_id = predictions.argmax().item()
+                    
+                    from agents.triage.models import TargetAgent
+                    LABEL_TO_AGENT = {
+                        0: TargetAgent.BillingAgent,
+                        1: TargetAgent.ClaimsAgent,
+                        2: TargetAgent.PolicyAgent,
+                        3: TargetAgent.EscalationAgent,
+                        4: TargetAgent.ChattyAgent
+                    }
+                    return LABEL_TO_AGENT[predicted_class_id]
+                
+                # Replace the method
+                self.classifier._sequence_classify = cpu_sequence_classify
+                
+            def predict(self, context, model_input):
+                results = []
+                for text in model_input:
+                    result = self.classifier.classify(text)
+                    results.append({
+                        "target_agent": str(result.target_agent),
+                        "metrics": {
+                            "total_tokens": result.metrics.total_tokens,
+                            "prompt_tokens": result.metrics.prompt_tokens,
+                            "completion_tokens": result.metrics.completion_tokens
+                        }
+                    })
+                return results
+        
+        # Save model using pyfunc
+        wrapper = PEFTModelWrapper(v7_settings.output_dir, v7_settings.get_model_name())
+        mlflow_pyfunc.log_model(
+            artifact_path="model",
+            python_model=wrapper,
+            artifacts={"model": v7_settings.output_dir},
+            pip_requirements=[
+                "torch",
+                "transformers",
+                "peft",
+                "datasets",
+                "accelerate"
+            ]
+        )
         
         # Second approach: Test model loading and create comprehensive artifacts
         import tempfile
