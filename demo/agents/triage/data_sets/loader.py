@@ -12,21 +12,21 @@ from agents.triage.models import TargetAgent
 class DatasetRow:
     conversation: str
     target_agent: TargetAgent
-    turns: int
-    temperature: float
-    index_batch: int
-    total_batch: int
-    special_case: str
-    model: str
-    agent_distribution: str
-    special_case_distribution: str
+    turns: int = 0  # Number of turns in the conversation
+    temperature: float = 0.7  # Temperature setting for the model
+    index_batch: int = 0  # Index of the batch in the dataset
+    total_batch: int = 0  # Total number of batches in the dataset
+    special_case: str = None  # Special case handling, if any
+    model: str = "openai/gpt-4o-mini"  # Model used for the conversation
+    agent_distribution: str = None
+    special_case_distribution: str = None
 
     def __post_init__(self):
         self.conversation = self.conversation.strip()
         self.target_agent = self.target_agent.strip()
         self.special_case = self.special_case.strip() if self.special_case else None
-        self.agent_distribution = self.agent_distribution.strip()
-        self.special_case_distribution = self.special_case_distribution.strip()
+        self.agent_distribution = self.agent_distribution.strip() if self.agent_distribution else None
+        self.special_case_distribution = self.special_case_distribution.strip() if self.special_case_distribution else None
 
 
 def load_dataset(file_path: Path):
@@ -56,12 +56,30 @@ def translate_agent_str_to_enum(agent_str: str) -> TargetAgent:
         raise ValueError(f"Unknown agent string: {agent_str}")
 
 
+AGENT_TO_LABEL = {
+    TargetAgent.BillingAgent: 0,
+    TargetAgent.PolicyAgent: 1,
+    TargetAgent.ClaimsAgent: 2,
+    TargetAgent.EscalationAgent: 3,
+    TargetAgent.ChattyAgent: 4,
+}
+
+# create str to label mapping for convenience
+AGENT_STR_TO_LABEL = {
+    "BillingAgent": 0,
+    "PolicyAgent": 1,
+    "ClaimsAgent": 2,
+    "EscalationAgent": 3,
+    "ChattyAgent": 4,
+}
+
+
 def load_dataset_triage_testing():
-    return load_dataset(Path(__file__).resolve().parent / "triage-testing.jsonl")
+    return load_dataset(Path(__file__).resolve().parent / "triage-testing-proofread.jsonl")
 
 
 def load_dataset_triage_training():
-    return load_dataset(Path(__file__).resolve().parent / "triage-training.jsonl")
+    return load_dataset(Path(__file__).resolve().parent / "triage-training-proofread.jsonl")
 
 
 def as_dspy_examples(dataset: list[DatasetRow]):

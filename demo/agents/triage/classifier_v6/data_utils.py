@@ -5,7 +5,7 @@ from typing import List
 import dspy
 
 from agents.triage.shared.data_utils import (
-    create_training_examples as _create_training_examples,
+    create_examples as _create_training_examples,
 )
 
 

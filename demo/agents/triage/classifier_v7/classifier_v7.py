@@ -1,23 +1,39 @@
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from time import perf_counter
 
-import dspy
+import torch
 from dotenv import load_dotenv
+from peft import PeftModel
+from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer
 
+from agents.triage.baseline_model.utils import setup_logging
+from agents.triage.classifier_v7.config import ClassifierV7Settings
+from agents.triage.classifier_v7.device_utils import (
+    get_device_config,
+    is_cuda_available,
+    move_to_mps,
+)
+
+# import gemma3_wrapper so for so that Gemma3TextForSequenceClassification is registered
+from agents.triage.classifier_v7.gemma3_wrapper import (
+    Gemma3TextForSequenceClassification,
+)
 from agents.triage.models import ClassifierMetrics, TargetAgent
 
-from .config import ClassifierV7Settings
+LABEL_TO_AGENT = {
+    0: TargetAgent.BillingAgent,
+    1: TargetAgent.ClaimsAgent,
+    2: TargetAgent.PolicyAgent,
+    3: TargetAgent.EscalationAgent,
+    4: TargetAgent.ChattyAgent
+}
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 v7_settings = ClassifierV7Settings()
-
-
-class TriageSignature(dspy.Signature):
-    chat_history: str = dspy.InputField(desc="Chat conversation to classify")
-    target_agent: TargetAgent = dspy.OutputField(desc="Target agent for routing")
 
 
 @dataclass 
@@ -27,19 +43,18 @@ class ClassificationResult:
 
 
 class FinetunedClassifier:
-    def __init__(self):
-        self._model = None
-        self._lm = None
+    def __init__(self, model: Gemma3TextForSequenceClassification = None, tokenizer: AutoTokenizer = None, **kwargs):
+        self.model = model
+        self.tokenizer = tokenizer
     
     def _ensure_loaded(self):
-        if self._model is not None:
+        if self.model is not None:
             return
             
         # Check if fine-tuned model exists
-        import os
-        model_path = v7_settings.output_dir
-        
-        if os.path.exists(model_path) and os.path.exists(os.path.join(model_path, "config.json")):
+        model_path = Path(v7_settings.output_dir)
+
+        if model_path.exists() and (model_path / "config.json").exists():
             logger.info(f"Loading fine-tuned Gemma3 model from: {model_path}")
             base_model_name = v7_settings.get_model_name()
             self._load_finetuned_model(model_path, base_model_name)
@@ -49,89 +64,93 @@ class FinetunedClassifier:
             if v7_settings.use_qat_model:
                 logger.info("Using QAT (Quantized Aware Training) model variant")
             self._load_base_model()
-    
+
     def _load_finetuned_model(self, model_path, base_model_name):
-        """Load the fine-tuned HuggingFace model"""
+        """Load fine-tuned sequence classification model"""
         try:
-            from transformers import AutoModelForSequenceClassification, AutoTokenizer
-            
             # Load tokenizer
             self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-            
             # Use shared device configuration
-            from .device_utils import get_device_config, move_to_device
             device_map, dtype = get_device_config()
-                
-            base_model = AutoModelForSequenceClassification.from_pretrained(
+            
+            # Load the fine-tuned sequence classification model directly
+            base_model = Gemma3TextForSequenceClassification.from_pretrained(
                 base_model_name,
+                num_labels=len(LABEL_TO_AGENT),
                 torch_dtype=dtype,
-                device_map=device_map
+                device_map=device_map,
+                attn_implementation="eager"
             )
+            model = PeftModel.from_pretrained(base_model, model_path)
             
-            # Load LoRA adapters
-            from peft import PeftModel
-            self.model = PeftModel.from_pretrained(base_model, model_path)
+            # WORKAROUND: Manually load classifier state since PEFT modules_to_save isn't working correctly
+            import os
+            classifier_state_path = os.path.join(model_path, 'classifier_state.pt')
+            if os.path.exists(classifier_state_path):
+                logger.info("Loading classifier state manually from explicit save...")
+                classifier_state = torch.load(classifier_state_path, map_location='cpu')
+                model.classifier.load_state_dict(classifier_state)
+                logger.info("Manually loaded classifier state")
+            else:
+                logger.warning(f"No explicit classifier state found at {classifier_state_path}. Using PEFT default (may not work correctly).")
             
-            # Move to appropriate device
-            self.model = move_to_device(self.model, device_map)
-            
-            logger.info("Fine-tuned HuggingFace Gemma3 classifier loaded")
-            
-        except ImportError:
-            logger.warning("HuggingFace transformers not available, falling back to base model")
-            self._load_base_model()
+            # Move to mps if necessary
+            self.model = move_to_mps(model, device_map)
+            logger.info(f"Fine-tuned sequence classification model loaded from: {model_path}. Base model: {base_model_name}")
+        except Exception as e:
+            logger.error(f"Failed to load fine-tuned model from {model_path}: {e}")
+            raise RuntimeError("Model failed to load") from e
     
+
     def _load_base_model(self):
-        """Load the base model via HuggingFace or fallback to DSPy"""
+        """Load the base model via HuggingFace"""
         try:
-            from transformers import AutoModelForSequenceClassification, AutoTokenizer
-            
             model_name = v7_settings.get_model_name()
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
-                
-            # Use shared device configuration
-            from .device_utils import (
-                get_device_config,
-                is_cuda_available,
-                move_to_device,
-            )
+
             device_map, dtype = get_device_config()
-                
-            self.model = AutoModelForSequenceClassification.from_pretrained(
+            config = AutoConfig.from_pretrained(model_name)
+            config.num_labels = v7_settings.n_classes  # Set number of classes for classification
+
+            model = AutoModelForSequenceClassification.from_pretrained(
                 model_name,
+                config=config,
                 torch_dtype=dtype,
                 device_map=device_map,
                 load_in_4bit=v7_settings.use_4bit and not v7_settings.use_qat_model and is_cuda_available()  # 4-bit only on CUDA
             )
-            
+
             # Move to appropriate device
-            self.model = move_to_device(self.model, device_map)
-            logger.info(f"Base HuggingFace model loaded: {model_name}")
-            
-        except ImportError:
-            logger.warning("HuggingFace transformers not available, using DSPy fallback")
-            self.model = None
-            self.tokenizer = None
-    
-    
-    def classify(self, chat_history: str) -> TargetAgent:
+            self.model = move_to_mps(model, device_map)
+            logger.info(f"HuggingFace model for classification loaded: {model_name}")
+        except Exception as e:
+            logger.error(f"Failed to load base model {v7_settings.get_model_name()}: {e}")
+            raise RuntimeError("Model failed to load") from e
+
+    def classify(self, chat_history: str) -> ClassificationResult:
         self._ensure_loaded()
         if self.model is None or self.tokenizer is None:
-            raise Exception("No LM is loaded.")
+            raise RuntimeError("Model failed to load")
         
-        # Direct classification without DSPy
-        return self._direct_classify(chat_history)
-    
-    def _direct_classify(self, chat_history: str) -> TargetAgent:
-        """Direct classification using the fine-tuned model"""
-        import torch
+        start_time = perf_counter()
+        target_agent = self._sequence_classify(chat_history)
+        latency_ms = (perf_counter() - start_time) * 1000
         
-        # Format prompt for classification
-        formatted_prompt = f"<start_of_turn>user\n{chat_history}<end_of_turn>\n<start_of_turn>model\n"
+        metrics = ClassifierMetrics(
+            total_tokens=0,
+            prompt_tokens=0, 
+            completion_tokens=0,
+            latency_ms=latency_ms
+        )
         
-        inputs = self.tokenizer(formatted_prompt, return_tensors="pt")
+        return ClassificationResult(target_agent=target_agent, metrics=metrics)
+
+    def _sequence_classify(self, chat_history: str) -> TargetAgent:
+        """Classification using sequence classification head"""
+
+        inputs = self.tokenizer(chat_history, return_tensors="pt")
         
         # Move inputs to same device as model
         if torch.backends.mps.is_available():
@@ -140,45 +159,19 @@ class FinetunedClassifier:
             inputs = {k: v.to("cuda") for k, v in inputs.items()}
         
         with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=20,
-                temperature=0.1,
-                do_sample=False,  # Use greedy decoding for consistency
-                pad_token_id=self.tokenizer.eos_token_id,
-                eos_token_id=self.tokenizer.eos_token_id
-            )
+            outputs = self.model(**inputs)
+            predictions = torch.nn.functional.softmax(outputs.logits, dim=-1)
+            predicted_class_id = predictions.argmax().item()
         
-        response = self.tokenizer.decode(
-            outputs[0][inputs['input_ids'].shape[1]:], 
-            skip_special_tokens=True
-        ).strip()
-        
-        # Parse the response to extract agent name
-        if "BillingAgent" in response:
-            return TargetAgent.BillingAgent
-        elif "ClaimsAgent" in response:
-            return TargetAgent.ClaimsAgent
-        elif "PolicyAgent" in response:
-            return TargetAgent.PolicyAgent
-        elif "EscalationAgent" in response:
-            return TargetAgent.EscalationAgent
-        else:
-            return TargetAgent.ChattyAgent
-    
+        return LABEL_TO_AGENT[predicted_class_id]
+
+
     def get_metrics(self) -> ClassifierMetrics:
-        if not self._lm:
-            return ClassifierMetrics(
-                total_tokens=0,
-                prompt_tokens=0,
-                completion_tokens=0,
-                latency_ms=0
-            )
-            
+        """Return empty metrics for local model (no token usage)"""
         return ClassifierMetrics(
-            total_tokens=getattr(self._lm, 'total_tokens', 0),
-            prompt_tokens=getattr(self._lm, 'prompt_tokens', 0), 
-            completion_tokens=getattr(self._lm, 'completion_tokens', 0),
+            total_tokens=0,
+            prompt_tokens=0,
+            completion_tokens=0,
             latency_ms=0
         )
 
@@ -188,36 +181,10 @@ _classifier = FinetunedClassifier()
 
 
 def classifier_v7(chat_history: str) -> ClassificationResult:
-    start_time = perf_counter()
-    
-    try:
-        target_agent = _classifier.classify(chat_history)
-        latency_ms = (perf_counter() - start_time) * 1000
-        
-        metrics = _classifier.get_metrics()
-        metrics.latency_ms = latency_ms
-        
-        return ClassificationResult(
-            target_agent=target_agent,
-            metrics=metrics
-        )
-        
-    except Exception as e:
-        latency_ms = (perf_counter() - start_time) * 1000
-        logger.warning("Classification failed, using ChattyAgent fallback: %s", e)
-        
-        return ClassificationResult(
-            target_agent=TargetAgent.ChattyAgent,
-            metrics=ClassifierMetrics(
-                total_tokens=0,
-                prompt_tokens=0,
-                completion_tokens=0,
-                latency_ms=latency_ms
-            )
-        )
-
+    return _classifier.classify(chat_history)
 
 if __name__ == "__main__":
+    setup_logging()
     result = classifier_v7(chat_history="User: I want to know my policy due date.")
-    print(f"Target Agent: {result.target_agent}")
-    print(f"Metrics: {result.metrics}")
+    logger.info(f"Target Agent: {result.target_agent}")
+    logger.info(f"Metrics: {result.metrics}")

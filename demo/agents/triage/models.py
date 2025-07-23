@@ -16,6 +16,7 @@ class ClassifierMetrics(BaseModel):
     prompt_tokens: int
     completion_tokens: int
     latency_ms: float
+    confidence: float = None  # Optional confidence score for compatibility
 
 
 AGENT_REGISTRY = {

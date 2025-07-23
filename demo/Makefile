@@ -1,4 +1,4 @@
-.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-coverage test-triage-classifiers-all check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
+.PHONY: default setup start test test-billing-agent test-claims-agent test-escalation-agent test-frontend-agent test-policies-agent test-policies-retrieval-performance test-triage-classifier-v0 test-triage-classifier-v1 test-triage-classifier-v2 test-triage-classifier-v3 test-triage-classifier-v4 test-triage-classifier-v5 test-triage-classifier-v6 test-triage-classifier-v7 test-triage-classifier-v6-evaluation test-triage-classifier-v7-evaluation test-triage-classifiers-evaluation test-triage-classifiers-comprehensive test-triage-classifiers-comparison test-triage-classifiers-unit test-triage-classifiers-config test-triage-classifiers-coverage test-triage-classifiers-all eval-triage-classifier-v0 eval-triage-classifier-v1 eval-triage-classifier-v2 eval-triage-classifier-v3 eval-triage-classifier-v4 eval-triage-classifier-v5 eval-triage-classifier-v6 eval-triage-classifier-v7 eval-all-triage-classifiers eval-latest-triage-classifiers check-triage-classifier-v6-setup train-triage-classifier-v6 train-triage-classifier-v7 serve-triage-classifier-v7 invoke-triage-classifier-v7 compile-triage-classifier-v2 compile-triage-classifier-v4 compile-billing-optimizer compile-claims-optimizer compile-policies-optimizer compile-escalation-optimizer compile-all test-triage-agent test-audit test-libraries stop kill-agents clean full-reset docker-up docker-down start-frontend start-billing start-escalation start-policies start-claims start-triage start-audit start-policies-document-ingestion start-all restart setup-and-run lint lint-fix build-policy-rag-index drop-vespa-index deploy-vespa-schema
 
 PYTHON := python3.11
 VENV_DIR := .venv
@@ -30,7 +30,34 @@ train-triage-classifier-v7:
 	@echo "💡 Default: 100 examples (LoRA fine-tuning)"
 	@echo "💡 Custom: export FINETUNE_SAMPLE_SIZE=200 (or -1 for full dataset)"
 	@echo "⚠️  Requires: pip install transformers peft datasets accelerate bitsandbytes"
-	@source $(VENV_DIR)/bin/activate && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v7/finetune_trainer.py
+	@source $(VENV_DIR)/bin/activate && export MLFLOW_TRACKING_URI=http://localhost:5001 && PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v7/finetune_trainer.py
+
+serve-triage-classifier-v7:
+	@echo "Serving triage classifier v7 via MLflow..."
+	@echo "💡 Default port: 5000"
+	@echo "💡 Custom: make serve-triage-classifier-v7 PORT=5001"
+	@source $(VENV_DIR)/bin/activate && \
+	export MLFLOW_TRACKING_URI=http://localhost:5001 && \
+	export MLFLOW_S3_ENDPOINT_URL=http://localhost:9000 && \
+	export AWS_ACCESS_KEY_ID=user && \
+	export AWS_SECRET_ACCESS_KEY=password && \
+	MODEL_URI=$$(python3 -c "import mlflow; exp = mlflow.get_experiment_by_name('triage_classifier'); runs = mlflow.search_runs(experiment_ids=[exp.experiment_id], order_by=['start_time DESC'], max_results=1) if exp else None; print(f'runs:/{runs.iloc[0][\"run_id\"]}/model' if runs is not None and not runs.empty else 'No models found')"); \
+	if [ "$$MODEL_URI" != "No models found" ]; then \
+		echo "📡 Serving model: $$MODEL_URI"; \
+		echo "🌐 API endpoint: http://127.0.0.1:$${PORT:-5000}/invocations"; \
+		mlflow models serve -m "$$MODEL_URI" -p $${PORT:-5000} --env-manager local; \
+	else \
+		echo "❌ No trained models found. Run 'make train-triage-classifier-v7' first."; \
+	fi
+
+invoke-triage-classifier-v7:
+	@echo "Testing triage classifier v7 API..."
+	@echo "💡 Default: 'User: I want to know my policy due date.'"
+	@echo "💡 Custom: make invoke-triage-classifier-v7 TEXT='Your message here' PORT=5001"
+	@curl -X POST http://127.0.0.1:$${PORT:-5000}/invocations \
+		-H 'Content-Type: application/json' \
+		-d '{"inputs": ["$${TEXT:-User: I want to know my policy due date.}"]}' \
+		2>/dev/null | python3 -m json.tool || echo "❌ Service not running on port $${PORT:-5000}"
 
 start-eda-notebook:
 	@echo "Start Exploratory Data Analysis Notebook..."
@@ -178,6 +205,30 @@ test-triage-classifier-v7:
        --junitxml=reports/pytest-v7-results.xml \
        --html=reports/pytest-v7-results.html --self-contained-html
 
+test-triage-classifier-v6-evaluation:
+	@echo "Running MLflow evaluation for classifier v6 (OpenAI fine-tuned)..."
+	@echo "📊 Logs performance metrics to MLflow for comparison with v3/v5"
+	@echo "⚠️  Requires OPENAI_API_KEY and MLflow server running"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v6_evaluation.py -s \
+       --junitxml=reports/pytest-v6-evaluation-results.xml \
+       --html=reports/pytest-v6-evaluation-results.html --self-contained-html
+
+test-triage-classifier-v7-evaluation:
+	@echo "Running MLflow evaluation for classifier v7 (Gemma3 via HuggingFace)..."
+	@echo "📊 Logs performance metrics to MLflow for comparison with v3/v5"
+	@echo "⚠️  Requires MLflow server running and HuggingFace transformers"
+	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/pytest agents/triage/tests/test_classifier_v7_evaluation.py -s \
+       --junitxml=reports/pytest-v7-evaluation-results.xml \
+       --html=reports/pytest-v7-evaluation-results.html --self-contained-html
+
+test-triage-classifiers-evaluation:
+	@echo "Running MLflow evaluation for all classifiers v6 and v7..."
+	@echo "📊 Comprehensive metrics logging for classifier comparison dashboard"
+	@echo "🚀 Use this target to populate MLflow with latest performance data"
+	@make test-triage-classifier-v6-evaluation
+	@make test-triage-classifier-v7-evaluation
+	@echo "✅ MLflow evaluation completed for v6 and v7!"
+
 test-triage-classifiers-unit:
 	@echo "Running comprehensive unit tests for classifiers v6 and v7..."
 	@echo "🧪 Unit tests with mocked dependencies - no API calls"
@@ -233,6 +284,76 @@ test-triage-classifiers-all:
 	@make test-triage-classifiers-comparison
 	@make test-triage-classifiers-coverage
 	@echo "✅ All classifier tests completed!"
+
+# ================================================================================
+# STANDARDIZED EVALUATION INTERFACE
+# ================================================================================
+# These commands provide a consistent interface for MLflow evaluation across all 
+# classifier versions. Use these commands when you want to compare classifier 
+# performance in MLflow.
+
+eval-triage-classifier-v0:
+	@echo "📊 Running MLflow evaluation for classifier v0..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v0
+
+eval-triage-classifier-v1:
+	@echo "📊 Running MLflow evaluation for classifier v1..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v1
+
+eval-triage-classifier-v2:
+	@echo "📊 Running MLflow evaluation for classifier v2..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v2
+
+eval-triage-classifier-v3:
+	@echo "📊 Running MLflow evaluation for classifier v3..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v3
+
+eval-triage-classifier-v4:
+	@echo "📊 Running MLflow evaluation for classifier v4..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v4
+
+eval-triage-classifier-v5:
+	@echo "📊 Running MLflow evaluation for classifier v5..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v5
+
+eval-triage-classifier-v6:
+	@echo "📊 Running MLflow evaluation for classifier v6..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v6-evaluation
+
+eval-triage-classifier-v7:
+	@echo "📊 Running MLflow evaluation for classifier v7..."
+	@echo "🎯 Standardized evaluation interface - logs to 'triage_classifier' experiment"
+	@make test-triage-classifier-v7-evaluation
+
+eval-all-triage-classifiers:
+	@echo "🚀 Running MLflow evaluation for ALL classifiers (v0-v7)..."
+	@echo "📈 Complete performance comparison - populate MLflow dashboard"
+	@echo "⏱️  This will take several minutes..."
+	@make eval-triage-classifier-v0
+	@make eval-triage-classifier-v1
+	@make eval-triage-classifier-v2
+	@make eval-triage-classifier-v3
+	@make eval-triage-classifier-v4
+	@make eval-triage-classifier-v5
+	@make eval-triage-classifier-v6
+	@make eval-triage-classifier-v7
+	@echo "✅ All classifier evaluations completed!"
+	@echo "🎯 View results at: http://localhost:5001/#/experiments/4"
+
+eval-latest-triage-classifiers:
+	@echo "🔥 Running MLflow evaluation for latest classifiers (v6 & v7)..."
+	@echo "⚡ Quick comparison of most recent implementations"
+	@make eval-triage-classifier-v6
+	@make eval-triage-classifier-v7
+	@echo "✅ Latest classifier evaluations completed!"
+	@echo "🎯 View results at: http://localhost:5001/#/experiments/4"
 
 test-triage-agent:
 	@echo "Running tests for triage agent..."

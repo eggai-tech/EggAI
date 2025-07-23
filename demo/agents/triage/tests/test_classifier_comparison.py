@@ -2,7 +2,7 @@
 
 import os
 import time
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -54,8 +54,8 @@ class TestClassifierComparison:
         logger.info(f"  - Uses QAT: {v7_config.use_qat_model}")
     
     @patch('agents.triage.classifier_v6.classifier_v6.dspy.configure')
-    @patch('agents.triage.classifier_v6.classifier_v6.classify_conversation')
-    @patch('agents.triage.classifier_v7.classifier_v7.FinetunedClassifier')
+    @patch('agents.triage.classifier_v6.classifier_v6.classifier_v6')
+    @patch('agents.triage.classifier_v7.classifier_v7._classifier')
     def test_latency_comparison(self, mock_v7_classifier, mock_v6_classify, mock_v6_configure):
         """Compare latency between v6 and v7 classifiers with mocked responses."""
         from agents.triage.classifier_v6.classifier_v6 import classifier_v6
@@ -67,9 +67,7 @@ class TestClassifierComparison:
         
         # Mock v7 (Local inference - typically slower)
         v7_result = create_mock_classifier_result(TargetAgent.PolicyAgent, latency_ms=250.0)
-        mock_v7_instance = Mock()
-        mock_v7_instance.__call__.return_value = v7_result
-        mock_v7_classifier.return_value = mock_v7_instance
+        mock_v7_classifier.classify.return_value = v7_result
         
         test_input = "User: What does my policy cover?"
         
