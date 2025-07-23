@@ -60,6 +60,7 @@ def train_finetune_model(sample_size: int, model_name: str) -> str:
             transformers_model={"model": model, "tokenizer": tokenizer},
             artifact_path="model",
             signature=signature,
+            task="text-classification",
         )
 
         # return model uri
