@@ -2,13 +2,13 @@
 
 This example demonstrates how to integrate Model Context Protocol (MCP) servers with EggAI agents using a custom adapter layer. Through standardized tool calling with message protocol, any MCP server or external service can be easily translated to Kafka messages and seamlessly consumed by EggAI agents, enabling distributed access to external capabilities while maintaining async execution.
 
-![MCP Integration Demo](https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/example-mcp.png)
+![MCP Integration Demo](docs/mcp-example-architecture.png)
 
 ## Core Concepts
 
 ### Model Context Protocol (MCP)
 MCP is a standard protocol for exposing tools and resources to AI systems. In this example:
-- **MCP Server** (`start_ticket_backend.py`): Exposes ticket management functions as tools
+- **MCP Server** (`start_ticketing_backend.py`): Exposes ticket management functions as tools
 - **FastMCP Framework**: Provides the MCP server implementation with HTTP/SSE transport
 - **Tool Discovery**: Automatic registration of available functions as callable tools
 
@@ -27,47 +27,31 @@ The adapter acts as a bridge between EggAI agents and MCP servers:
 
 ## System Components
 
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   User Console  │    │   EggAI Agent    │    │  MCP Adapter    │
-│                 │◄───┤                  │◄───┤                 │
-│ start_console.py│    │ start_agent.py   │    │eggai_adapter/   │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                ▲                        │
-                                │                        ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │  Kafka/EggAI    │    │   MCP Server    │
-                       │   Transport     │    │                 │
-                       └─────────────────┘    │start_ticket_    │
-                                              │  backend.py     │
-                                              └─────────────────┘
-```
-
 **Console Interface** (`start_console.py`):
 - Simple terminal interface for user interaction
 - Publishes user input to EggAI channels
 - Displays agent responses
 
-**Agent Implementation** (`start_agent.py`):
+**Agent Implementation** (`start_ticketing_agent.py`):
 - DSPy ReAct agent with MCP tool access
 - Subscribes to user input channels
 - Publishes responses back to console
 
-**Adapter Service** (`start_ticket_adapter.py`):
+**Adapter Service** (`start_ticketing_adapter.py`):
 - Bridges EggAI messaging to MCP protocol
 - Handles tool discovery and execution
 - Maintains request correlation
 
-**Backend Service** (`start_ticket_backend.py`):
+**Backend Service** (`start_ticketing_backend.py`):
 - Simple ticket management system
 - Exposes CRUD operations as MCP tools
 - Runs on HTTP with SSE transport
 
-## Running the Workshop
+## Running
 
-1. **Start all services** (runs in parallel):
+1. **Start background server** (runs in parallel):
    ```bash
-   make services
+   make server
    ```
 
 2. **Start the console interface** (in a separate terminal):
@@ -101,7 +85,7 @@ The system integrates with DSPy's ReAct reasoning pattern:
 - Maintains async execution through the adapter layer
 - Preserves tool metadata (name, description, parameters)
 
-**Agent Implementation** (`start_agent.py`):
+**Agent Implementation** (`start_ticketing_agent.py`):
 - Uses DSPy ReAct for structured reasoning
 - Subscribes to EggAI channels for user interaction
 - Executes tools through the adapter client

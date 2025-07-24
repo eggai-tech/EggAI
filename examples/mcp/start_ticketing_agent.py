@@ -25,8 +25,11 @@ dspy.configure(
 )
 
 
-@eggai_main
-async def main():
+async def initialize_ticketing_agent():
+    agent = Agent("TicketingAgent")
+
+    conversation_history = []
+
     cl = EggaiAdapterClient(TICKET_ADAPTER_NAME)
     tools = await cl.retrieve_tools()
 
@@ -36,9 +39,6 @@ async def main():
         max_iters=5
     )
 
-    conversation_history = []
-
-    agent = Agent("TicketingAgent")
 
     @agent.subscribe(channel=Channel("human.in"))
     async def handle_user_input(message: Message):
@@ -62,7 +62,12 @@ async def main():
             )
         )
 
+    return agent
 
+
+@eggai_main
+async def main():
+    agent = await initialize_ticketing_agent()
     await agent.start()
 
     try:
