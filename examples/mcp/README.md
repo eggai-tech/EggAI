@@ -48,16 +48,20 @@ The adapter acts as a bridge between EggAI agents and MCP servers:
 - Runs on HTTP with SSE transport
 
 ## Running
+**Start docker**:
+```bash
+make docker-up
+```
 
-1. **Start background server** (runs in parallel):
-   ```bash
-   make server
-   ```
+**Start background server** (runs in parallel):
+```bash
+make server
+```
 
-2. **Start the console interface** (in a separate terminal):
-   ```bash
-   make console
-   ```
+**Start the console interface** (in a separate terminal):
+```bash
+make console
+```
 
 ## Message Flow
 
