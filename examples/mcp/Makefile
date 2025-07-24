@@ -1,57 +1,16 @@
-PYTHON := python3
-VENV_DIR := .venv
-REQ_FILE := requirements.txt
-DEV_REQ_FILE := dev-requirements.txt
-DOCKER_COMPOSE := docker compose
-SHELL := $(shell which bash)
+.PHONY: services console
 
-.PHONY: setup
-setup:
-	@echo "Setting up the environment..."
-	@if [ ! -d "$(VENV_DIR)" ]; then \
-		$(PYTHON) -m venv $(VENV_DIR); \
-		echo "Virtual environment created."; \
-	else \
-		echo "Virtual environment already exists."; \
-	fi
-	@$(VENV_DIR)/bin/pip install --upgrade pip
-	@if [ -f $(REQ_FILE) ]; then $(VENV_DIR)/bin/pip install -r $(REQ_FILE); fi
-	@if [ -f $(DEV_REQ_FILE) ]; then $(VENV_DIR)/bin/pip install -r $(DEV_REQ_FILE); fi
-	@echo "Checking dependencies..."
-	@command -v uvx >/dev/null 2>&1 || { echo "uvx not found, installing..."; $(VENV_DIR)/bin/pip install uvx; }
-	@command -v npx >/dev/null 2>&1 || { echo "npx not found, installing..."; npm install -g npx; }
-	@echo "Environment setup complete."
+services:
+	make -j3 agent adapter mcp_backend
 
-.PHONY: start-mcp-fetch
-start-mcp-fetch:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.fetch_mcp.mcp_adapter
+agent:
+	python start_agent.py
 
-.PHONY: start-mcp-filesystem
-start-mcp-filesystem:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.filesystem_mcp.mcp_adapter
+adapter:
+	python start_ticket_adapter.py
 
-.PHONY: start-mcp-chat
-start-mcp-chat:
-	@source $(VENV_DIR)/bin/activate && $(VENV_DIR)/bin/python -m agents.chat_agent.agent
+mcp_backend:
+	python start_ticket_backend.py
 
-.PHONY: start-all
-start-all:
-	@make -j start-mcp-fetch start-mcp-filesystem start-mcp-chat
-
-.PHONY: docker-up
-docker-up:
-	@echo "Starting Docker Compose..."
-	@$(DOCKER_COMPOSE) up -d
-	@echo "Docker Compose started."
-
-.PHONY: docker-down
-docker-down:
-	@echo "Stopping and cleaning up Docker Compose..."
-	@$(DOCKER_COMPOSE) down -v
-	@echo "Docker Compose stopped and cleaned up."
-
-.PHONY: clean
-clean:
-	@echo "Cleaning up the environment..."
-	@rm -rf $(VENV_DIR)
-	@echo "Environment cleaned."
+console:
+	python start_console.py
