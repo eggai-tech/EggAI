@@ -1,0 +1,94 @@
+volumes:
+  postgres_mlflow_data: null
+
+services:
+  minio-setup:
+    container_name: minio-setup
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c", "sleep 5 && mc alias set minio http://minio:9000 user password && mc mb -p minio/mlflow && mc anonymous set download minio/mlflow && echo 'MinIO bucket setup completed successfully'" ]
+  minio:
+    container_name: minio
+    image: minio/minio
+    expose:
+      - "9000"
+    ports:
+      - "9000:9000"
+      # MinIO Console is available at http://localhost:9001
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: "user"
+      MINIO_ROOT_PASSWORD: "password"
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
+      interval: 1s
+      timeout: 10s
+      retries: 5
+  mlflow-artifacts-server:
+    container_name: mlflow-artifacts-server
+    image: ghcr.io/mlflow/mlflow:v3.0.0rc2
+    depends_on:
+      - minio
+      - minio-setup
+    expose:
+      - "5500"
+    ports:
+      - "5500:5500"
+    environment:
+      # MinIO credentials
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: "user"
+      AWS_SECRET_ACCESS_KEY: "password"
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5500
+      --artifacts-destination s3://mlflow
+      --gunicorn-opts "--log-level debug"
+      --artifacts-only
+  postgres-mlflow:
+    container_name: postgres-mlflow
+    image: postgres
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_mlflow_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -t 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+  mlflow-tracking-server:
+    container_name: mlflow-tracking-server
+    image: ghcr.io/mlflow/mlflow:v3.0.0rc2
+    depends_on:
+      - postgres-mlflow
+      - mlflow-artifacts-server
+    expose:
+      - "5001"
+    ports:
+      # MLflow UI is available at http://localhost:5001
+      - "5001:5001"
+    environment:
+      # For external client connections
+      MLFLOW_ARTIFACT_ROOT: http://localhost:5500/api/2.0/mlflow-artifacts/artifacts
+      # Direct S3 access to MinIO
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: "user"
+      AWS_SECRET_ACCESS_KEY: "password"
+    command: >
+      bash -c "pip install psycopg2-binary boto3 && mlflow server
+      --host 0.0.0.0
+      --port 5001
+      --backend-store-uri postgresql://user:password@postgres-mlflow:5432/db
+      --default-artifact-root s3://mlflow
+      --gunicorn-opts '--log-level debug'"

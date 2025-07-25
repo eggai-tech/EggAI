@@ -16,11 +16,9 @@ from agents.triage.classifier_v7.device_utils import (
     move_to_mps,
 )
 
-# import gemma3_wrapper so for so that Gemma3TextForSequenceClassification is registered
-from agents.triage.classifier_v7.gemma3_wrapper import (
-    Gemma3TextForSequenceClassification,
-)
+
 from agents.triage.models import ClassifierMetrics, TargetAgent
+from triage.classifier_v7.gemma3_seq_cls import Gemma3TextForSequenceClassification
 
 LABEL_TO_AGENT = {
     0: TargetAgent.BillingAgent,
@@ -54,49 +52,35 @@ class FinetunedClassifier:
         # Check if fine-tuned model exists
         model_path = Path(v7_settings.output_dir)
 
-        if model_path.exists() and (model_path / "config.json").exists():
+        if model_path.exists():
             logger.info(f"Loading fine-tuned Gemma3 model from: {model_path}")
-            base_model_name = v7_settings.get_model_name()
-            self._load_finetuned_model(model_path, base_model_name)
+            self._load_finetuned_model(model_path)
         else:
-            logger.info(f"Fine-tuned model not found at {model_path}")
-            logger.info(f"Loading base model: {v7_settings.get_model_name()}")
-            if v7_settings.use_qat_model:
-                logger.info("Using QAT (Quantized Aware Training) model variant")
+            logger.warning(f"Fine-tuned model not found at {model_path}")
+            logger.warning(f"Loading base model with random classification head: {v7_settings.get_model_name()}")
             self._load_base_model()
 
-    def _load_finetuned_model(self, model_path, base_model_name):
+    def _load_finetuned_model(self, model_path):
         """Load fine-tuned sequence classification model"""
         try:
             # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+            # TODO: load from model path
+            self.tokenizer = AutoTokenizer.from_pretrained("google/gemma-3-1b-it")
             # Use shared device configuration
             device_map, dtype = get_device_config()
             
             # Load the fine-tuned sequence classification model directly
-            base_model = Gemma3TextForSequenceClassification.from_pretrained(
-                base_model_name,
+            model = Gemma3TextForSequenceClassification.from_pretrained(
+                model_path,
                 num_labels=len(LABEL_TO_AGENT),
                 torch_dtype=dtype,
                 device_map=device_map,
                 attn_implementation="eager"
             )
-            model = PeftModel.from_pretrained(base_model, model_path)
-            
-            # WORKAROUND: Manually load classifier state since PEFT modules_to_save isn't working correctly
-            import os
-            classifier_state_path = os.path.join(model_path, 'classifier_state.pt')
-            if os.path.exists(classifier_state_path):
-                logger.info("Loading classifier state manually from explicit save...")
-                classifier_state = torch.load(classifier_state_path, map_location='cpu')
-                model.classifier.load_state_dict(classifier_state)
-                logger.info("Manually loaded classifier state")
-            else:
-                logger.warning(f"No explicit classifier state found at {classifier_state_path}. Using PEFT default (may not work correctly).")
             
             # Move to mps if necessary
             self.model = move_to_mps(model, device_map)
-            logger.info(f"Fine-tuned sequence classification model loaded from: {model_path}. Base model: {base_model_name}")
+            logger.info(f"Fine-tuned sequence classification model loaded from: {model_path}")
         except Exception as e:
             logger.error(f"Failed to load fine-tuned model from {model_path}: {e}")
             raise RuntimeError("Model failed to load") from e

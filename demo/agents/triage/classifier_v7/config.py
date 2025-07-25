@@ -18,7 +18,6 @@ class ClassifierV7Settings(BaseSettings):
     model_name: str = Field(default="google/gemma-3-1b-it", description="Gemma 3 model from HuggingFace")
     use_qat_model: bool = Field(default=False, description="Use QAT (Quantized Aware Training) model if available")
     use_4bit: bool = Field(default=False, description="Use 4-bit quantization for non-QAT models (disabled by default for compatibility)")
-    use_lora: bool = Field(default=True, description="Use LoRA for fine-tuning")
     
     # Fine-tuning parameters
     learning_rate: float = Field(default=2e-4)

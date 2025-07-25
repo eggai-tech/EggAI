@@ -84,11 +84,20 @@ def compute_metrics(eval_pred):
     return metrics
 
 def perform_fine_tuning(trainset: list, testset: list):
+    """Perform fine-tuning of the Gemma3 model with LoRA adapters.
+
+    Args:
+        trainset: List of training examples
+        testset: List of evaluation examples
+
+    Returns:
+        Tuple of (best_model, tokenizer) after fine-tuning. `best_model` is the base model merged model with LoRA adapters.
+    """
     v7_settings = ClassifierV7Settings()
     
     logger.info(f"Starting HuggingFace Gemma3 fine-tuning with {len(trainset)} examples")
     logger.info(f"Model: {v7_settings.get_model_name()}")
-    logger.info(f"LoRA: {v7_settings.use_lora}, 4-bit: {v7_settings.use_4bit}, QAT: {v7_settings.use_qat_model}")
+    logger.info(f"4-bit: {v7_settings.use_4bit}, QAT: {v7_settings.use_qat_model}")
     
     start_time = time.time()
 
@@ -127,29 +136,27 @@ def perform_fine_tuning(trainset: list, testset: list):
         attn_implementation="eager"  # More stable than flash attention
     )
 
+    # Configure LoRA
+    # we need to save the classifier layer together with the LoRA adapters, see Gemma3TextForSequenceClassification
+    assert hasattr(model, "classifier")
+    modules_to_save = ["classifier"]
+    lora_config = LoraConfig(
+        lora_alpha=v7_settings.lora_alpha,
+        lora_dropout=v7_settings.lora_dropout,
+        r=v7_settings.lora_r,
+        bias="none",
+        target_modules="all-linear",
+        task_type=TaskType.SEQ_CLS,
+        modules_to_save=modules_to_save,  # Save the classifier layer together with the LoRA adapters
+    )
+    # get PEFT model with LoRA configuration
+    model = get_peft_model(model, lora_config)
     # Move to appropriate device
     model = move_to_mps(model, device_map)
-
-    # Configure LoRA
-    if v7_settings.use_lora:
-        logger.info("Using LoRA for fine-tuning")
-        # IMPORTANT: we need to save the classifier layer together with the LoRA adapters, see Gemma3TextForSequenceClassification
-        assert hasattr(model, "classifier")
-        modules_to_save = ["classifier"]
-        lora_config = LoraConfig(
-            lora_alpha=v7_settings.lora_alpha,
-            lora_dropout=v7_settings.lora_dropout,
-            r=v7_settings.lora_r,
-            bias="none",
-            target_modules="all-linear",
-            task_type=TaskType.SEQ_CLS,
-            modules_to_save=modules_to_save,  # Save the classifier layer together with the LoRA adapters
-        )
-        mlflow.log_params(lora_config.to_dict())
-        model = get_peft_model(model, lora_config)
-        # set to train explicitly
-        model.train()
-        model.print_trainable_parameters()
+    # set to train mode
+    model.train()
+    mlflow.log_params(lora_config.to_dict())
+    model.print_trainable_parameters()
 
     logger.info(f"Num train examples: {len(trainset)}")
     logger.info(f"Num eval examples: {len(testset)}")
@@ -192,10 +199,9 @@ def perform_fine_tuning(trainset: list, testset: list):
         optim="adamw_torch",
         learning_rate=v7_settings.learning_rate,
         lr_scheduler_type="constant",
-        warmup_ratio=0.03,
         **get_training_precision(),
         logging_steps=10,
-        save_total_limit=2,
+        save_total_limit=1,  # max of two checkpoints might be saved: # 1 for the best model, 1 for the last checkpoint
         # Evaluation configuration
         eval_strategy="epoch",  # Evaluate after each epoch
         eval_steps=1,  # How often to evaluate (in epochs)
@@ -203,7 +209,6 @@ def perform_fine_tuning(trainset: list, testset: list):
         load_best_model_at_end=True,  # Load best model at end
         metric_for_best_model="eval_accuracy",  # Use accuracy to determine best model
         greater_is_better=True,  # Higher accuracy is better
-        # Training configuration
         gradient_checkpointing=False,  # Disable to avoid gradient issues
         dataloader_pin_memory=False,
         report_to="mlflow",
@@ -231,29 +236,24 @@ def perform_fine_tuning(trainset: list, testset: list):
     logger.info("Starting training...")
     trainer.train()
 
-    # Log final evaluation metrics to MLflow
-    final_eval = trainer.evaluate()
-    for key, value in final_eval.items():
-        if key.startswith('eval_'):
-            mlflow.log_metric(f"final_{key}", value)
-
     # Save the model
-    logger.info(f"Saving model to {v7_settings.output_dir}")
-    trainer.save_model(v7_settings.output_dir)
-    
-    # CRITICAL: Also save classifier state to main output directory for production use
-    if hasattr(model, 'classifier'):
-        classifier_state_path = os.path.join(v7_settings.output_dir, 'classifier_state.pt')
-        torch.save(model.classifier.state_dict(), classifier_state_path)
-        logger.info(f"Saved classifier state to {classifier_state_path} for production use")
+    logger.info(f"Saving the merged model (base_model + lora_adapters) to {v7_settings.output_dir}")
+    # get the best model from the trainer
+    best_model = trainer.model
+    # merge LoRA adapters into the base model
+    best_model = best_model.merge_and_unload()
+    # Save the merged model
+    best_model.save_pretrained(v7_settings.output_dir)
+    # save the tokenizer
+    tokenizer.save_pretrained(v7_settings.output_dir)
 
-    logger.info(f"Gemma3 fine-tuning completed. Model saved to {v7_settings.output_dir}")
+    logger.info(f"Gemma3 fine-tuning completed.")
 
     training_time = time.time() - start_time
     logger.info(f"Training completed in {training_time:.1f}s")
     mlflow.log_metric("training_time_seconds", training_time)
     
-    return trainer.model, tokenizer
+    return best_model, tokenizer
 
 def show_training_info():
     v7_settings = ClassifierV7Settings()
