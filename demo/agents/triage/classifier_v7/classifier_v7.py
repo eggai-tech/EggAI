@@ -64,8 +64,7 @@ class FinetunedClassifier:
         """Load fine-tuned sequence classification model"""
         try:
             # Load tokenizer
-            # TODO: load from model path
-            self.tokenizer = AutoTokenizer.from_pretrained("google/gemma-3-1b-it")
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
             # Use shared device configuration
             device_map, dtype = get_device_config()
             
