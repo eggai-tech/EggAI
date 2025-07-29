@@ -1,6 +1,5 @@
 services:
   lmstudio:
-    runtime: nvidia
     image: ghcr.io/eggai-tech/lm-studio:gemma-3-12B-it-qat-GGUF-1.0
     environment:
       MODEL_NAME: gemma-3-12B-it-qat

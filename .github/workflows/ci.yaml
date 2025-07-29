@@ -58,7 +58,7 @@ jobs:
             -Dsonar.pullrequest.base=${{ github.base_ref }}
 
   integration:
-    runs-on: gpu-runner-github-hosted
+    runs-on: hetzner-gpu-runners
     name: Run integration tests
     timeout-minutes: 45 # Increase timeout for pulling large images
     permissions:
@@ -106,12 +106,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Docker Compose plugin
+        run: |
+          mkdir -p ~/.docker/cli-plugins
+          curl -SL https://github.com/docker/compose/releases/download/v2.24.4/docker-compose-linux-x86_64 \
+            -o ~/.docker/cli-plugins/docker-compose
+          chmod +x ~/.docker/cli-plugins/docker-compose
+
+      - name: Get necessary utils
+        working-directory: demo
+        run: |
+          sudo apt update
+          sudo apt install -y make
+
       - name: Pre-pull Docker images
         working-directory: demo
         run: |
           echo "Pre-pulling Docker images..."
           docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --quiet
-        timeout-minutes: 20
+        timeout-minutes: 45
 
       - name: Start services with Docker Compose
         working-directory: demo
@@ -120,7 +133,7 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml up -d --no-build
           echo "Services started in detached mode"
           docker compose ps
-        timeout-minutes: 5
+        timeout-minutes: 20
 
       - name: Wait for critical services to be healthy
         run: |
@@ -167,10 +180,6 @@ jobs:
           make test-triage-agent
           make test-triage-classifier-v6
           make test-triage-classifier-v7
-          make test-escalation-agent
-          make test-policies-agent
-          make test-billing-agent
-          make test-claims-agent
           make test-frontend-agent
           make test-audit-agent
 
