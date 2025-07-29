@@ -79,7 +79,7 @@ GET /health
 ```
 Returns agent health status.
 
-## 🔧 Client Usage
+## Client Usage
 
 ### Connecting to A2A Agents
 
@@ -117,28 +117,28 @@ async with A2AClient("http://localhost:8080") as client:
 | `cancel_task(task_id)` | Cancel a running task | `Task` |
 | `health_check()` | Check agent health | `bool` |
 
-## 📊 Protocol Compliance
+## Protocol Compliance
 
 This implementation is fully compliant with A2A Protocol v0.2.6:
 
-### ✅ Core Features
+### Core Features
 - **JSON-RPC 2.0** over HTTP(S) transport
 - **Agent Discovery** via well-known URI standard
 - **Task Management** with stateful operations
 - **Message Handling** with roles, parts, and metadata
 - **Error Handling** with standard JSON-RPC error codes
 
-### ✅ Supported Methods
+### Supported Methods
 - `message/send` - Send messages to the agent
 - `tasks/get` - Retrieve task status and results  
 - `tasks/cancel` - Cancel running tasks
 
-### ✅ Message Structure
+### Message Structure
 - **Roles**: `user`, `assistant`, `system`
 - **Part Types**: `text`, `file`, `data`
 - **Task States**: `pending`, `running`, `completed`, `failed`, `cancelled`
 
-## 🏭 Implementation Details
+## Implementation Details
 
 ### Architecture
 
@@ -203,7 +203,7 @@ The implementation follows JSON-RPC 2.0 error codes:
 | -32602 | Invalid params | Bad method parameters |
 | -32603 | Internal error | Server processing error |
 
-## 📋 Requirements
+## Requirements
 
 ### Required Dependencies
 ```bash
@@ -222,7 +222,7 @@ except ImportError as e:
     print("Install: pip install fastapi uvicorn httpx")
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Unit Tests
 ```bash
@@ -241,21 +241,21 @@ curl -X POST http://localhost:8080/ \
   -d '{"jsonrpc":"2.0","method":"message/send","params":{"messages":[{"role":"user","parts":[{"type":"text","content":"Hello!"}]}]},"id":"1"}'
 ```
 
-## 🔗 Related Links
+## Related Links
 
 - [A2A Protocol Specification](https://a2a-protocol.org/)
 - [A2A Protocol GitHub](https://github.com/a2a-protocol/a2a-protocol)
 - [JSON-RPC 2.0 Specification](https://www.jsonrpc.org/specification)
 - [EggAI Documentation](../../../README.md)
 
-## 📝 Examples
+## Examples
 
 See the `examples/` directory for complete working examples:
 
 - [`a2a_protocol_demo.py`](../../examples/a2a_protocol_demo.py) - Full A2A protocol demonstration
 - [`a2a_demo.py`](../../examples/a2a_demo.py) - Legacy example (deprecated)
 
-## 🤝 Contributing
+## Contributing
 
 When contributing to the A2A implementation:
 
