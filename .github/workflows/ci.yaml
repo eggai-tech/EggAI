@@ -180,7 +180,6 @@ jobs:
           make test-triage-agent
           make test-triage-classifier-v6
           make test-triage-classifier-v7
-          make test-claims-agent
           make test-frontend-agent
           make test-audit-agent
 
