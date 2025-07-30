@@ -40,6 +40,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checking git diff
+        run: |
+          echo "Changed files:"
+          git diff --name-only origin/${{ github.base_ref }}...HEAD
+
       - name: Download coverage results
         uses: actions/download-artifact@v4
         with:
