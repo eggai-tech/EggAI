@@ -3,7 +3,6 @@ import logging
 import os
 
 from agents.triage.baseline_model.utils import setup_logging
-from agents.triage.classifier_v7.classifier_v7 import FinetunedClassifier
 from agents.triage.shared.data_utils import create_examples
 
 # Set tokenizers parallelism to avoid warnings
@@ -23,7 +22,6 @@ from agents.triage.classifier_v7.training_utils import (
 load_dotenv()
 v7_settings = ClassifierV7Settings()
 
-os.environ["DSPY_CACHEDIR"] = "./dspy_cache"
 logger = logging.getLogger(__name__)
 
 
@@ -51,13 +49,17 @@ def train_finetune_model(sample_size: int, model_name: str) -> str:
         
         best_model, tokenizer = perform_fine_tuning(trainset, testset)
 
-        # perform a sanity check on the model
-        finetuned_classifier = FinetunedClassifier(model=best_model, tokenizer=tokenizer)
-        chat_history = "User: I want to know my policy due date."
-        test_result = finetuned_classifier.classify(chat_history)
-        logger.info(f"Chat history: {chat_history}. Target agent: {test_result.target_agent}")
+        # save the model to mlflow
+        components = {
+            "model": best_model,
+            "tokenizer": tokenizer,
+        }
 
-        # TODO: save the best model to MLflow
+        mlflow.transformers.log_model(
+            transformers_model=components,
+            artifact_path="model",
+            task="text-classification"
+        )
         # Return model uri from the primary artifacts
         run_id = mlflow.active_run().info.run_id
         model_uri = f"runs:/{run_id}/model"

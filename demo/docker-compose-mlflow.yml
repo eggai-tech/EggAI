@@ -21,6 +21,7 @@ services:
     environment:
       MINIO_ROOT_USER: "user"
       MINIO_ROOT_PASSWORD: "password"
+      MINIO_DISK_FREE_LIMIT: 1%
     command: server /data --console-address ":9001"
     healthcheck:
       test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1

@@ -12,7 +12,7 @@ from agents.triage.classifier_v7.device_utils import (
     get_training_precision,
     move_to_mps,
 )
-from agents.triage.data_sets.loader import AGENT_STR_TO_LABEL
+from agents.triage.data_sets.loader import LABEL2ID, ID2LABEL
 
 # Set tokenizers parallelism to avoid warnings during training
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -126,6 +126,9 @@ def perform_fine_tuning(trainset: list, testset: list):
     # Load the appropriate config class for this model
     config = AutoConfig.from_pretrained(model_name)
     config.num_labels = v7_settings.n_classes  # Set number of classes for classification
+    # set the label mapping
+    config.label2id = LABEL2ID
+    config.id2label = ID2LABEL
 
     model = AutoModelForSequenceClassification.from_pretrained(
         model_name,
@@ -163,11 +166,11 @@ def perform_fine_tuning(trainset: list, testset: list):
 
     # Prepare training data
     train_texts = [ex.chat_history for ex in trainset]
-    train_labels = [AGENT_STR_TO_LABEL[ex.target_agent] for ex in trainset]
+    train_labels = [LABEL2ID[ex.target_agent] for ex in trainset]
 
     # Prepare evaluation data
     eval_texts = [ex.chat_history for ex in testset]
-    eval_labels = [AGENT_STR_TO_LABEL[ex.target_agent] for ex in testset]
+    eval_labels = [LABEL2ID[ex.target_agent] for ex in testset]
 
     def tokenize_function(examples):
         # Tokenize the text

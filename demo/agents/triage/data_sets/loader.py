@@ -56,16 +56,8 @@ def translate_agent_str_to_enum(agent_str: str) -> TargetAgent:
         raise ValueError(f"Unknown agent string: {agent_str}")
 
 
-AGENT_TO_LABEL = {
-    TargetAgent.BillingAgent: 0,
-    TargetAgent.PolicyAgent: 1,
-    TargetAgent.ClaimsAgent: 2,
-    TargetAgent.EscalationAgent: 3,
-    TargetAgent.ChattyAgent: 4,
-}
-
 # create str to label mapping for convenience
-AGENT_STR_TO_LABEL = {
+LABEL2ID = {
     "BillingAgent": 0,
     "PolicyAgent": 1,
     "ClaimsAgent": 2,
@@ -73,6 +65,7 @@ AGENT_STR_TO_LABEL = {
     "ChattyAgent": 4,
 }
 
+ID2LABEL = {v: k for k, v in LABEL2ID.items()}
 
 def load_dataset_triage_testing():
     return load_dataset(Path(__file__).resolve().parent / "triage-testing-proofread.jsonl")
