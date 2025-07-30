@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eggai"
-version = "0.1.47"
+version = "0.1.48"
 description = "EggAI Multi-Agent Meta Framework` is an async-first framework for building, deploying, and scaling multi-agent systems for modern enterprise environments"
 authors = ["Stefano Tucci <stefanotucci89@gmail.com>"]
 readme = "README.md"
