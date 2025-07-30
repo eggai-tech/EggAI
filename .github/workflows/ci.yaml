@@ -30,7 +30,7 @@ jobs:
   sonarqube-scan:
     runs-on: ubuntu-latest
     name: SonarQube scan
-    needs: integration
+    # needs: integration
     permissions:
       contents: read
       packages: write
