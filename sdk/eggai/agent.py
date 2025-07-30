@@ -1,15 +1,18 @@
 import asyncio
 from collections import defaultdict
 from typing import (
-    List, Dict, Any, Optional, Callable, Tuple
+    List, Dict, Any, Optional, Callable, Tuple, Type, TypeVar, Awaitable
 )
 
 from .channel import Channel
 from .hooks import eggai_register_stop
+from .schemas import BaseMessage
 from .transport import get_default_transport
 from .transport.base import Transport
 
 HANDLERS_IDS = defaultdict(int)
+
+T = TypeVar('T')
 
 class Agent:
     """
@@ -54,6 +57,31 @@ class Agent:
             return handler
 
         return decorator
+
+    async def to_a2a(self, host: str = "0.0.0.0", port: int = 8080):
+        """
+        Expose this agent via HTTP API for agent-to-agent communication.
+        
+        Args:
+            host (str): Host to bind the server to. Defaults to "0.0.0.0".
+            port (int): Port to bind the server to. Defaults to 8080.
+            
+        Returns:
+            A2AServer: The running A2A server instance.
+            
+        Raises:
+            ImportError: If FastAPI/uvicorn dependencies are not installed.
+        """
+        try:
+            from .a2a.server import A2AServer
+        except ImportError as e:
+            raise ImportError(
+                "A2A functionality requires additional dependencies. "
+                "Install with: pip install fastapi uvicorn httpx"
+            ) from e
+        
+        server = A2AServer(self, host=host, port=port)
+        return await server.start()
 
     async def start(self):
         """

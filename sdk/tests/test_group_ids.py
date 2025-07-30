@@ -1,3 +1,12 @@
+"""
+Consumer group functionality tests demonstrating Kafka-style message distribution patterns.
+
+This test suite showcases three key messaging patterns:
+1. Multiple consumer groups - each group gets a copy of every message
+2. Load balancing within groups - messages distributed among group members
+3. Broadcasting without groups - all subscribers get every message
+"""
+
 import asyncio
 import uuid
 
@@ -7,101 +16,179 @@ from faststream.kafka import KafkaMessage
 from eggai import Agent, Channel
 from eggai.transport import KafkaTransport, eggai_set_default_transport
 
-eggai_set_default_transport(lambda: KafkaTransport())
-
-hits = {}
-
-def hit(key):
-    hits[key] = hits.get(key, 0) + 1
 
 @pytest.mark.asyncio
 async def test_group_ids(capfd):
-    default_channel = Channel()
+    """
+    Test multiple consumer groups receiving the same message.
+    
+    This demonstrates the fundamental consumer group pattern where:
+    - Each consumer group receives a copy of every message
+    - Different groups can process the same message independently
+    - Useful for scenarios like: logging, analytics, and business logic
+      all processing the same events independently
+    """
+    eggai_set_default_transport(lambda: KafkaTransport())
+    
+    # Create isolated test resources
+    test_id = uuid.uuid4().hex[:8]
+    order_channel = Channel(f"test-order-events-{test_id}")
+    order_processor = Agent(f"order-processor-{test_id}")
+    
+    # Track which groups processed messages
+    group_activity = {}
 
-    hits.clear()
-    agent = Agent("SingleAgent")
+    def track_group_activity(group_name: str):
+        """Track activity per consumer group."""
+        group_activity[group_name] = group_activity.get(group_name, 0) + 1
 
-    @agent.subscribe(
+    @order_processor.subscribe(
+        channel=order_channel,
         filter_by_message=lambda event: event["type"] == 1,
-        group_id="group_A"
+        group_id="analytics_group"  # Analytics service group
     )
-    async def handler_group_A(event):
-        hit("group_A")
+    async def analytics_handler(event):
+        """Process order events for analytics purposes."""
+        track_group_activity("analytics")
 
-    @agent.subscribe(
+    @order_processor.subscribe(
+        channel=order_channel,
         filter_by_message=lambda event: event["type"] == 1,
-        group_id="group_B"
+        group_id="fulfillment_group"  # Order fulfillment group
     )
-    async def handler_group_B(event):
-        hit("group_B")
+    async def fulfillment_handler(event):
+        """Process order events for fulfillment purposes."""
+        track_group_activity("fulfillment")
 
-    await agent.start()
-    await default_channel.publish({"type": 1})
+    await order_processor.start()
+    
+    # Publish one order event
+    await order_channel.publish({"type": 1, "order_id": "ORDER-123"})
     await asyncio.sleep(0.5)
+    await order_processor.stop()
 
-    # Since the subscriptions are in different groups, both should get the message.
-    assert hits.get("group_A") == 1, "Expected group_A handler to be triggered once."
-    assert hits.get("group_B") == 1, "Expected group_B handler to be triggered once."
+    # Both consumer groups should receive the same message
+    assert group_activity.get("analytics") == 1, "Analytics group should process the order"
+    assert group_activity.get("fulfillment") == 1, "Fulfillment group should process the order"
 
 
 @pytest.mark.asyncio
 async def test_2_agents_same_group(capfd):
-    hits.clear()
-    default_channel = Channel()
-    agent1 = Agent("Agent1")
-    agent2 = Agent("Agent2")
+    """
+    Test load balancing within a single consumer group.
+    
+    This demonstrates how multiple agents in the same consumer group
+    share the workload - only one agent processes each message.
+    This is useful for horizontal scaling where you have multiple
+    instances of the same service.
+    """
+    eggai_set_default_transport(lambda: KafkaTransport())
+    
+    # Create isolated test resources
+    test_id = uuid.uuid4().hex[:8]
+    work_channel = Channel(f"test-work-queue-{test_id}")
+    worker_1 = Agent(f"worker-1-{test_id}")
+    worker_2 = Agent(f"worker-2-{test_id}")
+    
+    # Track total work processed (should be exactly 1)
+    work_processed = {}
 
-    @agent1.subscribe(
+    def track_work_processed(worker_id: str):
+        """Track work processed across all workers in the group."""
+        work_processed["total"] = work_processed.get("total", 0) + 1
+        work_processed["by_worker"] = work_processed.get("by_worker", [])
+        work_processed["by_worker"].append(worker_id)
+
+    @worker_1.subscribe(
+        channel=work_channel,
         filter_by_message=lambda event: event["type"] == 2,
-        group_id="group_C"
+        group_id="worker_pool"  # Both workers in same group
     )
-    async def handler_agent1(event):
-        hit("group_C")
+    async def worker_1_handler(event):
+        """Worker 1 processing logic."""
+        track_work_processed("worker_1")
 
-    @agent2.subscribe(
+    @worker_2.subscribe(
+        channel=work_channel,
         filter_by_message=lambda event: event["type"] == 2,
-        group_id="group_C"
+        group_id="worker_pool"  # Both workers in same group
     )
-    async def handler_agent2(event):
-        hit("group_C")
+    async def worker_2_handler(event):
+        """Worker 2 processing logic."""
+        track_work_processed("worker_2")
 
-    await agent1.start()
-    await agent2.start()
-    await default_channel.publish({"type": 2})
-    await asyncio.sleep(4)
+    await worker_1.start()
+    await worker_2.start()
+    
+    # Send one work item
+    await work_channel.publish({"type": 2, "task_id": "TASK-456"})
+    await asyncio.sleep(4)  # Allow time for consumer group coordination
+    
+    await worker_1.stop()
+    await worker_2.stop()
 
-    # With both agents in the same consumer group for type 2 events, only one should process the event.
-    assert hits.get("group_C") == 1, "Expected only one handler in group_C to be triggered due to consumer group load balancing."
-
+    # Only one worker should have processed the message due to load balancing
+    assert work_processed.get("total") == 1, \
+        "Exactly one worker should process the message in a consumer group"
 
 
 @pytest.mark.asyncio
 async def test_broadcasting(capfd):
-    default_channel = Channel()
-    hits.clear()
+    """
+    Test broadcasting to all subscribers without consumer groups.
+    
+    This demonstrates the broadcast pattern where every subscriber
+    receives every message. This is useful for notifications,
+    real-time updates, or event broadcasting scenarios.
+    """
+    eggai_set_default_transport(lambda: KafkaTransport())
+    
+    # Create isolated test resources  
+    test_id = uuid.uuid4().hex[:8]
+    notification_channel = Channel(f"test-notifications-{test_id}")
+    mobile_app = Agent(f"mobile-app-{test_id}")
+    web_app = Agent(f"web-app-{test_id}")
+    
+    # Track notifications received by each app
+    notifications_received = {}
 
-    agentA = Agent("AgentA")
-    agentB = Agent("AgentB")
+    def track_notification(app_name: str):
+        """Track notifications received by each application."""
+        notifications_received[app_name] = notifications_received.get(app_name, 0) + 1
 
-    @agentA.subscribe(
+    @mobile_app.subscribe(
+        channel=notification_channel,
         filter_by_message=lambda event: event["type"] == 3
-        # No group_id provided: broadcasting mode.
+        # No group_id = broadcasting mode - each subscriber gets the message
     )
-    async def handler_agentA(event):
-        hit("agentA")
+    async def mobile_notification_handler(event):
+        """Handle notifications for mobile app users."""
+        track_notification("mobile_app")
 
-    @agentB.subscribe(
+    @web_app.subscribe(
+        channel=notification_channel,
         filter_by_message=lambda event: event["type"] == 3
-        # No group_id provided: broadcasting mode.
+        # No group_id = broadcasting mode - each subscriber gets the message
     )
-    async def handler_agentB(event):
-        hit("agentB")
+    async def web_notification_handler(event):
+        """Handle notifications for web app users."""
+        track_notification("web_app")
 
-    await agentA.start()
-    await agentB.start()
-    await default_channel.publish({"type": 3})
+    await mobile_app.start()
+    await web_app.start()
+    
+    # Send a notification
+    await notification_channel.publish({
+        "type": 3, 
+        "message": "System maintenance in 10 minutes"
+    })
     await asyncio.sleep(0.5)
+    
+    await mobile_app.stop()
+    await web_app.stop()
 
-    # Expect both agents to process the same broadcasted message.
-    assert hits.get("agentA") == 1, "Expected AgentA to handle the broadcasted event."
-    assert hits.get("agentB") == 1, "Expected AgentB to handle the broadcasted event."
+    # Both applications should receive the broadcast notification
+    assert notifications_received.get("mobile_app") == 1, \
+        "Mobile app should receive the broadcast notification"
+    assert notifications_received.get("web_app") == 1, \
+        "Web app should receive the broadcast notification"
