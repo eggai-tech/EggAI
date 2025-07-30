@@ -1,3 +1,13 @@
+"""
+Typed message subscription tests demonstrating strongly-typed message handling.
+
+This test suite showcases EggAI's advanced typed messaging features:
+- data_type parameter for automatic message type validation and parsing
+- filter_by_data for filtering on typed message content
+- Type-safe message handlers with Pydantic models
+- Automatic BaseMessage wrapping and unwrapping
+"""
+
 import asyncio
 import uuid
 from enum import Enum
@@ -10,7 +20,8 @@ from eggai.schemas import BaseMessage
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 
 
-class Status(Enum):
+class OrderStatus(Enum):
+    """Order processing status enumeration."""
     REQUESTED = "requested"
     CREATED = "created"
     PROCESSED = "processed"
@@ -18,28 +29,29 @@ class Status(Enum):
     COMPLETED = "completed"
 
 
-# Payload classes (without Message suffix)
 class Order(BaseModel):
+    """Order data model with typed fields."""
     order_id: int
     user_id: str
     amount: float
-    status: Status
+    status: OrderStatus
 
 
 class Payment(BaseModel):
+    """Payment data model with typed fields."""
     payment_id: str
     order_id: int
-    status: Status
+    status: OrderStatus
 
 
-# Message classes using BaseMessage
 class OrderMessage(BaseMessage[Order]):
+    """Typed message wrapper for Order data."""
     type: str = "OrderMessage"
 
 
 class PaymentMessage(BaseMessage[Payment]):
+    """Typed message wrapper for Payment data."""
     type: str = "PaymentMessage"
-
 
 @pytest.mark.asyncio
 async def test_basic_typed_subscribe():
@@ -59,38 +71,37 @@ async def test_basic_typed_subscribe():
     def capture_message(message):
         captured_messages.append(message)
 
-    @agent.typed_subscribe(Order, channel=channel)
-    async def handle_any_order_message(order: Order):
+    @agent.subscribe(data_type=OrderMessage, channel=channel)
+    async def handle_any_order_message(order: OrderMessage):
         hit("any_order")
-        capture_message(order)
+        capture_message(order.data)
 
-    @agent.typed_subscribe(
-        Order, 
+    @agent.subscribe(
+        data_type=OrderMessage,
         channel=channel,
-        filter_by_message=lambda order: order.status == Status.REQUESTED
+        filter_by_data=lambda order: order.data.status == OrderStatus.REQUESTED
     )
-    async def handle_order_requested(order: Order):
+    async def handle_order_requested(order: OrderMessage):
         hit("order_requested")
         capture_message(order)
-        # Publish a follow-up message
         await channel.publish(OrderMessage(
             source="test-agent",
             data=Order(
-                order_id=order.order_id,
-                user_id=order.user_id,
-                amount=order.amount,
-                status=Status.CREATED
+                order_id=order.data.order_id,
+                user_id=order.data.user_id,
+                amount=order.data.amount,
+                status=OrderStatus.CREATED
             )
         ))
 
-    @agent.typed_subscribe(
-        Order,
+    @agent.subscribe(
+        data_type=OrderMessage,
         channel=channel,
-        filter_by_message=lambda order: order.status == Status.CREATED
+        filter_by_data=lambda order: order.data.status == OrderStatus.CREATED
     )
-    async def handle_order_created(order: Order):
+    async def handle_order_created(order: OrderMessage):
         hit("order_created")
-        capture_message(order)
+        capture_message(order.data)
     
     await agent.start()
     
@@ -101,7 +112,7 @@ async def test_basic_typed_subscribe():
             order_id=123,
             user_id="user456",
             amount=99.99,
-            status=Status.REQUESTED
+            status=OrderStatus.REQUESTED
         )
     ))
     
@@ -121,7 +132,7 @@ async def test_basic_typed_subscribe():
     
     # Verify the first message (order_requested)
     first_msg = order_messages[0]
-    assert first_msg.status == Status.REQUESTED
+    assert first_msg.status == OrderStatus.REQUESTED
     assert first_msg.order_id == 123
     assert first_msg.user_id == "user456"
     assert first_msg.amount == 99.99
@@ -131,7 +142,7 @@ async def test_basic_typed_subscribe():
 
 @pytest.mark.asyncio
 async def test_typed_subscribe_with_filter():
-    """Test typed subscription with filter_by_message using typed fields"""
+    """Test typed subscription with filter_by_data using typed fields"""
     eggai_set_default_transport(lambda: KafkaTransport())
     
     # Create test-specific agent and channel
@@ -147,19 +158,19 @@ async def test_typed_subscribe_with_filter():
     def capture_message(message):
         captured_messages.append(message)
 
-    @agent.typed_subscribe(
-        Order, 
+    @agent.subscribe(
+        data_type=OrderMessage, 
         channel=channel,
-        filter_by_message=lambda order: order.status == Status.REQUESTED
+        filter_by_data=lambda order: order.data.status == OrderStatus.REQUESTED
     )
-    async def handle_order_requested(order: Order):
+    async def handle_order_requested(order: OrderMessage):
         hit("order_requested")
-        capture_message(order)
+        capture_message(order.data)
 
-    @agent.typed_subscribe(Payment, channel=channel)
-    async def handle_payment_message(payment: Payment):
+    @agent.subscribe(data_type=PaymentMessage, channel=channel)
+    async def handle_payment_message(payment: PaymentMessage):
         hit("payment")
-        capture_message(payment)
+        capture_message(payment.data)
     
     await agent.start()
     
@@ -170,7 +181,7 @@ async def test_typed_subscribe_with_filter():
             order_id=456,
             user_id="user789",
             amount=149.99,
-            status=Status.REQUESTED
+            status=OrderStatus.REQUESTED
         )
     ))
     
@@ -179,7 +190,7 @@ async def test_typed_subscribe_with_filter():
         data=Payment(
             payment_id="pay_123",
             order_id=456,
-            status=Status.COMPLETED
+            status=OrderStatus.COMPLETED
         )
     ))
     
@@ -194,7 +205,7 @@ async def test_typed_subscribe_with_filter():
     payment_messages = [msg for msg in captured_messages if isinstance(msg, Payment)]
     assert len(payment_messages) == 1
     assert payment_messages[0].payment_id == "pay_123"
-    assert payment_messages[0].status == Status.COMPLETED
+    assert payment_messages[0].status == OrderStatus.COMPLETED
     
     await agent.stop()
 
@@ -213,8 +224,8 @@ async def test_typed_subscribe_error_handling():
     def error_hit(key):
         error_hits[key] = error_hits.get(key, 0) + 1
     
-    @error_agent.typed_subscribe(Order, channel=channel)
-    async def handle_with_error(order: Order):
+    @error_agent.subscribe(data_type=OrderMessage, channel=channel)
+    async def handle_with_error(order: OrderMessage):
         error_hit("should_not_be_called")
     
     await error_agent.start()
@@ -229,7 +240,7 @@ async def test_typed_subscribe_error_handling():
             order_id=123,
             user_id="user456", 
             amount=99.99,
-            status=Status.REQUESTED
+            status=OrderStatus.REQUESTED
         )
     ))
     
@@ -266,15 +277,15 @@ async def test_multiple_typed_subscriptions():
     def multi_hit(key):
         multi_hits[key] = multi_hits.get(key, 0) + 1
     
-    @multi_agent.typed_subscribe(Order, channel=channel)
-    async def handle_order(order: Order):
+    @multi_agent.subscribe(data_type=OrderMessage, channel=channel)
+    async def handle_order(order: OrderMessage):
         multi_hit("order")
-        multi_messages.append(order)
+        multi_messages.append(order.data)
     
-    @multi_agent.typed_subscribe(Payment, channel=channel)
-    async def handle_payment(payment: Payment):
+    @multi_agent.subscribe(data_type=PaymentMessage, channel=channel)
+    async def handle_payment(payment: PaymentMessage):
         multi_hit("payment")
-        multi_messages.append(payment)
+        multi_messages.append(payment.data)
     
     await multi_agent.start()
     
@@ -285,7 +296,7 @@ async def test_multiple_typed_subscriptions():
             order_id=789,
             user_id="user999",
             amount=199.99,
-            status=Status.REQUESTED
+            status=OrderStatus.REQUESTED
         )
     ))
     
@@ -294,7 +305,7 @@ async def test_multiple_typed_subscriptions():
         data=Payment(
             payment_id="pay_456",
             order_id=789,
-            status=Status.PENDING
+            status=OrderStatus.PENDING
         )
     ))
     
@@ -328,8 +339,8 @@ async def test_type_name_matching():
     def type_hit(key):
         type_hits[key] = type_hits.get(key, 0) + 1
     
-    @type_agent.typed_subscribe(Order, channel=channel)
-    async def handle_order(order: Order):
+    @type_agent.subscribe(data_type=OrderMessage, channel=channel)
+    async def handle_order(order: OrderMessage):
         type_hit("order_handled")
     
     await type_agent.start()
@@ -341,7 +352,7 @@ async def test_type_name_matching():
             order_id=123,
             user_id="user456",
             amount=99.99,
-            status=Status.REQUESTED
+            status=OrderStatus.REQUESTED
         )
     ))
     
@@ -355,7 +366,7 @@ async def test_type_name_matching():
             order_id=456,
             user_id="user789",
             amount=149.99,
-            status=Status.REQUESTED
+            status=OrderStatus.REQUESTED
         )
     ))
     

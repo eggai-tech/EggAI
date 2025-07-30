@@ -1,11 +1,13 @@
 import uuid
-from datetime import datetime
+import datetime
 from typing import Generic, Optional, TypeVar, Dict, Any
 
 from pydantic import BaseModel, Field, UUID4
 
 # Define type variables with defaults (requires Python 3.11+ for default values on TypeVar)
 TData = TypeVar("TData")
+
+current_datetime_factory = lambda: datetime.datetime.now(datetime.UTC)
 
 class BaseMessage(BaseModel, Generic[TData]):
     """
@@ -34,7 +36,7 @@ class BaseMessage(BaseModel, Generic[TData]):
     source: str = Field(..., description="Identifies the event producer (e.g., '/service-a').")
     type: str = Field(..., description="Event type (e.g., 'user.created', 'order.shipped').")
     subject: Optional[str] = Field(default=None, description="Subject of the event in the context of the producer.")
-    time: Optional[datetime] = Field(default_factory=datetime.utcnow, description="Timestamp of when the event was created (ISO 8601).")
+    time: Optional[datetime.datetime] = Field(default_factory=current_datetime_factory, description="Timestamp of when the event was created (ISO 8601).")
     datacontenttype: Optional[str] = Field(default="application/json", description="Media type of the event data.")
     dataschema: Optional[str] = Field(default=None, description="URI of the schema that `data` adheres to.")
     data: TData = Field(default_factory=dict, description="Event payload containing application-specific data.")

@@ -143,22 +143,22 @@ This implementation is fully compliant with A2A Protocol v0.2.6:
 ### Architecture
 
 ```
-┌─────────────────┐    HTTP/JSON-RPC 2.0    ┌─────────────────┐
-│   A2A Client    │ ────────────────────────▶│   A2A Server    │
-│                 │                          │                 │
-│ - Agent Discovery│                          │ - Agent Card    │
-│ - Message Sending│                          │ - Task Manager  │
-│ - Task Management│                          │ - EggAI Bridge  │
-└─────────────────┘                          └─────────────────┘
-                                                       │
-                                                       ▼
-                                             ┌─────────────────┐
-                                             │   EggAI Agent   │
-                                             │                 │
-                                             │ - Subscriptions │
-                                             │ - Message Bus   │
-                                             │ - Transport     │
-                                             └─────────────────┘
+┌───────────────────┐    HTTP/JSON-RPC 2.0     ┌─────────────────┐
+│   A2A Client      │ ────────────────────────▶│   A2A Server    │
+│                   │                          │                 │
+│ - Agent Discovery │                          │ - Agent Card    │
+│ - Message Sending │                          │ - Task Manager  │
+│ - Task Management │                          │ - EggAI Bridge  │
+└───────────────────┘                          └─────────────────┘
+                                                        │
+                                                        ▼
+                                               ┌─────────────────┐
+                                               │   EggAI Agent   │
+                                               │                 │
+                                               │ - Subscriptions │
+                                               │ - Message Bus   │
+                                               │ - Transport     │
+                                               └─────────────────┘
 ```
 
 ### Key Components

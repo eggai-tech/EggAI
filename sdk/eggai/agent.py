@@ -58,55 +58,6 @@ class Agent:
 
         return decorator
 
-    def typed_subscribe(self, payload_type: Type[T], channel: Optional[Channel] = None, **kwargs):
-        """
-        Decorator for adding a typed subscription with automatic BaseMessage handling and payload deserialization.
-
-        Args:
-            payload_type (Type[T]): The Pydantic model type for the message payload.
-                                   The message type will be matched as payload_type.__name__ + "Message".
-            channel (Optional[Channel]): The channel to subscribe to. If None, defaults to "eggai.channel".
-            **kwargs: Additional arguments passed to the underlying subscribe method.
-                     Note: filter_by_message will receive the typed payload, not the full BaseMessage.
-
-        Returns:
-            Callable: A decorator that registers the given handler for the typed subscription.
-        """
-        
-        # Calculate expected message type from payload class name
-        expected_message_type = f"{payload_type.__name__}Message"
-        
-        # Extract filter_by_message if present and wrap it to work with typed payload
-        original_filter = kwargs.pop('filter_by_message', None)
-        
-        def decorator(handler: Callable[[T], Awaitable[Any]]):
-            async def typed_handler(raw_message: Dict[str, Any]) -> Any:
-                try:
-                    # Parse as BaseMessage first
-                    base_message = BaseMessage(**raw_message)
-                    
-                    # Check if message type matches expected type
-                    if base_message.type != expected_message_type:
-                        return None
-                    
-                    # Deserialize the payload data
-                    typed_payload = payload_type(**base_message.data)
-                    
-                    # Apply filter on typed payload if filter exists
-                    if original_filter and not original_filter(typed_payload):
-                        return None
-                    
-                    return await handler(typed_payload)
-                except Exception as e:
-                    # You could add logging here if needed
-                    raise e
-            
-            channel_name = channel.get_name() if channel else "eggai.channel"
-            self._subscriptions.append((channel_name, typed_handler, kwargs))
-            return handler
-
-        return decorator
-
     async def to_a2a(self, host: str = "0.0.0.0", port: int = 8080):
         """
         Expose this agent via HTTP API for agent-to-agent communication.

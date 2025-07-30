@@ -169,11 +169,49 @@ class KafkaTransport(Transport):
                 kwargs["middlewares"] = []
             kwargs["middlewares"].append(filter_middleware(kwargs.pop("filter_by_message")))
 
+        if "data_type" in kwargs:
+            data_type = kwargs.pop("data_type")
+            def data_type_middleware(data_type):
+                async def middleware(
+                        call_next: Callable[[Any], Awaitable[Any]],
+                        msg: StreamMessage[Any],
+                ) -> Any:
+                    typed_message = data_type.model_validate(json.loads(msg.body.decode("utf-8")))
+
+                    if typed_message.type != data_type.model_fields["type"].default:
+                        return None
+
+                    return await call_next(msg)
+
+                return middleware
+
+            if "middlewares" not in kwargs:
+                kwargs["middlewares"] = []
+            kwargs["middlewares"].append(data_type_middleware(data_type))
+
+            if "filter_by_data" in kwargs:
+                def filter_by_data_middleware(filter_func):
+                    async def middleware(
+                            call_next: Callable[[Any], Awaitable[Any]],
+                            msg: StreamMessage[Any],
+                    ) -> Any:
+                        data = json.loads(msg.body.decode("utf-8"))
+                        typed_message = data_type.model_validate(data)
+                        if filter_func(typed_message):
+                            return await call_next(msg)
+                        return None
+
+                    return middleware
+
+                if "middlewares" not in kwargs:
+                    kwargs["middlewares"] = []
+                kwargs["middlewares"].append(filter_by_data_middleware(kwargs.pop("filter_by_data")))
+
         handler_id = kwargs.pop("handler_id")
         if "group_id" not in kwargs:
             kwargs["group_id"] = handler_id
 
-        if channel == "eggai.channel" and "pattern" in kwargs:
+        if "pattern" in kwargs:
             return self.broker.subscriber(**kwargs)(handler)
         else:
             return self.broker.subscriber(channel, **kwargs)(handler)

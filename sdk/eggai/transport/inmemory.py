@@ -66,15 +66,61 @@ class InMemoryTransport(Transport):
         If no group_id is given, a unique one is generated, ensuring that each subscription
         gets its own consumer (broadcast mode).
         """
-        group_id = kwargs.get("group_id", uuid.uuid4().hex)
-        key = (group_id, channel)
-        if "filter_by_message" in kwargs:
+        handler_id = kwargs.pop("handler_id", None)
+        group_id = kwargs.get("group_id", handler_id or uuid.uuid4().hex)
+        key = (channel, group_id)
+        
+        final_callback = callback
+        
+        # Handle data_type filtering
+        if "data_type" in kwargs:
+            data_type = kwargs["data_type"]
+            
+            async def data_type_filtered_callback(data):
+                try:
+                    typed_message = data_type.model_validate(data)
+                    # Check if message type matches expected type
+                    if typed_message.type != data_type.model_fields["type"].default:
+                        return
+                    # Pass the typed message object to the handler
+                    await callback(typed_message)
+                except Exception:
+                    # Skip messages that don't match the data type
+                    return
+            
+            final_callback = data_type_filtered_callback
+            
+            # Handle filter_by_data if present along with data_type
+            if "filter_by_data" in kwargs:
+                filter_func = kwargs["filter_by_data"]
+                
+                async def data_and_filter_callback(data):
+                    try:
+                        typed_message = data_type.model_validate(data)
+                        # Check if message type matches expected type
+                        if typed_message.type != data_type.model_fields["type"].default:
+                            return
+                        # Apply the data filter
+                        if filter_func(typed_message):
+                            await callback(typed_message)
+                    except Exception:
+                        # Skip messages that don't match the data type or filter
+                        return
+                
+                final_callback = data_and_filter_callback
+        
+        # Handle legacy filter_by_message (for backward compatibility)
+        elif "filter_by_message" in kwargs:
+            filter_func = kwargs["filter_by_message"]
+            
             async def filtered_callback(data):
-                if kwargs["filter_by_message"](data):
-                    await callback(data)
-            InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(filtered_callback)
-        else:
-            InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(callback)
+                if filter_func(data):
+                    await final_callback(data)
+            
+            final_callback = filtered_callback
+        
+        InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(final_callback)
+        
         if group_id not in InMemoryTransport._CHANNELS[channel]:
             InMemoryTransport._CHANNELS[channel][group_id] = asyncio.Queue()
         if self._connected and key not in self._consume_tasks:
