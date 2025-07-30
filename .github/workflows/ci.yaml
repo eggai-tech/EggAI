@@ -28,9 +28,10 @@ jobs:
           src: demo
 
   sonarqube-scan:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     name: SonarQube scan
-    # needs: integration
+    needs: integration
     permissions:
       contents: read
       packages: write
@@ -39,11 +40,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Checking git diff
-        run: |
-          echo "Changed files:"
-          git diff --name-only origin/${{ github.base_ref }}...HEAD
 
       - name: Download coverage results
         uses: actions/download-artifact@v4
