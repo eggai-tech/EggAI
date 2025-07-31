@@ -71,7 +71,8 @@ class Gemma3TextForSequenceClassification(Gemma3PreTrainedModel):
             cache_position=cache_position,
             return_dict=return_dict
         )
-        pooled_output = outputs.last_hidden_state[:, 0]  # use first token (similar to [CLS])
+        # gemma is a decoder-only autoregressive model, so use the last token as pooled representation
+        pooled_output = outputs.last_hidden_state[:, -1]
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
         loss = _compute_loss(logits, labels, self.num_labels)
