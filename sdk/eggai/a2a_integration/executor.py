@@ -28,6 +28,8 @@ class EggAIAgentExecutor(AgentExecutor):
     def __init__(self, agent: "Agent"):
         super().__init__()
         self.agent = agent
+        # Get A2A plugin instance
+        self.a2a_plugin = agent.plugins["a2a"]["_instance"]
     
     async def execute(self, request_context: RequestContext, event_queue: EventQueue):
         """Execute A2A request by calling EggAI handler directly."""
@@ -36,19 +38,19 @@ class EggAIAgentExecutor(AgentExecutor):
             skill_name = self._extract_skill_name(request_context)
             logger.info(f"Executing A2A skill: {skill_name}")
             
-            if skill_name not in self._a2a_handlers:
-                error_msg = f"Unknown skill: {skill_name}. Available skills: {list(self.agent._a2a_handlers.keys())}"
+            if skill_name not in self.a2a_plugin.handlers:
+                error_msg = f"Unknown skill: {skill_name}. Available skills: {list(self.a2a_plugin.handlers.keys())}"
                 logger.error(error_msg)
-                await event_queue.new_agent_text_message(error_msg)
+                await event_queue.enqueue_event({"text": error_msg})
                 return
             
             # Get handler and extract message data
-            handler = self.agent._a2a_handlers[skill_name]
+            handler = self.a2a_plugin.handlers[skill_name]
             message_data = self._extract_message_data(request_context)
             
             # Convert dict data to Pydantic model if we have the data type
-            if hasattr(self.agent, '_a2a_data_types') and skill_name in self.agent._a2a_data_types:
-                data_type = self.agent._a2a_data_types[skill_name]
+            if skill_name in self.a2a_plugin.data_types:
+                data_type = self.a2a_plugin.data_types[skill_name]
                 if data_type and hasattr(data_type, 'model_validate'):
                     try:
                         message_data = data_type.model_validate(message_data)
@@ -66,7 +68,7 @@ class EggAIAgentExecutor(AgentExecutor):
             
             logger.debug(f"Calling handler with message: {eggai_message}")
             
-            # Call handler directly (no Kafka!)
+            # Call handler
             result = await handler(eggai_message)
             
             # Convert result to A2A response
@@ -84,6 +86,7 @@ class EggAIAgentExecutor(AgentExecutor):
                 await self._send_agent_response(event_queue, {"status": "completed"})
                 
         except Exception as e:
+            skill_name = locals()['skill_name'] if 'skill_name' in locals() else "unknown"
             error_msg = f"Error executing skill '{skill_name}': {str(e)}"
             logger.exception(error_msg)
             await self._send_agent_response(event_queue, {"error": error_msg})
@@ -110,7 +113,7 @@ class EggAIAgentExecutor(AgentExecutor):
                     return message.metadata['skill']
         
         # Fallback to first available skill
-        available_skills = list(self.agent._a2a_handlers.keys())
+        available_skills = list(self.a2a_plugin.handlers.keys())
         if available_skills:
             logger.warning(f"No skill specified, using first available: {available_skills[0]}")
             return available_skills[0]
@@ -178,7 +181,7 @@ class EggAIAgentExecutor(AgentExecutor):
             
             # Create A2A message with response data
             response_message = Message(
-                messageId=str(uuid4()),
+                message_id=str(uuid4()),
                 role=Role.agent,
                 parts=[Part(root=DataPart(data=data))]
             )
