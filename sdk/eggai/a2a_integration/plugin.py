@@ -146,9 +146,17 @@ class A2APlugin:
             http_handler=request_handler
         )
         
-        logger.info(f"Starting A2A server on {host}:{port}")
-        
-        # Run server
-        config = uvicorn.Config(server.build(), host=host, port=port, log_level="info")
+        # Add CORS middleware
+        from starlette.middleware.cors import CORSMiddleware
+        app = server.build()
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # Configure as needed
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+        config = uvicorn.Config(app, host=host, port=port, log_level="info")
         uvicorn_server = uvicorn.Server(config)
         await uvicorn_server.serve()
