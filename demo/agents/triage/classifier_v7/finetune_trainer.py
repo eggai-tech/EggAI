@@ -55,10 +55,12 @@ def train_finetune_model(sample_size: int, model_name: str) -> str:
             "tokenizer": tokenizer,
         }
 
+        # add gemma3_seq_cls.py to code_paths
         mlflow.transformers.log_model(
             transformers_model=components,
             artifact_path="model",
-            task="text-classification"
+            task="text-classification",
+            infer_code_paths=True,
         )
         # Return model uri from the primary artifacts
         run_id = mlflow.active_run().info.run_id
