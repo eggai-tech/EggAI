@@ -5,6 +5,7 @@ from datetime import datetime
 
 import mlflow
 import torch
+from triage.classifier_v7.gemma3_seq_cls import Gemma3TextForSequenceClassification
 
 from agents.triage.classifier_v7.config import ClassifierV7Settings
 from agents.triage.classifier_v7.device_utils import (
@@ -12,7 +13,7 @@ from agents.triage.classifier_v7.device_utils import (
     get_training_precision,
     move_to_mps,
 )
-from agents.triage.data_sets.loader import LABEL2ID, ID2LABEL
+from agents.triage.data_sets.loader import ID2LABEL, LABEL2ID
 
 # Set tokenizers parallelism to avoid warnings during training
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -26,7 +27,6 @@ from sklearn.metrics import (
 )
 from transformers import (
     AutoConfig,
-    AutoModelForSequenceClassification,
     AutoTokenizer,
     BitsAndBytesConfig,
     DataCollatorWithPadding,
@@ -130,7 +130,7 @@ def perform_fine_tuning(trainset: list, testset: list):
     config.label2id = LABEL2ID
     config.id2label = ID2LABEL
 
-    model = AutoModelForSequenceClassification.from_pretrained(
+    model = Gemma3TextForSequenceClassification.from_pretrained(
         model_name,
         config=config,
         quantization_config=quantization_config,
@@ -138,6 +138,12 @@ def perform_fine_tuning(trainset: list, testset: list):
         device_map=device_map,
         attn_implementation="eager"  # More stable than flash attention
     )
+
+    # add auto_map to config to ensure correct loading
+    model.config.auto_map = {
+        "AutoConfig": "transformers.models.gemma3.configuration_gemma3.Gemma3TextConfig",
+        "AutoModel": "triage.classifier_v7.gemma3_seq_cls.Gemma3TextForSequenceClassification"
+    }
 
     # Configure LoRA
     # we need to save the classifier layer together with the LoRA adapters, see Gemma3TextForSequenceClassification
@@ -250,7 +256,7 @@ def perform_fine_tuning(trainset: list, testset: list):
     # save the tokenizer
     tokenizer.save_pretrained(v7_settings.output_dir)
 
-    logger.info(f"Gemma3 fine-tuning completed.")
+    logger.info("Gemma3 fine-tuning completed.")
 
     training_time = time.time() - start_time
     logger.info(f"Training completed in {training_time:.1f}s")
