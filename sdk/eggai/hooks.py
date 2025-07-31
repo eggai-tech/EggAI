@@ -15,6 +15,7 @@ HANDLED_SIGNALS = (
 if sys.platform == "win32":  # pragma: py-not-win32
     HANDLED_SIGNALS += (signal.SIGBREAK,)  # Windows only signal. Sent by Ctrl+Break.
 
+
 def _get_exit_event():
     """Return (and create if needed) the global exit event."""
     global _EXIT_EVENT
@@ -75,7 +76,9 @@ async def _install_signal_handlers():
     loop = asyncio.get_event_loop()
     for sig in HANDLED_SIGNALS:
         try:
-            loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(sig, False)))
+            loop.add_signal_handler(
+                sig, lambda s=sig: asyncio.create_task(shutdown(sig, False))
+            )
         except NotImplementedError:
             signal.signal(sig, lambda _, __: asyncio.create_task(shutdown(sig, True)))
 
@@ -137,6 +140,7 @@ class EggaiRunner:
     Note: if you want to keep the program running forever until interrupted,
     you can add `await asyncio.Future()` at the end of your main function.
     """
+
     async def __aenter__(self):
         await _install_signal_handlers()
         return self

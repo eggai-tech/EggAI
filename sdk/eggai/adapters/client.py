@@ -4,8 +4,16 @@ from typing import Dict, Any, Optional, List
 
 from eggai import Agent, Channel
 
-from eggai.adapters.types import ExternalTool, ToolListRequest, ToolListRequestMessage, ToolListResponseMessage, \
-    ToolCallRequest, ToolCallRequestMessage, ToolCallResponse, ToolCallResponseMessage
+from eggai.adapters.types import (
+    ExternalTool,
+    ToolListRequest,
+    ToolListRequestMessage,
+    ToolListResponseMessage,
+    ToolCallRequest,
+    ToolCallRequestMessage,
+    ToolCallResponse,
+    ToolCallResponseMessage,
+)
 
 
 class EggaiAdapterClient:
@@ -38,20 +46,17 @@ class EggaiAdapterClient:
 
         await self.tool_agent.start()
 
-    async def call_tool(self, tool_name: str, parameters: Optional[Dict[str, Any]] = None) -> ToolCallResponse:
+    async def call_tool(
+        self, tool_name: str, parameters: Optional[Dict[str, Any]] = None
+    ) -> ToolCallResponse:
         call_uuid = uuid.uuid4()
-        self.futures[call_uuid] = {
-            "result_event": asyncio.Event(),
-            "result": None
-        }
+        self.futures[call_uuid] = {"result_event": asyncio.Event(), "result": None}
         await self.c("calls.in").publish(
             ToolCallRequestMessage(
                 source=self.source,
                 data=ToolCallRequest(
-                    call_id=call_uuid,
-                    tool_name=tool_name,
-                    parameters=parameters
-                )
+                    call_id=call_uuid, tool_name=tool_name, parameters=parameters
+                ),
             )
         )
         await self.futures[call_uuid]["result_event"].wait()
@@ -61,18 +66,12 @@ class EggaiAdapterClient:
 
     async def retrieve_tools(self) -> List[ExternalTool]:
         call_uuid = uuid.uuid4()
-        self.futures[call_uuid] = {
-            "result_event": asyncio.Event(),
-            "result": None
-        }
+        self.futures[call_uuid] = {"result_event": asyncio.Event(), "result": None}
 
         await self.c("list.in").publish(
             ToolListRequestMessage(
                 source=self.source,
-                data=ToolListRequest(
-                    call_id=call_uuid,
-                    adapter_name=self.adapter
-                )
+                data=ToolListRequest(call_id=call_uuid, adapter_name=self.adapter),
             )
         )
 

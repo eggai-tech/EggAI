@@ -13,6 +13,7 @@ HANDLERS_IDS = defaultdict(int)
 NAMESPACE = os.getenv("EGGAI_NAMESPACE", "eggai")
 DEFAULT_CHANNEL_NAME = "channel"
 
+
 class Channel:
     """
     A channel that publishes messages to a given 'name' on its own Transport.
@@ -64,14 +65,20 @@ class Channel:
         await self._ensure_connected()
         await self._get_transport().publish(self._name, message)
 
-    async def subscribe(self, callback: Callable[[Dict[str, Any]], "asyncio.Future"], **kwargs):
+    async def subscribe(
+        self, callback: Callable[[Dict[str, Any]], "asyncio.Future"], **kwargs
+    ):
         """
         Subscribe to the channel by registering a callback to be invoked when messages are received.
 
         Args:
             callback (Callable[[Dict[str, Any]], "asyncio.Future"]): The callback to invoke on new messages.
         """
-        handler_name = self._name + "-" + (callback.__name__ or "handler").replace("<", "").replace(">", "")
+        handler_name = (
+            self._name
+            + "-"
+            + (callback.__name__ or "handler").replace("<", "").replace(">", "")
+        )
         HANDLERS_IDS[handler_name] += 1
         kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
         await self._get_transport().subscribe(self._name, callback, **kwargs)
