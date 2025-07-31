@@ -48,23 +48,37 @@ class EggAIAgentExecutor(AgentExecutor):
             handler = self.a2a_plugin.handlers[skill_name]
             message_data = self._extract_message_data(request_context)
             
-            # Convert dict data to Pydantic model if we have the data type
+            # Create proper BaseMessage with validated data
+            validated_data = message_data
             if skill_name in self.a2a_plugin.data_types:
                 data_type = self.a2a_plugin.data_types[skill_name]
-                if data_type and hasattr(data_type, 'model_validate'):
-                    try:
-                        message_data = data_type.model_validate(message_data)
-                        logger.debug(f"Converted dict to {data_type.__name__}: {message_data}")
-                    except Exception as e:
-                        logger.warning(f"Failed to convert data to {data_type.__name__}: {e}")
-                        # Keep as dict if conversion fails
+                if data_type and hasattr(data_type, '__args__') and len(data_type.__args__) > 0:
+                    # Extract inner type from BaseMessage[T] and validate the raw data
+                    inner_type = data_type.__args__[0]
+                    if hasattr(inner_type, 'model_validate'):
+                        try:
+                            validated_data = inner_type.model_validate(message_data)
+                            logger.debug(f"Validated data as {inner_type.__name__}: {validated_data}")
+                        except Exception as e:
+                            logger.warning(f"Failed to validate data as {inner_type.__name__}: {e}")
+                            # Keep as dict if validation fails
             
-            # Create EggAI message format
-            eggai_message = BaseMessage(
-                source="a2a-client",
-                type=f"{skill_name}.request",
-                data=message_data
-            )
+            # Create the proper BaseMessage structure that the handler expects
+            if skill_name in self.a2a_plugin.data_types:
+                data_type = self.a2a_plugin.data_types[skill_name]
+                # Create instance of the specific BaseMessage subclass
+                eggai_message = data_type(
+                    source="a2a-client",
+                    type=f"{skill_name}.request",
+                    data=validated_data
+                )
+            else:
+                # Fallback to generic BaseMessage
+                eggai_message = BaseMessage(
+                    source="a2a-client",
+                    type=f"{skill_name}.request",
+                    data=validated_data
+                )
             
             logger.debug(f"Calling handler with message: {eggai_message}")
             
@@ -99,26 +113,21 @@ class EggAIAgentExecutor(AgentExecutor):
     
     def _extract_skill_name(self, request_context: RequestContext) -> str:
         """Extract skill name from A2A request context."""
-        # The skill name should be available in the request context
-        if hasattr(request_context, 'skill_id') and request_context.skill_id:
-            return request_context.skill_id
-        elif hasattr(request_context, 'skill') and request_context.skill:
-            return request_context.skill
+        # Check request context metadata (primary location)
+        if request_context.metadata and 'skill_id' in request_context.metadata:
+            return request_context.metadata['skill_id']
         
-        # Check message metadata for skill
-        if hasattr(request_context, 'message') and request_context.message:
-            message = request_context.message
-            if hasattr(message, 'metadata') and message.metadata:
-                if 'skill' in message.metadata:
-                    return message.metadata['skill']
+        # Check task metadata for skill information
+        if request_context.current_task and request_context.current_task.metadata:
+            if 'skill_id' in request_context.current_task.metadata:
+                return request_context.current_task.metadata['skill_id']
         
-        # Fallback to first available skill
+        # If we have only one skill, use it (common case)
         available_skills = list(self.a2a_plugin.handlers.keys())
-        if available_skills:
-            logger.warning(f"No skill specified, using first available: {available_skills[0]}")
+        if len(available_skills) == 1:
             return available_skills[0]
-        else:
-            raise ValueError("No skill specified and no skills available")
+        
+        raise ValueError(f"Could not determine skill ID from request context. Available skills: {available_skills}")
     
     def _extract_message_data(self, request_context: RequestContext) -> Dict[str, Any]:
         """Extract and parse message data from A2A request."""

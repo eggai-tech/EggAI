@@ -33,6 +33,13 @@ class MathResponse(BaseModel):
     result: float
     operation: str
 
+# Define BaseMessage types with specific types
+class GreetingMessage(BaseMessage[GreetingRequest]):
+    type: str = "greet.request"
+
+class MathMessage(BaseMessage[MathRequest]):
+    type: str = "calculate.request"
+
 # Simple A2A-enabled agent with 2 skills
 async def create_simple_agent():
     """Create a simple agent with 2 A2A skills."""
@@ -51,10 +58,10 @@ async def create_simple_agent():
     # Skill 1: Greeting
     @agent.subscribe(
         channel=Channel("greetings"),
-        data_type=GreetingRequest,
+        data_type=GreetingMessage,
         a2a_capability="greet"
     )
-    async def greet(message: BaseMessage[GreetingRequest]) -> GreetingResponse:
+    async def greet(message: GreetingMessage) -> GreetingResponse:
         """Greet a user in their preferred language."""
         data = message.data
         
@@ -78,10 +85,10 @@ async def create_simple_agent():
     # Skill 2: Math operations
     @agent.subscribe(
         channel=Channel("math"),
-        data_type=MathRequest,
+        data_type=MathMessage,
         a2a_capability="calculate"
     )
-    async def calculate(message: BaseMessage[MathRequest]) -> MathResponse:
+    async def calculate(message: MathMessage) -> MathResponse:
         """Perform basic math operations."""
         data = message.data
         
