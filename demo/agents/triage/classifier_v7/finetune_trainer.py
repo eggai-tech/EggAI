@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import os
+import shutil
 
 from agents.triage.baseline_model.utils import setup_logging
 from agents.triage.shared.data_utils import create_examples
@@ -49,19 +50,19 @@ def train_finetune_model(sample_size: int, model_name: str) -> str:
         
         best_model, tokenizer = perform_fine_tuning(trainset, testset)
 
-        # save the model to mlflow
-        components = {
-            "model": best_model,
-            "tokenizer": tokenizer,
-        }
+        # remove 'checkpoint*' dir from output_dir if it exists
+        output_dir = v7_settings.output_dir
+        for item in os.listdir(output_dir):
+            if item.startswith("checkpoint"):
+                item_path = os.path.join(output_dir, item)
+                if os.path.isdir(item_path):
+                    logger.info(f"Removing old checkpoint directory: {item_path}")
+                    # remove recursively if it's a directory
+                    shutil.rmtree(item_path)
 
-        # add gemma3_seq_cls.py to code_paths
-        mlflow.transformers.log_model(
-            transformers_model=components,
-            artifact_path="model",
-            task="text-classification",
-            infer_code_paths=True,
-        )
+        # save artifacts to mlflow
+        mlflow.log_artifacts(v7_settings.output_dir, artifact_path="model")
+
         # Return model uri from the primary artifacts
         run_id = mlflow.active_run().info.run_id
         model_uri = f"runs:/{run_id}/model"
