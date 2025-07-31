@@ -1,6 +1,6 @@
 """A2A configuration for EggAI agents."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 
 try:
@@ -22,5 +22,4 @@ class A2AConfig(BaseModel):
         description="Security schemes supported by the agent"
     )
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
