@@ -1,8 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import (
-    Dict, Any, Callable, Union
-)
+from typing import Dict, Any, Callable, Union
 
 from pydantic import BaseModel
 
@@ -35,7 +33,12 @@ class Transport(ABC):
         pass
 
     @abstractmethod
-    async def subscribe(self, channel: str, callback: Callable[[Dict[str, Any]], "asyncio.Future"], **kwargs) -> Callable:
+    async def subscribe(
+        self,
+        channel: str,
+        callback: Callable[[Dict[str, Any]], "asyncio.Future"],
+        **kwargs,
+    ) -> Callable:
         """
         Subscribe to a channel with the given callback, invoked on new messages.
         (No-op if a consumer doesn’t exist.)

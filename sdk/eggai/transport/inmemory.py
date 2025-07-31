@@ -2,7 +2,7 @@ import asyncio
 import json
 import uuid
 from collections import defaultdict
-from typing import Dict, Optional, List, Callable, Tuple, Any, Union
+from typing import Dict, List, Callable, Tuple, Any, Union
 
 from eggai.schemas import BaseMessage
 from eggai.transport import Transport
@@ -12,9 +12,9 @@ class InMemoryTransport(Transport):
     # One queue per (channel, group_id). Each consumer group gets its own queue.
     _CHANNELS: Dict[str, Dict[str, asyncio.Queue]] = defaultdict(dict)
     # For each channel and group_id, store a list of subscription callbacks.
-    _SUBSCRIPTIONS: Dict[str, Dict[str, List[Callable[[Dict[str, Any]], "asyncio.Future"]]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    _SUBSCRIPTIONS: Dict[
+        str, Dict[str, List[Callable[[Dict[str, Any]], "asyncio.Future"]]]
+    ] = defaultdict(lambda: defaultdict(list))
 
     def __init__(self):
         self._connected = False
@@ -28,7 +28,9 @@ class InMemoryTransport(Transport):
             for group_id in group_map.keys():
                 key = (channel, group_id)
                 if key not in self._consume_tasks:
-                    self._consume_tasks[key] = asyncio.create_task(self._consume_loop(channel, group_id))
+                    self._consume_tasks[key] = asyncio.create_task(
+                        self._consume_loop(channel, group_id)
+                    )
 
     async def disconnect(self):
         """Cancels all consume loops and marks the transport as disconnected."""
@@ -60,7 +62,12 @@ class InMemoryTransport(Transport):
         for grp_id, queue in InMemoryTransport._CHANNELS[channel].items():
             await queue.put(data)
 
-    async def subscribe(self, channel: str, callback: Callable[[Dict[str, Any]], "asyncio.Future"], **kwargs):
+    async def subscribe(
+        self,
+        channel: str,
+        callback: Callable[[Dict[str, Any]], "asyncio.Future"],
+        **kwargs,
+    ):
         """
         Subscribes to a channel with the provided group_id.
         If no group_id is given, a unique one is generated, ensuring that each subscription
@@ -69,13 +76,13 @@ class InMemoryTransport(Transport):
         handler_id = kwargs.pop("handler_id", None)
         group_id = kwargs.get("group_id", handler_id or uuid.uuid4().hex)
         key = (channel, group_id)
-        
+
         final_callback = callback
-        
+
         # Handle data_type filtering
         if "data_type" in kwargs:
             data_type = kwargs["data_type"]
-            
+
             async def data_type_filtered_callback(data):
                 try:
                     typed_message = data_type.model_validate(data)
@@ -87,13 +94,13 @@ class InMemoryTransport(Transport):
                 except Exception:
                     # Skip messages that don't match the data type
                     return
-            
+
             final_callback = data_type_filtered_callback
-            
+
             # Handle filter_by_data if present along with data_type
             if "filter_by_data" in kwargs:
                 filter_func = kwargs["filter_by_data"]
-                
+
                 async def data_and_filter_callback(data):
                     try:
                         typed_message = data_type.model_validate(data)
@@ -106,25 +113,27 @@ class InMemoryTransport(Transport):
                     except Exception:
                         # Skip messages that don't match the data type or filter
                         return
-                
+
                 final_callback = data_and_filter_callback
-        
+
         # Handle legacy filter_by_message (for backward compatibility)
         elif "filter_by_message" in kwargs:
             filter_func = kwargs["filter_by_message"]
-            
+
             async def filtered_callback(data):
                 if filter_func(data):
                     await final_callback(data)
-            
+
             final_callback = filtered_callback
-        
+
         InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(final_callback)
-        
+
         if group_id not in InMemoryTransport._CHANNELS[channel]:
             InMemoryTransport._CHANNELS[channel][group_id] = asyncio.Queue()
         if self._connected and key not in self._consume_tasks:
-            self._consume_tasks[key] = asyncio.create_task(self._consume_loop(channel, group_id))
+            self._consume_tasks[key] = asyncio.create_task(
+                self._consume_loop(channel, group_id)
+            )
 
     async def _consume_loop(self, channel: str, group_id: str):
         """
@@ -146,4 +155,6 @@ class InMemoryTransport(Transport):
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            print(f"InMemoryTransport consume loop error on channel={channel}, group={group_id}: {e}")
+            print(
+                f"InMemoryTransport consume loop error on channel={channel}, group={group_id}: {e}"
+            )

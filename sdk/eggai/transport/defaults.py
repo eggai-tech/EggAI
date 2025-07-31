@@ -25,7 +25,8 @@ def get_default_transport() -> "Transport":
     if _DEFAULT_TRANSPORT_FACTORY is None:
         print(
             "EggAI: Warning, no default transport factory set, InMemoryTransport will be used. Use eggai_set_default_transport() if you don't want see this warning.",
-            file=sys.stderr)
+            file=sys.stderr,
+        )
         sys.stderr.flush()
         eggai_set_default_transport(lambda: InMemoryTransport())
     return _DEFAULT_TRANSPORT_FACTORY()

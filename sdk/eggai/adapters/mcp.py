@@ -2,8 +2,15 @@ import asyncio
 from typing import List
 
 from eggai import eggai_main, Agent, Channel
-from eggai.adapters.types import ToolListRequestMessage, ExternalTool, ToolListResponseMessage, ToolListResponse, \
-    ToolCallRequestMessage, ToolCallResponseMessage, ToolCallResponse
+from eggai.adapters.types import (
+    ToolListRequestMessage,
+    ExternalTool,
+    ToolListResponseMessage,
+    ToolListResponse,
+    ToolCallRequestMessage,
+    ToolCallResponseMessage,
+    ToolCallResponse,
+)
 
 try:
     import fastmcp.tools
@@ -19,7 +26,7 @@ try:
         @agent.subscribe(
             channel=c("list.in"),
             auto_offset_reset="latest",
-            group_id=name+"_tools_list_in",
+            group_id=name + "_tools_list_in",
         )
         async def handle_tool_list_request(message: ToolListRequestMessage):
             if message.data.adapter_name != name:
@@ -32,23 +39,24 @@ try:
                     external_tool = ExternalTool(
                         name=tool.name,
                         description=tool.description or tool.annotations.title,
-                        parameters=tool.inputSchema if hasattr(tool, 'inputSchema') else {},
-                        return_type=tool.outputSchema if hasattr(tool, 'outputSchema') else {}
+                        parameters=tool.inputSchema
+                        if hasattr(tool, "inputSchema")
+                        else {},
+                        return_type=tool.outputSchema
+                        if hasattr(tool, "outputSchema")
+                        else {},
                     )
                     tools.append(external_tool)
                 response = ToolListResponseMessage(
                     source=name,
-                    data=ToolListResponse(
-                        call_id=message.data.call_id,
-                        tools=tools
-                    )
+                    data=ToolListResponse(call_id=message.data.call_id, tools=tools),
                 )
                 await c("list.out").publish(response)
 
         @agent.subscribe(
             channel=c("calls.in"),
             auto_offset_reset="latest",
-            group_id=name+"_tool_calls_in",
+            group_id=name + "_tool_calls_in",
         )
         async def handle_tool_call_request(message: ToolCallRequestMessage):
             if message.data.tool_name is None or message.data.call_id is None:
@@ -56,15 +64,17 @@ try:
             client = Client(mcp_sse_url)
             async with client:
                 try:
-                    result = await client.call_tool(message.data.tool_name, message.data.parameters)
+                    result = await client.call_tool(
+                        message.data.tool_name, message.data.parameters
+                    )
                     response = ToolCallResponseMessage(
                         source=name,
                         data=ToolCallResponse(
                             call_id=message.data.call_id,
                             tool_name=message.data.tool_name,
                             data=result.data,
-                            is_error=result.is_error
-                        )
+                            is_error=result.is_error,
+                        ),
                     )
                 except Exception as e:
                     response = ToolCallResponseMessage(
@@ -73,8 +83,8 @@ try:
                             call_id=message.data.call_id,
                             tool_name=message.data.tool_name,
                             data=str(e),
-                            is_error=True
-                        )
+                            is_error=True,
+                        ),
                     )
                 await c("calls.out").publish(response)
 

@@ -4,8 +4,11 @@ from eggai.adapters.types import ExternalTool
 try:
     import dspy
 
-    def convert_tool_for_dspy(adapter_client: EggaiAdapterClient, tool: ExternalTool) -> dspy.Tool:
+    def convert_tool_for_dspy(
+        adapter_client: EggaiAdapterClient, tool: ExternalTool
+    ) -> dspy.Tool:
         """Return a callable for the tool."""
+
         async def tool_func(**kwargs):
             result = await adapter_client.call_tool(tool.name, kwargs)
             if result.is_error:

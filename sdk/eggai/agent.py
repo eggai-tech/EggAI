@@ -1,13 +1,10 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import (
-    List, Dict, Any, Optional, Callable, Tuple, Type, TypeVar, Awaitable
-)
+from typing import List, Dict, Any, Optional, Callable, Tuple, TypeVar
 
 from .channel import Channel
 from .hooks import eggai_register_stop
-from .schemas import BaseMessage
 from .transport import get_default_transport
 from .transport.base import Transport
 
@@ -16,8 +13,9 @@ HANDLERS_IDS = defaultdict(int)
 PLUGIN_LIST = ["a2a"]
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 logger = logging.getLogger(__name__)
+
 
 class Agent:
     """
@@ -37,7 +35,9 @@ class Agent:
         """
         self._name = name
         self._transport = transport
-        self._subscriptions: List[Tuple[str, Callable[[Dict[str, Any]], "asyncio.Future"], Dict]] = []
+        self._subscriptions: List[
+            Tuple[str, Callable[[Dict[str, Any]], "asyncio.Future"], Dict]
+        ] = []
         self._started = False
         self._stop_registered = False
 
@@ -57,9 +57,10 @@ class Agent:
 
                 if plugin_name == "a2a":
                     from .adapters.a2a.plugin import A2APlugin
+
                     plugin_instance = A2APlugin()
                     plugin_instance.init(self, name, transport, **kwargs)
-                    self.plugins[plugin_name]['_instance'] = plugin_instance
+                    self.plugins[plugin_name]["_instance"] = plugin_instance
 
     def _get_transport(self):
         if self._transport is None:
@@ -94,7 +95,7 @@ class Agent:
 
             # Call plugin subscribe methods if they have relevant kwargs
             for plugin_found_key in plugin_found_keys:
-                self.plugins[plugin_found_key]['_instance'].subscribe(
+                self.plugins[plugin_found_key]["_instance"].subscribe(
                     channel_name, handler, **original_kwargs
                 )
 
@@ -111,7 +112,7 @@ class Agent:
         if self._started:
             return
 
-        for (channel, handler, kwargs) in self._subscriptions:
+        for channel, handler, kwargs in self._subscriptions:
             handler_name = self._name + "-" + handler.__name__
             HANDLERS_IDS[handler_name] += 1
             kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
@@ -124,8 +125,6 @@ class Agent:
             await eggai_register_stop(self.stop)
             self._stop_registered = True
 
-
-
     async def stop(self):
         """
         Stops the agent by disconnecting the transport.
@@ -133,7 +132,6 @@ class Agent:
         if self._started:
             await self._get_transport().disconnect()
             self._started = False
-
 
     async def to_a2a(self, host: str = "0.0.0.0", port: int = 8080):
         await self.plugins["a2a"]["_instance"].start_server(host, port)
