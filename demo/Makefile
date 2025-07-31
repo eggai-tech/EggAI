@@ -41,11 +41,12 @@ serve-triage-classifier-v7:
 	export MLFLOW_S3_ENDPOINT_URL=http://localhost:9000 && \
 	export AWS_ACCESS_KEY_ID=user && \
 	export AWS_SECRET_ACCESS_KEY=password && \
-	MODEL_URI=$$(python3 -c "import mlflow; exp = mlflow.get_experiment_by_name('triage_classifier'); runs = mlflow.search_runs(experiment_ids=[exp.experiment_id], order_by=['start_time DESC'], max_results=1) if exp else None; print(f'runs:/{runs.iloc[0][\"run_id\"]}/model' if runs is not None and not runs.empty else 'No models found')"); \
-	if [ "$$MODEL_URI" != "No models found" ]; then \
-		echo "📡 Serving model: $$MODEL_URI"; \
+	RUN_ID=$$(python3 -c "import mlflow; exp = mlflow.get_experiment_by_name('triage_classifier'); runs = mlflow.search_runs(experiment_ids=[exp.experiment_id], order_by=['start_time DESC'], max_results=1) if exp else None; print(runs.iloc[0].run_id if runs is not None and not runs.empty else 'No models found')"); \
+	export MLFLOW_RUN_ID=$$RUN_ID; \
+	if [ "$$RUN_ID" != "No models found" ]; then \
+		echo "📡 Serving model: $$RUN_ID"; \
 		echo "🌐 API endpoint: http://127.0.0.1:$${PORT:-5000}/invocations"; \
-		mlflow models serve -m "$$MODEL_URI" -p $${PORT:-5000} --env-manager local; \
+		PYTHONPATH=. $(VENV_DIR)/bin/python agents/triage/classifier_v7/serve_classifier.py \
 	else \
 		echo "❌ No trained models found. Run 'make train-triage-classifier-v7' first."; \
 	fi
