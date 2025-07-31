@@ -4,10 +4,10 @@ import json
 import logging
 from typing import TYPE_CHECKING, Dict, Any
 
-from ..schemas import BaseMessage
+from eggai.schemas import BaseMessage
 
 if TYPE_CHECKING:
-    from ..agent import Agent
+    from eggai.agent import Agent
 
 try:
     from a2a.server.agent_execution.agent_executor import AgentExecutor

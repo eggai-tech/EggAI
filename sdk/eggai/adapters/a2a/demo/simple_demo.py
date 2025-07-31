@@ -133,7 +133,7 @@ async def main():
         print(f"  - {skill_name}")
     
     print("\nAgent ready. To run client test, use:")
-    print("  python -m eggai.a2a_integration.demo.client")
+    print("  python -m eggai.a2a.demo.client")
     print("\nStarting A2A server on http://localhost:8080...")
     
     # Start A2A server (uncomment to enable server)

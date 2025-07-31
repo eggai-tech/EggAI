@@ -4,8 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Dict, Any, Callable, Optional, Type
 
 if TYPE_CHECKING:
-    from ..agent import Agent
-    from ..transport.base import Transport
+    from eggai.agent import Agent
+    from eggai.transport.base import Transport
 
 logger = logging.getLogger(__name__)
 

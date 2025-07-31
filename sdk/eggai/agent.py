@@ -56,7 +56,7 @@ class Agent:
                 self.plugins[plugin_name].update(plugin_kwargs)
 
                 if plugin_name == "a2a":
-                    from .a2a_integration.plugin import A2APlugin
+                    from .adapters.a2a.plugin import A2APlugin
                     plugin_instance = A2APlugin()
                     plugin_instance.init(self, name, transport, **kwargs)
                     self.plugins[plugin_name]['_instance'] = plugin_instance
