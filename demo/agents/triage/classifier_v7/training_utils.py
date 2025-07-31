@@ -5,7 +5,6 @@ from datetime import datetime
 
 import mlflow
 import torch
-from triage.classifier_v7.gemma3_seq_cls import Gemma3TextForSequenceClassification
 
 from agents.triage.classifier_v7.config import ClassifierV7Settings
 from agents.triage.classifier_v7.device_utils import (
@@ -13,6 +12,7 @@ from agents.triage.classifier_v7.device_utils import (
     get_training_precision,
     move_to_mps,
 )
+from agents.triage.classifier_v7.gemma3_seq_cls import Gemma3TextForSequenceClassification
 from agents.triage.data_sets.loader import ID2LABEL, LABEL2ID
 
 # Set tokenizers parallelism to avoid warnings during training
@@ -141,8 +141,8 @@ def perform_fine_tuning(trainset: list, testset: list):
 
     # add auto_map to config to ensure correct loading
     model.config.auto_map = {
-        "AutoConfig": "transformers.models.gemma3.configuration_gemma3.Gemma3TextConfig",
-        "AutoModel": "triage.classifier_v7.gemma3_seq_cls.Gemma3TextForSequenceClassification"
+        "AutoConfig": ["transformers.models.gemma3.configuration_gemma3", "Gemma3TextConfig"],
+        "AutoModel": ["triage.classifier_v7.gemma3_seq_cls", "Gemma3TextForSequenceClassification"]
     }
 
     # Configure LoRA
