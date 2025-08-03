@@ -124,7 +124,7 @@ jobs:
         working-directory: demo
         run: |
           echo "Pre-pulling Docker images..."
-          docker compose -f docker-compose.ymlpull --quiet
+          docker compose -f docker-compose.yml pull --quiet
         timeout-minutes: 45
 
       - name: Start services with Docker Compose
