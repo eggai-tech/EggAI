@@ -1,0 +1,44 @@
+import asyncio
+import logging
+
+from eggai import eggai_main
+{% if transport == "kafka" %}
+from eggai.transport import eggai_set_default_transport, KafkaTransport
+{% endif %}
+{% for agent in agents %}
+from agents.{{ agent.name.lower() }} import create_{{ agent.name.lower() }}
+{% endfor %}
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@eggai_main
+async def main():
+    """Main function to start all agents."""
+    print("=== {{ project_name }} ===")
+{% if transport == "kafka" %}
+
+    # Set up Kafka transport
+    eggai_set_default_transport(lambda: KafkaTransport())
+{% endif %}
+
+    # Create and start all agents
+    agents = []
+{% for agent in agents %}
+    agents.append(await create_{{ agent.name.lower() }}())
+{% endfor %}
+
+    print(f"Started {len(agents)} agent(s): {{ agents|map(attribute='name')|join(', ') }}")
+    print("All agents are running. Press Ctrl+C to stop.")
+
+    try:
+        # Keep the application running
+        await asyncio.Future()
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        logger.info("Shutting down...")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

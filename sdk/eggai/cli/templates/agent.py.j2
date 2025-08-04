@@ -1,0 +1,59 @@
+"""
+{{ agent_name }} Agent
+
+This agent handles {{ agent_name.lower() }}-related tasks and messages.
+"""
+
+import logging
+from pydantic import BaseModel
+
+from eggai import Agent, Channel
+from eggai.schemas import BaseMessage
+
+logger = logging.getLogger(__name__)
+
+
+# Data models for {{ agent_name }}
+class {{ agent_name }}Request(BaseModel):
+    """Request model for {{ agent_name }} operations."""
+    message: str
+    sender: str = "user"
+    # Add your specific fields here
+
+
+class {{ agent_name }}Response(BaseModel):
+    """Response model for {{ agent_name }} operations."""
+    response: str
+    processed_by: str
+    # Add your specific response fields here
+
+
+# Message types for {{ agent_name }}
+class {{ agent_name }}Message(BaseMessage[{{ agent_name }}Request]):
+    """Message type for {{ agent_name }} requests."""
+    type: str = "{{ agent_channel }}.request"
+
+
+async def create_{{ agent_function }}() -> Agent:
+    """Create and configure the {{ agent_name }} agent."""
+    agent = Agent("{{ agent_name }}")
+    
+    @agent.subscribe(channel=Channel("{{ agent_channel }}"), data_type={{ agent_name }}Message)
+    async def handle_{{ agent_function }}_request(message: {{ agent_name }}Message) -> {{ agent_name }}Response:
+        """Handle {{ agent_function }} requests."""
+        data = message.data
+        
+        # TODO: Implement your business logic here
+        response_text = f"{data.sender}, your message '{data.message}' was processed by {{ agent_name }}"
+        
+        result = {{ agent_name }}Response(
+            response=response_text,
+            processed_by="{{ agent_name }}"
+        )
+        
+        logger.info(f"{{ agent_name }} processed message from {data.sender}")
+        return result
+    
+    await agent.start()
+    logger.info("{{ agent_name }} started successfully")
+    return agent

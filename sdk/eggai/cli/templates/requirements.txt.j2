@@ -1,0 +1,17 @@
+# EggAI SDK
+eggai==0.1.50
+
+# Core dependencies
+pydantic>=2.0.0
+asyncio
+{%- if transport == "kafka" %}
+
+# Kafka transport dependencies
+faststream[kafka]>=0.5.0
+python-dotenv>=1.0.0
+{%- endif %}
+
+# Optional: Add your additional dependencies here
+# numpy
+# requests
+# openai

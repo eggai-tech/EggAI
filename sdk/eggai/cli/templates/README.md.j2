@@ -1,0 +1,91 @@
+# {{ project_name }}
+
+An EggAI application with {{ agents|length }} agent(s) using {{ transport }} transport.
+
+## Agents
+
+{% for agent in agents -%}
+- **{{ agent.name }}**: Description of what this agent does
+{% endfor %}
+
+## Setup
+
+1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+{%- if transport == "kafka" %}
+
+2. Set up Kafka:
+   - Install and start Apache Kafka
+   - Default configuration expects Kafka on `localhost:9092`
+   - Update `.env` file with your Kafka settings if different
+
+3. Configure environment:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
+
+4. Run the application:
+   ```bash
+   python main.py
+   ```
+
+## Kafka Configuration
+
+This application uses Kafka for message transport. Make sure you have:
+
+- Kafka server running on the configured bootstrap servers
+- Proper network connectivity to Kafka
+- Required topics will be created automatically
+
+## Environment Variables
+
+- `KAFKA_BOOTSTRAP_SERVERS`: Kafka bootstrap servers (default: localhost:9092)
+
+{%- else %}
+
+2. Run the application:
+   ```bash
+   python main.py
+   ```
+
+## In-Memory Transport
+
+This application uses in-memory transport, which means:
+- All agents run in a single process
+- Messages are passed via in-memory queues
+- No external dependencies required
+- Perfect for development and single-machine deployments
+
+{%- endif %}
+
+## Usage
+
+The application starts {{ agents|length }} agent(s) that can process messages. You can:
+
+1. Send messages programmatically using EggAI channels
+2. Extend agents with additional message handlers
+3. Add new agents by following the existing patterns
+
+## Development
+
+To add new functionality:
+
+1. Define new data models in your agent files
+2. Create new message handlers in your agents
+3. Add new agents by copying the existing pattern
+
+## Next Steps
+
+- [ ] Customize agent behavior in the message handler functions
+- [ ] Add your own data models and message types
+- [ ] Implement your business logic
+- [ ] Add error handling and logging
+- [ ] Consider adding tests
+
+## Support
+
+For more information about EggAI, visit the [documentation](https://docs.eggai.tech).
