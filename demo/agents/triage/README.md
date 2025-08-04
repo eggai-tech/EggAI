@@ -32,6 +32,8 @@ TRIAGE_CLASSIFIER_VERSION=v4  # v0-v5 available
 make train-triage-classifier-v3  # Baseline
 make train-triage-classifier-v5  # Attention-based
 make compile-triage-classifier-v4  # Optimize DSPy
+make train-triage-classifier-v6  # run fine-tuning via OpenAI API
+make train-triage-classifier-v7  # run parameter efficient fine-tuning locally
 ```
 
 ## Testing

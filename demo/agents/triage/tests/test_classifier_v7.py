@@ -353,7 +353,7 @@ class TestClassifierV7Unit:
         
         # Setup sequence classification output
         mock_outputs = Mock()
-        mock_outputs.logits = torch.tensor([[0.1, 0.9, 0.2, 0.3, 0.1]])
+        mock_outputs.logits = torch.tensor([[0.1, 0.2, 0.9, 0.3, 0.1]])
         mock_model.return_value = mock_outputs
         
         mock_tokenizer.return_value = {'input_ids': torch.tensor([[1, 2, 3]])}
@@ -934,7 +934,7 @@ class TestClassifierV7Integration:
         
         # Setup sequence classification output
         mock_outputs = Mock()
-        mock_outputs.logits = torch.tensor([[0.1, 0.9, 0.2, 0.3, 0.1]])
+        mock_outputs.logits = torch.tensor([[0.1, 0.2, 0.9, 0.3, 0.1]])
         mock_model.return_value = mock_outputs
         
         mock_tokenizer_result = {'input_ids': torch.tensor([[1, 2, 3]]), 

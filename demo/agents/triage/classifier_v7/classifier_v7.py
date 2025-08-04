@@ -17,15 +17,8 @@ from agents.triage.classifier_v7.device_utils import (
 from agents.triage.classifier_v7.gemma3_seq_cls import (
     Gemma3TextForSequenceClassification,
 )
+from agents.triage.data_sets.loader import ID2LABEL
 from agents.triage.models import ClassifierMetrics, TargetAgent
-
-LABEL_TO_AGENT = {
-    0: TargetAgent.BillingAgent,
-    1: TargetAgent.ClaimsAgent,
-    2: TargetAgent.PolicyAgent,
-    3: TargetAgent.EscalationAgent,
-    4: TargetAgent.ChattyAgent
-}
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +63,7 @@ class FinetunedClassifier:
             # Load the fine-tuned sequence classification model directly
             model = Gemma3TextForSequenceClassification.from_pretrained(
                 model_path,
-                num_labels=len(LABEL_TO_AGENT),
+                num_labels=len(ID2LABEL),
                 torch_dtype=dtype,
                 device_map=device_map,
                 attn_implementation="eager"
@@ -145,7 +138,7 @@ class FinetunedClassifier:
             predictions = torch.nn.functional.softmax(outputs.logits, dim=-1)
             predicted_class_id = predictions.argmax().item()
         
-        return LABEL_TO_AGENT[predicted_class_id]
+        return ID2LABEL[predicted_class_id]
 
 
     def get_metrics(self) -> ClassifierMetrics:
