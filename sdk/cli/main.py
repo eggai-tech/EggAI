@@ -33,7 +33,7 @@ def cli():
 
 
 # Register commands
-cli.add_command(create_app, name="create")
+cli.add_command(create_app, name="init")
 
 
 def main():

@@ -116,3 +116,5 @@ site
 checkpoints/
 mlruns/
 outputs/
+tmp
+.claude

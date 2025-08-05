@@ -4,16 +4,12 @@ EggAI Application Wizard
 Interactive CLI wizard for creating new EggAI applications with custom configurations.
 """
 
-import os
 import sys
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List
+import click
 
-try:
-    import click
-except ImportError:
-    print("Error: click is required for the CLI. Install with: pip install click")
-    sys.exit(1)
+from importlib.metadata import version
 
 from .templates import (
     generate_main_py, 
@@ -22,8 +18,25 @@ from .templates import (
     generate_agent_file,
     generate_agents_init,
     generate_env_file,
-    generate_console_file
+    generate_console_file,
+    generate_common_models_file
 )
+
+EGGAI_VERSION = version("eggai")
+
+
+def agent_name_to_filename(agent_name: str) -> str:
+    """Convert CamelCase agent name to snake_case filename without Agent suffix."""
+    # Remove Agent suffix for filename
+    name = agent_name
+    if name.endswith("Agent"):
+        name = name[:-5]  # Remove "Agent"
+    
+    # Convert CamelCase to snake_case
+    import re
+    # Add underscore before uppercase letters (except the first one)
+    snake_case = re.sub('([a-z0-9])([A-Z])', r'\1_\2', name)
+    return snake_case.lower()
 
 
 class Agent:
@@ -31,6 +44,8 @@ class Agent:
     
     def __init__(self, name: str):
         self.name = name
+        self.filename = agent_name_to_filename(name)
+        self.function_name = self.filename  # snake_case function name
 
 
 class AppConfig:
@@ -44,18 +59,44 @@ class AppConfig:
         self.include_console: bool = False
 
 
+def show_logo():
+    """Display the EggAI logo and version."""
+    logo = """
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║                                                               ║
+    ║    ███████╗ ██████╗  ██████╗        █████╗ ██╗                ║
+    ║    ██╔════╝██╔════╝ ██╔════╝       ██╔══██╗██║                ║
+    ║    █████╗  ██║  ███╗██║  ███╗█████╗███████║██║                ║
+    ║    ██╔══╝  ██║   ██║██║   ██║╚════╝██╔══██║██║                ║
+    ║    ███████╗╚██████╔╝╚██████╔╝      ██║  ██║██║                ║
+    ║    ╚══════╝ ╚═════╝  ╚═════╝       ╚═╝  ╚═╝╚═╝                ║
+    ║                                                               ║
+    ║               Multi-Agent Meta Framework                      ║
+    ║                                                               ║
+    ╚═══════════════════════════════════════════════════════════════╝
+    """
+    
+    click.echo(click.style(logo, fg='cyan', bold=True))
+    click.echo(click.style(f"                            Version {EGGAI_VERSION}", fg='green', bold=True))
+    click.echo(click.style("                  https://eggai-tech.github.io/EggAI/", fg='blue'))
+    click.echo()
+
+
+def show_wizard_header():
+    """Display the wizard header after logo."""
+    click.echo("="*67)
+    click.echo(click.style("🚀 EggAI Application Wizard", fg='yellow', bold=True))
+    click.echo("="*67)
+
+
 def prompt_transport() -> str:
     """Prompt user to select transport type."""
-    click.echo("\n" + "="*50)
-    click.echo("🚀 EggAI Application Wizard")
-    click.echo("="*50)
-    
     click.echo("\nStep 1: Select Transport Layer")
     click.echo("The transport layer handles message passing between agents.")
     
     transport_options = {
-        "1": ("inmemory", "In-Memory Transport (for single-process apps)"),
-        "2": ("kafka", "Kafka Transport (for distributed apps)")
+        "1": ("kafka", "Kafka Transport (for distributed apps)"),
+        "2": ("inmemory", "In-Memory Transport (for single-process apps)")
     }
     
     click.echo("\nAvailable transport options:")
@@ -72,56 +113,161 @@ def prompt_transport() -> str:
             click.echo("❌ Invalid choice. Please select 1 or 2.")
 
 
+def normalize_agent_name(name: str) -> str:
+    """Normalize agent name to proper CamelCase format with Agent suffix."""
+    if not name.strip():
+        return "Agent"
+    
+    # Split on underscores and spaces, clean each part
+    parts = []
+    for part in name.replace("_", " ").split():
+        clean_part = "".join(c for c in part if c.isalnum())
+        if clean_part:
+            # Capitalize first letter, lowercase the rest
+            parts.append(clean_part[0].upper() + clean_part[1:].lower())
+    
+    if not parts:
+        return "Agent"
+    
+    # Join parts for CamelCase
+    clean_name = "".join(parts)
+    
+    # Add Agent suffix if not present
+    if not clean_name.endswith("Agent"):
+        clean_name += "Agent"
+    
+    return clean_name
+
+def parse_agents_string(agents_string: str) -> List[Agent]:
+    """Parse comma-separated agent names from CLI parameter."""
+    if not agents_string:
+        return []
+    
+    agents = []
+    for name in agents_string.split(","):
+        normalized_name = normalize_agent_name(name.strip())
+        agents.append(Agent(normalized_name))
+    
+    return agents
+
 def prompt_agents() -> List[Agent]:
-    """Prompt user to configure agents."""
+    """Prompt user to configure agents using a loop."""
     click.echo("\n" + "-"*50)
     click.echo("Step 2: Configure Agents")
     click.echo("Agents are the core components that process messages and perform tasks.")
     
-    while True:
-        try:
-            num_agents = click.prompt("\nHow many agents do you want to create?", type=int, default=1)
-            if num_agents > 0:
-                break
-            else:
-                click.echo("❌ Number of agents must be greater than 0.")
-        except (ValueError, click.Abort):
-            click.echo("❌ Please enter a valid number.")
-    
     agents = []
-    for i in range(num_agents):
-        click.echo(f"\n--- Agent {i+1} Configuration ---")
+    agent_count = 1
+    
+    while True:
+        click.echo(f"\n--- Agent {agent_count} Configuration ---")
         
         while True:
-            name = click.prompt(f"Enter name for agent {i+1}", type=str)
+            name = click.prompt(f"Enter name for agent {agent_count}", type=str)
             if name.strip():
-                # Convert to valid Python identifier
-                name = "".join(c if c.isalnum() or c == "_" else "_" for c in name.strip())
-                if name[0].isdigit():
-                    name = f"agent_{name}"
+                normalized_name = normalize_agent_name(name)
+                agent = Agent(normalized_name)
+                agents.append(agent)
+                click.echo(f"✓ Agent '{normalized_name}' configured")
                 break
             else:
                 click.echo("❌ Agent name cannot be empty.")
         
-        agent = Agent(name)
-        agents.append(agent)
-        click.echo(f"✓ Agent '{name}' configured")
+        agent_count += 1
+        
+        if not click.confirm("\nAdd another agent?", default=False):
+            break
     
     return agents
 
 
 def prompt_console_option() -> bool:
-    """Prompt user if they want to include a console frontend."""
+    """Prompt user if they want to include a console frontend using selectable list."""
     click.echo("\n" + "-"*50)
     click.echo("Step 3: Console Frontend")
-    click.echo("A console frontend allows interactive chat with your agents.")
+    click.echo("Select optional features to include in your application.")
     
-    click.echo("\nConsole frontend features:")
-    click.echo("  • Interactive chat interface in the terminal")
-    click.echo("  • Real-time communication with agents")
-    click.echo("  • Human-readable conversation flow")
+    # Available options
+    options = [
+        {
+            "name": "Add Console Interface",
+            "description": "Interactive chat interface in the terminal",
+            "value": True,
+            "selected": False
+        }
+    ]
     
-    return click.confirm("\nInclude console frontend for interactive chat?", default=True)
+    # Check if we can use interactive mode
+    try:
+        import termios
+        import tty
+        has_termios = True and sys.stdin.isatty()
+    except ImportError:
+        has_termios = False
+    
+    if not has_termios:
+        # Fallback to simple prompt for non-interactive environments
+        click.echo("\nAvailable options:")
+        click.echo("  • Add Console Interface - Interactive chat interface in the terminal")
+        return click.confirm("\nInclude console frontend for interactive chat?", default=True)
+    
+    current_option = 0
+    
+    def display_options():
+        click.echo("\nAvailable options (use ↑↓ arrows to navigate, SPACE to toggle, ENTER to confirm):")
+        for i, option in enumerate(options):
+            marker = "→" if i == current_option else " "
+            checkbox = "☑" if option["selected"] else "☐"
+            click.echo(f"  {marker} {checkbox} {option['name']}")
+            if i == current_option:
+                click.echo(f"      └─ {option['description']}")
+    
+    def get_char():
+        """Get a single character from stdin without pressing enter."""
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            char = sys.stdin.read(1)
+            # Handle arrow keys (escape sequences)
+            if char == '\x1b':  # ESC
+                char += sys.stdin.read(2)
+            return char
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    
+    # Main selection loop
+    while True:
+        click.clear()
+        click.echo("\n" + "-"*50)
+        click.echo("Step 3: Console Frontend")
+        click.echo("Select optional features to include in your application.")
+        
+        display_options()
+        
+        click.echo(f"\nSelected features: {sum(1 for opt in options if opt['selected'])}")
+        click.echo("Press ENTER to continue...")
+        
+        try:
+            char = get_char()
+            
+            if char == '\r' or char == '\n':  # Enter key
+                break
+            elif char == '\x1b[A':  # Up arrow
+                current_option = (current_option - 1) % len(options)
+            elif char == '\x1b[B':  # Down arrow
+                current_option = (current_option + 1) % len(options)
+            elif char == ' ':  # Space key
+                options[current_option]["selected"] = not options[current_option]["selected"]
+            elif char == 'q' or char == '\x03':  # Q or Ctrl+C
+                click.echo("\n❌ Aborted.")
+                sys.exit(1)
+        except KeyboardInterrupt:
+            click.echo("\n❌ Aborted.")
+            sys.exit(1)
+    
+    # Return True if console interface was selected
+    return options[0]["selected"]
 
 
 def prompt_project_details() -> tuple[str, Path]:
@@ -146,7 +292,7 @@ def prompt_project_details() -> tuple[str, Path]:
 def create_project_structure(config: AppConfig) -> None:
     """Create the project directory structure and files."""
     click.echo("\n" + "-"*50)
-    click.echo("Step 5: Generating Project")
+    click.echo("Step 5: Initializing Project")
     
     # Create target directory if it doesn't exist
     config.target_dir.mkdir(parents=True, exist_ok=True)
@@ -163,8 +309,8 @@ def create_project_structure(config: AppConfig) -> None:
     
     # Generate individual agent files
     for agent in config.agents:
-        agent_content = generate_agent_file(agent.name)
-        agent_file = agents_dir / f"{agent.name.lower()}.py"
+        agent_content = generate_agent_file(agent.name, config.include_console)
+        agent_file = agents_dir / f"{agent.filename}.py"
         agent_file.write_text(agent_content)
         click.echo(f"✓ Created {agent_file}")
     
@@ -186,6 +332,12 @@ def create_project_structure(config: AppConfig) -> None:
     readme_file.write_text(readme_content)
     click.echo(f"✓ Created {readme_file}")
     
+    # Generate common_models.py with shared message types
+    common_models_content = generate_common_models_file(config)
+    common_models_file = config.target_dir / "common_models.py"
+    common_models_file.write_text(common_models_content)
+    click.echo(f"✓ Created {common_models_file}")
+    
     # Create .env file if using Kafka
     if config.transport == "kafka":
         env_content = generate_env_file()
@@ -204,24 +356,48 @@ def create_project_structure(config: AppConfig) -> None:
 @click.command()
 @click.option("--target-dir", type=str, help="Target directory for the new project")
 @click.option("--project-name", type=str, help="Name of the new project")
-def create_app(target_dir: str = None, project_name: str = None):
-    """Create a new EggAI application using an interactive wizard."""
+@click.option("--transport", type=click.Choice(['kafka', 'inmemory']), help="Transport layer (kafka or inmemory)")
+@click.option("--agents", type=str, help="Comma-separated agent names (e.g., Order,Email)")
+@click.option("--enable-console/--no-console", default=None, help="Include console frontend")
+def create_app(target_dir: str = None, project_name: str = None, transport: str = None, 
+               agents: str = None, enable_console: bool = None):
+    """Initialize a new EggAI application using an interactive wizard."""
+    
+    # Show logo and wizard header first
+    show_logo()
+    show_wizard_header()
     
     config = AppConfig()
     
     # Step 1: Transport selection
-    config.transport = prompt_transport()
+    if transport:
+        config.transport = transport
+        click.echo(f"✓ Using transport: {transport}")
+    else:
+        config.transport = prompt_transport()
     
     # Step 2: Agent configuration
-    config.agents = prompt_agents()
+    if agents:
+        config.agents = parse_agents_string(agents)
+        if not config.agents:
+            click.echo("❌ No valid agents found in --agents parameter")
+            sys.exit(1)
+        click.echo(f"✓ Configured agents: {', '.join(agent.name for agent in config.agents)}")
+    else:
+        config.agents = prompt_agents()
     
     # Step 3: Console frontend option
-    config.include_console = prompt_console_option()
+    if enable_console is not None:
+        config.include_console = enable_console
+        click.echo(f"✓ Console frontend: {'Yes' if enable_console else 'No'}")
+    else:
+        config.include_console = prompt_console_option()
     
     # Step 4: Project details
     if project_name and target_dir:
         config.project_name = project_name
         config.target_dir = Path(target_dir).resolve()
+        click.echo(f"✓ Project: {project_name} at {config.target_dir}")
     else:
         config.project_name, config.target_dir = prompt_project_details()
     
@@ -230,7 +406,7 @@ def create_app(target_dir: str = None, project_name: str = None):
     
     # Success message
     click.echo("\n" + "="*50)
-    click.echo("🎉 Project created successfully!")
+    click.echo("🎉 Project initialized successfully!")
     click.echo("="*50)
     click.echo(f"Project: {config.project_name}")
     click.echo(f"Location: {config.target_dir}")
