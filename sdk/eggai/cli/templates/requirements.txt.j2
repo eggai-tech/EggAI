@@ -10,6 +10,11 @@ asyncio
 faststream[kafka]>=0.5.0
 python-dotenv>=1.0.0
 {%- endif %}
+{%- if include_console %}
+
+# Console frontend dependencies
+aioconsole>=0.6.0
+{%- endif %}
 
 # Optional: Add your additional dependencies here
 # numpy

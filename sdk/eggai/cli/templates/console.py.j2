@@ -1,0 +1,99 @@
+"""
+{{ project_name }} Console Frontend
+
+Interactive console interface for chatting with agents.
+"""
+
+import asyncio
+import logging
+from typing import Dict, Any
+
+try:
+    import aioconsole
+except ImportError:
+    raise ImportError("aioconsole is required for console frontend. Install with: pip install aioconsole")
+
+from eggai import Channel, eggai_main
+from eggai.schemas import Message
+{% if transport == "kafka" %}
+from eggai.transport import eggai_set_default_transport, KafkaTransport
+import dotenv
+
+# Load environment variables
+dotenv.load_dotenv()
+eggai_set_default_transport(lambda: KafkaTransport())
+{% endif %}
+
+logger = logging.getLogger(__name__)
+
+
+@eggai_main
+async def console_loop():
+    """Main console loop for interactive chat."""
+    response_received = asyncio.Event()
+    response_received.set()
+    
+    async def handle_agent_response(message: Message):
+        """Handle responses from agents."""
+        try:
+            if hasattr(message, 'type') and message.type == "chat.response":
+                # Extract the response text
+                response_text = message.data.get('response', str(message.data))
+                await aioconsole.aprint(f"\n🤖 \033[92mAgent:\033[0m {response_text}")
+                response_received.set()
+            elif hasattr(message, 'data') and isinstance(message.data, str):
+                # Handle direct string responses
+                await aioconsole.aprint(f"\n🤖 \033[92mAgent:\033[0m {message.data}")
+                response_received.set()
+            else:
+                # Handle other message types
+                await aioconsole.aprint(f"\n🤖 \033[92mAgent:\033[0m {message}")
+                response_received.set()
+        except Exception as e:
+            logger.error(f"Error handling agent response: {e}")
+            response_received.set()
+    
+    # Subscribe to agent responses on the human output channel
+    await Channel("human.out").subscribe(handle_agent_response)
+    
+    # Welcome message
+    await aioconsole.aprint("🎉 \033[96m{{ project_name }} Console\033[0m")
+    await aioconsole.aprint("Type your messages to chat with the agents.")
+    await aioconsole.aprint("Type 'exit' or press Ctrl+C to quit.\n")
+    
+    while True:
+        try:
+            await response_received.wait()
+            
+            # Get user input with nice formatting
+            user_input = await aioconsole.ainput("💬 \033[96mYou:\033[0m ")
+            
+            if user_input.lower().strip() in ['exit', 'quit', 'bye']:
+                await aioconsole.aprint("👋 Goodbye!")
+                break
+                
+            if not user_input.strip():
+                continue
+                
+        except (EOFError, KeyboardInterrupt):
+            await aioconsole.aprint("\n👋 Goodbye!")
+            break
+        
+        # Send user message to agents via human input channel
+        await Channel("human.in").publish(Message(
+            type="chat.request",
+            source="console",
+            data={
+                "message": user_input,
+                "sender": "user"
+            }
+        ))
+        
+        response_received.clear()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(console_loop())
+    except KeyboardInterrupt:
+        print("\nExiting console...", flush=True)

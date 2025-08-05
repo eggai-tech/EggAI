@@ -21,7 +21,8 @@ from .templates import (
     generate_readme,
     generate_agent_file,
     generate_agents_init,
-    generate_env_file
+    generate_env_file,
+    generate_console_file
 )
 
 
@@ -40,6 +41,7 @@ class AppConfig:
         self.agents: List[Agent] = []
         self.project_name: str = ""
         self.target_dir: Path = Path(".")
+        self.include_console: bool = False
 
 
 def prompt_transport() -> str:
@@ -108,10 +110,24 @@ def prompt_agents() -> List[Agent]:
     return agents
 
 
+def prompt_console_option() -> bool:
+    """Prompt user if they want to include a console frontend."""
+    click.echo("\n" + "-"*50)
+    click.echo("Step 3: Console Frontend")
+    click.echo("A console frontend allows interactive chat with your agents.")
+    
+    click.echo("\nConsole frontend features:")
+    click.echo("  • Interactive chat interface in the terminal")
+    click.echo("  • Real-time communication with agents")
+    click.echo("  • Human-readable conversation flow")
+    
+    return click.confirm("\nInclude console frontend for interactive chat?", default=True)
+
+
 def prompt_project_details() -> tuple[str, Path]:
     """Prompt for project name and target directory."""
     click.echo("\n" + "-"*50)
-    click.echo("Step 3: Project Configuration")
+    click.echo("Step 4: Project Configuration")
     
     project_name = click.prompt("Enter project name", type=str, default="my_eggai_app")
     project_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in project_name.strip())
@@ -130,7 +146,7 @@ def prompt_project_details() -> tuple[str, Path]:
 def create_project_structure(config: AppConfig) -> None:
     """Create the project directory structure and files."""
     click.echo("\n" + "-"*50)
-    click.echo("Step 4: Generating Project")
+    click.echo("Step 5: Generating Project")
     
     # Create target directory if it doesn't exist
     config.target_dir.mkdir(parents=True, exist_ok=True)
@@ -176,6 +192,13 @@ def create_project_structure(config: AppConfig) -> None:
         env_file = config.target_dir / ".env"
         env_file.write_text(env_content)
         click.echo(f"✓ Created {env_file}")
+    
+    # Create console.py if console frontend is enabled
+    if config.include_console:
+        console_content = generate_console_file(config)
+        console_file = config.target_dir / "console.py"
+        console_file.write_text(console_content)
+        click.echo(f"✓ Created {console_file}")
 
 
 @click.command()
@@ -192,14 +215,17 @@ def create_app(target_dir: str = None, project_name: str = None):
     # Step 2: Agent configuration
     config.agents = prompt_agents()
     
-    # Step 3: Project details
+    # Step 3: Console frontend option
+    config.include_console = prompt_console_option()
+    
+    # Step 4: Project details
     if project_name and target_dir:
         config.project_name = project_name
         config.target_dir = Path(target_dir).resolve()
     else:
         config.project_name, config.target_dir = prompt_project_details()
     
-    # Step 4: Generate project
+    # Step 5: Generate project
     create_project_structure(config)
     
     # Success message
@@ -210,6 +236,7 @@ def create_app(target_dir: str = None, project_name: str = None):
     click.echo(f"Location: {config.target_dir}")
     click.echo(f"Transport: {config.transport}")
     click.echo(f"Agents: {', '.join(agent.name for agent in config.agents)}")
+    click.echo(f"Console: {'Yes' if config.include_console else 'No'}")
     
     click.echo("\nNext steps:")
     click.echo(f"1. cd {config.target_dir}")
@@ -218,8 +245,12 @@ def create_app(target_dir: str = None, project_name: str = None):
         click.echo("3. Set up Kafka server (see README.md)")
         click.echo("4. Configure .env file with your Kafka settings")
         click.echo("5. python main.py")
+        if config.include_console:
+            click.echo("6. python console.py  # For interactive chat")
     else:
         click.echo("3. python main.py")
+        if config.include_console:
+            click.echo("4. python console.py  # For interactive chat")
 
 
 if __name__ == "__main__":
