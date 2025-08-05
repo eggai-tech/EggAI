@@ -10,7 +10,7 @@ import sys
 try:
     import click
 except ImportError:
-    print("Error: click is required for the CLI. Install with: pip install click")
+    print("Error: CLI dependencies not installed. Install with: pip install eggai[cli]")
     sys.exit(1)
 
 from .wizard import create_app
