@@ -1,0 +1,12 @@
+"""
+Shared Types for {{ project_name }}
+
+Common message types and data models used across agents.
+"""
+
+from eggai.schemas import BaseMessage
+
+
+class ChatMessage(BaseMessage[str]):
+    """Message type for chat communication with string data."""
+    type: str = "chat"

@@ -10,6 +10,7 @@ from typing import Dict, Any
 
 from eggai import Agent, Channel
 from eggai.schemas import BaseMessage, Message
+{% if include_console %}from common_models import ChatMessage{% endif %}
 
 logger = logging.getLogger(__name__)
 
@@ -17,16 +18,12 @@ logger = logging.getLogger(__name__)
 # Data models for {{ agent_name }}
 class {{ agent_name }}Request(BaseModel):
     """Request model for {{ agent_name }} operations."""
-    message: str
-    sender: str = "user"
-    # Add your specific fields here
+    data: Dict[str, Any]
 
 
 class {{ agent_name }}Response(BaseModel):
     """Response model for {{ agent_name }} operations."""
-    response: str
-    processed_by: str
-    # Add your specific response fields here
+    data: Dict[str, Any]
 
 
 # Message types for {{ agent_name }}
@@ -35,10 +32,9 @@ class {{ agent_name }}Message(BaseMessage[{{ agent_name }}Request]):
     type: str = "{{ agent_channel }}.request"
 
 
-# Chat message type for console interaction
-class ChatMessage(BaseMessage[Dict[str, Any]]):
-    """Message type for chat requests from console."""
-    type: str = "chat.request"
+class {{ agent_name }}ResponseMessage(BaseMessage[{{ agent_name }}Response]):
+    """Message type for {{ agent_name }} responses."""
+    type: str = "{{ agent_channel }}.response"
 
 
 async def create_{{ agent_function }}() -> Agent:
@@ -46,41 +42,40 @@ async def create_{{ agent_function }}() -> Agent:
     agent = Agent("{{ agent_name }}")
     
     @agent.subscribe(channel=Channel("{{ agent_channel }}"), data_type={{ agent_name }}Message)
-    async def handle_{{ agent_function }}_request(message: {{ agent_name }}Message) -> {{ agent_name }}Response:
+    async def handle_{{ agent_function }}_request(message: {{ agent_name }}Message) -> None:
         """Handle {{ agent_function }} requests."""
-        data = message.data
-        
+
         # TODO: Implement your business logic here
-        response_text = f"{data.sender}, your message '{data.message}' was processed by {{ agent_name }}"
+        response_data = {
+            "status": "processed",
+            "message": f"Request processed by {{ agent_name }}",
+            "original_data": message.data,
+            "processed_by": "{{ agent_name }}"
+        }
         
-        result = {{ agent_name }}Response(
-            response=response_text,
-            processed_by="{{ agent_name }}"
+        # Create response message
+        response = {{ agent_name }}ResponseMessage(
+            source="{{ agent_name }}",
+            data={{ agent_name }}Response(data=response_data)
         )
         
-        logger.info(f"{{ agent_name }} processed message from {data.sender}")
-        return result
-    
+        # Publish to agent output channel
+        await Channel("{{ agent_channel }}.out").publish(response)
+        
+        logger.info(f"{{ agent_name }} processed request and published response")
+    {% if include_console %}
     @agent.subscribe(channel=Channel("human.in"), data_type=ChatMessage)
     async def handle_chat_message(message: ChatMessage) -> None:
         """Handle chat messages from console and respond to human channel."""
-        data = message.data
-        user_message = data.get("message", "")
-        sender = data.get("sender", "user")
-        
         # TODO: Implement your chat logic here
-        # This is a simple echo response - customize for your agent's behavior
-        response_text = f"Hello {sender}! You said: '{user_message}'. This is {{ agent_name }} responding."
-        
-        # Publish response to human output channel for console display
-        await Channel("human.out").publish(Message(
-            type="chat.response",
+        response_text = f"Hello! You said: '{message.data}'. This is {{ agent_name }} responding."
+        await Channel("human.out").publish(ChatMessage(
             source="{{ agent_name }}",
             data=response_text
         ))
         
-        logger.info(f"{{ agent_name }} responded to chat from {sender}")
-    
+        logger.info(f"{{ agent_name }} responded to chat message")
+    {% endif %}
     await agent.start()
     logger.info("{{ agent_name }} started successfully")
     return agent

@@ -6,7 +6,7 @@ from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 {% endif %}
 {% for agent in agents %}
-from agents.{{ agent.name.lower() }} import create_{{ agent.name.lower() }}
+from agents.{{ agent.filename }} import create_{{ agent.function_name }}
 {% endfor %}
 
 # Set up logging
@@ -27,7 +27,7 @@ async def main():
     # Create and start all agents
     agents = []
 {% for agent in agents %}
-    agents.append(await create_{{ agent.name.lower() }}())
+    agents.append(await create_{{ agent.function_name }}())
 {% endfor %}
 
     print(f"Started {len(agents)} agent(s): {{ agents|map(attribute='name')|join(', ') }}")
