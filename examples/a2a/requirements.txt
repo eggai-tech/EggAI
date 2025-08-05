@@ -1,0 +1,5 @@
+-e ../../sdk
+a2a-sdk
+httpx
+pydantic
+uvicorn
