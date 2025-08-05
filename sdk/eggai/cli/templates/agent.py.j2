@@ -6,9 +6,10 @@ This agent handles {{ agent_name.lower() }}-related tasks and messages.
 
 import logging
 from pydantic import BaseModel
+from typing import Dict, Any
 
 from eggai import Agent, Channel
-from eggai.schemas import BaseMessage
+from eggai.schemas import BaseMessage, Message
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,12 @@ class {{ agent_name }}Message(BaseMessage[{{ agent_name }}Request]):
     type: str = "{{ agent_channel }}.request"
 
 
+# Chat message type for console interaction
+class ChatMessage(BaseMessage[Dict[str, Any]]):
+    """Message type for chat requests from console."""
+    type: str = "chat.request"
+
+
 async def create_{{ agent_function }}() -> Agent:
     """Create and configure the {{ agent_name }} agent."""
     agent = Agent("{{ agent_name }}")
@@ -53,6 +60,26 @@ async def create_{{ agent_function }}() -> Agent:
         
         logger.info(f"{{ agent_name }} processed message from {data.sender}")
         return result
+    
+    @agent.subscribe(channel=Channel("human.in"), data_type=ChatMessage)
+    async def handle_chat_message(message: ChatMessage) -> None:
+        """Handle chat messages from console and respond to human channel."""
+        data = message.data
+        user_message = data.get("message", "")
+        sender = data.get("sender", "user")
+        
+        # TODO: Implement your chat logic here
+        # This is a simple echo response - customize for your agent's behavior
+        response_text = f"Hello {sender}! You said: '{user_message}'. This is {{ agent_name }} responding."
+        
+        # Publish response to human output channel for console display
+        await Channel("human.out").publish(Message(
+            type="chat.response",
+            source="{{ agent_name }}",
+            data=response_text
+        ))
+        
+        logger.info(f"{{ agent_name }} responded to chat from {sender}")
     
     await agent.start()
     logger.info("{{ agent_name }} started successfully")

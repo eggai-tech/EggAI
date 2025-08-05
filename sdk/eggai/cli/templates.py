@@ -61,7 +61,10 @@ class TemplateGenerator:
     def generate_requirements_txt(self, config: "AppConfig") -> str:
         """Generate the requirements.txt file content."""
         template = self.env.get_template("requirements.txt.j2")
-        return template.render(transport=config.transport)
+        return template.render(
+            transport=config.transport,
+            include_console=config.include_console
+        )
     
     def generate_readme(self, config: "AppConfig") -> str:
         """Generate the README.md file content."""
@@ -76,6 +79,14 @@ class TemplateGenerator:
         """Generate .env file for Kafka configuration."""
         template = self.env.get_template("env.j2")
         return template.render()
+    
+    def generate_console_file(self, config: "AppConfig") -> str:
+        """Generate console.py file for interactive frontend."""
+        template = self.env.get_template("console.py.j2")
+        return template.render(
+            project_name=config.project_name,
+            transport=config.transport
+        )
 
 
 # Create a global instance
@@ -105,3 +116,7 @@ def generate_readme(config: "AppConfig") -> str:
 def generate_env_file() -> str:
     """Generate .env file for Kafka configuration."""
     return _generator.generate_env_file()
+
+def generate_console_file(config: "AppConfig") -> str:
+    """Generate console.py file for interactive frontend."""
+    return _generator.generate_console_file(config)
