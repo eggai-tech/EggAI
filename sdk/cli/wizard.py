@@ -276,7 +276,9 @@ def prompt_project_details() -> tuple[str, Path]:
     click.echo("Step 4: Project Configuration")
     
     project_name = click.prompt("Enter project name", type=str, default="my_eggai_app")
+    # Sanitize project name for Python module naming (replace hyphens with underscores)
     project_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in project_name.strip())
+    project_name = project_name.replace("-", "_")
     
     target_dir = click.prompt("Enter target directory", type=str, default=".")
     target_path = Path(target_dir).resolve()
@@ -294,8 +296,12 @@ def create_project_structure(config: AppConfig) -> None:
     click.echo("\n" + "-"*50)
     click.echo("Step 5: Initializing Project")
     
-    # Create target directory if it doesn't exist
-    config.target_dir.mkdir(parents=True, exist_ok=True)
+    # Create project directory inside target directory
+    project_dir = config.target_dir / config.project_name
+    project_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Update target_dir to point to the project directory
+    config.target_dir = project_dir
     
     # Create agents directory
     agents_dir = config.target_dir / "agents"
@@ -309,7 +315,7 @@ def create_project_structure(config: AppConfig) -> None:
     
     # Generate individual agent files
     for agent in config.agents:
-        agent_content = generate_agent_file(agent.name, config.include_console)
+        agent_content = generate_agent_file(agent.name, config.project_name, config.include_console)
         agent_file = agents_dir / f"{agent.filename}.py"
         agent_file.write_text(agent_content)
         click.echo(f"✓ Created {agent_file}")

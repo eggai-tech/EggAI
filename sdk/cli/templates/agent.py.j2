@@ -10,60 +10,15 @@ from typing import Dict, Any
 
 from eggai import Agent, Channel
 from eggai.schemas import BaseMessage, Message
-{% if include_console %}from common_models import ChatMessage{% endif %}
+from {{ project_name }}.common_models import ChatMessage
 
 logger = logging.getLogger(__name__)
-
-
-# Data models for {{ agent_name }}
-class {{ agent_name }}Request(BaseModel):
-    """Request model for {{ agent_name }} operations."""
-    data: Dict[str, Any]
-
-
-class {{ agent_name }}Response(BaseModel):
-    """Response model for {{ agent_name }} operations."""
-    data: Dict[str, Any]
-
-
-# Message types for {{ agent_name }}
-class {{ agent_name }}Message(BaseMessage[{{ agent_name }}Request]):
-    """Message type for {{ agent_name }} requests."""
-    type: str = "{{ agent_channel }}.request"
-
-
-class {{ agent_name }}ResponseMessage(BaseMessage[{{ agent_name }}Response]):
-    """Message type for {{ agent_name }} responses."""
-    type: str = "{{ agent_channel }}.response"
 
 
 async def create_{{ agent_function }}() -> Agent:
     """Create and configure the {{ agent_name }} agent."""
     agent = Agent("{{ agent_name }}")
-    
-    @agent.subscribe(channel=Channel("{{ agent_channel }}"), data_type={{ agent_name }}Message)
-    async def handle_{{ agent_function }}_request(message: {{ agent_name }}Message) -> None:
-        """Handle {{ agent_function }} requests."""
 
-        # TODO: Implement your business logic here
-        response_data = {
-            "status": "processed",
-            "message": f"Request processed by {{ agent_name }}",
-            "original_data": message.data,
-            "processed_by": "{{ agent_name }}"
-        }
-        
-        # Create response message
-        response = {{ agent_name }}ResponseMessage(
-            source="{{ agent_name }}",
-            data={{ agent_name }}Response(data=response_data)
-        )
-        
-        # Publish to agent output channel
-        await Channel("{{ agent_channel }}.out").publish(response)
-        
-        logger.info(f"{{ agent_name }} processed request and published response")
-    {% if include_console %}
     @agent.subscribe(channel=Channel("human.in"), data_type=ChatMessage)
     async def handle_chat_message(message: ChatMessage) -> None:
         """Handle chat messages from console and respond to human channel."""
@@ -75,7 +30,6 @@ async def create_{{ agent_function }}() -> Agent:
         ))
         
         logger.info(f"{{ agent_name }} responded to chat message")
-    {% endif %}
     await agent.start()
     logger.info("{{ agent_name }} started successfully")
     return agent

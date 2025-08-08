@@ -6,7 +6,7 @@ from eggai import eggai_main
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 {% endif %}
 {% for agent in agents %}
-from agents.{{ agent.filename }} import create_{{ agent.function_name }}
+from {{ project_name }}.agents.{{ agent.filename }} import create_{{ agent.function_name }}
 {% endfor %}
 
 # Set up logging
