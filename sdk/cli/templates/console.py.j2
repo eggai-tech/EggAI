@@ -11,7 +11,7 @@ from typing import Dict, Any
 import aioconsole
 
 from eggai import Channel, eggai_main
-from common_models import ChatMessage
+from {{ project_name }}.models import ChatMessage
 {% if transport == "kafka" %}
 from eggai.transport import eggai_set_default_transport, KafkaTransport
 import dotenv

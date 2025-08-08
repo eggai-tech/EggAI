@@ -276,7 +276,9 @@ def prompt_project_details() -> tuple[str, Path]:
     click.echo("Step 4: Project Configuration")
     
     project_name = click.prompt("Enter project name", type=str, default="my_eggai_app")
+    # Sanitize project name for Python module naming (replace hyphens with underscores)
     project_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in project_name.strip())
+    project_name = project_name.replace("-", "_")
     
     target_dir = click.prompt("Enter target directory", type=str, default=".")
     target_path = Path(target_dir).resolve()
@@ -294,11 +296,21 @@ def create_project_structure(config: AppConfig) -> None:
     click.echo("\n" + "-"*50)
     click.echo("Step 5: Initializing Project")
     
-    # Create target directory if it doesn't exist
-    config.target_dir.mkdir(parents=True, exist_ok=True)
+    # Create root project directory inside target directory
+    root_project_dir = config.target_dir / config.project_name
+    root_project_dir.mkdir(parents=True, exist_ok=True)
     
-    # Create agents directory
-    agents_dir = config.target_dir / "agents"
+    # Create Python package directory inside root project directory
+    python_package_dir = root_project_dir / config.project_name
+    python_package_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate package __init__.py
+    package_init_file = python_package_dir / "__init__.py"
+    package_init_file.write_text("# Generated EggAI project package\n")
+    click.echo(f"✓ Created {package_init_file}")
+    
+    # Create agents directory inside Python package
+    agents_dir = python_package_dir / "agents"
     agents_dir.mkdir(exist_ok=True)
     
     # Generate agents/__init__.py
@@ -309,48 +321,51 @@ def create_project_structure(config: AppConfig) -> None:
     
     # Generate individual agent files
     for agent in config.agents:
-        agent_content = generate_agent_file(agent.name, config.include_console)
+        agent_content = generate_agent_file(agent.name, config.project_name, config.include_console)
         agent_file = agents_dir / f"{agent.filename}.py"
         agent_file.write_text(agent_content)
         click.echo(f"✓ Created {agent_file}")
     
-    # Generate main.py
+    # Generate main.py inside Python package
     main_content = generate_main_py(config)
-    main_file = config.target_dir / "main.py"
+    main_file = python_package_dir / "main.py"
     main_file.write_text(main_content)
     click.echo(f"✓ Created {main_file}")
     
-    # Generate requirements.txt
+    # Generate models.py inside Python package
+    models_content = generate_common_models_file(config)
+    models_file = python_package_dir / "models.py"
+    models_file.write_text(models_content)
+    click.echo(f"✓ Created {models_file}")
+    
+    # Create console.py inside Python package if enabled
+    if config.include_console:
+        console_content = generate_console_file(config)
+        console_file = python_package_dir / "console.py"
+        console_file.write_text(console_content)
+        click.echo(f"✓ Created {console_file}")
+    
+    # Generate requirements.txt in root project directory
     requirements_content = generate_requirements_txt(config)
-    req_file = config.target_dir / "requirements.txt"
+    req_file = root_project_dir / "requirements.txt"
     req_file.write_text(requirements_content)
     click.echo(f"✓ Created {req_file}")
     
-    # Generate README.md
+    # Generate README.md in root project directory
     readme_content = generate_readme(config)
-    readme_file = config.target_dir / "README.md"
+    readme_file = root_project_dir / "README.md"
     readme_file.write_text(readme_content)
     click.echo(f"✓ Created {readme_file}")
     
-    # Generate common_models.py with shared message types
-    common_models_content = generate_common_models_file(config)
-    common_models_file = config.target_dir / "common_models.py"
-    common_models_file.write_text(common_models_content)
-    click.echo(f"✓ Created {common_models_file}")
-    
-    # Create .env file if using Kafka
+    # Create .env file in root project directory if using Kafka
     if config.transport == "kafka":
         env_content = generate_env_file()
-        env_file = config.target_dir / ".env"
+        env_file = root_project_dir / ".env"
         env_file.write_text(env_content)
         click.echo(f"✓ Created {env_file}")
     
-    # Create console.py if console frontend is enabled
-    if config.include_console:
-        console_content = generate_console_file(config)
-        console_file = config.target_dir / "console.py"
-        console_file.write_text(console_content)
-        click.echo(f"✓ Created {console_file}")
+    # Update config.target_dir to point to the root project directory for final message
+    config.target_dir = root_project_dir
 
 
 @click.command()
@@ -395,9 +410,11 @@ def create_app(target_dir: str = None, project_name: str = None, transport: str 
     
     # Step 4: Project details
     if project_name and target_dir:
-        config.project_name = project_name
+        # Sanitize project name for Python module naming
+        config.project_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in project_name.strip())
+        config.project_name = config.project_name.replace("-", "_")
         config.target_dir = Path(target_dir).resolve()
-        click.echo(f"✓ Project: {project_name} at {config.target_dir}")
+        click.echo(f"✓ Project: {config.project_name} at {config.target_dir}")
     else:
         config.project_name, config.target_dir = prompt_project_details()
     
@@ -420,13 +437,13 @@ def create_app(target_dir: str = None, project_name: str = None, transport: str 
     if config.transport == "kafka":
         click.echo("3. Set up Kafka server (see README.md)")
         click.echo("4. Configure .env file with your Kafka settings")
-        click.echo("5. python main.py")
+        click.echo(f"5. python -m {config.project_name}.main")
         if config.include_console:
-            click.echo("6. python console.py  # For interactive chat")
+            click.echo(f"6. python -m {config.project_name}.console  # For interactive chat")
     else:
-        click.echo("3. python main.py")
+        click.echo(f"3. python -m {config.project_name}.main")
         if config.include_console:
-            click.echo("4. python console.py  # For interactive chat")
+            click.echo(f"4. python -m {config.project_name}.console  # For interactive chat")
 
 
 if __name__ == "__main__":

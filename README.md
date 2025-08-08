@@ -444,7 +444,15 @@ pip install -e .
 
 ### Getting Started
 
-Here's how you can quickly set up an agent to handle events in an event-driven system:
+For a quick start with a structured project, use the EggAI CLI to generate a new multi-agent application:
+
+```bash
+pipx run eggai[cli] init
+```
+
+This will create a complete project with agents, console interface, and configuration files.
+
+Alternatively, here's how you can quickly set up an agent to handle events in an event-driven system:
 
 ```python
 import asyncio

@@ -33,7 +33,7 @@ class TemplateGenerator:
             agents=config.agents
         )
     
-    def generate_agent_file(self, agent_name: str, include_console: bool = False) -> str:
+    def generate_agent_file(self, agent_name: str, project_name: str, include_console: bool = False) -> str:
         """Generate individual agent file content."""
         template = self.env.get_template("agent.py.j2")
         
@@ -46,6 +46,7 @@ class TemplateGenerator:
             agent_name=agent_name,
             agent_function=filename,
             agent_channel=agent_channel,
+            project_name=project_name,
             include_console=include_console
         )
     
@@ -91,8 +92,8 @@ _generator = TemplateGenerator()
 def generate_main_py(config: "AppConfig") -> str:
     return _generator.generate_main_py(config)
 
-def generate_agent_file(agent_name: str, include_console: bool = False) -> str:
-    return _generator.generate_agent_file(agent_name, include_console)
+def generate_agent_file(agent_name: str, project_name: str, include_console: bool = False) -> str:
+    return _generator.generate_agent_file(agent_name, project_name, include_console)
 
 def generate_agents_init() -> str:
     return _generator.generate_agents_init()
