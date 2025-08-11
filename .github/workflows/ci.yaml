@@ -68,7 +68,7 @@ jobs:
     needs: static-analysis
     env:
       # Triage agent settings
-      TRIAGE_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      TRIAGE_LANGUAGE_MODEL_API_BASE: http://lm-studio.tomcode-ci.svc.cluster.local:1234/v1/
       TRIAGE_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
       TRIAGE_CLASSIFIER_VERSION: v4
       TRIAGE_CLASSIFIER_V3_MODEL_NAME: fewshot_classifier_n_all
@@ -79,23 +79,23 @@ jobs:
       TRIAGE_TEST_DATASET_SIZE: 50
 
       # Policies agent settings
-      POLICIES_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      POLICIES_LANGUAGE_MODEL_API_BASE: http://lm-studio.tomcode-ci.svc.cluster.local:1234/v1/
       POLICIES_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
 
       # Claims agent settings
-      CLAIMS_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      CLAIMS_LANGUAGE_MODEL_API_BASE: http://lm-studio.tomcode-ci.svc.cluster.local:1234/v1/
       CLAIMS_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
 
       # Billing agent settings
-      BILLING_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      BILLING_LANGUAGE_MODEL_API_BASE: http://lm-studio.tomcode-ci.svc.cluster.local:1234/v1/
       BILLING_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
 
       # Escalation agent settings
-      ESCALATION_LANGUAGE_MODEL_API_BASE: http://localhost:1234/v1/
+      ESCALATION_LANGUAGE_MODEL_API_BASE: http://lm-studio.tomcode-ci.svc.cluster.local:1234/v1/
       ESCALATION_LANGUAGE_MODEL: lm_studio/gemma-3-12b-it-qat
 
       # Shared settings
-      LM_STUDIO_API_BASE: http://localhost:1234/v1/
+      LM_STUDIO_API_BASE: http://lm-studio.tomcode-ci.svc.cluster.local:1234/v1/
       LM_STUDIO_API_KEY: lm-studio
 
       # MLFlow settings
@@ -124,14 +124,14 @@ jobs:
         working-directory: demo
         run: |
           echo "Pre-pulling Docker images..."
-          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml pull --quiet
+          docker compose -f docker-compose.yml pull --quiet
         timeout-minutes: 45
 
       - name: Start services with Docker Compose
         working-directory: demo
         run: |
           echo "Starting Docker Compose services..."
-          docker compose -f docker-compose.yml -f docker-compose-lmstudio.yaml up -d --no-build
+          docker compose -f docker-compose.yml up -d --no-build
           echo "Services started in detached mode"
           docker compose ps
         timeout-minutes: 20
@@ -167,7 +167,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
       - name: Set up test environment
         working-directory: demo
@@ -246,6 +245,5 @@ jobs:
           context: demo
           push: true
           platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          no-cache: true
           tags: ghcr.io/eggai-tech/multi-agent-human-chat:${{ steps.image_tag.outputs.tag }}
