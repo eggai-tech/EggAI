@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eggai"
-version = "0.2.2"
+version = "0.2.6"
 description = "EggAI Multi-Agent Meta Framework` is an async-first framework for building, deploying, and scaling multi-agent systems for modern enterprise environments"
 authors = ["Stefano Tucci <stefanotucci89@gmail.com>"]
 readme = "README.md"
@@ -37,9 +37,13 @@ pydantic = "^2.11.4"
 faststream = {extras = ["kafka"], version = "^0.5.40"}
 click = {version = "^8.0.0", optional = true}
 jinja2 = {version = "^3.1.6", optional = true}
+a2a-sdk = {version = "^0.3.0", optional = true}
+fastmcp = {version = "^0.2.0", optional = true}
 
 [tool.poetry.extras]
 cli = ["click", "jinja2"]
+a2a = ["a2a-sdk"]
+mcp = ["fastmcp"]
 
 [tool.poetry.group.dev.dependencies]
 twine = "^6.0.1"
