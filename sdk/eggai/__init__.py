@@ -6,4 +6,3 @@ from .hooks import (
     eggai_main as eggai_main,
     EggaiRunner as EggaiRunner,
 )
-from .adapters.a2a.config import A2AConfig as A2AConfig

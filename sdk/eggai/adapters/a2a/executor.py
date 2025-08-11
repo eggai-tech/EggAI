@@ -9,15 +9,9 @@ from eggai.schemas import BaseMessage
 if TYPE_CHECKING:
     from eggai.agent import Agent
 
-try:
-    from a2a.server.agent_execution.agent_executor import AgentExecutor
-    from a2a.server.agent_execution.context import RequestContext
-    from a2a.server.events.event_queue import EventQueue
-except ImportError:
-    raise ImportError(
-        "EggAI A2A integration requires the a2a-sdk package. "
-        "Please install it with: pip install a2a-sdk"
-    )
+from a2a.server.agent_execution.agent_executor import AgentExecutor
+from a2a.server.agent_execution.context import RequestContext
+from a2a.server.events.event_queue import EventQueue
 
 logger = logging.getLogger(__name__)
 

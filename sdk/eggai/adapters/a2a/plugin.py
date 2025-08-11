@@ -100,7 +100,9 @@ class A2APlugin:
         try:
             from a2a.types import AgentCard
         except ImportError:
-            raise ImportError("a2a-sdk is required for A2A functionality")
+            raise ImportError(
+                "A2A functionality requires the a2a extra. Install with: pip install eggai[a2a]"
+            )
 
         from a2a.types import AgentCapabilities
 

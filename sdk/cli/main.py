@@ -18,10 +18,12 @@ from .wizard import create_app
 # Get version from package
 try:
     from importlib.metadata import version
+
     __version__ = version("eggai")
 except ImportError:
     # Python < 3.8
     from importlib_metadata import version
+
     __version__ = version("eggai")
 
 
