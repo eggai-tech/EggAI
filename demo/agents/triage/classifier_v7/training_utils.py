@@ -38,7 +38,14 @@ from transformers import (
 
 
 def setup_mlflow_tracking(model_name: str) -> str:
-    # Set experiment first, then enable autolog to avoid conflicts
+    """
+    Set up MLflow tracking for the training run.
+    Args:
+        model_name: Name of the model being trained.
+
+    Returns:
+        A unique run name based on the model name and current timestamp.
+    """
     mlflow.set_experiment("triage_classifier")
     mlflow.dspy.autolog()
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
