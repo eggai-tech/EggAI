@@ -29,7 +29,7 @@ class DatasetRow:
         self.special_case_distribution = self.special_case_distribution.strip() if self.special_case_distribution else None
 
 
-def load_dataset(file_path: Path):
+def load_dataset(file_path: Path) -> list[DatasetRow]:
     dataset = []
     with open(file_path, "r") as file:
         for line in file:
@@ -67,11 +67,12 @@ LABEL2ID = {
 
 ID2LABEL = {v: k for k, v in LABEL2ID.items()}
 
-def load_dataset_triage_testing():
+
+def load_dataset_triage_testing() -> list[DatasetRow]:
     return load_dataset(Path(__file__).resolve().parent / "triage-testing-proofread.jsonl")
 
 
-def load_dataset_triage_training():
+def load_dataset_triage_training() -> list[DatasetRow]:
     return load_dataset(Path(__file__).resolve().parent / "triage-training-proofread.jsonl")
 
 
