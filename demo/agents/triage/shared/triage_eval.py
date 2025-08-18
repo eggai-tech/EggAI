@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from tqdm import tqdm
+
 from agents.triage.data_sets.loader import DatasetRow
 from agents.triage.models import ClassifierMetrics, TargetAgent
 
@@ -23,7 +25,7 @@ def evaluate_classifier(
 ) -> tuple[dict[str, float], list[dict[str, any]]]:
     """Evaluate the classifier on the provided test data."""
     results = []
-    for row in test_data:
+    for row in tqdm(test_data):
         chat_history = row.conversation
         target_agent = row.target_agent
 

@@ -36,12 +36,16 @@ def eval_classifier_v8(model_path: str):
         mlflow.log_param("classifier_version", classifier_version)
         mlflow.log_param("base_model", model_name)
 
+
         # load dataset
         full_dataset = load_dataset_triage_testing()
+        logger.info(f"Loaded {len(full_dataset)} test examples from the dataset.")
 
         # load FinetunedRobertaClassifier
         classifier = FinetunedRobertaClassifier(model_path=model_path)
+        logger.info(f"Loaded classifier from: {model_path}")
 
+        logger.info(f"Starting evaluation for {classifier_version} with fine-tuned model: {model_name}")
         # evaluate on test set
         metrics, detailed_results = evaluate_classifier(classifier, full_dataset)
 
@@ -53,7 +57,7 @@ def eval_classifier_v8(model_path: str):
                 logger.info(f"Failing example {i}: {result['conversation']}")
                 logger.info(f"Expected: {result['expected_agent']}, Predicted: {result['predicted_agent']}")
 
-        logger.info(f"V8 MLflow evaluation completed: {metrics['accuracy']:.1%} accuracy")
+        logger.info(f"V8 MLflow evaluation completed: {metrics['accuracy']} accuracy")
 
 
 if __name__ == "__main__":

@@ -37,7 +37,7 @@ class FinetunedRobertaClassifier:
             self.tokenizer = AutoTokenizer.from_pretrained(model_path)
 
             self.model = RobertaForSequenceClassification.from_pretrained(
-                v8_settings.model_name,
+                model_path,
                 num_labels=len(ID2LABEL)
             )
 
