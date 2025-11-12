@@ -79,7 +79,7 @@ async def main():
     await agent.start()
 
     # Start A2A HTTP server (makes skills discoverable)
-    await agent.a2a.start_server(host="0.0.0.0", port=8080)
+    await agent.to_a2a(host="0.0.0.0", port=8080)
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -130,7 +130,7 @@ async def my_handler(message: InputModel) -> OutputModel:
 When you start the A2A server, EggAI automatically generates an AgentCard:
 
 ```python
-await agent.a2a.start_server(host="0.0.0.0", port=8080)
+await agent.to_a2a(host="0.0.0.0", port=8080)
 ```
 
 The AgentCard includes:

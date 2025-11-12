@@ -393,11 +393,11 @@ def search(params: SearchParams) -> list[SearchResult]:
 ### With Redis Transport
 
 ```python
-from eggai import set_default_transport
+from eggai.transport import eggai_set_default_transport
 from eggai.transport.redis import RedisTransport
 
 # Use Redis for MCP communication
-set_default_transport(lambda: RedisTransport(url="redis://localhost:6379"))
+eggai_set_default_transport(lambda: RedisTransport(url="redis://localhost:6379"))
 
 # Now all MCP channels use Redis
 await run_mcp_adapter(name="tools", mcp_server=mcp)
@@ -406,10 +406,11 @@ await run_mcp_adapter(name="tools", mcp_server=mcp)
 ### With Kafka Transport
 
 ```python
+from eggai.transport import eggai_set_default_transport
 from eggai.transport.kafka import KafkaTransport
 
 # Use Kafka for high-throughput tool calling
-set_default_transport(lambda: KafkaTransport(bootstrap_servers="localhost:9092"))
+eggai_set_default_transport(lambda: KafkaTransport(bootstrap_servers="localhost:9092"))
 
 await run_mcp_adapter(name="tools", mcp_server=mcp)
 ```
