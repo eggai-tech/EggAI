@@ -39,22 +39,16 @@ from eggai.transport.memory import InMemoryTransport
 # Create an in-memory transport
 transport = InMemoryTransport()
 
-# Create channels
-input_channel = Channel("input-channel", transport=transport)
-output_channel = Channel("output-channel", transport=transport)
-
 # Create an agent
-agent = Agent(
-    name="my-agent",
-    input_channel=input_channel,
-    output_channel=output_channel
-)
+agent = Agent(name="my-agent", transport=transport)
 
 # Define message handler
-@agent.on_message
+@agent.subscribe(channel=Channel("input-channel", transport=transport))
 async def handle_message(message):
     # Process message
     result = await process(message)
+    # Publish to output channel
+    output_channel = Channel("output-channel", transport=transport)
     await output_channel.publish(result)
 
 # Start the agent
@@ -72,22 +66,16 @@ from eggai.transport.redis import RedisTransport
 # Create a Redis transport
 transport = RedisTransport(url="redis://localhost:6379")
 
-# Create channels
-input_channel = Channel("input-channel", transport=transport)
-output_channel = Channel("output-channel", transport=transport)
-
 # Create an agent
-agent = Agent(
-    name="my-agent",
-    input_channel=input_channel,
-    output_channel=output_channel
-)
+agent = Agent(name="my-agent", transport=transport)
 
 # Define message handler
-@agent.on_message
+@agent.subscribe(channel=Channel("input-channel", transport=transport))
 async def handle_message(message):
     # Process message
     result = await process(message)
+    # Publish to output channel
+    output_channel = Channel("output-channel", transport=transport)
     await output_channel.publish(result)
 
 # Start the agent
@@ -107,22 +95,16 @@ transport = KafkaTransport(
     bootstrap_servers="localhost:9092"
 )
 
-# Create channels
-input_channel = Channel("input-topic", transport=transport)
-output_channel = Channel("output-topic", transport=transport)
-
 # Create an agent
-agent = Agent(
-    name="my-agent",
-    input_channel=input_channel,
-    output_channel=output_channel
-)
+agent = Agent(name="my-agent", transport=transport)
 
 # Define message handler
-@agent.on_message
+@agent.subscribe(channel=Channel("input-topic", transport=transport))
 async def handle_message(message):
     # Process message
     result = await process(message)
+    # Publish to output topic
+    output_channel = Channel("output-topic", transport=transport)
     await output_channel.publish(result)
 
 # Start the agent
