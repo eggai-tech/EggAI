@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from typing import Dict, Any, Optional, Callable, Union, Awaitable
@@ -93,16 +94,25 @@ class RedisTransport(Transport):
             self.broker = RedisBroker(
                 url, log_level=logging.DEBUG, **kwargs
             )
+        self._consumer_tasks: list[asyncio.Task] = []
+        self._running = False
 
     async def connect(self):
         """
         Establishes a connection to the Redis server by starting the RedisBroker instance.
 
         This method is necessary before publishing or consuming messages. It asynchronously starts the broker
-        to handle Redis communication.
+        to handle Redis communication. The RedisBroker.start() method automatically calls start() on all
+        subscribers, which creates their consumption tasks.
 
         """
         await self.broker.start()
+        self._running = True
+
+        # Store references to subscriber tasks to prevent garbage collection
+        for subscriber in self.broker._subscribers.values():
+            if hasattr(subscriber, 'task') and subscriber.task:
+                self._consumer_tasks.append(subscriber.task)
 
     async def disconnect(self):
         """
@@ -111,6 +121,26 @@ class RedisTransport(Transport):
         This method should be called when the transport is no longer needed to stop consuming messages
         and to release any resources held by the RedisBroker.
         """
+        self._running = False
+
+        # Stop all subscribers first (this stops their consumption loops)
+        for subscriber in self.broker._subscribers.values():
+            try:
+                await subscriber.stop()
+            except Exception as e:
+                logging.error(f"[RedisTransport] Error stopping subscriber: {e}")
+
+        # Cancel any remaining tasks
+        for task in self._consumer_tasks:
+            if not task.done():
+                task.cancel()
+
+        # Wait for all tasks to complete
+        if self._consumer_tasks:
+            await asyncio.gather(*self._consumer_tasks, return_exceptions=True)
+        self._consumer_tasks.clear()
+
+        # Finally, close the broker connection
         await self.broker.close()
 
     async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
@@ -147,14 +177,18 @@ class RedisTransport(Transport):
 
             # Redis Stream parameters
             stream (Optional[str], optional): Redis stream name to consume from instead of Pub/Sub channel.
-            polling_interval (int, optional): Interval in seconds for polling streams (default is 1).
+            polling_interval (int, optional): Interval in milliseconds for polling streams (default is 100).
             group (Optional[str], optional): Consumer group name for stream consumption.
             consumer (Optional[str], optional): Consumer name within the group.
             batch (bool, optional): Whether to consume messages in batches (default is False).
             max_records (Optional[int], optional): Maximum number of records to consume in one batch (default is None).
-            last_id (str, optional): Starting message ID for stream consumption (default is "$" for new messages).
-            no_ack (bool, optional): Whether to skip acknowledgment of stream messages (default is False).
+            last_id (str, optional): Starting message ID for stream consumption (default is ">" for consumer groups).
+            no_ack (bool, optional): Whether to skip acknowledgment of stream messages (default is False for durability).
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
+
+            # Durability parameters
+            max_len (Optional[int], optional): Maximum stream length to prevent unbounded growth (default is None).
+                                               Recommend setting to a reasonable value like 10000 for production.
 
             # General parameters
             dependencies (Sequence[Depends], optional): Custom dependencies for this subscriber.
@@ -239,7 +273,10 @@ class RedisTransport(Transport):
         polling_interval = kwargs.pop("polling_interval", 100)
         batch = kwargs.pop("batch", False)
         max_records = kwargs.pop("max_records", None)
-        last_id = kwargs.pop("last_id", "$")
+        # Use ">" for consumer groups to read pending messages
+        # ">" means "give me messages that no other consumer in this group has seen yet"
+        # "$" would mean "only new messages from now on" which would skip existing messages
+        last_id = kwargs.pop("last_id", ">")
         no_ack = kwargs.pop("no_ack", False)
 
         # Use Redis Streams with consumer groups (similar to Kafka)
