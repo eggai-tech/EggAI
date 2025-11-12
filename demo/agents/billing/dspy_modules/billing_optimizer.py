@@ -1,5 +1,8 @@
 import datetime
+import importlib.util
+import inspect
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -7,21 +10,21 @@ import dspy
 import litellm
 import mlflow
 from dspy.evaluate import Evaluate
-from sklearn.model_selection import train_test_split
-
 from libraries.dspy_copro import SimpleCOPRO, save_and_log_optimized_instructions
-
-# Configure litellm to drop unsupported parameters
-litellm.drop_params = True
+from sklearn.model_selection import train_test_split
 
 from agents.billing.config import settings
 from libraries.ml.dspy.language_model import dspy_set_language_model
 from libraries.observability.logger import get_console_logger
+from libraries.observability.tracing import TracedReAct
 
 from .billing_dataset import (
     as_dspy_examples,
     create_billing_dataset,
 )
+
+# Configure litellm to drop unsupported parameters
+litellm.drop_params = True
 
 logger = get_console_logger("billing_optimizer")
 
@@ -52,10 +55,6 @@ def print_progress(message, progress=None, total=None):
         sys.stdout.flush()
 
 
-import importlib.util
-import inspect
-
-
 def get_billing_signature_prompt() -> str:
     """Extract the docstring from BillingSignature without circular imports."""
     # Load the billing module dynamically
@@ -76,9 +75,6 @@ class BillingSignature(dspy.Signature):
 
     chat_history: str = dspy.InputField(desc="Full conversation context.")
     final_response: str = dspy.OutputField(desc="Billing response to the user.")
-
-
-from libraries.observability.tracing import TracedReAct
 
 
 # Mock tools for optimization (these won't actually be called during optimization)
@@ -235,8 +231,6 @@ if __name__ == "__main__":
                         elapsed += 0.1
 
             # Start spinner in a separate thread
-            import threading
-
             spinner_thread = threading.Thread(target=show_spinner)
             spinner_thread.daemon = True
             spinner_thread.start()
@@ -296,8 +290,6 @@ if __name__ == "__main__":
                             sys.stdout.flush()
                             time.sleep(0.1)
                             elapsed += 0.1
-
-                import threading
 
                 spinner_thread = threading.Thread(target=show_spinner)
                 spinner_thread.daemon = True
