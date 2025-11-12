@@ -2,6 +2,8 @@
 
 EggAI Multi-Agent Meta Framework is an async-first framework for building, deploying, and scaling multi-agent systems for modern enterprise environments.
 
+<img src="https://raw.githubusercontent.com/eggai-tech/EggAI/refs/heads/main/docs/docs/assets/eggai-meta-framework-arch.png" alt="EggAI Meta Framework Architecture" width="100%">
+
 ## Features
 
 - **Multi-Transport Support**: In-Memory, Redis Streams, Kafka, and extensible for custom transports
