@@ -16,6 +16,8 @@ preserving its tool-using capabilities.
 """
 
 import datetime
+import importlib.util
+import inspect
 import sys
 import time
 from pathlib import Path
@@ -24,12 +26,8 @@ import dspy
 import litellm
 import mlflow
 from dspy.evaluate import Evaluate
-from sklearn.model_selection import train_test_split
-
 from libraries.dspy_copro import SimpleCOPRO, save_and_log_optimized_instructions
-
-# Configure litellm to drop unsupported parameters
-litellm.drop_params = True
+from sklearn.model_selection import train_test_split
 
 from agents.claims.config import settings
 from agents.claims.dspy_modules.claims_dataset import (
@@ -38,6 +36,9 @@ from agents.claims.dspy_modules.claims_dataset import (
 )
 from libraries.ml.dspy.language_model import dspy_set_language_model
 from libraries.observability.logger import get_console_logger
+
+# Configure litellm to drop unsupported parameters
+litellm.drop_params = True
 
 logger = get_console_logger("claims_optimizer")
 
@@ -73,10 +74,6 @@ def print_progress(message, progress=None, total=None):
 
 
 # Import core prompt from claims.py - single source of truth
-import importlib.util
-import inspect
-
-
 def get_claims_signature_prompt() -> str:
     """Extract the docstring from ClaimsSignature without circular imports."""
     # Load the claims module dynamically

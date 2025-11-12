@@ -5,3 +5,4 @@ from .defaults import (
 )
 from .inmemory import InMemoryTransport as InMemoryTransport
 from .kafka import KafkaTransport as KafkaTransport
+from .redis import RedisTransport as RedisTransport
