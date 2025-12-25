@@ -591,6 +591,10 @@ Sometimes, prepackaged frameworks lock in design decisions. By copying from exam
 
 `EggAI Multi-Agent Meta Framework` is open-source and we welcome contributions. If you're looking to contribute, please refer to [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Security
+
+Security is a top priority for EggAI. If you discover a security vulnerability, please review our [Security Policy](SECURITY.md) for information on how to report it responsibly.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE.md](LICENSE.md) file for details.
