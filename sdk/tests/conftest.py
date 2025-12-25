@@ -38,6 +38,7 @@ def pytest_collection_modifyitems(config, items):
             try:
                 if hasattr(item, "obj"):
                     import inspect
+
                     source = inspect.getsource(item.obj)
                     if "KafkaTransport" in source:
                         item.add_marker(skip_kafka)
