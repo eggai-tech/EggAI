@@ -20,6 +20,17 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-py3.11-${{ hashFiles('sdk/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-py3.11-
+            poetry-${{ runner.os }}-
+
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
@@ -33,21 +44,37 @@ jobs:
         working-directory: sdk
         run: poetry run ruff check .
 
+      - name: Check code formatting
+        working-directory: sdk
+        run: poetry run ruff format --check .
+
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     name: Test SDK (Python ${{ matrix.python-version }})
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('sdk/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-py${{ matrix.python-version }}-
+            poetry-${{ runner.os }}-
 
       - name: Install Poetry
         run: |
@@ -58,13 +85,22 @@ jobs:
         working-directory: sdk
         run: poetry install
 
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: sdk
-        run: poetry run pytest -v
+        run: poetry run pytest -v --cov=eggai --cov=cli --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v4
+        with:
+          file: sdk/coverage.xml
+          flags: unittests
+          name: python-${{ matrix.python-version }}
+          fail_ci_if_error: false
 
   build:
     runs-on: ubuntu-latest
-    name: Build SDK package
+    name: Build and verify SDK package
 
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +109,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-py3.11-${{ hashFiles('sdk/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-py3.11-
+            poetry-${{ runner.os }}-
 
       - name: Install Poetry
         run: |
@@ -83,8 +130,49 @@ jobs:
         working-directory: sdk
         run: poetry build
 
-      - name: Upload artifacts
+      - name: Verify package metadata
+        working-directory: sdk
+        run: |
+          poetry run pip install twine
+          twine check dist/*
+
+      - name: Test package installation
+        working-directory: sdk
+        run: |
+          # Create a temporary venv and test install
+          python -m venv /tmp/test-venv
+          /tmp/test-venv/bin/pip install --upgrade pip
+          /tmp/test-venv/bin/pip install dist/*.whl
+
+          # Verify imports work
+          /tmp/test-venv/bin/python -c "import eggai; print(f'EggAI version: {eggai.__version__}')"
+          /tmp/test-venv/bin/python -c "from eggai import Agent, KafkaTransport, InMemoryTransport"
+
+          # Test CLI if available
+          if /tmp/test-venv/bin/pip show eggai | grep -q "cli"; then
+            /tmp/test-venv/bin/eggai --help || echo "CLI not available in this build"
+          fi
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: dist-python-3.11
           path: sdk/dist/
+          retention-days: 30
+
+  # Summary job to check if all required jobs passed
+  all-checks-passed:
+    runs-on: ubuntu-latest
+    needs: [lint, test, build]
+    if: always()
+
+    steps:
+      - name: Check if all jobs passed
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" || \
+                "${{ needs.test.result }}" != "success" || \
+                "${{ needs.build.result }}" != "success" ]]; then
+            echo "One or more required checks failed"
+            exit 1
+          fi
+          echo "All checks passed successfully!"
