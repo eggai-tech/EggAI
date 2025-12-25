@@ -1,4 +1,4 @@
-name: Python code validation and build
+name: SDK CI
 
 on:
   push:
@@ -8,46 +8,83 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  static-analysis:
+  lint:
     runs-on: ubuntu-latest
-    name: Static analysis
-
-    permissions:
-      contents: read
-      packages: write
+    name: Code quality checks
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Disabling shallow clones is recommended for improving SonarQube relevancy of reporting
-          fetch-depth: 0
 
-      - name: Run python linter
-        uses: astral-sh/ruff-action@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          src: demo
+          python-version: '3.11'
 
-  sonarqube-scan:
-    if: github.event_name == 'pull_request'
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        working-directory: sdk
+        run: poetry install
+
+      - name: Run ruff linter
+        working-directory: sdk
+        run: poetry run ruff check .
+
+  test:
     runs-on: ubuntu-latest
-    name: SonarQube scan
-    needs: static-analysis
-    permissions:
-      contents: read
-      packages: write
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+
+    name: Test SDK (Python ${{ matrix.python-version }})
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Run SonarQube scan
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          projectBaseDir: demo
-          args: >
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        working-directory: sdk
+        run: poetry install
+
+      - name: Run tests
+        working-directory: sdk
+        run: poetry run pytest -v
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build SDK package
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Build package
+        working-directory: sdk
+        run: poetry build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: sdk/dist/
