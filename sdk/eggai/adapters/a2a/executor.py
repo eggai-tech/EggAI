@@ -186,7 +186,7 @@ class EggAIAgentExecutor(AgentExecutor):
             else:
                 return {"message": str(message_content)}
 
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError) as e:
             logger.exception(f"Error extracting message data: {e}")
             return {"error": f"Failed to parse message: {str(e)}"}
 
@@ -207,10 +207,14 @@ class EggAIAgentExecutor(AgentExecutor):
             await event_queue.enqueue_event(response_message)
             logger.debug(f"Sent agent response: {data}")
 
-        except Exception as e:
-            logger.exception(f"Failed to send agent response: {e}")
+        except ImportError as e:
+            logger.error(f"A2A types not available: {e}")
+            raise
+        except (ValueError, TypeError) as e:
+            logger.exception(f"Failed to create A2A message from data: {e}")
             # Fallback: try to send as simple event
             try:
                 await event_queue.enqueue_event({"text": json.dumps(data)})
-            except Exception:
-                logger.error("Failed to send any response to event queue")
+            except (json.JSONEncodeError, TypeError) as json_err:
+                logger.error(f"Failed to serialize response data: {json_err}")
+                raise

@@ -95,7 +95,7 @@ class A2APlugin:
 
         logger.info(f"Registered A2A skill: {skill_name}")
 
-    def create_agent_card(self):
+    def create_agent_card(self) -> "AgentCard":
         """Create agent card from discovered A2A skills."""
         try:
             from a2a.types import AgentCard

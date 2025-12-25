@@ -8,6 +8,11 @@ from faststream.redis import RedisBroker, StreamSub
 
 from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
+from eggai.transport.middleware_utils import (
+    create_filter_middleware,
+    create_data_type_middleware,
+    create_filter_by_data_middleware,
+)
 
 
 class RedisTransport(Transport):
@@ -201,66 +206,24 @@ class RedisTransport(Transport):
                       incoming messages.
         """
         if "filter_by_message" in kwargs:
-
-            def filter_middleware(filter_func):
-                async def middleware(
-                    call_next: Callable[[Any], Awaitable[Any]],
-                    msg: StreamMessage[Any],
-                ) -> Any:
-                    if filter_func(json.loads(msg.body.decode("utf-8"))):
-                        return await call_next(msg)
-                    return None
-
-                return middleware
-
             if "middlewares" not in kwargs:
                 kwargs["middlewares"] = []
             kwargs["middlewares"].append(
-                filter_middleware(kwargs.pop("filter_by_message"))
+                create_filter_middleware(kwargs.pop("filter_by_message"))
             )
 
         if "data_type" in kwargs:
             data_type = kwargs.pop("data_type")
 
-            def data_type_middleware(data_type):
-                async def middleware(
-                    call_next: Callable[[Any], Awaitable[Any]],
-                    msg: StreamMessage[Any],
-                ) -> Any:
-                    typed_message = data_type.model_validate(
-                        json.loads(msg.body.decode("utf-8"))
-                    )
-
-                    if typed_message.type != data_type.model_fields["type"].default:
-                        return None
-
-                    return await call_next(msg)
-
-                return middleware
-
             if "middlewares" not in kwargs:
                 kwargs["middlewares"] = []
-            kwargs["middlewares"].append(data_type_middleware(data_type))
+            kwargs["middlewares"].append(create_data_type_middleware(data_type))
 
             if "filter_by_data" in kwargs:
-
-                def filter_by_data_middleware(filter_func):
-                    async def middleware(
-                        call_next: Callable[[Any], Awaitable[Any]],
-                        msg: StreamMessage[Any],
-                    ) -> Any:
-                        data = json.loads(msg.body.decode("utf-8"))
-                        typed_message = data_type.model_validate(data)
-                        if filter_func(typed_message):
-                            return await call_next(msg)
-                        return None
-
-                    return middleware
-
                 if "middlewares" not in kwargs:
                     kwargs["middlewares"] = []
                 kwargs["middlewares"].append(
-                    filter_by_data_middleware(kwargs.pop("filter_by_data"))
+                    create_filter_by_data_middleware(data_type, kwargs.pop("filter_by_data"))
                 )
 
         handler_id = kwargs.pop("handler_id")

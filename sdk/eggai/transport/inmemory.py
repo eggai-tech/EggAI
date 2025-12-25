@@ -1,11 +1,14 @@
 import asyncio
 import json
+import logging
 import uuid
 from collections import defaultdict
 from typing import Dict, List, Callable, Tuple, Any, Union
 
 from eggai.schemas import BaseMessage
 from eggai.transport import Transport
+
+logger = logging.getLogger(__name__)
 
 
 class InMemoryTransport(Transport):
@@ -150,8 +153,9 @@ class InMemoryTransport(Transport):
                         # Apply the data filter
                         if filter_func(typed_message):
                             await callback(typed_message)
-                    except Exception:
+                    except (json.JSONDecodeError, ValueError, TypeError) as e:
                         # Skip messages that don't match the data type or filter
+                        logger.debug(f"Message validation failed: {e}")
                         return
 
                 final_callback = data_and_filter_callback
@@ -194,7 +198,7 @@ class InMemoryTransport(Transport):
                     await cb(data)
         except asyncio.CancelledError:
             pass
-        except Exception as e:
-            print(
-                f"InMemoryTransport consume loop error on channel={channel}, group={group_id}: {e}"
-            )
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode message on channel={channel}, group={group_id}: {e}")
+        except (TypeError, AttributeError) as e:
+            logger.error(f"Invalid callback or message format on channel={channel}, group={group_id}: {e}")

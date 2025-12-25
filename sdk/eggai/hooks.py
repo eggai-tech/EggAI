@@ -2,8 +2,11 @@ import asyncio
 import logging
 import signal
 import sys
+from typing import Callable, Coroutine, Any, TypeVar
 
 logger = logging.getLogger(__name__)
+
+F = TypeVar('F', bound=Callable[..., Coroutine[Any, Any, Any]])
 
 # Global variables for shutdown handling.
 _STOP_CALLBACKS = []
@@ -86,7 +89,7 @@ async def _install_signal_handlers():
             signal.signal(sig, lambda _, __: asyncio.create_task(shutdown(sig, True)))
 
 
-def eggai_main(func):
+def eggai_main(func: F) -> F:
     """
     Decorator for your main function.
 
@@ -107,7 +110,7 @@ def eggai_main(func):
     you can add `await asyncio.Future()` at the end of your main function.
     """
 
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: Any, **kwargs: Any) -> bool:
         await _install_signal_handlers()
         global _GLOBAL_TASK
 
@@ -124,7 +127,7 @@ def eggai_main(func):
             await eggai_cleanup()
         return True
 
-    return wrapper
+    return wrapper  # type: ignore[return-value]
 
 
 class EggaiRunner:
