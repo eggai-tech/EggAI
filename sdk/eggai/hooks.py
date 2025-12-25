@@ -1,6 +1,9 @@
 import asyncio
+import logging
 import signal
 import sys
+
+logger = logging.getLogger(__name__)
 
 # Global variables for shutdown handling.
 _STOP_CALLBACKS = []
@@ -50,14 +53,14 @@ async def eggai_cleanup():
     if _CLEANUP_STARTED:
         return
     _CLEANUP_STARTED = True
-    print("EggAI: Cleaning up...", flush=True)
+    logger.info("EggAI: Cleaning up...")
     for stop_coro in _STOP_CALLBACKS:
         try:
             await stop_coro()
         except Exception as e:
-            print(f"Error stopping: {e}", file=sys.stderr, flush=True)
+            logger.error(f"Error stopping: {e}")
     _STOP_CALLBACKS.clear()
-    print("EggAI: Cleanup done.", flush=True)
+    logger.info("EggAI: Cleanup done.")
 
 
 async def _install_signal_handlers():
@@ -115,7 +118,7 @@ def eggai_main(func):
             _GLOBAL_TASK = asyncio.create_task(func(*args, **kwargs))
             await _GLOBAL_TASK
         except asyncio.CancelledError:
-            print("EggAI: Application interrupted by user.", flush=True)
+            logger.info("EggAI: Application interrupted by user.")
             return True
         finally:
             await eggai_cleanup()
@@ -148,5 +151,5 @@ class EggaiRunner:
     async def __aexit__(self, exc_type, exc, tb):
         await eggai_cleanup()
         if exc_type == asyncio.CancelledError:
-            print("EggAI: Application interrupted by user.", flush=True)
+            logger.info("EggAI: Application interrupted by user.")
             return True

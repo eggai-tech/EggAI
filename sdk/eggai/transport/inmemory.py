@@ -9,6 +9,46 @@ from eggai.transport import Transport
 
 
 class InMemoryTransport(Transport):
+    """
+    In-memory message transport for testing, prototyping, and local development.
+
+    This transport implementation uses asyncio queues to handle message passing
+    between agents within a single Python process. Messages are not persisted
+    and will be lost if the process terminates.
+
+    **Use Cases:**
+    - Unit testing and integration tests
+    - Local development and prototyping
+    - Single-process multi-agent applications
+    - Quick experimentation without external dependencies
+
+    **NOT Recommended For:**
+    - Production deployments
+    - Multi-process or distributed systems
+    - Applications requiring message persistence
+    - Systems needing high availability
+
+    **Features:**
+    - Zero external dependencies (no Kafka, Redis, etc.)
+    - Instant message delivery (no network latency)
+    - Consumer group support for load balancing
+    - Thread-safe within a single event loop
+
+    **Example:**
+    ```python
+    from eggai import Agent, Channel, InMemoryTransport
+
+    transport = InMemoryTransport()
+    agent = Agent("my-agent", transport=transport)
+    channel = Channel("my-channel", transport=transport)
+
+    await transport.connect()
+    await agent.start()
+    ```
+
+    Note: All InMemoryTransport instances share the same in-memory queues
+    (class-level storage), allowing agents to communicate within the same process.
+    """
     # One queue per (channel, group_id). Each consumer group gets its own queue.
     _CHANNELS: Dict[str, Dict[str, asyncio.Queue]] = defaultdict(dict)
     # For each channel and group_id, store a list of subscription callbacks.

@@ -10,6 +10,14 @@ from .transport import get_default_transport
 from .transport.base import Transport
 
 HANDLERS_IDS = defaultdict(int)
+
+# Environment variable: EGGAI_NAMESPACE
+# Purpose: Prefix for all channel names to enable namespace isolation in shared transports.
+# Default: "eggai"
+# Usage: Set EGGAI_NAMESPACE="myapp" to namespace all channels as "myapp.*"
+# Example: If EGGAI_NAMESPACE="prod" and channel name is "events", the final channel is "prod.events"
+# This allows multiple applications or environments to share the same Kafka/Redis cluster
+# without channel name collisions.
 NAMESPACE = os.getenv("EGGAI_NAMESPACE", "eggai")
 DEFAULT_CHANNEL_NAME = "channel"
 

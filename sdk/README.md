@@ -35,8 +35,7 @@ pip install eggai[mcp]     # MCP (Model Context Protocol) support
 Perfect for unit tests, prototyping, and local development.
 
 ```python
-from eggai import Agent, Channel
-from eggai.transport.memory import InMemoryTransport
+from eggai import Agent, Channel, InMemoryTransport
 
 # Create an in-memory transport
 transport = InMemoryTransport()
@@ -62,8 +61,7 @@ await agent.start()
 Redis Streams provides durable message delivery with consumer groups, perfect for microservices and production deployments.
 
 ```python
-from eggai import Agent, Channel
-from eggai.transport.redis import RedisTransport
+from eggai import Agent, Channel, RedisTransport
 
 # Create a Redis transport
 transport = RedisTransport(url="redis://localhost:6379")
@@ -89,8 +87,7 @@ await agent.start()
 Kafka is ideal for high-throughput, large-scale distributed streaming workloads.
 
 ```python
-from eggai import Agent, Channel
-from eggai.transport.kafka import KafkaTransport
+from eggai import Agent, Channel, KafkaTransport
 
 # Create a Kafka transport
 transport = KafkaTransport(
@@ -135,6 +132,25 @@ For production deployments, we recommend:
 - **Kafka**: Best for very high-throughput requirements (1M+ messages/sec), complex stream processing, or when you need advanced features like exactly-once semantics.
 
 The **In-Memory transport** should only be used for testing and development.
+
+## Configuration
+
+### Environment Variables
+
+EggAI supports the following environment variables for configuration:
+
+#### `EGGAI_NAMESPACE`
+- **Purpose:** Prefix for all channel names to enable namespace isolation in shared transports
+- **Default:** `"eggai"`
+- **Usage:** Set to a custom namespace to isolate your application's channels
+- **Example:**
+  ```bash
+  export EGGAI_NAMESPACE="myapp"
+  # or
+  EGGAI_NAMESPACE="prod" python my_agent.py
+  ```
+- **Effect:** If you set `EGGAI_NAMESPACE="prod"` and create a channel named `"events"`, the actual channel name used in the transport will be `"prod.events"`
+- **Use Case:** Allows multiple applications or environments (dev, staging, prod) to share the same Kafka/Redis cluster without channel name collisions
 
 ## Interoperability
 
