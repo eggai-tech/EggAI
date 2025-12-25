@@ -68,24 +68,20 @@ We have a Makefile at the root of the project that simplifies common development
    ```bash
    # Install only SDK dependencies
    make install-sdk
-   
+
    # Install only documentation dependencies
    make install-docs
-   
-   # Install dependencies for a specific example
-   make install-example EXAMPLE=multi_agent_conversation
    ```
+
+   For working with examples, visit [eggai-examples](https://github.com/eggai-tech/eggai-examples).
 
 3. Run tests:
    ```bash
    # Run all tests with summary
    make test-all
-   
+
    # Run SDK tests only
    make test-sdk
-   
-   # Run tests for a specific example
-   make test-example EXAMPLE=multi_agent_conversation
    ```
 
 4. Clean up:
@@ -112,27 +108,6 @@ If you prefer to work directly in the SDK directory:
 3. Run SDK tests:
    ```bash
    poetry run pytest
-   ```
-
-### Option 3: Example Project Development
-
-If you're working on a specific example:
-
-1. Navigate to the example directory:
-   ```bash
-   cd examples/multi_agent_conversation
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run example-specific setup (if available):
-   ```bash
-   make setup
-   ```
-4. Run tests:
-   ```bash
-   pytest
    ```
 
 ---
