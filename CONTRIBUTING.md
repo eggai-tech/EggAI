@@ -141,6 +141,32 @@ fix: resolve issue with login timeout
 
 ---
 
+## For Maintainers
+
+### Branch Protection Rules
+
+To ensure code quality and prevent accidental changes, the following branch protection rules should be enabled for the `main` branch in GitHub Settings → Branches:
+
+**Required Settings:**
+- ✅ **Require pull request before merging**
+  - Required approvals: 1
+  - Dismiss stale reviews when new commits are pushed
+- ✅ **Require status checks to pass before merging**
+  - Required checks: `all-checks-passed` (from CI workflow)
+- ✅ **Require conversation resolution before merging**
+- ✅ **Do not allow bypassing the above settings**
+- ✅ **Restrict who can push to matching branches** (optional, recommended for core team only)
+- ❌ **Allow force pushes**: Disabled
+- ❌ **Allow deletions**: Disabled
+
+These settings ensure that:
+1. All changes go through peer review
+2. CI checks pass before merging
+3. Discussions are resolved
+4. The main branch remains stable
+
+---
+
 ## License
 
 By contributing to **EggAI Multi-Agent Meta Framework**, you agree that your contributions will be licensed under the [Project License](LICENSE.md).
