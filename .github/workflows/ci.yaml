@@ -132,9 +132,7 @@ jobs:
 
       - name: Verify package metadata
         working-directory: sdk
-        run: |
-          poetry run pip install twine
-          twine check dist/*
+        run: poetry run twine check dist/*
 
       - name: Test package installation
         working-directory: sdk

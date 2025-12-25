@@ -91,9 +91,7 @@ class RedisTransport(Transport):
         if broker:
             self.broker = broker
         else:
-            self.broker = RedisBroker(
-                url, log_level=logging.DEBUG, **kwargs
-            )
+            self.broker = RedisBroker(url, log_level=logging.DEBUG, **kwargs)
         self._consumer_tasks: list[asyncio.Task] = []
         self._running = False
 
@@ -289,7 +287,7 @@ class RedisTransport(Transport):
             batch=batch,
             max_records=max_records,
             last_id=last_id,
-            no_ack=no_ack
+            no_ack=no_ack,
         )
 
         # stream must be passed as keyword-only argument
