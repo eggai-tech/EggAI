@@ -109,7 +109,7 @@ class RedisTransport(Transport):
 
         # Store references to subscriber tasks to prevent garbage collection
         for subscriber in self.broker._subscribers.values():
-            if hasattr(subscriber, 'task') and subscriber.task:
+            if hasattr(subscriber, "task") and subscriber.task:
                 self._consumer_tasks.append(subscriber.task)
 
     async def disconnect(self):
