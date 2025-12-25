@@ -1,4 +1,5 @@
 # EggAI SDK Makefile
+# For examples, see: https://github.com/eggai-tech/eggai-examples
 
 PYTHON ?= python3.12
 VENV_NAME ?= .venv
