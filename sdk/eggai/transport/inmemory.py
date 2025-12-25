@@ -52,6 +52,7 @@ class InMemoryTransport(Transport):
     Note: All InMemoryTransport instances share the same in-memory queues
     (class-level storage), allowing agents to communicate within the same process.
     """
+
     # One queue per (channel, group_id). Each consumer group gets its own queue.
     _CHANNELS: Dict[str, Dict[str, asyncio.Queue]] = defaultdict(dict)
     # For each channel and group_id, store a list of subscription callbacks.
@@ -199,6 +200,10 @@ class InMemoryTransport(Transport):
         except asyncio.CancelledError:
             pass
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to decode message on channel={channel}, group={group_id}: {e}")
+            logger.error(
+                f"Failed to decode message on channel={channel}, group={group_id}: {e}"
+            )
         except (TypeError, AttributeError) as e:
-            logger.error(f"Invalid callback or message format on channel={channel}, group={group_id}: {e}")
+            logger.error(
+                f"Invalid callback or message format on channel={channel}, group={group_id}: {e}"
+            )

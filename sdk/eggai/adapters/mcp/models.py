@@ -20,6 +20,7 @@ class ExternalTool(BaseModel):
         parameters: JSON schema defining the tool's input parameters (default: empty dict).
         return_type: JSON schema defining the tool's return value structure (default: empty dict).
     """
+
     name: str
     description: str
     parameters: dict = {}
@@ -37,12 +38,14 @@ class ToolListRequest(BaseModel):
         call_id: Unique identifier for this request, used to match with the response.
         adapter_name: Name of the MCP adapter to query for available tools.
     """
+
     call_id: UUID
     adapter_name: str
 
 
 class ToolListRequestMessage(BaseMessage[ToolListRequest]):
     """Message wrapper for ToolListRequest with a fixed message type."""
+
     type: Literal["ToolListRequestMessage"] = "ToolListRequestMessage"
 
 
@@ -57,12 +60,14 @@ class ToolListResponse(BaseModel):
         call_id: Matches the call_id from the corresponding ToolListRequest.
         tools: List of ExternalTool objects describing available tools.
     """
+
     call_id: UUID
     tools: List[ExternalTool]
 
 
 class ToolListResponseMessage(BaseMessage[ToolListResponse]):
     """Message wrapper for ToolListResponse with a fixed message type."""
+
     type: Literal["ToolListResponseMessage"] = "ToolListResponseMessage"
 
 
@@ -77,6 +82,7 @@ class ToolCallRequest(BaseModel):
         tool_name: Name of the tool to invoke (must match a tool from ToolListResponse).
         parameters: Dictionary of parameter names and values for the tool (default: empty dict).
     """
+
     call_id: UUID
     tool_name: str
     parameters: dict = {}
@@ -84,6 +90,7 @@ class ToolCallRequest(BaseModel):
 
 class ToolCallRequestMessage(BaseMessage[ToolCallRequest]):
     """Message wrapper for ToolCallRequest with a fixed message type."""
+
     type: Literal["ToolCallRequestMessage"] = "ToolCallRequestMessage"
 
 
@@ -100,6 +107,7 @@ class ToolCallResponse(BaseModel):
         data: The return value from the tool execution (can be any type, default: None).
         is_error: Whether the tool execution failed (True) or succeeded (False).
     """
+
     call_id: UUID
     tool_name: str
     data: Any = None
@@ -108,4 +116,5 @@ class ToolCallResponse(BaseModel):
 
 class ToolCallResponseMessage(BaseMessage[ToolCallResponse]):
     """Message wrapper for ToolCallResponse with a fixed message type."""
+
     type: Literal["ToolCallResponseMessage"] = "ToolCallResponseMessage"

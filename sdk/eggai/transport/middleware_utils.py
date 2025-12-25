@@ -22,6 +22,7 @@ def create_filter_middleware(filter_func: Callable[[Dict[str, Any]], bool]) -> C
     Returns:
         A middleware function that applies the filter.
     """
+
     async def middleware(
         call_next: Callable[[Any], Awaitable[Any]],
         msg: StreamMessage[Any],
@@ -45,13 +46,12 @@ def create_data_type_middleware(data_type: type) -> Callable:
         A middleware function that validates the message against the data type
         and filters out messages that don't match the expected type.
     """
+
     async def middleware(
         call_next: Callable[[Any], Awaitable[Any]],
         msg: StreamMessage[Any],
     ) -> Any:
-        typed_message = data_type.model_validate(
-            json.loads(msg.body.decode("utf-8"))
-        )
+        typed_message = data_type.model_validate(json.loads(msg.body.decode("utf-8")))
 
         if typed_message.type != data_type.model_fields["type"].default:
             return None
@@ -78,6 +78,7 @@ def create_filter_by_data_middleware(
     Returns:
         A middleware function that validates and filters messages.
     """
+
     async def middleware(
         call_next: Callable[[Any], Awaitable[Any]],
         msg: StreamMessage[Any],

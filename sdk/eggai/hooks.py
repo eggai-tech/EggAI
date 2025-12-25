@@ -6,7 +6,7 @@ from typing import Callable, Coroutine, Any, TypeVar
 
 logger = logging.getLogger(__name__)
 
-F = TypeVar('F', bound=Callable[..., Coroutine[Any, Any, Any]])
+F = TypeVar("F", bound=Callable[..., Coroutine[Any, Any, Any]])
 
 # Global variables for shutdown handling.
 _STOP_CALLBACKS = []

@@ -1,8 +1,6 @@
-import json
 import logging
-from typing import Dict, Any, Optional, Callable, Union, Awaitable
+from typing import Dict, Any, Optional, Callable, Union
 
-from faststream.broker.message import StreamMessage
 from faststream.kafka import KafkaBroker
 
 from eggai.schemas import BaseMessage
@@ -182,7 +180,9 @@ class KafkaTransport(Transport):
                 if "middlewares" not in kwargs:
                     kwargs["middlewares"] = []
                 kwargs["middlewares"].append(
-                    create_filter_by_data_middleware(data_type, kwargs.pop("filter_by_data"))
+                    create_filter_by_data_middleware(
+                        data_type, kwargs.pop("filter_by_data")
+                    )
                 )
 
         handler_id = kwargs.pop("handler_id")

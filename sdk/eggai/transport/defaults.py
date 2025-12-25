@@ -1,5 +1,4 @@
 import logging
-import sys
 from typing import Optional, Callable
 
 from .base import Transport

@@ -1,9 +1,7 @@
 import asyncio
-import json
 import logging
-from typing import Dict, Any, Optional, Callable, Union, Awaitable
+from typing import Dict, Any, Optional, Callable, Union
 
-from faststream.broker.message import StreamMessage
 from faststream.redis import RedisBroker, StreamSub
 
 from eggai.schemas import BaseMessage
@@ -223,7 +221,9 @@ class RedisTransport(Transport):
                 if "middlewares" not in kwargs:
                     kwargs["middlewares"] = []
                 kwargs["middlewares"].append(
-                    create_filter_by_data_middleware(data_type, kwargs.pop("filter_by_data"))
+                    create_filter_by_data_middleware(
+                        data_type, kwargs.pop("filter_by_data")
+                    )
                 )
 
         handler_id = kwargs.pop("handler_id")

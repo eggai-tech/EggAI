@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Dict, Any, Callable, Optional, Type
 
 if TYPE_CHECKING:
+    from a2a.types import AgentCard
     from eggai.agent import Agent
     from eggai.transport.base import Transport
 
