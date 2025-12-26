@@ -47,7 +47,7 @@ mcp = ["fastmcp"]
 
 [tool.poetry.group.dev.dependencies]
 twine = "^6.0.1"
-pytest-asyncio = "^0.24.0"
+pytest-asyncio = ">=0.24,<1.4"
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"
 jinja2 = "^3.1.6"
