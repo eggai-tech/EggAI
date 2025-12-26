@@ -1,6 +1,5 @@
 """A2A configuration for EggAI agents."""
 
-
 from pydantic import BaseModel, ConfigDict, Field
 
 try:
