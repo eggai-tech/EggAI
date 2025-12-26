@@ -98,12 +98,12 @@ class KafkaTransport(Transport):
 
     async def disconnect(self):
         """
-        Closes the connection to the Kafka broker by closing the KafkaBroker instance.
+        Closes the connection to the Kafka broker by stopping the KafkaBroker instance.
 
         This method should be called when the transport is no longer needed to stop consuming messages
         and to release any resources held by the KafkaBroker.
         """
-        await self.broker.close()
+        await self.broker.stop()
 
     async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
         """

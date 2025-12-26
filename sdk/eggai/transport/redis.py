@@ -109,13 +109,13 @@ class RedisTransport(Transport):
 
     async def disconnect(self):
         """
-        Closes the connection to the Redis server by closing the RedisBroker instance.
+        Closes the connection to the Redis server by stopping the RedisBroker instance.
 
         This method should be called when the transport is no longer needed to stop consuming messages
         and to release any resources held by the RedisBroker.
         """
         self._running = False
-        await self.broker.close()
+        await self.broker.stop()
 
     async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
         """

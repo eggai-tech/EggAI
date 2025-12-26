@@ -38,7 +38,7 @@ faststream = {extras = ["kafka", "redis"], version = "^0.6.0"}
 click = {version = "^8.0.0", optional = true}
 jinja2 = {version = "^3.1.6", optional = true}
 a2a-sdk = {version = "^0.3.0", optional = true}
-fastmcp = {version = "^0.2.0", optional = true}
+fastmcp = {version = "^2.14.0", optional = true}
 
 [tool.poetry.extras]
 cli = ["click", "jinja2"]
