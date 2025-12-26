@@ -1,4 +1,6 @@
-__version__ = "0.2.8"
+from importlib.metadata import version
+
+__version__ = version("eggai")
 
 from .agent import Agent as Agent
 from .channel import Channel as Channel

@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Enhanced release process with `make release VERSION=x.y.z` command
 - Changelog enforcement in CI for pull requests
+- Release candidate support with `make release-rc VERSION=x.y.zrc1`
 
 ### Changed
 - Release workflow now uses git tags for versioning
+- Version now uses single source of truth (`pyproject.toml`) via `importlib.metadata`
 
 ## [0.2.8] - 2025-11-12
 

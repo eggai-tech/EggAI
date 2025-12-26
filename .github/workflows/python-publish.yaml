@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
       changelog: ${{ steps.changelog.outputs.changelog }}
 
     steps:
@@ -31,15 +32,36 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Releasing version: $VERSION"
 
+          # Check if this is a prerelease (rc, alpha, beta)
+          if echo "$VERSION" | grep -qE "(rc|alpha|beta)[0-9]+$"; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "This is a pre-release"
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            echo "This is a stable release"
+          fi
+
       - name: Extract changelog for this version
         id: changelog
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          # Extract changelog section for this version
-          CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" sdk/CHANGELOG.md | sed '$d')
-          if [ -z "$CHANGELOG" ]; then
-            CHANGELOG="Release v$VERSION"
+          PRERELEASE=${{ steps.version.outputs.prerelease }}
+
+          if [ "$PRERELEASE" = "true" ]; then
+            # For prereleases, use a simple message
+            CHANGELOG="Pre-release v$VERSION for testing.
+
+          Install with: \`pip install eggai==$VERSION\`
+
+          This is a release candidate. Please report any issues."
+          else
+            # Extract changelog section for this version
+            CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" sdk/CHANGELOG.md | sed '$d')
+            if [ -z "$CHANGELOG" ]; then
+              CHANGELOG="Release v$VERSION"
+            fi
           fi
+
           # Use EOF delimiter for multiline output
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
@@ -103,4 +125,4 @@ jobs:
           files: |
             dist/*
           draft: false
-          prerelease: false
+          prerelease: ${{ needs.release-build.outputs.prerelease == 'true' }}
