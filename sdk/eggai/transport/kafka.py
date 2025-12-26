@@ -83,7 +83,7 @@ class KafkaTransport(Transport):
             self.broker = broker
         else:
             self.broker = KafkaBroker(
-                bootstrap_servers, log_level=logging.DEBUG, **kwargs
+                bootstrap_servers, log_level=logging.INFO, **kwargs
             )
 
     async def connect(self):

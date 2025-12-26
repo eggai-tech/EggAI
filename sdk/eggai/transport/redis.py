@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Dict, Any, Optional, Callable, Union
 
@@ -94,7 +93,7 @@ class RedisTransport(Transport):
         if broker:
             self.broker = broker
         else:
-            self.broker = RedisBroker(url, log_level=logging.DEBUG, **kwargs)
+            self.broker = RedisBroker(url, log_level=logging.INFO, **kwargs)
         self._running = False
 
     async def connect(self):
