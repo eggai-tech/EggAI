@@ -9,8 +9,6 @@ updates:
       day: monday
       time: "09:00"
     open-pull-requests-limit: 10
-    reviewers:
-      - eggai-tech/maintainers
     labels:
       - dependencies
       - sdk
@@ -18,27 +16,16 @@ updates:
       prefix: "chore(deps)"
       include: scope
     groups:
-      # Group development dependencies together
       dev-dependencies:
         dependency-type: development
         update-types:
           - minor
           - patch
-      # Group production dependencies by update type
       production-minor-patch:
         dependency-type: production
         update-types:
           - minor
           - patch
-    # Ignore known vulnerable packages that are optional
-    ignore:
-      # Optional dependencies - update separately if needed
-      - dependency-name: "langchain-core"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "mlflow"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "fastmcp"
-        update-types: ["version-update:semver-major"]
 
   # Documentation dependencies
   - package-ecosystem: pip
@@ -69,6 +56,6 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
-      - github-actions
+      - ci
     commit-message:
       prefix: "chore(ci)"
