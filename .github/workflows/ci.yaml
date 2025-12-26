@@ -48,6 +48,34 @@ jobs:
         working-directory: sdk
         run: poetry run ruff format --check .
 
+  changelog:
+    runs-on: ubuntu-latest
+    name: Changelog check
+    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'skip-changelog')
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check CHANGELOG.md updated
+        run: |
+          # Check if CHANGELOG.md was modified in this PR
+          if ! git diff origin/main --name-only | grep -q "sdk/CHANGELOG.md"; then
+            echo "::error::CHANGELOG.md must be updated. Add your changes under [Unreleased] section."
+            echo ""
+            echo "If this PR doesn't need a changelog entry (docs, CI, etc.), add the 'skip-changelog' label."
+            exit 1
+          fi
+
+      - name: Check [Unreleased] section has content
+        run: |
+          if ! grep -A 10 "## \[Unreleased\]" sdk/CHANGELOG.md | grep -qE "^### "; then
+            echo "::error::Add your changes under [Unreleased] section in CHANGELOG.md"
+            exit 1
+          fi
+          echo "Changelog check passed!"
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -165,12 +193,19 @@ jobs:
   # Summary job to check if all required jobs passed
   all-checks-passed:
     runs-on: ubuntu-latest
-    needs: [lint, test, build]
+    needs: [lint, changelog, test, build]
     if: always()
 
     steps:
       - name: Check if all jobs passed
         run: |
+          # Changelog is optional (skipped on push to main or with skip-changelog label)
+          CHANGELOG_OK="${{ needs.changelog.result }}"
+          if [[ "$CHANGELOG_OK" != "success" && "$CHANGELOG_OK" != "skipped" ]]; then
+            echo "Changelog check failed"
+            exit 1
+          fi
+
           if [[ "${{ needs.lint.result }}" != "success" || \
                 "${{ needs.test.result }}" != "success" || \
                 "${{ needs.build.result }}" != "success" ]]; then

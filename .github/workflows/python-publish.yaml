@@ -1,20 +1,19 @@
-name: Upload Python Package
+name: Release and Publish
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - sdk/pyproject.toml
+    tags:
+      - 'v*'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release-build:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
 
     steps:
       - uses: actions/checkout@v4
@@ -25,11 +24,26 @@ jobs:
 
       - uses: Gr1N/setup-poetry@v8
 
-      - name: Extract version
+      - name: Extract version from tag
         id: version
         run: |
-          VERSION=$(grep '^version' sdk/pyproject.toml | sed 's/version = "//;s/"//')
+          VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION"
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # Extract changelog section for this version
+          CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" sdk/CHANGELOG.md | sed '$d')
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Release v$VERSION"
+          fi
+          # Use EOF delimiter for multiline output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Copy Readme to SDK
         run: cp README.md sdk/
@@ -59,22 +73,34 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-dists
-          path: sdk/dist/
+          path: dist/
 
-      - name: Check if version already published
-        id: check
-        run: |
-          PACKAGE="eggai"
-          VERSION="${{ needs.release-build.outputs.version }}"
-          STATUS=$(curl -sL https://pypi.org/pypi/$PACKAGE/$VERSION/json -o /dev/null -w '%{http_code}')
-          if [ "$STATUS" = "200" ]; then
-            echo "already_published=true" >> $GITHUB_OUTPUT
-          else
-            echo "already_published=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Publish release distributions to PyPI
-        if: steps.check.outputs.already_published == 'false'
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+      - pypi-publish
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
         with:
-          packages-dir: sdk/dist/
+          name: release-dists
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ needs.release-build.outputs.version }}
+          body: ${{ needs.release-build.outputs.changelog }}
+          files: |
+            dist/*
+          draft: false
+          prerelease: false
