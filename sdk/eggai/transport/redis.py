@@ -95,7 +95,6 @@ class RedisTransport(Transport):
             self.broker = broker
         else:
             self.broker = RedisBroker(url, log_level=logging.DEBUG, **kwargs)
-        self._consumer_tasks: list[asyncio.Task] = []
         self._running = False
 
     async def connect(self):
@@ -103,17 +102,10 @@ class RedisTransport(Transport):
         Establishes a connection to the Redis server by starting the RedisBroker instance.
 
         This method is necessary before publishing or consuming messages. It asynchronously starts the broker
-        to handle Redis communication. The RedisBroker.start() method automatically calls start() on all
-        subscribers, which creates their consumption tasks.
-
+        to handle Redis communication.
         """
         await self.broker.start()
         self._running = True
-
-        # Store references to subscriber tasks to prevent garbage collection
-        for subscriber in self.broker._subscribers.values():
-            if hasattr(subscriber, "task") and subscriber.task:
-                self._consumer_tasks.append(subscriber.task)
 
     async def disconnect(self):
         """
@@ -123,25 +115,6 @@ class RedisTransport(Transport):
         and to release any resources held by the RedisBroker.
         """
         self._running = False
-
-        # Stop all subscribers first (this stops their consumption loops)
-        for subscriber in self.broker._subscribers.values():
-            try:
-                await subscriber.stop()
-            except Exception as e:
-                logging.error(f"[RedisTransport] Error stopping subscriber: {e}")
-
-        # Cancel any remaining tasks
-        for task in self._consumer_tasks:
-            if not task.done():
-                task.cancel()
-
-        # Wait for all tasks to complete
-        if self._consumer_tasks:
-            await asyncio.gather(*self._consumer_tasks, return_exceptions=True)
-        self._consumer_tasks.clear()
-
-        # Finally, close the broker connection
         await self.broker.close()
 
     async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
@@ -234,7 +207,7 @@ class RedisTransport(Transport):
         polling_interval = kwargs.pop("polling_interval", 100)
         batch = kwargs.pop("batch", False)
         max_records = kwargs.pop("max_records", None)
-        last_id = kwargs.pop("last_id", "$")
+        last_id = kwargs.pop("last_id", ">")
         no_ack = kwargs.pop("no_ack", False)
 
         stream_sub = StreamSub(

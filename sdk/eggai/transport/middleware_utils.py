@@ -8,7 +8,7 @@ to handle message filtering and data type validation.
 import json
 from typing import Callable, Dict, Any, Awaitable
 
-from faststream.broker.message import StreamMessage
+from faststream.message.message import StreamMessage
 
 
 def create_filter_middleware(filter_func: Callable[[Dict[str, Any]], bool]) -> Callable:
