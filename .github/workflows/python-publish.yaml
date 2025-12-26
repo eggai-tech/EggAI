@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: "3.x"
 
-      - uses: Gr1N/setup-poetry@v8
+      - uses: Gr1N/setup-poetry@v9
 
       - name: Extract version from tag
         id: version
