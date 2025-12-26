@@ -36,6 +36,9 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Copy README to SDK
+        run: cp README.md sdk/
+
       - name: Install dependencies
         working-directory: sdk
         run: poetry install
@@ -109,6 +112,9 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Copy README to SDK
+        run: cp README.md sdk/
+
       - name: Install dependencies
         working-directory: sdk
         run: poetry install
@@ -153,6 +159,9 @@ jobs:
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Copy README to SDK
+        run: cp README.md sdk/
 
       - name: Install dependencies
         working-directory: sdk
