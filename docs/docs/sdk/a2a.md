@@ -321,4 +321,4 @@ A2A skills can use any EggAI transport (In-Memory, Redis, Kafka) for internal co
 
 - [A2A Protocol Specification](https://github.com/a2a-protocol/spec)
 - [A2A SDK Documentation](https://github.com/a2a-protocol/python-sdk)
-- [EggAI Core Documentation](../README.md)
+- [EggAI Documentation](../index.md)

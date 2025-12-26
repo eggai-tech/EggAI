@@ -451,5 +451,5 @@ def tool_channels(adapter_name: str):
 
 - [MCP Specification](https://modelcontextprotocol.io/)
 - [FastMCP Documentation](https://github.com/jlowin/fastmcp)
-- [EggAI Core Documentation](../README.md)
+- [EggAI Documentation](../index.md)
 - [Building LLM Agents with MCP](https://anthropic.com/mcp)

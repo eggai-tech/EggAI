@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Release workflow now uses git tags for versioning
 - Version now uses single source of truth (`pyproject.toml`) via `importlib.metadata`
+- Consolidated repository structure: removed duplicate docs from `sdk/`, moved to `docs/`
+- Moved issue templates from `sdk/.github/` to root `.github/`
 
 ## [0.2.8] - 2025-11-12
 
@@ -23,18 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed default `last_id` parameter from `"$"` to `">"` for consumer groups
   - `"$"` was causing messages to be ignored if published before consumer started
   - `">"` correctly reads pending messages in the consumer group (Redis Streams standard)
+- **RedisTransport.disconnect()**: Enhanced cleanup process
+  - Added proper 4-step shutdown sequence: stop subscribers → cancel tasks → wait → close broker
+  - Added error handling for graceful degradation during shutdown
+  - Prevents resource leaks and ensures clean disconnection
 
 ### Changed
 - **RedisTransport.connect()**: Simplified subscriber initialization
   - Removed redundant `subscriber.start()` calls (already handled by `broker.start()`)
   - Added task reference tracking to prevent garbage collection
   - Improved code clarity and follows FastStream's design patterns
-
-### Improved
-- **RedisTransport.disconnect()**: Enhanced cleanup process
-  - Added proper 4-step shutdown sequence: stop subscribers → cancel tasks → wait → close broker
-  - Added error handling for graceful degradation during shutdown
-  - Prevents resource leaks and ensures clean disconnection
 
 ## [0.2.7] - 2025-11-12
 
@@ -52,4 +52,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.6] - 2025-01-02
 
-Previous release...
+Initial tracked release. See [GitHub releases](https://github.com/eggai-tech/eggai/releases) for earlier versions.

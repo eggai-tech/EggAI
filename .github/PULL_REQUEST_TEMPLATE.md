@@ -45,6 +45,13 @@ Fixes #(issue number)
 2.
 3.
 
+## Changelog
+
+<!-- All PRs must update sdk/CHANGELOG.md unless labeled 'skip-changelog' -->
+
+- [ ] I have updated `sdk/CHANGELOG.md` under `[Unreleased]` section
+- [ ] Or: This PR has the `skip-changelog` label (docs, CI, etc.)
+
 ## Checklist
 
 <!-- Review and check all items before submitting -->
@@ -56,7 +63,6 @@ Fixes #(issue number)
 - [ ] All tests pass locally
 - [ ] I have reviewed my own code
 - [ ] My changes generate no new warnings
-- [ ] I have updated the CHANGELOG.md (if applicable)
 - [ ] My commit messages follow the [Conventional Commits](https://www.conventionalcommits.org/) standard
 
 ## Additional Notes

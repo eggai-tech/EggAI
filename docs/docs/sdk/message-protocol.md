@@ -547,5 +547,5 @@ class ErrorMessage(BaseMessage[ErrorData]):
 
 - [CloudEvents Specification](https://cloudevents.io/)
 - [Pydantic Documentation](https://docs.pydantic.dev/)
-- [EggAI Core Documentation](../README.md)
-- [Transport Documentation](../README.md#transport-comparison)
+- [EggAI Documentation](../index.md)
+- [Transport Documentation](transport.md)
