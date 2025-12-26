@@ -164,10 +164,11 @@ class InMemoryTransport(Transport):
         # Handle legacy filter_by_message (for backward compatibility)
         elif "filter_by_message" in kwargs:
             filter_func = kwargs["filter_by_message"]
+            original_callback = final_callback  # Store original before reassignment
 
             async def filtered_callback(data):
                 if filter_func(data):
-                    await final_callback(data)
+                    await original_callback(data)  # Use original, not final_callback
 
             final_callback = filtered_callback
 
@@ -193,17 +194,30 @@ class InMemoryTransport(Transport):
         try:
             while True:
                 msg = await queue.get()
-                data = json.loads(msg)
+                try:
+                    data = json.loads(msg)
+                except json.JSONDecodeError as e:
+                    logger.error(
+                        f"Failed to decode message on channel={channel}, group={group_id}: {e}"
+                    )
+                    continue
+
                 callbacks = InMemoryTransport._SUBSCRIPTIONS[channel].get(group_id, [])
                 for cb in callbacks:
-                    await cb(data)
+                    try:
+                        await cb(data)
+                    except asyncio.CancelledError:
+                        raise  # Must propagate cancellation
+                    except Exception as e:
+                        logger.error(
+                            f"Handler error on channel={channel}, group={group_id}: {e}",
+                            exc_info=True,
+                        )
+                        # Continue processing other callbacks/messages
         except asyncio.CancelledError:
             pass
-        except json.JSONDecodeError as e:
+        except Exception as e:
             logger.error(
-                f"Failed to decode message on channel={channel}, group={group_id}: {e}"
-            )
-        except (TypeError, AttributeError) as e:
-            logger.error(
-                f"Invalid callback or message format on channel={channel}, group={group_id}: {e}"
+                f"Unexpected error in consume loop for channel={channel}, group={group_id}: {e}",
+                exc_info=True,
             )
