@@ -1,7 +1,7 @@
 """A2A configuration for EggAI agents."""
 
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 try:
     from a2a.types import SecurityScheme
@@ -19,7 +19,7 @@ class A2AConfig(BaseModel):
     base_url: str = Field(
         default="http://localhost:8080", description="Base URL for the A2A server"
     )
-    security_schemes: Optional[List[SecurityScheme]] = Field(
+    security_schemes: list[SecurityScheme] | None = Field(
         default=None, description="Security schemes supported by the agent"
     )
 

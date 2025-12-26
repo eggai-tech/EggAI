@@ -1,14 +1,15 @@
 import logging
-from typing import Dict, Any, Optional, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 from faststream.redis import RedisBroker, StreamSub
 
 from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
 from eggai.transport.middleware_utils import (
-    create_filter_middleware,
     create_data_type_middleware,
     create_filter_by_data_middleware,
+    create_filter_middleware,
 )
 
 
@@ -26,7 +27,7 @@ class RedisTransport(Transport):
 
     def __init__(
         self,
-        broker: Optional[RedisBroker] = None,
+        broker: RedisBroker | None = None,
         url: str = "redis://localhost:6379",
         **kwargs,
     ):
@@ -116,7 +117,7 @@ class RedisTransport(Transport):
         self._running = False
         await self.broker.stop()
 
-    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
         """
         Publishes a message to the specified Redis stream.
 

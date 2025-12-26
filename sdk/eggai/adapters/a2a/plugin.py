@@ -1,10 +1,12 @@
 """A2A Plugin for EggAI Agent - Handles all A2A-related functionality."""
 
 import logging
-from typing import TYPE_CHECKING, Dict, Any, Callable, Optional, Type
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from a2a.types import AgentCard
+
     from eggai.agent import Agent
     from eggai.transport.base import Transport
 
@@ -18,9 +20,9 @@ class A2APlugin:
         """Initialize empty A2A plugin."""
         self.agent = None
         self.config = None
-        self.skills: Dict[str, Any] = {}  # AgentSkill objects
-        self.handlers: Dict[str, Callable] = {}  # Handler functions
-        self.data_types: Dict[str, Type] = {}  # Data types for conversion
+        self.skills: dict[str, Any] = {}  # AgentSkill objects
+        self.handlers: dict[str, Callable] = {}  # Handler functions
+        self.data_types: dict[str, type] = {}  # Data types for conversion
 
     def init(
         self,
@@ -44,13 +46,13 @@ class A2APlugin:
                 raise ValueError(
                     "a2a_capability must be a string representing the skill name"
                 )
-            data_type = kwargs.get("data_type", None)
+            data_type = kwargs.get("data_type")
             if data_type is None:
                 raise ValueError("data_type must be provided for A2A skills")
             self.register_skill(a2a_capability, handler, data_type)
 
     def register_skill(
-        self, skill_name: str, handler: Callable, data_type: Optional[Type]
+        self, skill_name: str, handler: Callable, data_type: type | None
     ):
         """Register handler as A2A skill."""
         try:
@@ -142,12 +144,13 @@ class A2APlugin:
         """Start A2A HTTP server with EggAI agent executor."""
         try:
             # Import A2A dependencies
+            import uvicorn
+            from a2a.server.apps.jsonrpc.starlette_app import A2AStarletteApplication
             from a2a.server.request_handlers.default_request_handler import (
                 DefaultRequestHandler,
             )
             from a2a.server.tasks.inmemory_task_store import InMemoryTaskStore
-            from a2a.server.apps.jsonrpc.starlette_app import A2AStarletteApplication
-            import uvicorn
+
             from .executor import EggAIAgentExecutor
         except ImportError as e:
             raise ImportError(

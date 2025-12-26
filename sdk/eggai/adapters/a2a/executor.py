@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import TYPE_CHECKING, Dict, Any
+from typing import TYPE_CHECKING, Any
 
 from eggai.schemas import BaseMessage
 
@@ -137,7 +137,7 @@ class EggAIAgentExecutor(AgentExecutor):
             f"Could not determine skill ID from request context. Available skills: {available_skills}"
         )
 
-    def _extract_message_data(self, request_context: RequestContext) -> Dict[str, Any]:
+    def _extract_message_data(self, request_context: RequestContext) -> dict[str, Any]:
         """Extract and parse message data from A2A request."""
         try:
             # Parse A2A message content into dict
@@ -193,8 +193,9 @@ class EggAIAgentExecutor(AgentExecutor):
     async def _send_agent_response(self, event_queue: EventQueue, data: dict):
         """Send agent response through event queue."""
         try:
-            from a2a.types import Message, Part, DataPart, Role
             from uuid import uuid4
+
+            from a2a.types import DataPart, Message, Part, Role
 
             # Create A2A message with response data
             response_message = Message(

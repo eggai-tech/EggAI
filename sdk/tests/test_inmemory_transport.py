@@ -15,11 +15,12 @@ you want message passing without external dependencies like Kafka.
 import asyncio
 import uuid
 from enum import Enum
+
 from pydantic import BaseModel
 
 from eggai import Agent, Channel
 from eggai.schemas import BaseMessage
-from eggai.transport import eggai_set_default_transport, InMemoryTransport
+from eggai.transport import InMemoryTransport, eggai_set_default_transport
 
 
 class OrderStatus(Enum):

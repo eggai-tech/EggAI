@@ -1,7 +1,8 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import List, Dict, Any, Optional, Callable, Tuple, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from .channel import Channel
 from .hooks import eggai_register_stop
@@ -23,7 +24,7 @@ class Agent:
     with user-defined functions.
     """
 
-    def __init__(self, name: str, transport: Optional[Transport] = None, **kwargs):
+    def __init__(self, name: str, transport: Transport | None = None, **kwargs):
         """
         Initializes the Agent instance.
 
@@ -35,8 +36,8 @@ class Agent:
         """
         self._name = name
         self._transport = transport
-        self._subscriptions: List[
-            Tuple[str, Callable[[Dict[str, Any]], "asyncio.Future"], Dict]
+        self._subscriptions: list[
+            tuple[str, Callable[[dict[str, Any]], asyncio.Future], dict]
         ] = []
         self._started = False
         self._stop_registered = False
@@ -67,7 +68,7 @@ class Agent:
             self._transport = get_default_transport()
         return self._transport
 
-    def subscribe(self, channel: Optional[Channel] = None, **kwargs):
+    def subscribe(self, channel: Channel | None = None, **kwargs):
         """
         Decorator for adding a subscription.
 
@@ -79,7 +80,7 @@ class Agent:
             Callable: A decorator that registers the given handler for the subscription.
         """
 
-        def decorator(handler: Callable[[Dict[str, Any]], "asyncio.Future"]):
+        def decorator(handler: Callable[[dict[str, Any]], "asyncio.Future"]):
             channel_name = channel.get_name() if channel else "eggai.channel"
             original_kwargs = kwargs.copy()
 

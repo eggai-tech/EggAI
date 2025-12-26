@@ -3,7 +3,8 @@ import json
 import logging
 import uuid
 from collections import defaultdict
-from typing import Dict, List, Callable, Tuple, Any, Union
+from collections.abc import Callable
+from typing import Any
 
 from eggai.schemas import BaseMessage
 from eggai.transport import Transport
@@ -54,22 +55,22 @@ class InMemoryTransport(Transport):
     """
 
     # One queue per (channel, group_id). Each consumer group gets its own queue.
-    _CHANNELS: Dict[str, Dict[str, asyncio.Queue]] = defaultdict(dict)
+    _CHANNELS: dict[str, dict[str, asyncio.Queue]] = defaultdict(dict)
     # For each channel and group_id, store a list of subscription callbacks.
-    _SUBSCRIPTIONS: Dict[
-        str, Dict[str, List[Callable[[Dict[str, Any]], "asyncio.Future"]]]
+    _SUBSCRIPTIONS: dict[
+        str, dict[str, list[Callable[[dict[str, Any]], "asyncio.Future"]]]
     ] = defaultdict(lambda: defaultdict(list))
 
     def __init__(self):
         self._connected = False
         # Keep references to consume tasks keyed by (channel, group_id)
-        self._consume_tasks: Dict[Tuple[str, str], asyncio.Task] = {}
+        self._consume_tasks: dict[tuple[str, str], asyncio.Task] = {}
 
     async def connect(self):
         """Marks the transport as connected and starts consume loops for existing subscriptions."""
         self._connected = True
         for channel, group_map in InMemoryTransport._SUBSCRIPTIONS.items():
-            for group_id in group_map.keys():
+            for group_id in group_map:
                 key = (channel, group_id)
                 if key not in self._consume_tasks:
                     self._consume_tasks[key] = asyncio.create_task(
@@ -88,7 +89,7 @@ class InMemoryTransport(Transport):
         self._consume_tasks.clear()
         self._connected = False
 
-    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
         """
         Publishes a message to the given channel.
         The message is put into all queues for that channel so each consumer group receives it.
@@ -103,13 +104,13 @@ class InMemoryTransport(Transport):
         else:
             data = json.dumps(message)
 
-        for grp_id, queue in InMemoryTransport._CHANNELS[channel].items():
+        for _, queue in InMemoryTransport._CHANNELS[channel].items():
             await queue.put(data)
 
     async def subscribe(
         self,
         channel: str,
-        callback: Callable[[Dict[str, Any]], "asyncio.Future"],
+        callback: Callable[[dict[str, Any]], "asyncio.Future"],
         **kwargs,
     ):
         """

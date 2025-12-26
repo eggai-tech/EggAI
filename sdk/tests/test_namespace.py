@@ -1,8 +1,9 @@
-import pytest
 from contextlib import contextmanager
 
-from eggai import Channel
+import pytest
+
 import eggai.channel
+from eggai import Channel
 
 
 class TestNamespace:

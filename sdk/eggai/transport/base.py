@@ -1,6 +1,7 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -26,7 +27,7 @@ class Transport(ABC):
         pass
 
     @abstractmethod
-    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseModel]):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseModel):
         """
         Publish the given message to the channel.
         """
@@ -36,7 +37,7 @@ class Transport(ABC):
     async def subscribe(
         self,
         channel: str,
-        callback: Callable[[Dict[str, Any]], "asyncio.Future"],
+        callback: Callable[[dict[str, Any]], "asyncio.Future"],
         **kwargs,
     ) -> Callable:
         """

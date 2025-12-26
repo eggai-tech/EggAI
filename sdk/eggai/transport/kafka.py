@@ -1,14 +1,15 @@
 import logging
-from typing import Dict, Any, Optional, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 from faststream.kafka import KafkaBroker
 
 from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
 from eggai.transport.middleware_utils import (
-    create_filter_middleware,
     create_data_type_middleware,
     create_filter_by_data_middleware,
+    create_filter_middleware,
 )
 
 
@@ -26,7 +27,7 @@ class KafkaTransport(Transport):
 
     def __init__(
         self,
-        broker: Optional[KafkaBroker] = None,
+        broker: KafkaBroker | None = None,
         bootstrap_servers: str = "localhost:19092",
         **kwargs,
     ):
@@ -105,7 +106,7 @@ class KafkaTransport(Transport):
         """
         await self.broker.stop()
 
-    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
         """
         Publishes a message to the specified Kafka topic (channel).
 

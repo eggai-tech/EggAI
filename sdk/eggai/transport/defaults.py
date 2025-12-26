@@ -1,12 +1,12 @@
 import logging
-from typing import Optional, Callable
+from collections.abc import Callable
 
 from .base import Transport
 from .inmemory import InMemoryTransport
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_TRANSPORT_FACTORY: Optional[Callable[[], "Transport"]] = None
+_DEFAULT_TRANSPORT_FACTORY: Callable[[], "Transport"] | None = None
 
 
 def eggai_set_default_transport(factory: Callable[[], "Transport"]):

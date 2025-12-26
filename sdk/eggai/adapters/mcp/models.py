@@ -1,4 +1,4 @@
-from typing import Literal, List, Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -62,7 +62,7 @@ class ToolListResponse(BaseModel):
     """
 
     call_id: UUID
-    tools: List[ExternalTool]
+    tools: list[ExternalTool]
 
 
 class ToolListResponseMessage(BaseMessage[ToolListResponse]):
