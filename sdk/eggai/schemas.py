@@ -74,5 +74,3 @@ class Message(BaseMessage[Dict[str, Any]]):
     """
 
     pass
-
-
