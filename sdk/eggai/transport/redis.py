@@ -234,14 +234,9 @@ class RedisTransport(Transport):
         polling_interval = kwargs.pop("polling_interval", 100)
         batch = kwargs.pop("batch", False)
         max_records = kwargs.pop("max_records", None)
-        # Use ">" for consumer groups to read pending messages
-        # ">" means "give me messages that no other consumer in this group has seen yet"
-        # "$" would mean "only new messages from now on" which would skip existing messages
-        last_id = kwargs.pop("last_id", ">")
+        last_id = kwargs.pop("last_id", "$")
         no_ack = kwargs.pop("no_ack", False)
 
-        # Use Redis Streams with consumer groups (similar to Kafka)
-        # Each handler with a unique group will receive all messages
         stream_sub = StreamSub(
             channel,
             group=group,
