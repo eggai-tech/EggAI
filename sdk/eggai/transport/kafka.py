@@ -1,12 +1,16 @@
-import json
 import logging
-from typing import Dict, Any, Optional, Callable, Union, Awaitable
+from collections.abc import Callable
+from typing import Any
 
-from faststream.broker.message import StreamMessage
 from faststream.kafka import KafkaBroker
 
 from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
+from eggai.transport.middleware_utils import (
+    create_data_type_middleware,
+    create_filter_by_data_middleware,
+    create_filter_middleware,
+)
 
 
 class KafkaTransport(Transport):
@@ -23,7 +27,7 @@ class KafkaTransport(Transport):
 
     def __init__(
         self,
-        broker: Optional[KafkaBroker] = None,
+        broker: KafkaBroker | None = None,
         bootstrap_servers: str = "localhost:19092",
         **kwargs,
     ):
@@ -80,7 +84,7 @@ class KafkaTransport(Transport):
             self.broker = broker
         else:
             self.broker = KafkaBroker(
-                bootstrap_servers, log_level=logging.DEBUG, **kwargs
+                bootstrap_servers, log_level=logging.INFO, **kwargs
             )
 
     async def connect(self):
@@ -95,14 +99,14 @@ class KafkaTransport(Transport):
 
     async def disconnect(self):
         """
-        Closes the connection to the Kafka broker by closing the KafkaBroker instance.
+        Closes the connection to the Kafka broker by stopping the KafkaBroker instance.
 
         This method should be called when the transport is no longer needed to stop consuming messages
         and to release any resources held by the KafkaBroker.
         """
-        await self.broker.close()
+        await self.broker.stop()
 
-    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
         """
         Publishes a message to the specified Kafka topic (channel).
 
@@ -160,66 +164,26 @@ class KafkaTransport(Transport):
                       incoming messages.
         """
         if "filter_by_message" in kwargs:
-
-            def filter_middleware(filter_func):
-                async def middleware(
-                    call_next: Callable[[Any], Awaitable[Any]],
-                    msg: StreamMessage[Any],
-                ) -> Any:
-                    if filter_func(json.loads(msg.body.decode("utf-8"))):
-                        return await call_next(msg)
-                    return None
-
-                return middleware
-
             if "middlewares" not in kwargs:
                 kwargs["middlewares"] = []
             kwargs["middlewares"].append(
-                filter_middleware(kwargs.pop("filter_by_message"))
+                create_filter_middleware(kwargs.pop("filter_by_message"))
             )
 
         if "data_type" in kwargs:
             data_type = kwargs.pop("data_type")
 
-            def data_type_middleware(data_type):
-                async def middleware(
-                    call_next: Callable[[Any], Awaitable[Any]],
-                    msg: StreamMessage[Any],
-                ) -> Any:
-                    typed_message = data_type.model_validate(
-                        json.loads(msg.body.decode("utf-8"))
-                    )
-
-                    if typed_message.type != data_type.model_fields["type"].default:
-                        return None
-
-                    return await call_next(msg)
-
-                return middleware
-
             if "middlewares" not in kwargs:
                 kwargs["middlewares"] = []
-            kwargs["middlewares"].append(data_type_middleware(data_type))
+            kwargs["middlewares"].append(create_data_type_middleware(data_type))
 
             if "filter_by_data" in kwargs:
-
-                def filter_by_data_middleware(filter_func):
-                    async def middleware(
-                        call_next: Callable[[Any], Awaitable[Any]],
-                        msg: StreamMessage[Any],
-                    ) -> Any:
-                        data = json.loads(msg.body.decode("utf-8"))
-                        typed_message = data_type.model_validate(data)
-                        if filter_func(typed_message):
-                            return await call_next(msg)
-                        return None
-
-                    return middleware
-
                 if "middlewares" not in kwargs:
                     kwargs["middlewares"] = []
                 kwargs["middlewares"].append(
-                    filter_by_data_middleware(kwargs.pop("filter_by_data"))
+                    create_filter_by_data_middleware(
+                        data_type, kwargs.pop("filter_by_data")
+                    )
                 )
 
         handler_id = kwargs.pop("handler_id")

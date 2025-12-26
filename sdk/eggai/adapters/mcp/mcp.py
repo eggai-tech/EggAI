@@ -1,15 +1,14 @@
 import asyncio
-from typing import List
 
-from eggai import eggai_main, Agent, Channel
+from eggai import Agent, Channel, eggai_main
 from eggai.adapters.mcp.models import (
-    ToolListRequestMessage,
     ExternalTool,
-    ToolListResponseMessage,
-    ToolListResponse,
     ToolCallRequestMessage,
-    ToolCallResponseMessage,
     ToolCallResponse,
+    ToolCallResponseMessage,
+    ToolListRequestMessage,
+    ToolListResponse,
+    ToolListResponseMessage,
 )
 
 try:
@@ -38,7 +37,7 @@ async def run_mcp_adapter(name: str, mcp_server: FastMCP):
             return
 
         mcp_tools = await mcp_server.list_tools()
-        tools: List[ExternalTool] = []
+        tools: list[ExternalTool] = []
         for tool in mcp_tools:
             external_tool = ExternalTool(
                 name=tool.name,

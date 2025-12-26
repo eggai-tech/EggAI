@@ -1,7 +1,8 @@
 import asyncio
 import os
 from collections import defaultdict
-from typing import Dict, Any, Optional, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -10,6 +11,14 @@ from .transport import get_default_transport
 from .transport.base import Transport
 
 HANDLERS_IDS = defaultdict(int)
+
+# Environment variable: EGGAI_NAMESPACE
+# Purpose: Prefix for all channel names to enable namespace isolation in shared transports.
+# Default: "eggai"
+# Usage: Set EGGAI_NAMESPACE="myapp" to namespace all channels as "myapp.*"
+# Example: If EGGAI_NAMESPACE="prod" and channel name is "events", the final channel is "prod.events"
+# This allows multiple applications or environments to share the same Kafka/Redis cluster
+# without channel name collisions.
 NAMESPACE = os.getenv("EGGAI_NAMESPACE", "eggai")
 DEFAULT_CHANNEL_NAME = "channel"
 
@@ -20,7 +29,7 @@ class Channel:
     Connection is established lazily on the first publish or subscription.
     """
 
-    def __init__(self, name: str = None, transport: Optional[Transport] = None):
+    def __init__(self, name: str = None, transport: Transport | None = None):
         """
         Initialize a Channel instance.
 
@@ -55,7 +64,7 @@ class Channel:
                 await eggai_register_stop(self.stop)
                 self._stop_registered = True
 
-    async def publish(self, message: Union[Dict[str, Any], BaseModel]):
+    async def publish(self, message: dict[str, Any] | BaseModel):
         """
         Publish a message to the channel. Establishes a connection if not already connected.
 
@@ -66,7 +75,7 @@ class Channel:
         await self._get_transport().publish(self._name, message)
 
     async def subscribe(
-        self, callback: Callable[[Dict[str, Any]], "asyncio.Future"], **kwargs
+        self, callback: Callable[[dict[str, Any]], "asyncio.Future"], **kwargs
     ):
         """
         Subscribe to the channel by registering a callback to be invoked when messages are received.

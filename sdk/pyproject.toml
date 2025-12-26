@@ -34,11 +34,11 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.10"
 pydantic = "^2.11.4"
-faststream = {extras = ["kafka", "redis"], version = "^0.5.40"}
+faststream = {extras = ["kafka", "redis"], version = "^0.6.0"}
 click = {version = "^8.0.0", optional = true}
 jinja2 = {version = "^3.1.6", optional = true}
 a2a-sdk = {version = "^0.3.0", optional = true}
-fastmcp = {version = "^0.2.0", optional = true}
+fastmcp = {version = "^2.14.0", optional = true}
 
 [tool.poetry.extras]
 cli = ["click", "jinja2"]
@@ -49,6 +49,7 @@ mcp = ["fastmcp"]
 twine = "^6.0.1"
 pytest-asyncio = "^0.24.0"
 pytest = "^8.3.4"
+pytest-cov = "^6.0.0"
 jinja2 = "^3.1.6"
 ruff = "^0.14.4"
 
@@ -61,3 +62,45 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "B904",   # raise without from inside except
+    "SIM108", # use ternary operator instead of if-else
+    "SIM102", # nested if statements (sometimes clearer)
+    "SIM105", # contextlib.suppress (explicit try/except often clearer)
+    "SIM401", # locals().get() edge case
+    "B023",   # loop variable binding (false positive with default args)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["eggai", "cli"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

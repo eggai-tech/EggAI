@@ -1,10 +1,12 @@
-import sys
-from typing import Optional, Callable
+import logging
+from collections.abc import Callable
 
 from .base import Transport
 from .inmemory import InMemoryTransport
 
-_DEFAULT_TRANSPORT_FACTORY: Optional[Callable[[], "Transport"]] = None
+logger = logging.getLogger(__name__)
+
+_DEFAULT_TRANSPORT_FACTORY: Callable[[], "Transport"] | None = None
 
 
 def eggai_set_default_transport(factory: Callable[[], "Transport"]):
@@ -20,13 +22,12 @@ def eggai_set_default_transport(factory: Callable[[], "Transport"]):
 def get_default_transport() -> "Transport":
     """
     Get a fresh Transport instance from the default factory.
-    If no default transport factory is set, return an InMemoryTransport instance and print a warning.
+    If no default transport factory is set, return an InMemoryTransport instance and log a warning.
     """
     if _DEFAULT_TRANSPORT_FACTORY is None:
-        print(
-            "EggAI: Warning, no default transport factory set, InMemoryTransport will be used. Use eggai_set_default_transport() if you don't want see this warning.",
-            file=sys.stderr,
+        logger.warning(
+            "No default transport factory set, InMemoryTransport will be used. "
+            "Use eggai_set_default_transport() to set a different default transport."
         )
-        sys.stderr.flush()
         eggai_set_default_transport(lambda: InMemoryTransport())
     return _DEFAULT_TRANSPORT_FACTORY()

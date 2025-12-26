@@ -1,6 +1,13 @@
 import asyncio
+import logging
 import signal
 import sys
+from collections.abc import Callable, Coroutine
+from typing import Any, TypeVar
+
+logger = logging.getLogger(__name__)
+
+F = TypeVar("F", bound=Callable[..., Coroutine[Any, Any, Any]])
 
 # Global variables for shutdown handling.
 _STOP_CALLBACKS = []
@@ -50,14 +57,14 @@ async def eggai_cleanup():
     if _CLEANUP_STARTED:
         return
     _CLEANUP_STARTED = True
-    print("EggAI: Cleaning up...", flush=True)
+    logger.info("EggAI: Cleaning up...")
     for stop_coro in _STOP_CALLBACKS:
         try:
             await stop_coro()
         except Exception as e:
-            print(f"Error stopping: {e}", file=sys.stderr, flush=True)
+            logger.error(f"Error stopping: {e}")
     _STOP_CALLBACKS.clear()
-    print("EggAI: Cleanup done.", flush=True)
+    logger.info("EggAI: Cleanup done.")
 
 
 async def _install_signal_handlers():
@@ -83,7 +90,7 @@ async def _install_signal_handlers():
             signal.signal(sig, lambda _, __: asyncio.create_task(shutdown(sig, True)))
 
 
-def eggai_main(func):
+def eggai_main(func: F) -> F:
     """
     Decorator for your main function.
 
@@ -104,7 +111,7 @@ def eggai_main(func):
     you can add `await asyncio.Future()` at the end of your main function.
     """
 
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: Any, **kwargs: Any) -> bool:
         await _install_signal_handlers()
         global _GLOBAL_TASK
 
@@ -115,13 +122,13 @@ def eggai_main(func):
             _GLOBAL_TASK = asyncio.create_task(func(*args, **kwargs))
             await _GLOBAL_TASK
         except asyncio.CancelledError:
-            print("EggAI: Application interrupted by user.", flush=True)
+            logger.info("EggAI: Application interrupted by user.")
             return True
         finally:
             await eggai_cleanup()
         return True
 
-    return wrapper
+    return wrapper  # type: ignore[return-value]
 
 
 class EggaiRunner:
@@ -148,5 +155,5 @@ class EggaiRunner:
     async def __aexit__(self, exc_type, exc, tb):
         await eggai_cleanup()
         if exc_type == asyncio.CancelledError:
-            print("EggAI: Application interrupted by user.", flush=True)
+            logger.info("EggAI: Application interrupted by user.")
             return True

@@ -35,9 +35,12 @@ nav:
     - "Agent": sdk/agent.md
     - "Channel": sdk/channel.md
     - "Message": sdk/message.md
+    - "Message Protocol": sdk/message-protocol.md
     - "Transport": sdk/transport.md
     - "KafkaTransport": sdk/kafka-transport.md
     - "InMemoryTransport": sdk/inmemory-transport.md
+    - "A2A Integration": sdk/a2a.md
+    - "MCP Integration": sdk/mcp.md
 
 plugins:
 - include-markdown:

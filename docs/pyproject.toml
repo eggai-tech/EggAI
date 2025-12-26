@@ -14,7 +14,7 @@ python = "^3.10"
 mkdocs = "^1.6.1"
 mkdocstrings = {extras = ["python"], version = "^0.27.0"}
 mkdocs-material = "^9.5.48"
-mkdocs-include-markdown-plugin = "^7.1.2"
+mkdocs-include-markdown-plugin = "^7.1.8"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,8 +1,0 @@
-agents/triage/dspy_modules/evaluation/reports/*.html
-reports/
-tmp
-/agents/policies/vespa/artifacts/*
-
-# Model files and caches
-models/
-dspy_cache/

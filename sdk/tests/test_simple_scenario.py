@@ -14,7 +14,7 @@ import uuid
 import pytest
 
 from eggai import Agent, Channel
-from eggai.transport import eggai_set_default_transport, KafkaTransport
+from eggai.transport import KafkaTransport, eggai_set_default_transport
 
 
 @pytest.mark.asyncio

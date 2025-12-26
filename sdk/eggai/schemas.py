@@ -1,8 +1,8 @@
-import uuid
 import datetime
-from typing import Generic, Optional, TypeVar, Dict, Any
+import uuid
+from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, Field, UUID4
+from pydantic import UUID4, BaseModel, Field
 
 # Define type variables with defaults (requires Python 3.11+ for default values on TypeVar)
 TData = TypeVar("TData")
@@ -48,17 +48,17 @@ class BaseMessage(BaseModel, Generic[TData]):
     type: str = Field(
         ..., description="Event type (e.g., 'user.created', 'order.shipped')."
     )
-    subject: Optional[str] = Field(
+    subject: str | None = Field(
         default=None, description="Subject of the event in the context of the producer."
     )
-    time: Optional[datetime.datetime] = Field(
+    time: datetime.datetime | None = Field(
         default_factory=current_datetime_factory,
         description="Timestamp of when the event was created (ISO 8601).",
     )
-    datacontenttype: Optional[str] = Field(
+    datacontenttype: str | None = Field(
         default="application/json", description="Media type of the event data."
     )
-    dataschema: Optional[str] = Field(
+    dataschema: str | None = Field(
         default=None, description="URI of the schema that `data` adheres to."
     )
     data: TData = Field(
@@ -68,22 +68,9 @@ class BaseMessage(BaseModel, Generic[TData]):
 
 
 # Create a concrete version with dict defaults.
-class Message(BaseMessage[Dict[str, Any]]):
+class Message(BaseMessage[dict[str, Any]]):
     """
     Concrete Message model with `data` defaulting to dict.
     """
 
     pass
-
-
-if __name__ == "__main__":
-    m = Message(
-        type="agent_message",
-        source="eggai",
-        data={
-            "message": "Sorry, I can't help you with that.",
-            "connection_id": "connection_id",
-            "agent": "TriageAgent",
-        },
-    )
-    print(m)

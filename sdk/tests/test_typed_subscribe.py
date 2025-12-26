@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 from eggai import Agent, Channel
 from eggai.schemas import BaseMessage
-from eggai.transport import eggai_set_default_transport, KafkaTransport
+from eggai.transport import KafkaTransport, eggai_set_default_transport
 
 
 class OrderStatus(Enum):

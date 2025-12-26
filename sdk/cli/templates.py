@@ -6,6 +6,7 @@ This module uses Jinja2 templates to generate boilerplate code for new EggAI app
 
 from pathlib import Path
 from typing import TYPE_CHECKING
+
 from jinja2 import Environment, FileSystemLoader
 
 if TYPE_CHECKING:

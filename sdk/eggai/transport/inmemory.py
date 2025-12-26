@@ -1,31 +1,76 @@
 import asyncio
 import json
+import logging
 import uuid
 from collections import defaultdict
-from typing import Dict, List, Callable, Tuple, Any, Union
+from collections.abc import Callable
+from typing import Any
 
 from eggai.schemas import BaseMessage
 from eggai.transport import Transport
 
+logger = logging.getLogger(__name__)
+
 
 class InMemoryTransport(Transport):
+    """
+    In-memory message transport for testing, prototyping, and local development.
+
+    This transport implementation uses asyncio queues to handle message passing
+    between agents within a single Python process. Messages are not persisted
+    and will be lost if the process terminates.
+
+    **Use Cases:**
+    - Unit testing and integration tests
+    - Local development and prototyping
+    - Single-process multi-agent applications
+    - Quick experimentation without external dependencies
+
+    **NOT Recommended For:**
+    - Production deployments
+    - Multi-process or distributed systems
+    - Applications requiring message persistence
+    - Systems needing high availability
+
+    **Features:**
+    - Zero external dependencies (no Kafka, Redis, etc.)
+    - Instant message delivery (no network latency)
+    - Consumer group support for load balancing
+    - Thread-safe within a single event loop
+
+    **Example:**
+    ```python
+    from eggai import Agent, Channel, InMemoryTransport
+
+    transport = InMemoryTransport()
+    agent = Agent("my-agent", transport=transport)
+    channel = Channel("my-channel", transport=transport)
+
+    await transport.connect()
+    await agent.start()
+    ```
+
+    Note: All InMemoryTransport instances share the same in-memory queues
+    (class-level storage), allowing agents to communicate within the same process.
+    """
+
     # One queue per (channel, group_id). Each consumer group gets its own queue.
-    _CHANNELS: Dict[str, Dict[str, asyncio.Queue]] = defaultdict(dict)
+    _CHANNELS: dict[str, dict[str, asyncio.Queue]] = defaultdict(dict)
     # For each channel and group_id, store a list of subscription callbacks.
-    _SUBSCRIPTIONS: Dict[
-        str, Dict[str, List[Callable[[Dict[str, Any]], "asyncio.Future"]]]
+    _SUBSCRIPTIONS: dict[
+        str, dict[str, list[Callable[[dict[str, Any]], "asyncio.Future"]]]
     ] = defaultdict(lambda: defaultdict(list))
 
     def __init__(self):
         self._connected = False
         # Keep references to consume tasks keyed by (channel, group_id)
-        self._consume_tasks: Dict[Tuple[str, str], asyncio.Task] = {}
+        self._consume_tasks: dict[tuple[str, str], asyncio.Task] = {}
 
     async def connect(self):
         """Marks the transport as connected and starts consume loops for existing subscriptions."""
         self._connected = True
         for channel, group_map in InMemoryTransport._SUBSCRIPTIONS.items():
-            for group_id in group_map.keys():
+            for group_id in group_map:
                 key = (channel, group_id)
                 if key not in self._consume_tasks:
                     self._consume_tasks[key] = asyncio.create_task(
@@ -44,7 +89,7 @@ class InMemoryTransport(Transport):
         self._consume_tasks.clear()
         self._connected = False
 
-    async def publish(self, channel: str, message: Union[Dict[str, Any], BaseMessage]):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
         """
         Publishes a message to the given channel.
         The message is put into all queues for that channel so each consumer group receives it.
@@ -59,13 +104,13 @@ class InMemoryTransport(Transport):
         else:
             data = json.dumps(message)
 
-        for grp_id, queue in InMemoryTransport._CHANNELS[channel].items():
+        for _, queue in InMemoryTransport._CHANNELS[channel].items():
             await queue.put(data)
 
     async def subscribe(
         self,
         channel: str,
-        callback: Callable[[Dict[str, Any]], "asyncio.Future"],
+        callback: Callable[[dict[str, Any]], "asyncio.Future"],
         **kwargs,
     ):
         """
@@ -110,8 +155,9 @@ class InMemoryTransport(Transport):
                         # Apply the data filter
                         if filter_func(typed_message):
                             await callback(typed_message)
-                    except Exception:
+                    except (json.JSONDecodeError, ValueError, TypeError) as e:
                         # Skip messages that don't match the data type or filter
+                        logger.debug(f"Message validation failed: {e}")
                         return
 
                 final_callback = data_and_filter_callback
@@ -119,10 +165,11 @@ class InMemoryTransport(Transport):
         # Handle legacy filter_by_message (for backward compatibility)
         elif "filter_by_message" in kwargs:
             filter_func = kwargs["filter_by_message"]
+            original_callback = final_callback  # Store original before reassignment
 
             async def filtered_callback(data):
                 if filter_func(data):
-                    await final_callback(data)
+                    await original_callback(data)  # Use original, not final_callback
 
             final_callback = filtered_callback
 
@@ -148,13 +195,30 @@ class InMemoryTransport(Transport):
         try:
             while True:
                 msg = await queue.get()
-                data = json.loads(msg)
+                try:
+                    data = json.loads(msg)
+                except json.JSONDecodeError as e:
+                    logger.error(
+                        f"Failed to decode message on channel={channel}, group={group_id}: {e}"
+                    )
+                    continue
+
                 callbacks = InMemoryTransport._SUBSCRIPTIONS[channel].get(group_id, [])
                 for cb in callbacks:
-                    await cb(data)
+                    try:
+                        await cb(data)
+                    except asyncio.CancelledError:
+                        raise  # Must propagate cancellation
+                    except Exception as e:
+                        logger.error(
+                            f"Handler error on channel={channel}, group={group_id}: {e}",
+                            exc_info=True,
+                        )
+                        # Continue processing other callbacks/messages
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            print(
-                f"InMemoryTransport consume loop error on channel={channel}, group={group_id}: {e}"
+            logger.error(
+                f"Unexpected error in consume loop for channel={channel}, group={group_id}: {e}",
+                exc_info=True,
             )

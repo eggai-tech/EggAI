@@ -68,24 +68,16 @@ We have a Makefile at the root of the project that simplifies common development
    ```bash
    # Install only SDK dependencies
    make install-sdk
-   
+
    # Install only documentation dependencies
    make install-docs
-   
-   # Install dependencies for a specific example
-   make install-example EXAMPLE=multi_agent_conversation
    ```
+
+   For working with examples, visit [eggai-examples](https://github.com/eggai-tech/eggai-examples).
 
 3. Run tests:
    ```bash
-   # Run all tests with summary
-   make test-all
-   
-   # Run SDK tests only
-   make test-sdk
-   
-   # Run tests for a specific example
-   make test-example EXAMPLE=multi_agent_conversation
+   make test
    ```
 
 4. Clean up:
@@ -114,27 +106,6 @@ If you prefer to work directly in the SDK directory:
    poetry run pytest
    ```
 
-### Option 3: Example Project Development
-
-If you're working on a specific example:
-
-1. Navigate to the example directory:
-   ```bash
-   cd examples/multi_agent_conversation
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run example-specific setup (if available):
-   ```bash
-   make setup
-   ```
-4. Run tests:
-   ```bash
-   pytest
-   ```
-
 ---
 
 ## Commit Message Guidelines
@@ -160,9 +131,60 @@ fix: resolve issue with login timeout
 
 1. Ensure your code adheres to the project's coding standards and style.
 2. Ensure all tests pass locally before creating a pull request.
-3. Provide a detailed description of your changes in the pull request.
-4. Reference the issue you are addressing (if applicable).
-5. Be responsive to feedback and make changes as requested.
+3. **Update `sdk/CHANGELOG.md`** under the `[Unreleased]` section with your changes.
+   - Use `### Added`, `### Changed`, `### Fixed`, or `### Removed` subsections.
+   - If your PR doesn't require a changelog entry (docs, CI, etc.), add the `skip-changelog` label.
+4. Provide a detailed description of your changes in the pull request.
+5. Reference the issue you are addressing (if applicable).
+6. Be responsive to feedback and make changes as requested.
+
+---
+
+## For Maintainers
+
+### Releasing a New Version
+
+**Stable Release:**
+```bash
+make release VERSION=0.3.0
+```
+
+This command:
+1. Verifies you're on `main` branch with clean working directory
+2. Checks `[Unreleased]` section in CHANGELOG.md has content
+3. Updates version in `pyproject.toml`
+4. Converts `[Unreleased]` to `[VERSION] - DATE` in CHANGELOG.md
+5. Creates commit and tag `vVERSION`
+6. Pushes to origin (triggers PyPI publish and GitHub Release)
+
+**Release Candidate (for testing):**
+```bash
+make release-rc VERSION=0.3.0rc1
+```
+
+Users can test with `pip install eggai==0.3.0rc1`. When stable, run `make release VERSION=0.3.0`.
+
+### Branch Protection Rules
+
+To ensure code quality and prevent accidental changes, the following branch protection rules should be enabled for the `main` branch in GitHub Settings → Branches:
+
+**Required Settings:**
+- ✅ **Require pull request before merging**
+  - Required approvals: 1
+  - Dismiss stale reviews when new commits are pushed
+- ✅ **Require status checks to pass before merging**
+  - Required checks: `all-checks-passed` (from CI workflow)
+- ✅ **Require conversation resolution before merging**
+- ✅ **Do not allow bypassing the above settings**
+- ✅ **Restrict who can push to matching branches** (optional, recommended for core team only)
+- ❌ **Allow force pushes**: Disabled
+- ❌ **Allow deletions**: Disabled
+
+These settings ensure that:
+1. All changes go through peer review
+2. CI checks pass before merging
+3. Discussions are resolved
+4. The main branch remains stable
 
 ---
 

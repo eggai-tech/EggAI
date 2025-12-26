@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import TYPE_CHECKING, Dict, Any
+from typing import TYPE_CHECKING, Any
 
 from eggai.schemas import BaseMessage
 
@@ -137,7 +137,7 @@ class EggAIAgentExecutor(AgentExecutor):
             f"Could not determine skill ID from request context. Available skills: {available_skills}"
         )
 
-    def _extract_message_data(self, request_context: RequestContext) -> Dict[str, Any]:
+    def _extract_message_data(self, request_context: RequestContext) -> dict[str, Any]:
         """Extract and parse message data from A2A request."""
         try:
             # Parse A2A message content into dict
@@ -186,15 +186,16 @@ class EggAIAgentExecutor(AgentExecutor):
             else:
                 return {"message": str(message_content)}
 
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError) as e:
             logger.exception(f"Error extracting message data: {e}")
             return {"error": f"Failed to parse message: {str(e)}"}
 
     async def _send_agent_response(self, event_queue: EventQueue, data: dict):
         """Send agent response through event queue."""
         try:
-            from a2a.types import Message, Part, DataPart, Role
             from uuid import uuid4
+
+            from a2a.types import DataPart, Message, Part, Role
 
             # Create A2A message with response data
             response_message = Message(
@@ -207,10 +208,14 @@ class EggAIAgentExecutor(AgentExecutor):
             await event_queue.enqueue_event(response_message)
             logger.debug(f"Sent agent response: {data}")
 
-        except Exception as e:
-            logger.exception(f"Failed to send agent response: {e}")
+        except ImportError as e:
+            logger.error(f"A2A types not available: {e}")
+            raise
+        except (ValueError, TypeError) as e:
+            logger.exception(f"Failed to create A2A message from data: {e}")
             # Fallback: try to send as simple event
             try:
                 await event_queue.enqueue_event({"text": json.dumps(data)})
-            except Exception:
-                logger.error("Failed to send any response to event queue")
+            except (json.JSONEncodeError, TypeError) as json_err:
+                logger.error(f"Failed to serialize response data: {json_err}")
+                raise

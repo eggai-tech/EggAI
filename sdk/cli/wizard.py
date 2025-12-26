@@ -5,21 +5,20 @@ Interactive CLI wizard for creating new EggAI applications with custom configura
 """
 
 import sys
+from importlib.metadata import version
 from pathlib import Path
-from typing import List
+
 import click
 
-from importlib.metadata import version
-
 from .templates import (
-    generate_main_py,
-    generate_requirements_txt,
-    generate_readme,
     generate_agent_file,
     generate_agents_init,
-    generate_env_file,
-    generate_console_file,
     generate_common_models_file,
+    generate_console_file,
+    generate_env_file,
+    generate_main_py,
+    generate_readme,
+    generate_requirements_txt,
 )
 
 EGGAI_VERSION = version("eggai")
@@ -54,7 +53,7 @@ class AppConfig:
 
     def __init__(self):
         self.transport: str = ""
-        self.agents: List[Agent] = []
+        self.agents: list[Agent] = []
         self.project_name: str = ""
         self.target_dir: Path = Path(".")
         self.include_console: bool = False
@@ -109,7 +108,7 @@ def prompt_transport() -> str:
     }
 
     click.echo("\nAvailable transport options:")
-    for key, (value, description) in transport_options.items():
+    for key, (_, description) in transport_options.items():
         click.echo(f"  {key}. {description}")
 
     while True:
@@ -148,7 +147,7 @@ def normalize_agent_name(name: str) -> str:
     return clean_name
 
 
-def parse_agents_string(agents_string: str) -> List[Agent]:
+def parse_agents_string(agents_string: str) -> list[Agent]:
     """Parse comma-separated agent names from CLI parameter."""
     if not agents_string:
         return []
@@ -161,7 +160,7 @@ def parse_agents_string(agents_string: str) -> List[Agent]:
     return agents
 
 
-def prompt_agents() -> List[Agent]:
+def prompt_agents() -> list[Agent]:
     """Prompt user to configure agents using a loop."""
     click.echo("\n" + "-" * 50)
     click.echo("Step 2: Configure Agents")
