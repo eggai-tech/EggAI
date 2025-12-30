@@ -2,6 +2,8 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from aiokafka.admin import AIOKafkaAdminClient, NewTopic
+from aiokafka.errors import TopicAlreadyExistsError
 from faststream.kafka import KafkaBroker
 
 from eggai.schemas import BaseMessage
@@ -80,9 +82,17 @@ class KafkaTransport(Transport):
             log_level (int): Log level for service messages (default is `logging.INFO`).
             log_fmt (Optional[str]): Log format (default is `None`).
         """
+        self._bootstrap_servers = bootstrap_servers
+        self._topics_to_create: set[str] = set()
+        self._num_partitions = kwargs.pop("num_partitions", 3)
+        self._running = False
+
         if broker:
             self.broker = broker
         else:
+            # metadata_max_age_ms: refresh metadata more frequently for dynamic topics
+            if "metadata_max_age_ms" not in kwargs:
+                kwargs["metadata_max_age_ms"] = 10000
             self.broker = KafkaBroker(
                 bootstrap_servers, log_level=logging.INFO, **kwargs
             )
@@ -95,7 +105,10 @@ class KafkaTransport(Transport):
         to handle Kafka communication.
 
         """
+        if self._running:
+            return
         await self.broker.start()
+        self._running = True
 
     async def disconnect(self):
         """
@@ -104,7 +117,43 @@ class KafkaTransport(Transport):
         This method should be called when the transport is no longer needed to stop consuming messages
         and to release any resources held by the KafkaBroker.
         """
+        self._running = False
         await self.broker.stop()
+
+    async def _ensure_topic(self, topic: str):
+        """Ensure a single topic exists and refresh producer metadata."""
+        admin = AIOKafkaAdminClient(bootstrap_servers=self._bootstrap_servers)
+        try:
+            await admin.start()
+            new_topic = NewTopic(
+                name=topic,
+                num_partitions=self._num_partitions,
+                replication_factor=1,
+            )
+            await admin.create_topics([new_topic])
+        except TopicAlreadyExistsError:
+            pass
+        except Exception:
+            pass
+        finally:
+            await admin.close()
+
+        # Force producer metadata refresh for the new topic
+        if (
+            self._running
+            and hasattr(self.broker, "_producer")
+            and self.broker._producer
+        ):
+            try:
+                await self.broker._producer._producer.client.force_metadata_update()
+            except Exception:
+                pass
+
+    async def ensure_topic(self, channel: str):
+        """Public method to ensure a topic exists."""
+        if channel not in self._topics_to_create:
+            await self._ensure_topic(channel)
+            self._topics_to_create.add(channel)
 
     async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
         """
@@ -117,6 +166,9 @@ class KafkaTransport(Transport):
                                                          before being sent.
 
         """
+        if channel not in self._topics_to_create:
+            await self._ensure_topic(channel)
+            self._topics_to_create.add(channel)
         await self.broker.publish(message, topic=channel)
 
     async def subscribe(self, channel: str, handler, **kwargs) -> Callable:
@@ -129,39 +181,12 @@ class KafkaTransport(Transport):
             **kwargs: Additional keyword arguments that can be used to configure the subscription.
 
         Keyword Args:
-            filter_by_message (Callable, optional): A function to filter incoming messages based on their payload. If provided,
-                                                this function will be applied to the message payload before passing it to
-                                                the handler.
-            batch (bool, optional): Whether to consume messages in batches or not (default is False).
-            group_id (Optional[str], optional): The consumer group name for dynamic partition assignment and offset management.
-            key_deserializer (Optional[Callable], optional): A function to deserialize the message key from raw bytes.
-            value_deserializer (Optional[Callable], optional): A function to deserialize the message value from raw bytes.
-            fetch_max_bytes (int, optional): The maximum amount of data the server should return for a fetch request (default is 50 MB).
-            fetch_min_bytes (int, optional): The minimum amount of data the server should return for a fetch request (default is 1 byte).
-            fetch_max_wait_ms (int, optional): The maximum amount of time the server will block before responding to a fetch request (default is 500 ms).
-            max_partition_fetch_bytes (int, optional): The maximum amount of data per-partition the server will return (default is 1 MB).
-            auto_offset_reset (str, optional): A policy for resetting offsets on `OffsetOutOfRangeError` errors (default is 'latest').
-            auto_commit (bool, optional): Whether to automatically commit offsets (default is True).
-            auto_commit_interval_ms (int, optional): Interval in milliseconds between automatic offset commits (default is 5000 ms).
-            check_crcs (bool, optional): Whether to check CRC32 of records to ensure message integrity (default is True).
-            partition_assignment_strategy (Sequence, optional): List of strategies for partition assignment during group management (default is `RoundRobinPartitionAssignor`).
-            max_poll_interval_ms (int, optional): Maximum allowed time between calls to consume messages in batches (default is 300000 ms).
-            rebalance_timeout_ms (Optional[int], optional): Timeout for consumer rejoin during rebalance (default is None).
-            session_timeout_ms (int, optional): Client group session timeout (default is 10000 ms).
-            heartbeat_interval_ms (int, optional): The interval between heartbeats to the consumer coordinator (default is 3000 ms).
-            consumer_timeout_ms (int, optional): Maximum wait timeout for background fetching routine (default is 200 ms).
-            max_poll_records (Optional[int], optional): The maximum number of records to fetch in one batch (default is None).
-            exclude_internal_topics (bool, optional): Whether to exclude internal topics such as offsets from being exposed to the consumer (default is True).
-            isolation_level (str, optional): Controls how to read messages written transactionally ('read_uncommitted' or 'read_committed', default is 'read_uncommitted').
-            batch_timeout_ms (int, optional): Milliseconds to wait for data in the buffer if no data is available (default is 200 ms).
-            max_records (Optional[int], optional): Number of messages to consume in one batch (default is None).
-            listener (Optional[ConsumerRebalanceListener], optional): Optionally provide a listener for consumer group rebalances (default is None).
-            pattern (Optional[str], optional): Pattern to match available topics (either this or `topics` must be provided, not both).
-            partitions (Collection[TopicPartition], optional): Explicit list of partitions to assign (can't use with `topics`).
+            filter_by_message (Callable, optional): A function to filter incoming messages based on their payload.
+            group_id (Optional[str], optional): The consumer group name for dynamic partition assignment.
+            auto_offset_reset (str, optional): Policy for resetting offsets ('earliest' or 'latest').
 
         Returns:
-            Callable: A callback function that represents the subscription. When invoked, it will call the handler with
-                      incoming messages.
+            Callable: A callback function that represents the subscription.
         """
         if "filter_by_message" in kwargs:
             if "middlewares" not in kwargs:
@@ -186,9 +211,12 @@ class KafkaTransport(Transport):
                     )
                 )
 
-        handler_id = kwargs.pop("handler_id")
+        # Use handler_id as default group_id (preserves broadcast behavior)
+        handler_id = kwargs.pop("handler_id", None)
         if "group_id" not in kwargs:
             kwargs["group_id"] = handler_id
+
+        self._topics_to_create.add(channel)
 
         if "pattern" in kwargs:
             return self.broker.subscriber(**kwargs)(handler)

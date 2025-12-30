@@ -11,12 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced release process with `make release VERSION=x.y.z` command
 - Changelog enforcement in CI for pull requests
 - Release candidate support with `make release-rc VERSION=x.y.zrc1`
+- `Channel.ensure_exists()` for pre-creating Kafka topics
 
 ### Changed
+- Kafka topics now auto-create on first use
 - Release workflow now uses git tags for versioning
 - Version now uses single source of truth (`pyproject.toml`) via `importlib.metadata`
 - Consolidated repository structure: removed duplicate docs from `sdk/`, moved to `docs/`
 - Moved issue templates from `sdk/.github/` to root `.github/`
+
+### Fixed
+- Redis transport parameter handling
 
 ## [0.2.8] - 2025-11-12
 

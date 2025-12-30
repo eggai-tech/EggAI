@@ -199,7 +199,10 @@ class RedisTransport(Transport):
                     )
                 )
 
-        handler_id = kwargs.pop("handler_id")
+        handler_id = kwargs.pop("handler_id", None)
+
+        # Ignore Kafka-specific parameter (Redis uses 'group' for streams, not 'group_id')
+        kwargs.pop("group_id", None)
 
         # Extract stream-related parameters
         group = kwargs.pop("group", handler_id)
