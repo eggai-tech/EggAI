@@ -1,0 +1,104 @@
+name: Create Release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.2.9 or 0.3.0rc1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-release-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if ! echo "$VERSION" | grep -qE "^[0-9]+\.[0-9]+\.[0-9]+([a-zA-Z]+[0-9]+)?$"; then
+            echo "::error::Invalid version format. Use: X.Y.Z or X.Y.Zrc1"
+            exit 1
+          fi
+
+      - name: Check for unreleased changes
+        id: check
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+
+          # Check if this is a prerelease
+          if echo "$VERSION" | grep -qE "(rc|alpha|beta)[0-9]+$"; then
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            # For stable releases, require changelog content
+            if ! grep -A 5 "## \[Unreleased\]" sdk/CHANGELOG.md | grep -qE "^### "; then
+              echo "::error::No changes found under [Unreleased] in CHANGELOG.md"
+              exit 1
+            fi
+          fi
+
+      - name: Create release branch
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          git checkout -b release/v$VERSION
+
+      - name: Update version in pyproject.toml
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          sed -i 's/^version = ".*"/version = "'$VERSION'"/' sdk/pyproject.toml
+
+      - name: Update CHANGELOG.md
+        if: steps.check.outputs.prerelease == 'false'
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+          sed -i "s/## \[Unreleased\]/## [Unreleased]\n\n## [$VERSION] - $DATE/" sdk/CHANGELOG.md
+
+      - name: Commit changes
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sdk/pyproject.toml sdk/CHANGELOG.md
+          git commit -m "chore: release v$VERSION"
+
+      - name: Push branch
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          git push origin release/v$VERSION
+
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          PRERELEASE="${{ steps.check.outputs.prerelease }}"
+
+          if [ "$PRERELEASE" = "true" ]; then
+            gh pr create \
+              --title "chore: release v$VERSION" \
+              --body "Release candidate v$VERSION for testing.
+
+          Install with: \`pip install eggai==$VERSION\`" \
+              --label "release" \
+              --label "skip-changelog"
+          else
+            # Extract changelog for this version
+            CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" sdk/CHANGELOG.md | sed '$d' | tail -n +2)
+
+            gh pr create \
+              --title "chore: release v$VERSION" \
+              --body "## Release v$VERSION
+
+          $CHANGELOG" \
+              --label "release"
+          fi
+
+          echo "Release PR created! Merge it to trigger the release."

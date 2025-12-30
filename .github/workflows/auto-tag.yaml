@@ -1,0 +1,54 @@
+name: Auto Tag Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  auto-tag:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.head_commit.message, 'chore: release v')
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract version
+        id: version
+        run: |
+          # Extract version from commit message
+          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP 'chore: release v\K[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9]*' | head -1)
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not extract version from commit message"
+            exit 1
+          fi
+
+          # Verify it matches pyproject.toml
+          PYPROJECT_VERSION=$(grep '^version = ' sdk/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          if [ "$VERSION" != "$PYPROJECT_VERSION" ]; then
+            echo "::error::Version mismatch: commit=$VERSION, pyproject.toml=$PYPROJECT_VERSION"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v$VERSION"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+          echo "Created tag: $TAG"

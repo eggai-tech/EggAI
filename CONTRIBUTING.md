@@ -144,25 +144,24 @@ fix: resolve issue with login timeout
 
 ### Releasing a New Version
 
-**Stable Release:**
-```bash
-make release VERSION=0.3.0
-```
+Releases are done via GitHub Actions:
 
-This command:
-1. Verifies you're on `main` branch with clean working directory
-2. Checks `[Unreleased]` section in CHANGELOG.md has content
-3. Updates version in `pyproject.toml`
-4. Converts `[Unreleased]` to `[VERSION] - DATE` in CHANGELOG.md
-5. Creates commit and tag `vVERSION`
-6. Pushes to origin (triggers PyPI publish and GitHub Release)
+1. Go to **Actions** → **Create Release PR**
+2. Click **Run workflow**
+3. Enter the version (e.g., `0.3.0` or `0.3.0rc1`)
+4. Click **Run workflow**
+
+This creates a PR that:
+- Updates `pyproject.toml` version
+- Updates `CHANGELOG.md` with release date (for stable releases)
+
+After merging the PR:
+- A tag is automatically created
+- PyPI publish is triggered
+- GitHub Release is created
 
 **Release Candidate (for testing):**
-```bash
-make release-rc VERSION=0.3.0rc1
-```
-
-Users can test with `pip install eggai==0.3.0rc1`. When stable, run `make release VERSION=0.3.0`.
+Use version format like `0.3.0rc1`. Users can test with `pip install eggai==0.3.0rc1`.
 
 ### Branch Protection Rules
 
