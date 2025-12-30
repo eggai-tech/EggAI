@@ -93,6 +93,13 @@ class Channel:
         await self._get_transport().subscribe(self._name, callback, **kwargs)
         await self._ensure_connected()
 
+    async def ensure_exists(self):
+        """
+        Ensure the channel/topic exists without publishing or subscribing.
+        Useful for Kafka where topics need to exist before consumers start.
+        """
+        await self._get_transport().ensure_topic(self._name)
+
     async def stop(self):
         """
         Disconnects the channel's transport if connected.

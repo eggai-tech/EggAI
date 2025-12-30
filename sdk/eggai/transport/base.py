@@ -42,6 +42,13 @@ class Transport(ABC):
     ) -> Callable:
         """
         Subscribe to a channel with the given callback, invoked on new messages.
-        (No-op if a consumer doesn’t exist.)
+        (No-op if a consumer doesn't exist.)
+        """
+        pass
+
+    async def ensure_topic(self, channel: str):  # noqa: B027
+        """
+        Ensure a topic/channel exists. Default is no-op.
+        Override in transports that need explicit topic creation (e.g., Kafka).
         """
         pass
