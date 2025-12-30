@@ -19,11 +19,12 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          # Extract version from commit message
-          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP 'chore: release v\K[0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9]*' | head -1)
+          # Extract version from commit message (e.g., "chore: release v0.2.9 (#168)")
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          VERSION=$(echo "$COMMIT_MSG" | sed -n 's/.*chore: release v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*[a-zA-Z0-9]*\).*/\1/p' | head -1)
 
           if [ -z "$VERSION" ]; then
-            echo "::error::Could not extract version from commit message"
+            echo "::error::Could not extract version from commit message: $COMMIT_MSG"
             exit 1
           fi
 
@@ -35,6 +36,7 @@ jobs:
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
 
       - name: Create and push tag
         run: |
