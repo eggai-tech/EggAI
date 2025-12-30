@@ -71,13 +71,25 @@ jobs:
             exit 1
           fi
 
-      - name: Check [Unreleased] section has content
+      - name: Check changelog content
+        env:
+          IS_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
         run: |
-          if ! grep -A 10 "## \[Unreleased\]" sdk/CHANGELOG.md | grep -qE "^### "; then
-            echo "::error::Add your changes under [Unreleased] section in CHANGELOG.md"
-            exit 1
+          if [ "$IS_RELEASE" = "true" ]; then
+            # Release PRs: verify version section exists
+            if ! grep -qE "## \[[0-9]+\.[0-9]+\.[0-9]+\] - [0-9]{4}-[0-9]{2}-[0-9]{2}" sdk/CHANGELOG.md; then
+              echo "::error::Release PR must have a version section (e.g., ## [0.2.9] - 2025-01-01)"
+              exit 1
+            fi
+            echo "Release changelog check passed!"
+          else
+            # Regular PRs: require content under [Unreleased]
+            if ! grep -A 10 "## \[Unreleased\]" sdk/CHANGELOG.md | grep -qE "^### "; then
+              echo "::error::Add your changes under [Unreleased] section in CHANGELOG.md"
+              exit 1
+            fi
+            echo "Changelog check passed!"
           fi
-          echo "Changelog check passed!"
 
   test:
     runs-on: ubuntu-latest
