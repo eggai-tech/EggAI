@@ -32,9 +32,7 @@ jobs:
             poetry-${{ runner.os }}-
 
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        uses: Gr1N/setup-poetry@v9
 
       - name: Copy README to SDK
         run: cp README.md sdk/
@@ -120,9 +118,7 @@ jobs:
             poetry-${{ runner.os }}-
 
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        uses: Gr1N/setup-poetry@v9
 
       - name: Copy README to SDK
         run: cp README.md sdk/
@@ -168,9 +164,7 @@ jobs:
             poetry-${{ runner.os }}-
 
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        uses: Gr1N/setup-poetry@v9
 
       - name: Copy README to SDK
         run: cp README.md sdk/
