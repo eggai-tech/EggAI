@@ -61,7 +61,7 @@ deep-clean: clean
 	@echo "Removing virtual environments..."
 	find . -type d -name "$(VENV_NAME)" -exec rm -rf {} + 2>/dev/null || true
 
-# Release a new version
+# Release a new version (creates PR, auto-tags on merge)
 # Usage: make release VERSION=0.2.9
 release:
 ifndef VERSION
@@ -70,7 +70,7 @@ endif
 	@echo "Preparing release v$(VERSION)..."
 	@# Check we're on main branch
 	@if [ "$$(git branch --show-current)" != "main" ]; then \
-		echo "Error: Must be on main branch to release"; \
+		echo "Error: Must be on main branch to start release"; \
 		exit 1; \
 	fi
 	@# Check working directory is clean
@@ -78,31 +78,38 @@ endif
 		echo "Error: Working directory is not clean. Commit or stash changes first."; \
 		exit 1; \
 	fi
+	@# Ensure we're up to date
+	@git pull origin main
 	@# Check [Unreleased] section has content
 	@if ! grep -A 5 "## \[Unreleased\]" sdk/CHANGELOG.md | grep -qE "^### "; then \
 		echo "Error: No changes found under [Unreleased] in CHANGELOG.md"; \
 		exit 1; \
 	fi
-	@# Update version in pyproject.toml (single source of truth)
+	@# Create release branch
+	@git checkout -b release/v$(VERSION)
+	@# Update version in pyproject.toml
 	@sed -i.bak 's/^version = ".*"/version = "$(VERSION)"/' sdk/pyproject.toml && rm sdk/pyproject.toml.bak
 	@echo "Updated sdk/pyproject.toml"
-	@# Update CHANGELOG.md - replace [Unreleased] with [VERSION] - DATE
+	@# Update CHANGELOG.md - add version section with date
 	@DATE=$$(date +%Y-%m-%d); \
 	sed -i.bak "s/## \[Unreleased\]/## [Unreleased]\n\n## [$(VERSION)] - $$DATE/" sdk/CHANGELOG.md && rm sdk/CHANGELOG.md.bak
 	@echo "Updated sdk/CHANGELOG.md"
-	@# Commit and tag
+	@# Commit
 	@git add sdk/pyproject.toml sdk/CHANGELOG.md
 	@git commit -m "chore: release v$(VERSION)"
-	@git tag -a "v$(VERSION)" -m "Release v$(VERSION)"
-	@echo "Created commit and tag v$(VERSION)"
-	@# Push
-	@git push origin main
-	@git push origin "v$(VERSION)"
+	@# Push branch
+	@git push -u origin release/v$(VERSION)
+	@# Create PR with release label
+	@gh pr create --title "chore: release v$(VERSION)" \
+		--body "Release v$(VERSION)" \
+		--label "release"
 	@echo ""
-	@echo "Release v$(VERSION) complete!"
-	@echo "GitHub Actions will now build and publish to PyPI."
+	@echo "Release PR created for v$(VERSION)!"
+	@echo "After PR is merged, the tag will be created automatically."
+	@echo ""
+	@echo "To complete: merge the PR on GitHub"
 
-# Release a release candidate for testing
+# Release a release candidate for testing (creates PR, auto-tags on merge)
 # Usage: make release-rc VERSION=0.3.0rc1
 release-rc:
 ifndef VERSION
@@ -116,7 +123,7 @@ endif
 	@echo "Preparing release candidate v$(VERSION)..."
 	@# Check we're on main branch
 	@if [ "$$(git branch --show-current)" != "main" ]; then \
-		echo "Error: Must be on main branch to release"; \
+		echo "Error: Must be on main branch to start release"; \
 		exit 1; \
 	fi
 	@# Check working directory is clean
@@ -124,20 +131,24 @@ endif
 		echo "Error: Working directory is not clean. Commit or stash changes first."; \
 		exit 1; \
 	fi
-	@# Update version in pyproject.toml (single source of truth)
+	@# Ensure we're up to date
+	@git pull origin main
+	@# Create release branch
+	@git checkout -b release/v$(VERSION)
+	@# Update version in pyproject.toml
 	@sed -i.bak 's/^version = ".*"/version = "$(VERSION)"/' sdk/pyproject.toml && rm sdk/pyproject.toml.bak
 	@echo "Updated sdk/pyproject.toml"
-	@# Commit and tag (no changelog update for RCs)
+	@# Commit (no changelog update for RCs)
 	@git add sdk/pyproject.toml
-	@git commit -m "chore: release candidate v$(VERSION)"
-	@git tag -a "v$(VERSION)" -m "Release candidate v$(VERSION)"
-	@echo "Created commit and tag v$(VERSION)"
-	@# Push
-	@git push origin main
-	@git push origin "v$(VERSION)"
+	@git commit -m "chore: release v$(VERSION)"
+	@# Push branch
+	@git push -u origin release/v$(VERSION)
+	@# Create PR with release and skip-changelog labels
+	@gh pr create --title "chore: release v$(VERSION)" \
+		--body "Release candidate v$(VERSION) for testing.\n\nInstall with: \`pip install eggai==$(VERSION)\`" \
+		--label "release" --label "skip-changelog"
 	@echo ""
-	@echo "Release candidate v$(VERSION) complete!"
-	@echo "GitHub Actions will now build and publish to PyPI as pre-release."
+	@echo "Release candidate PR created for v$(VERSION)!"
+	@echo "After PR is merged, the tag will be created automatically."
 	@echo ""
-	@echo "Users can test with: pip install eggai==$(VERSION)"
-	@echo "When ready for stable release: make release VERSION=<stable-version>"
+	@echo "To complete: merge the PR on GitHub"
