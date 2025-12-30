@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] - 2025-12-30
+
 ### Added
 - Enhanced release process with `make release VERSION=x.y.z` command
 - Changelog enforcement in CI for pull requests
