@@ -855,15 +855,15 @@ pydantic = ["pydantic (>=1.7.4,!=1.8,!=1.8.1,<3.0.0)"]
 
 [[package]]
 name = "fastmcp"
-version = "2.14.1"
+version = "2.14.2"
 description = "The fast, Pythonic way to build MCP servers and clients."
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"mcp\""
 files = [
-    {file = "fastmcp-2.14.1-py3-none-any.whl", hash = "sha256:fb3e365cc1d52573ab89caeba9944dd4b056149097be169bce428e011f0a57e5"},
-    {file = "fastmcp-2.14.1.tar.gz", hash = "sha256:132725cbf77b68fa3c3d165eff0cfa47e40c1479457419e6a2cfda65bd84c8d6"},
+    {file = "fastmcp-2.14.2-py3-none-any.whl", hash = "sha256:e33cd622e1ebd5110af6a981804525b6cd41072e3c7d68268ed69ef3be651aca"},
+    {file = "fastmcp-2.14.2.tar.gz", hash = "sha256:bd23d1b808b6f446444f10114dac468b11bfb9153ed78628f5619763d0cf573e"},
 ]
 
 [package.dependencies]
@@ -872,12 +872,12 @@ cyclopts = ">=4.0.0"
 exceptiongroup = ">=1.2.2"
 httpx = ">=0.28.1"
 jsonschema-path = ">=0.3.4"
-mcp = ">=1.24.0"
+mcp = ">=1.24.0,<2.0"
 openapi-pydantic = ">=0.5.1"
 platformdirs = ">=4.0.0"
 py-key-value-aio = {version = ">=0.3.0,<0.4.0", extras = ["disk", "keyring", "memory"]}
 pydantic = {version = ">=2.11.7", extras = ["email"]}
-pydocket = ">=0.15.5"
+pydocket = ">=0.16.3"
 pyperclip = ">=1.9.0"
 python-dotenv = ">=1.1.0"
 rich = ">=13.9.4"
@@ -890,14 +890,14 @@ openai = ["openai (>=1.102.0)"]
 
 [[package]]
 name = "faststream"
-version = "0.6.4"
+version = "0.6.5"
 description = "FastStream: the simplest way to work with a messaging queues"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "faststream-0.6.4-py3-none-any.whl", hash = "sha256:e00306208659c40ed0c6782e93d4536ad9ef320d0a5fb507d4dcd4f2a07eb2f9"},
-    {file = "faststream-0.6.4.tar.gz", hash = "sha256:e7f0d8e8ccfa3f9014072166f7993cf5d178f57c7daf79fcf37f5ba0e6a3cc68"},
+    {file = "faststream-0.6.5-py3-none-any.whl", hash = "sha256:714b13b84cdbe2bdcf0b2b8a5e2b04648cb7683784a5297d445adfee9f2b4f7e"},
+    {file = "faststream-0.6.5.tar.gz", hash = "sha256:ddef9e85631edf1aba87e81c8886067bd94ee752f41a09f1d1cd6f75f7e4fade"},
 ]
 
 [package.dependencies]
@@ -908,7 +908,7 @@ redis = {version = ">=5.0.0,<8.0.0", optional = true, markers = "extra == \"redi
 typing-extensions = ">=4.12.0"
 
 [package.extras]
-cli = ["typer (>=0.9,!=0.12,<=0.20.0)", "watchfiles (>=0.15.0,<1.2.0)"]
+cli = ["typer (>=0.9,!=0.12,<=0.20.1)", "watchfiles (>=0.15.0,<1.2.0)"]
 confluent = ["confluent-kafka (>=2,!=2.8.1,<3) ; python_full_version < \"3.13.0\"", "confluent-kafka (>=2.6,!=2.8.1,<3) ; python_full_version >= \"3.13.0\""]
 kafka = ["aiokafka (>=0.9,<0.13)"]
 nats = ["nats-py (>=2.12.0,<=3.0.0)"]
