@@ -52,7 +52,7 @@ jobs:
   changelog:
     runs-on: ubuntu-latest
     name: Changelog check
-    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'skip-changelog')
+    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'skip-changelog') && github.actor != 'dependabot[bot]'
 
     steps:
       - uses: actions/checkout@v6
