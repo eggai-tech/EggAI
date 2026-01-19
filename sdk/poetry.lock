@@ -855,15 +855,15 @@ pydantic = ["pydantic (>=1.7.4,!=1.8,!=1.8.1,<3.0.0)"]
 
 [[package]]
 name = "fastmcp"
-version = "2.14.2"
+version = "2.14.3"
 description = "The fast, Pythonic way to build MCP servers and clients."
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"mcp\""
 files = [
-    {file = "fastmcp-2.14.2-py3-none-any.whl", hash = "sha256:e33cd622e1ebd5110af6a981804525b6cd41072e3c7d68268ed69ef3be651aca"},
-    {file = "fastmcp-2.14.2.tar.gz", hash = "sha256:bd23d1b808b6f446444f10114dac468b11bfb9153ed78628f5619763d0cf573e"},
+    {file = "fastmcp-2.14.3-py3-none-any.whl", hash = "sha256:103c6b4c6e97a9acc251c81d303f110fe4f2bdba31353df515d66272bf1b9414"},
+    {file = "fastmcp-2.14.3.tar.gz", hash = "sha256:abc9113d5fcf79dfb4c060a1e1c55fccb0d4bce4a2e3eab15ca352341eec8dd6"},
 ]
 
 [package.dependencies]
@@ -877,7 +877,7 @@ openapi-pydantic = ">=0.5.1"
 platformdirs = ">=4.0.0"
 py-key-value-aio = {version = ">=0.3.0,<0.4.0", extras = ["disk", "keyring", "memory"]}
 pydantic = {version = ">=2.11.7", extras = ["email"]}
-pydocket = ">=0.16.3"
+pydocket = ">=0.16.6"
 pyperclip = ">=1.9.0"
 python-dotenv = ">=1.1.0"
 rich = ">=13.9.4"
@@ -2173,15 +2173,15 @@ yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
 name = "pydocket"
-version = "0.16.3"
+version = "0.16.6"
 description = "A distributed background task system for Python functions"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"mcp\""
 files = [
-    {file = "pydocket-0.16.3-py3-none-any.whl", hash = "sha256:e2b50925356e7cd535286255195458ac7bba15f25293356651b36d223db5dd7c"},
-    {file = "pydocket-0.16.3.tar.gz", hash = "sha256:78e9da576de09e9f3f410d2471ef1c679b7741ddd21b586c97a13872b69bd265"},
+    {file = "pydocket-0.16.6-py3-none-any.whl", hash = "sha256:683d21e2e846aa5106274e7d59210331b242d7fb0dce5b08d3b82065663ed183"},
+    {file = "pydocket-0.16.6.tar.gz", hash = "sha256:b96c96ad7692827214ed4ff25fcf941ec38371314db5dcc1ae792b3e9d3a0294"},
 ]
 
 [package.dependencies]
