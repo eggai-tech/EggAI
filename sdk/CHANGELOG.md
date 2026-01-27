@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **RedisTransport**: Messages are no longer acknowledged when handlers raise exceptions
+  - Set default `ack_policy` to `AckPolicy.NACK_ON_ERROR` for reliable message delivery
+  - Failed messages now remain in the Pending Entries List (PEL) for redelivery
+  - Added `min_idle_time` parameter support for automatic claiming of pending messages
+  - Added test verifying error handling and message recovery behavior
+
 ## [0.2.9] - 2025-12-30
 
 ### Added
