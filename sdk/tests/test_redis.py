@@ -12,6 +12,7 @@ import asyncio
 import uuid
 
 import pytest
+import redis.asyncio as redis
 
 from eggai import Agent, Channel
 from eggai.transport import RedisTransport, eggai_set_default_transport
@@ -165,4 +166,121 @@ async def test_channel_subscribe_multiple():
     # Only system events subscriber should receive this message
     assert len(system_event_subscribers) == 1, (
         f"Expected 1 subscriber to receive system event, got {len(system_event_subscribers)}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_redis_no_ack_on_error():
+    """
+    Test that messages are NOT acknowledged when handler raises an exception.
+
+    This is critical for reliability:
+    - When a handler fails, the message should remain in the Pending Entries List (PEL)
+    - The message should be available for redelivery (either to same or different consumer)
+    - This ensures no message loss during transient failures
+
+    The test verifies:
+    1. First consumer: Handler raises exception -> message NOT acked
+    2. Message remains in PEL (verified via Redis XPENDING command)
+    3. Second consumer with min_idle_time claims and processes the message
+    """
+
+    # Create Redis client to inspect PEL directly
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-error-channel-{test_id}"
+    stream_name = f"eggai.{channel_name}"
+
+    # --- Phase 1: First consumer that will fail ---
+    transport1 = RedisTransport()
+    agent1 = Agent(f"failing-agent-{test_id}", transport=transport1)
+    channel1 = Channel(channel_name, transport=transport1)
+
+    first_attempt_done = asyncio.Event()
+
+    class TransientError(Exception):
+        """Simulates a transient error that should trigger retry."""
+
+        pass
+
+    @agent1.subscribe(channel=channel1)
+    async def failing_handler(message):
+        """Handler that always fails."""
+        first_attempt_done.set()
+        raise TransientError("Simulated transient error")
+
+    await agent1.start()
+
+    # Publish a message
+    await channel1.publish(
+        {
+            "type": "test_message",
+            "data": "should_be_retried",
+            "test_id": test_id,
+        }
+    )
+
+    # Wait for first attempt to complete
+    await asyncio.wait_for(first_attempt_done.wait(), timeout=5.0)
+
+    # Give time for the nack to be processed
+    await asyncio.sleep(0.3)
+
+    # Stop the first agent
+    await agent1.stop()
+
+    # Check that message is in the Pending Entries List (PEL)
+    # The handler_id format is: {agent_name}-{handler_func_name}-{counter}
+    group_name = f"failing-agent-{test_id}-failing_handler-1"
+    pending_count = -1
+    try:
+        pending_info = await redis_client.xpending(stream_name, group_name)
+        pending_count = (
+            pending_info.get("pending", 0)
+            if isinstance(pending_info, dict)
+            else pending_info[0]
+        )
+    except Exception as e:
+        print(f"Error checking pending: {e}")
+
+    # --- Phase 2: Second consumer that claims and succeeds ---
+    transport2 = RedisTransport()
+    agent2 = Agent(f"recovery-agent-{test_id}", transport=transport2)
+    channel2 = Channel(channel_name, transport=transport2)
+
+    recovered_messages = []
+    recovery_done = asyncio.Event()
+
+    @agent2.subscribe(
+        channel=channel2,
+        # Use the same consumer group as the failed agent to claim its pending messages
+        group=group_name,
+        # Enable auto-claiming of pending messages after 100ms idle time
+        min_idle_time=100,
+    )
+    async def recovery_handler(message):
+        """Handler that successfully processes claimed messages."""
+        recovered_messages.append(message)
+        recovery_done.set()
+
+    await agent2.start()
+
+    # Wait for recovery
+    try:
+        await asyncio.wait_for(recovery_done.wait(), timeout=5.0)
+    except asyncio.TimeoutError:
+        pass
+
+    await agent2.stop()
+    await redis_client.aclose()
+
+    # Verify behavior
+    assert pending_count >= 1, (
+        f"Expected at least 1 pending message after error, got {pending_count}. "
+        "This suggests messages ARE being acked on error (incorrect behavior)."
+    )
+    assert len(recovered_messages) == 1, (
+        f"Expected recovery agent to process 1 message, got {len(recovered_messages)}. "
+        "Message was either acked on error or not properly claimed."
     )
