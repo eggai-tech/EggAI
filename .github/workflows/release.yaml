@@ -106,7 +106,8 @@ jobs:
             gh pr create \
               --title "chore: release v$VERSION" \
               --body-file /tmp/pr-body.md \
-              --label "release"
+              --label "release" \
+              --label "skip-changelog"
           fi
 
           echo "Release PR created! Merge it to trigger the release."
