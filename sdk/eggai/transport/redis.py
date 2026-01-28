@@ -2,6 +2,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from faststream import AckPolicy
 from faststream.redis import RedisBroker, StreamSub
 
 from eggai.schemas import BaseMessage
@@ -158,6 +159,15 @@ class RedisTransport(Transport):
             max_records (Optional[int], optional): Maximum number of records to consume in one batch (default is None).
             last_id (str, optional): Starting message ID for stream consumption (default is ">" for consumer groups).
             no_ack (bool, optional): Whether to skip acknowledgment of stream messages (default is False for durability).
+            ack_policy (AckPolicy, optional): Acknowledgment policy for message handling (default is AckPolicy.NACK_ON_ERROR).
+                - NACK_ON_ERROR: Messages are NOT acknowledged on handler errors, allowing redelivery (recommended).
+                - ACK: Messages are acknowledged regardless of handler success/failure.
+                - REJECT_ON_ERROR: Messages are permanently discarded on handler errors.
+                - MANUAL: Full manual control over acknowledgment via msg.ack()/msg.nack().
+            min_idle_time (int, optional): Minimum idle time in milliseconds before a pending message can be auto-claimed.
+                When set, enables automatic claiming of unacknowledged messages from the Pending Entries List (PEL).
+                Use with ack_policy=NACK_ON_ERROR for automatic retry of failed messages.
+                Recommended values: 1000-5000ms for fast recovery, 10000-60000ms for general use.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters
@@ -212,6 +222,7 @@ class RedisTransport(Transport):
         max_records = kwargs.pop("max_records", None)
         last_id = kwargs.pop("last_id", ">")
         no_ack = kwargs.pop("no_ack", False)
+        min_idle_time = kwargs.pop("min_idle_time", None)
 
         stream_sub = StreamSub(
             channel,
@@ -222,7 +233,15 @@ class RedisTransport(Transport):
             max_records=max_records,
             last_id=last_id,
             no_ack=no_ack,
+            min_idle_time=min_idle_time,
         )
 
+        # Extract ack_policy or default to NACK_ON_ERROR for reliability
+        # This ensures messages are NOT acknowledged when handlers raise exceptions,
+        # allowing them to be redelivered for retry
+        ack_policy = kwargs.pop("ack_policy", AckPolicy.NACK_ON_ERROR)
+
         # stream must be passed as keyword-only argument
-        return self.broker.subscriber(stream=stream_sub, **kwargs)(handler)
+        return self.broker.subscriber(
+            stream=stream_sub, ack_policy=ack_policy, **kwargs
+        )(handler)
