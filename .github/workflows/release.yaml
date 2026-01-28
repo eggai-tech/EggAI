@@ -76,7 +76,7 @@ jobs:
 
       - name: Create Pull Request
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           VERSION="${{ github.event.inputs.version }}"
           PRERELEASE="${{ steps.check.outputs.prerelease }}"
