@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.11] - 2026-01-28
+
 ### Fixed
 - **RedisTransport**: Messages are no longer acknowledged when handlers raise exceptions
   - Set default `ack_policy` to `AckPolicy.NACK_ON_ERROR` for reliable message delivery
