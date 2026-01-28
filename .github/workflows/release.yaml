@@ -82,12 +82,11 @@ jobs:
           PRERELEASE="${{ steps.check.outputs.prerelease }}"
 
           if [ "$PRERELEASE" = "true" ]; then
-            cat > /tmp/pr-body.md << 'EOF'
+            cat > /tmp/pr-body.md << EOF
           Release candidate v$VERSION for testing.
 
-          Install with: `pip install eggai==$VERSION`
+          Install with: \`pip install eggai==$VERSION\`
           EOF
-            sed -i "s/\$VERSION/$VERSION/g" /tmp/pr-body.md
 
             gh pr create \
               --title "chore: release v$VERSION" \
@@ -99,9 +98,11 @@ jobs:
             CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" sdk/CHANGELOG.md | sed '$d' | tail -n +2)
 
             # Use a temp file to safely pass changelog content with special characters
-            echo "## Release v$VERSION" > /tmp/pr-body.md
-            echo "" >> /tmp/pr-body.md
-            echo "$CHANGELOG" >> /tmp/pr-body.md
+            {
+              echo "## Release v$VERSION"
+              echo ""
+              printf '%s\n' "$CHANGELOG"
+            } > /tmp/pr-body.md
 
             gh pr create \
               --title "chore: release v$VERSION" \
