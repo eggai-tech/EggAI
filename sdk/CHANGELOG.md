@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **RedisTransport**: SDK-managed PEL reclaimer via new `retry_on_idle_ms` opt-in
+  kwarg on `agent.subscribe()`. With `NACK_ON_ERROR` (the default), a handler
+  exception leaves the message in the Redis Pending Entries List forever because
+  FastStream only reads new messages. Setting `retry_on_idle_ms` enables a
+  background reclaimer that:
+  - Pages through `XPENDING` and claims entries idle longer than the threshold.
+  - Moves them to a dedicated `{channel}.retry` stream (no duplicate delivery).
+  - Subscribes the same handler to the retry stream automatically.
+  - Runs a second reclaimer on the retry stream that re-queues back to itself
+    (prevents unbounded `.retry.retry.retry` chains).
+  - Injects `_retry_count` and `_original_message_id` into the message body for
+    handler-level idempotency and deduplication.
+  - Is restart-safe: the Redis client is recreated on each `start()` call.
+  - `min_idle_time` (FastStream XAUTOCLAIM) and `retry_on_idle_ms` are mutually
+    exclusive on the same subscription; mixing them raises `ValueError` at
+    decoration time.
+
 ## [0.2.11] - 2026-01-28
 
 ### Fixed
