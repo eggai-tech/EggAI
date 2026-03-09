@@ -284,3 +284,226 @@ async def test_redis_no_ack_on_error():
         f"Expected recovery agent to process 1 message, got {len(recovered_messages)}. "
         "Message was either acked on error or not properly claimed."
     )
+
+
+@pytest.mark.asyncio
+async def test_retry_on_idle_ms_basic():
+    """
+    Test SDK-managed PEL reclaiming via retry_on_idle_ms.
+
+    Flow:
+      1. Handler raises on the first call (message stays in PEL).
+      2. Reclaimer fires after retry_on_idle_ms and moves the message to the
+         .retry stream.
+      3. The same handler processes the message from the retry stream and succeeds.
+
+    Asserts:
+      - Handler is invoked exactly twice (once on main, once on retry).
+      - No duplicate: only one unique message payload received.
+      - PEL on main stream is empty after retry succeeds.
+      - PEL on retry stream is empty after retry succeeds.
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-retry-idle-{test_id}"
+    stream_name = f"eggai.{channel_name}"
+    retry_stream_name = f"{stream_name}.retry"
+
+    transport = RedisTransport()
+    agent = Agent(f"retry-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    call_count = 0
+    received_payloads = []
+    retry_done = asyncio.Event()
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=500,
+        retry_reclaim_interval_s=1.0,
+    )
+    async def handler(message):
+        nonlocal call_count
+        call_count += 1
+        received_payloads.append(message.get("data"))
+        if call_count == 1:
+            raise RuntimeError("transient failure")
+        retry_done.set()
+
+    await agent.start()
+
+    await channel.publish({"type": "test", "data": "hello", "test_id": test_id})
+
+    # Wait for the retry handler to succeed (reclaimer fires after ~1s).
+    await asyncio.wait_for(retry_done.wait(), timeout=10.0)
+    # Brief pause so XACK can complete.
+    await asyncio.sleep(0.3)
+
+    await agent.stop()
+
+    # Determine group names (mirrors agent.py handler_id format).
+    group_main = f"retry-agent-{test_id}-handler-1"
+    group_retry = f"{group_main}-retry"
+
+    def get_pending(info):
+        return info.get("pending", 0) if isinstance(info, dict) else info[0]
+
+    pending_main = get_pending(await redis_client.xpending(stream_name, group_main))
+    pending_retry = get_pending(
+        await redis_client.xpending(retry_stream_name, group_retry)
+    )
+
+    await redis_client.aclose()
+
+    assert call_count == 2, f"Expected 2 handler calls, got {call_count}"
+    assert received_payloads == ["hello", "hello"], (
+        f"Unexpected payloads: {received_payloads}"
+    )
+    assert pending_main == 0, f"Main PEL not empty after retry: {pending_main} pending"
+    assert pending_retry == 0, (
+        f"Retry PEL not empty after success: {pending_retry} pending"
+    )
+
+
+@pytest.mark.asyncio
+async def test_retry_on_idle_ms_no_retry_retry_stream():
+    """
+    Persistent failure in the retry handler must NOT create a .retry.retry stream.
+    The retry-stream reclaimer re-queues back to the same retry stream.
+
+    Asserts:
+      - No stream named eggai.{channel}.retry.retry is ever created.
+      - The retry handler is called multiple times (reclaimer keeps requeueing).
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-no-retry-retry-{test_id}"
+    retry_retry_stream = f"eggai.{channel_name}.retry.retry"
+
+    transport = RedisTransport()
+    agent = Agent(f"persistent-fail-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    call_count = 0
+    second_retry_seen = asyncio.Event()
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+    )
+    async def always_failing_handler(message):
+        nonlocal call_count
+        call_count += 1
+        if call_count >= 3:
+            second_retry_seen.set()
+        raise RuntimeError("persistent failure")
+
+    await agent.start()
+
+    await channel.publish({"type": "test", "data": "will-fail", "test_id": test_id})
+
+    # Wait long enough for at least two reclaim cycles.
+    await asyncio.wait_for(second_retry_seen.wait(), timeout=15.0)
+
+    await agent.stop()
+
+    retry_retry_exists = await redis_client.exists(retry_retry_stream)
+    await redis_client.aclose()
+
+    assert retry_retry_exists == 0, (
+        f"A .retry.retry stream was created: {retry_retry_stream}"
+    )
+    assert call_count >= 3, (
+        f"Expected handler to be called at least 3 times, got {call_count}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_retry_on_idle_ms_conflict_with_min_idle_time():
+    """Setting both min_idle_time and retry_on_idle_ms must raise ValueError."""
+    transport = RedisTransport()
+    agent = Agent("conflict-agent", transport=transport)
+    channel = Channel("test-conflict-channel", transport=transport)
+
+    with pytest.raises(ValueError, match="mutually exclusive"):
+
+        @agent.subscribe(channel=channel, min_idle_time=100, retry_on_idle_ms=500)
+        async def handler(message):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_retry_on_idle_ms_uses_prefixed_stream_keys():
+    """Reclaimer configs must target the actual Redis stream keys used by FastStream."""
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-handler-1",
+        retry_on_idle_ms=500,
+    )
+
+    assert transport._reclaimer_manager is not None
+
+    configs = sorted(
+        transport._reclaimer_manager._configs.values(),
+        key=lambda config: config.stream,
+    )
+
+    assert len(configs) == 2
+    assert configs[0].stream == "eggai.orders"
+    assert configs[0].retry_stream == "eggai.orders.retry"
+    assert configs[1].stream == "eggai.orders.retry"
+    assert configs[1].retry_stream == "eggai.orders.retry"
+
+
+@pytest.mark.asyncio
+async def test_retry_on_idle_ms_metadata():
+    """
+    Verify that _retry_count and _original_message_id are injected into the
+    message fields when it is delivered via the retry stream.
+    """
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-retry-meta-{test_id}"
+
+    transport = RedisTransport()
+    agent = Agent(f"meta-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    call_count = 0
+    retry_fields: dict = {}
+    retry_done = asyncio.Event()
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+    )
+    async def handler(message):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise RuntimeError("first attempt fails")
+        retry_fields.update(message)
+        retry_done.set()
+
+    await agent.start()
+    await channel.publish({"type": "test", "data": "check-meta", "test_id": test_id})
+
+    await asyncio.wait_for(retry_done.wait(), timeout=10.0)
+    await agent.stop()
+
+    assert "_retry_count" in retry_fields, "Missing _retry_count in retry delivery"
+    assert retry_fields["_retry_count"] == "1", (
+        f"Expected _retry_count='1', got {retry_fields.get('_retry_count')!r}"
+    )
+    assert "_original_message_id" in retry_fields, (
+        "Missing _original_message_id in retry delivery"
+    )

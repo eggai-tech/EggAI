@@ -12,6 +12,7 @@ from eggai.transport.middleware_utils import (
     create_filter_by_data_middleware,
     create_filter_middleware,
 )
+from eggai.transport.pending_reclaimer import PendingReclaimerManager, ReclaimerConfig
 
 
 class RedisTransport(Transport):
@@ -96,7 +97,9 @@ class RedisTransport(Transport):
             self.broker = broker
         else:
             self.broker = RedisBroker(url, log_level=logging.INFO, **kwargs)
+        self._redis_url = url
         self._running = False
+        self._reclaimer_manager: PendingReclaimerManager | None = None
 
     async def connect(self):
         """
@@ -105,7 +108,12 @@ class RedisTransport(Transport):
         This method is necessary before publishing or consuming messages. It asynchronously starts the broker
         to handle Redis communication.
         """
+        # broker.start() creates all consumer groups (and streams via MKSTREAM).
+        # Both the main and retry subscriptions were registered in subscribe() before
+        # connect() is called, so all groups exist after this line.
         await self.broker.start()
+        if self._reclaimer_manager is not None:
+            await self._reclaimer_manager.start()
         self._running = True
 
     async def disconnect(self):
@@ -116,6 +124,8 @@ class RedisTransport(Transport):
         and to release any resources held by the RedisBroker.
         """
         self._running = False
+        if self._reclaimer_manager is not None:
+            await self._reclaimer_manager.stop()
         await self.broker.stop()
 
     async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
@@ -164,10 +174,16 @@ class RedisTransport(Transport):
                 - ACK: Messages are acknowledged regardless of handler success/failure.
                 - REJECT_ON_ERROR: Messages are permanently discarded on handler errors.
                 - MANUAL: Full manual control over acknowledgment via msg.ack()/msg.nack().
-            min_idle_time (int, optional): Minimum idle time in milliseconds before a pending message can be auto-claimed.
-                When set, enables automatic claiming of unacknowledged messages from the Pending Entries List (PEL).
-                Use with ack_policy=NACK_ON_ERROR for automatic retry of failed messages.
-                Recommended values: 1000-5000ms for fast recovery, 10000-60000ms for general use.
+            min_idle_time (int, optional): Minimum idle time in milliseconds before a pending message can be auto-claimed
+                via FastStream's built-in XAUTOCLAIM. Mutually exclusive with retry_on_idle_ms.
+            retry_on_idle_ms (int, optional): Enables SDK-managed PEL reclaiming. Messages stuck in the PEL longer than
+                this threshold are moved to a dedicated ``{channel}.retry`` stream and re-delivered to the same handler.
+                Mutually exclusive with min_idle_time. Recommended: 30_000 (30 seconds).
+                Delivery is at-least-once — handlers must be idempotent. Injected fields _retry_count and
+                _original_message_id can be used for deduplication.
+                Binary (non-UTF-8) field values are not supported.
+            retry_reclaim_interval_s (float, optional): How often the reclaimer scans for stuck messages (default 15.0s).
+                Only used when retry_on_idle_ms is set.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters
@@ -209,6 +225,11 @@ class RedisTransport(Transport):
                     )
                 )
 
+        # Reclaimer options — extracted before StreamSub is built.
+        retry_on_idle_ms = kwargs.pop("retry_on_idle_ms", None)
+        retry_reclaim_interval_s = kwargs.pop("retry_reclaim_interval_s", 15.0)
+        _internal_retry = kwargs.pop("_internal_retry", False)
+
         handler_id = kwargs.pop("handler_id", None)
 
         # Ignore Kafka-specific parameter (Redis uses 'group' for streams, not 'group_id')
@@ -223,6 +244,13 @@ class RedisTransport(Transport):
         last_id = kwargs.pop("last_id", ">")
         no_ack = kwargs.pop("no_ack", False)
         min_idle_time = kwargs.pop("min_idle_time", None)
+
+        if min_idle_time is not None and retry_on_idle_ms is not None:
+            raise ValueError(
+                "min_idle_time and retry_on_idle_ms are mutually exclusive. "
+                "Use retry_on_idle_ms for SDK-managed retry streams, or "
+                "min_idle_time for FastStream's built-in XAUTOCLAIM."
+            )
 
         stream_sub = StreamSub(
             channel,
@@ -242,6 +270,84 @@ class RedisTransport(Transport):
         ack_policy = kwargs.pop("ack_policy", AckPolicy.NACK_ON_ERROR)
 
         # stream must be passed as keyword-only argument
-        return self.broker.subscriber(
+        registered_handler = self.broker.subscriber(
             stream=stream_sub, ack_policy=ack_policy, **kwargs
         )(handler)
+
+        if retry_on_idle_ms is not None and not _internal_retry:
+            retry_stream = f"{channel}.retry"
+            retry_handler_id = (
+                f"{handler_id}-retry"
+                if handler_id
+                else f"{channel}-{handler.__name__}-retry"
+            )
+
+            # Reclaimer for main stream: moves idle PEL entries to retry_stream.
+            self._setup_reclaimer(
+                stream=channel,
+                group=group,
+                consumer=f"{group}-reclaimer",
+                retry_stream=retry_stream,
+                min_idle_ms=retry_on_idle_ms,
+                interval_s=retry_reclaim_interval_s,
+            )
+
+            # Auto-subscribe the same handler to the retry stream.
+            # _internal_retry=True prevents infinite recursion and .retry.retry chains.
+            await self.subscribe(
+                retry_stream,
+                handler,
+                _internal_retry=True,
+                handler_id=retry_handler_id,
+                group=retry_handler_id,
+                consumer=retry_handler_id,
+                polling_interval=polling_interval,
+                batch=batch,
+                max_records=max_records,
+                last_id=last_id,
+                no_ack=no_ack,
+                ack_policy=ack_policy,
+                **kwargs,
+            )
+
+            # Reclaimer for retry stream: re-queues back to the same retry stream
+            # (avoids creating a .retry.retry chain — Bug 3 fix).
+            self._setup_reclaimer(
+                stream=retry_stream,
+                group=retry_handler_id,
+                consumer=f"{retry_handler_id}-reclaimer",
+                retry_stream=retry_stream,
+                min_idle_ms=retry_on_idle_ms,
+                interval_s=retry_reclaim_interval_s,
+            )
+
+        return registered_handler
+
+    def _setup_reclaimer(
+        self,
+        *,
+        stream: str,
+        group: str,
+        consumer: str,
+        retry_stream: str,
+        min_idle_ms: int,
+        interval_s: float,
+    ) -> None:
+        if self._reclaimer_manager is None:
+            self._reclaimer_manager = PendingReclaimerManager(self._redis_url)
+        self._reclaimer_manager.add(
+            ReclaimerConfig(
+                stream=self._get_stream_key(stream),
+                group=group,
+                consumer=consumer,
+                retry_stream=self._get_stream_key(retry_stream),
+                min_idle_ms=min_idle_ms,
+                interval_s=interval_s,
+            )
+        )
+
+    @staticmethod
+    def _get_stream_key(channel: str) -> str:
+        if channel.startswith("eggai."):
+            return channel
+        return f"eggai.{channel}"

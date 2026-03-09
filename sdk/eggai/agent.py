@@ -82,6 +82,12 @@ class Agent:
 
         def decorator(handler: Callable[[dict[str, Any]], "asyncio.Future"]):
             channel_name = channel.get_name() if channel else "eggai.channel"
+            if "min_idle_time" in kwargs and "retry_on_idle_ms" in kwargs:
+                raise ValueError(
+                    "min_idle_time and retry_on_idle_ms are mutually exclusive. "
+                    "Use retry_on_idle_ms for SDK-managed retry streams, or "
+                    "min_idle_time for FastStream's built-in XAUTOCLAIM."
+                )
             original_kwargs = kwargs.copy()
 
             # Extract plugin-specific kwargs dynamically and clean them from kwargs
