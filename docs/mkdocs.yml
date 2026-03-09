@@ -37,6 +37,7 @@ nav:
     - "Message": sdk/message.md
     - "Message Protocol": sdk/message-protocol.md
     - "Transport": sdk/transport.md
+    - "RedisTransport": sdk/redis-transport.md
     - "KafkaTransport": sdk/kafka-transport.md
     - "InMemoryTransport": sdk/inmemory-transport.md
     - "A2A Integration": sdk/a2a.md
