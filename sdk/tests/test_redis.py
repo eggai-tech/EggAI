@@ -525,7 +525,10 @@ async def test_inject_retry_metadata_malformed_payload(caplog):
 @pytest.mark.asyncio
 async def test_reclaimer_manager_start_stop_cycles():
     """PendingReclaimerManager handles repeated start/stop without leaking clients."""
-    from eggai.transport.pending_reclaimer import PendingReclaimerManager, ReclaimerConfig
+    from eggai.transport.pending_reclaimer import (
+        PendingReclaimerManager,
+        ReclaimerConfig,
+    )
 
     manager = PendingReclaimerManager("redis://localhost:6379")
     assert manager._redis_client is None
