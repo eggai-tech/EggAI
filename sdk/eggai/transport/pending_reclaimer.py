@@ -2,12 +2,40 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
+from struct import pack
 from typing import Any
 
 import redis.asyncio as aioredis
-from faststream.redis.parser.binary import BinaryMessageFormatV1, BinaryWriter
+from faststream.redis.parser.binary import BinaryMessageFormatV1
 
 logger = logging.getLogger(__name__)
+
+
+class _BinaryWriter:
+    """Minimal binary writer for rebuilding FastStream BinaryMessageFormatV1 envelopes.
+
+    Replaces the private ``faststream.redis.parser.binary.BinaryWriter`` so we
+    don't depend on an unexported internal class.
+    """
+
+    def __init__(self) -> None:
+        self.data = bytearray()
+
+    def write(self, data: bytes) -> None:
+        self.data.extend(data)
+
+    def write_short(self, number: int) -> None:
+        self.write(pack(">H", number))
+
+    def write_int(self, number: int) -> None:
+        self.write(pack(">I", number))
+
+    def write_string(self, data: str | bytes) -> None:
+        self.write_short(len(data))
+        self.write(data.encode() if isinstance(data, str) else data)
+
+    def get_bytes(self) -> bytes:
+        return bytes(self.data)
 
 
 @dataclass(frozen=True)
@@ -37,21 +65,26 @@ def _inject_retry_metadata(data: bytes, msg_id_str: str) -> bytes:
         body_bytes, headers = BinaryMessageFormatV1.parse(data)
         body_dict = json.loads(body_bytes)
     except Exception:
-        return data  # unknown format — pass through unchanged
+        logger.warning(
+            "Failed to inject retry metadata for message %s; passing through unchanged",
+            msg_id_str,
+            exc_info=True,
+        )
+        return data
 
     body_dict["_retry_count"] = str(int(body_dict.get("_retry_count", "0")) + 1)
     body_dict.setdefault("_original_message_id", msg_id_str)
     new_body_bytes = json.dumps(body_dict, separators=(",", ":")).encode()
 
     # Re-encode headers section.
-    headers_writer = BinaryWriter()
+    headers_writer = _BinaryWriter()
     for key, value in headers.items():
         headers_writer.write_string(key)
         headers_writer.write_string(value)
     headers_bytes = headers_writer.get_bytes()
 
     # Rebuild the binary envelope — mirrors BinaryMessageFormatV1.encode().
-    writer = BinaryWriter()
+    writer = _BinaryWriter()
     writer.write(BinaryMessageFormatV1.IDENTITY_HEADER)  # 8 bytes → len=8
     writer.write_short(1)  # version=1, 2B → len=10
     headers_start = len(writer.data) + 8  # 10+8 = 18
@@ -84,12 +117,8 @@ class PendingReclaimerManager:
     """
 
     def __init__(self, redis_url: str):
-        # decode_responses=False: field values are kept as raw bytes so that
-        # FastStream's binary-encoded __data__ field is passed through unchanged.
         self._redis_url = redis_url
-        self._redis_client: aioredis.Redis = aioredis.from_url(
-            redis_url, decode_responses=False
-        )
+        self._redis_client: aioredis.Redis | None = None
         self._configs: dict[tuple[str, str, str], ReclaimerConfig] = {}
         self._tasks: dict[tuple[str, str, str], asyncio.Task] = {}
 
@@ -99,7 +128,8 @@ class PendingReclaimerManager:
 
     async def start(self) -> None:
         """Start one background task per registered config. Safe to call again after stop."""
-        # Recreate the Redis client — stop() closes it, so a second start() needs a fresh one.
+        # decode_responses=False: field values are kept as raw bytes so that
+        # FastStream's binary-encoded __data__ field is passed through unchanged.
         self._redis_client = aioredis.from_url(self._redis_url, decode_responses=False)
         for key, config in self._configs.items():
             if key in self._tasks and not self._tasks[key].done():
@@ -118,7 +148,9 @@ class PendingReclaimerManager:
             except asyncio.CancelledError:
                 pass
         self._tasks.clear()
-        await self._redis_client.aclose()
+        if self._redis_client is not None:
+            await self._redis_client.aclose()
+            self._redis_client = None
 
     async def _run(self, config: ReclaimerConfig) -> None:
         while True:

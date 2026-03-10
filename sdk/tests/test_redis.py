@@ -9,6 +9,7 @@ This test suite verifies:
 """
 
 import asyncio
+import logging
 import uuid
 
 import pytest
@@ -507,3 +508,56 @@ async def test_retry_on_idle_ms_metadata():
     assert "_original_message_id" in retry_fields, (
         "Missing _original_message_id in retry delivery"
     )
+
+
+@pytest.mark.asyncio
+async def test_inject_retry_metadata_malformed_payload(caplog):
+    """_inject_retry_metadata logs a warning and returns data unchanged for unparseable input."""
+    from eggai.transport.pending_reclaimer import _inject_retry_metadata
+
+    garbage = b"\x00\x01\x02not-valid-binary-format"
+    with caplog.at_level(logging.WARNING, logger="eggai.transport.pending_reclaimer"):
+        result = _inject_retry_metadata(garbage, "0-1")
+    assert result == garbage
+    assert any("Failed to inject retry metadata" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_reclaimer_manager_start_stop_cycles():
+    """PendingReclaimerManager handles repeated start/stop without leaking clients."""
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager, ReclaimerConfig
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    assert manager._redis_client is None
+
+    manager.add(
+        ReclaimerConfig(
+            stream="test-stream",
+            group="test-group",
+            consumer="test-consumer",
+            retry_stream="test-stream.retry",
+            min_idle_ms=60_000,
+            interval_s=60.0,
+        )
+    )
+
+    # First cycle
+    await manager.start()
+    assert manager._redis_client is not None
+    await manager.stop()
+    assert manager._redis_client is None
+
+    # Second cycle — must not raise or leak the previous client
+    await manager.start()
+    assert manager._redis_client is not None
+    await manager.stop()
+    assert manager._redis_client is None
+
+
+@pytest.mark.asyncio
+async def test_reclaimer_manager_stop_without_start():
+    """Calling stop() before start() must not raise."""
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    await manager.stop()  # should not raise
