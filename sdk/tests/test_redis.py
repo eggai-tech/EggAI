@@ -461,8 +461,13 @@ async def test_retry_on_idle_ms_uses_prefixed_stream_keys():
     assert len(configs) == 2
     assert configs[0].stream == "eggai.orders"
     assert configs[0].retry_stream == "eggai.orders.retry"
+    # Default max_retries=5 should set up DLQ stream
+    assert configs[0].max_retries == 5
+    assert configs[0].dlq_stream == "eggai.orders.dlq"
     assert configs[1].stream == "eggai.orders.retry"
     assert configs[1].retry_stream == "eggai.orders.retry"
+    assert configs[1].max_retries == 5
+    assert configs[1].dlq_stream == "eggai.orders.dlq"
 
 
 @pytest.mark.asyncio
@@ -512,13 +517,14 @@ async def test_retry_on_idle_ms_metadata():
 
 @pytest.mark.asyncio
 async def test_inject_retry_metadata_malformed_payload(caplog):
-    """_inject_retry_metadata logs a warning and returns data unchanged for unparseable input."""
+    """_inject_retry_metadata logs a warning and returns (data, 0) for unparseable input."""
     from eggai.transport.pending_reclaimer import _inject_retry_metadata
 
     garbage = b"\x00\x01\x02not-valid-binary-format"
     with caplog.at_level(logging.WARNING, logger="eggai.transport.pending_reclaimer"):
-        result = _inject_retry_metadata(garbage, "0-1")
-    assert result == garbage
+        result_data, result_count = _inject_retry_metadata(garbage, "0-1")
+    assert result_data == garbage
+    assert result_count == 0
     assert any("Failed to inject retry metadata" in r.message for r in caplog.records)
 
 
@@ -564,3 +570,220 @@ async def test_reclaimer_manager_stop_without_start():
 
     manager = PendingReclaimerManager("redis://localhost:6379")
     await manager.stop()  # should not raise
+
+
+@pytest.mark.asyncio
+async def test_max_retries_routes_to_dlq():
+    """
+    When max_retries=2, a poison message should be routed to the DLQ after
+    2 retry attempts (3 total handler calls: 1 original + 2 retries).
+    On the 3rd reclaim cycle (_retry_count=3 > max_retries=2), it goes to DLQ.
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=False)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-dlq-{test_id}"
+    dlq_stream_name = f"eggai.{channel_name}.dlq"
+
+    transport = RedisTransport()
+    agent = Agent(f"dlq-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    call_count = 0
+    dlq_arrived = asyncio.Event()
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+        max_retries=2,
+    )
+    async def always_fails(message):
+        nonlocal call_count
+        call_count += 1
+        raise RuntimeError("poison message")
+
+    await agent.start()
+    await channel.publish({"type": "test", "data": "poison", "test_id": test_id})
+
+    # Poll for the DLQ stream to appear with an entry.
+    for _ in range(30):
+        await asyncio.sleep(1.0)
+        if await redis_client.exists(dlq_stream_name):
+            entries = await redis_client.xrange(dlq_stream_name)
+            if entries:
+                dlq_arrived.set()
+                break
+
+    await agent.stop()
+
+    assert dlq_arrived.is_set(), "Message never arrived in DLQ stream"
+
+    # Inspect DLQ entry
+    entries = await redis_client.xrange(dlq_stream_name)
+    assert len(entries) == 1, f"Expected 1 DLQ entry, got {len(entries)}"
+
+    _msg_id, fields = entries[0]
+    # Parse the binary __data__ field to check metadata
+    import json
+
+    from faststream.redis.parser.binary import BinaryMessageFormatV1
+
+    body_bytes, _headers = BinaryMessageFormatV1.parse(fields[b"__data__"])
+    body = json.loads(body_bytes)
+    assert int(body["_retry_count"]) > 2, (
+        f"Expected _retry_count > 2 (exceeded max_retries=2), got {body['_retry_count']}"
+    )
+    assert "_original_message_id" in body
+
+    await redis_client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_max_retries_on_dlq_callback():
+    """on_dlq callback is invoked when a message is routed to the DLQ."""
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=False)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-dlq-cb-{test_id}"
+    transport = RedisTransport()
+    agent = Agent(f"dlq-cb-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    callback_calls = []
+    dlq_callback_fired = asyncio.Event()
+
+    async def my_on_dlq(fields, msg_id, retry_count):
+        callback_calls.append({"msg_id": msg_id, "retry_count": retry_count})
+        dlq_callback_fired.set()
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+        max_retries=1,
+        on_dlq=my_on_dlq,
+    )
+    async def always_fails(message):
+        raise RuntimeError("poison")
+
+    await agent.start()
+    await channel.publish({"type": "test", "data": "cb-test", "test_id": test_id})
+
+    # Wait for callback
+    try:
+        await asyncio.wait_for(dlq_callback_fired.wait(), timeout=15.0)
+    except asyncio.TimeoutError:
+        pass
+
+    await agent.stop()
+    await redis_client.aclose()
+
+    assert len(callback_calls) >= 1, "on_dlq callback was never invoked"
+    assert callback_calls[0]["retry_count"] > 1, (
+        f"Expected retry_count > 1, got {callback_calls[0]['retry_count']}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_max_retries_none_disables_dlq():
+    """
+    Setting max_retries=None should disable DLQ — messages retry indefinitely.
+    No .dlq stream should be created.
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-no-dlq-{test_id}"
+    dlq_stream_name = f"eggai.{channel_name}.dlq"
+
+    transport = RedisTransport()
+    agent = Agent(f"no-dlq-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    call_count = 0
+    enough_retries = asyncio.Event()
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+        max_retries=None,
+    )
+    async def always_fails(message):
+        nonlocal call_count
+        call_count += 1
+        if call_count >= 4:
+            enough_retries.set()
+        raise RuntimeError("persistent failure")
+
+    await agent.start()
+    await channel.publish({"type": "test", "data": "no-dlq", "test_id": test_id})
+
+    await asyncio.wait_for(enough_retries.wait(), timeout=15.0)
+    await agent.stop()
+
+    dlq_exists = await redis_client.exists(dlq_stream_name)
+    await redis_client.aclose()
+
+    assert dlq_exists == 0, "DLQ stream should not exist when max_retries=None"
+    assert call_count >= 4, f"Expected at least 4 handler calls, got {call_count}"
+
+
+@pytest.mark.asyncio
+async def test_max_retries_requires_retry_on_idle_ms():
+    """Setting max_retries without retry_on_idle_ms must raise ValueError."""
+    transport = RedisTransport()
+    agent = Agent("dlq-validation-agent", transport=transport)
+    channel = Channel("test-dlq-validation", transport=transport)
+
+    with pytest.raises(ValueError, match="max_retries requires retry_on_idle_ms"):
+
+        @agent.subscribe(channel=channel, max_retries=3)
+        async def handler(message):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_max_retries_validation():
+    """max_retries=0 and max_retries=-1 must raise ValueError."""
+    transport = RedisTransport()
+    agent = Agent("dlq-val-agent", transport=transport)
+    channel = Channel("test-dlq-val", transport=transport)
+
+    with pytest.raises(ValueError, match="max_retries must be >= 1"):
+
+        @agent.subscribe(channel=channel, retry_on_idle_ms=500, max_retries=0)
+        async def handler_zero(message):
+            pass
+
+    with pytest.raises(ValueError, match="max_retries must be >= 1"):
+
+        @agent.subscribe(channel=channel, retry_on_idle_ms=500, max_retries=-1)
+        async def handler_neg(message):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_dlq_stream_naming():
+    """Reclaimer configs get the correct DLQ stream name with eggai. prefix."""
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-handler-1",
+        retry_on_idle_ms=500,
+        max_retries=3,
+    )
+
+    assert transport._reclaimer_manager is not None
+
+    configs = list(transport._reclaimer_manager._configs.values())
+    for config in configs:
+        assert config.dlq_stream == "eggai.orders.dlq", (
+            f"Expected dlq_stream='eggai.orders.dlq', got {config.dlq_stream}"
+        )

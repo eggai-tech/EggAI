@@ -145,11 +145,18 @@ transport = RedisTransport(url="redis://localhost:6379")
 agent = Agent("order-service", transport=transport)
 orders = Channel("orders", transport=transport)
 
-@agent.subscribe(channel=orders, retry_on_idle_ms=30_000)
+@agent.subscribe(
+    channel=orders,
+    retry_on_idle_ms=30_000,          # reclaim after 30s idle (required to enable retry)
+    max_retries=5,                    # route to DLQ after 5 retries (default: 5, None = unlimited)
+    retry_reclaim_interval_s=15.0,    # PEL scan interval (default: 15.0)
+    on_dlq=None,                      # optional async/sync callback(fields, msg_id, count)
+)
 async def handle_order(message):
     # If this raises, the message stays in the PEL.
     # After 30s idle the reclaimer moves it to eggai.orders.retry
     # and this same handler is called again.
+    # After 5 failed retries, the message is routed to eggai.orders.dlq.
     await process_order(message)
 
 await agent.start()
@@ -160,6 +167,7 @@ The SDK automatically:
 2. Moves idle messages (older than `retry_on_idle_ms`) to a dedicated `{channel}.retry` stream.
 3. Subscribes the same handler to the retry stream.
 4. Runs a second reclaimer on the retry stream that re-queues back to itself (no `.retry.retry` chain).
+5. After `max_retries` retry attempts (default 5), routes the message to a `{channel}.dlq` Dead Letter Queue instead of retrying again.
 
 **Delivery guarantee:** at-least-once. `XADD` and `XACK` are not atomic — a crash between
 them will re-deliver the message on the next cycle. Handlers must be **idempotent**.
@@ -169,6 +177,10 @@ Two fields are injected on retry delivery to aid deduplication:
 |-------|-------|
 | `_retry_count` | `"1"`, `"2"`, … — incremented on each reclaim cycle |
 | `_original_message_id` | Redis stream ID of the original message |
+
+**Dead Letter Queue (DLQ):** Messages that exceed `max_retries` (default 5) are routed to
+`{channel}.dlq`. The DLQ is terminal — no automatic reclaimer. Set `max_retries=None` for
+unlimited retries. An optional `on_dlq` callback fires when a message lands in the DLQ.
 
 **Constraints:**
 - `min_idle_time` (FastStream XAUTOCLAIM) and `retry_on_idle_ms` are mutually exclusive on the same subscription — mixing them raises `ValueError`.
@@ -183,7 +195,9 @@ Main stream  (eggai.orders)
     │       on exception → NACK → message stays in main PEL
     │
     └── Reclaimer            (consumer: order-service-handle_order-1-reclaimer)
-            every 15s: XPENDING → idle > 30s → XCLAIM → XADD orders.retry → XACK
+            every 15s: XPENDING → idle > 30s → XCLAIM
+            _retry_count ≤ max_retries → XADD orders.retry → XACK
+            _retry_count > max_retries → XADD orders.dlq   → XACK
 
 Retry stream (eggai.orders.retry)
     │
@@ -191,7 +205,12 @@ Retry stream (eggai.orders.retry)
     │       same handler — on exception → NACK → message stays in retry PEL
     │
     └── Reclaimer            (target: same retry stream — no .retry.retry chain)
-            every 15s: XPENDING → idle > 30s → XCLAIM → XADD orders.retry → XACK
+            every 15s: XPENDING → idle > 30s → XCLAIM
+            _retry_count ≤ max_retries → XADD orders.retry → XACK
+            _retry_count > max_retries → XADD orders.dlq   → XACK
+
+DLQ stream   (eggai.orders.dlq)
+        terminal — no reclaimer, manual re-drive only
 ```
 
 ## Production Recommendations

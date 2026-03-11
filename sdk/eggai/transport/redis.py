@@ -184,6 +184,13 @@ class RedisTransport(Transport):
                 Binary (non-UTF-8) field values are not supported.
             retry_reclaim_interval_s (float, optional): How often the reclaimer scans for stuck messages (default 15.0s).
                 Only used when retry_on_idle_ms is set.
+            max_retries (int, optional): Maximum number of retry attempts before routing to the Dead Letter Queue
+                (``{channel}.dlq``). Default is 5 when retry_on_idle_ms is set. With max_retries=5, the handler is
+                called up to 6 times total (1 original + 5 retries). Set to None for unlimited retries (no DLQ).
+                Requires retry_on_idle_ms.
+            on_dlq (Callable, optional): Callback invoked when a message is routed to the DLQ. Can be sync or async.
+                Signature: ``on_dlq(fields: dict, msg_id: str, retry_count: int)``. Errors in the callback are
+                logged but never prevent the DLQ write. Only used when retry_on_idle_ms and max_retries are set.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters
@@ -228,6 +235,9 @@ class RedisTransport(Transport):
         # Reclaimer options — extracted before StreamSub is built.
         retry_on_idle_ms = kwargs.pop("retry_on_idle_ms", None)
         retry_reclaim_interval_s = kwargs.pop("retry_reclaim_interval_s", 15.0)
+        _explicit_max_retries = "max_retries" in kwargs
+        max_retries = kwargs.pop("max_retries", 5)
+        on_dlq = kwargs.pop("on_dlq", None)
         _internal_retry = kwargs.pop("_internal_retry", False)
 
         handler_id = kwargs.pop("handler_id", None)
@@ -251,6 +261,19 @@ class RedisTransport(Transport):
                 "Use retry_on_idle_ms for SDK-managed retry streams, or "
                 "min_idle_time for FastStream's built-in XAUTOCLAIM."
             )
+
+        if _explicit_max_retries and max_retries is not None and retry_on_idle_ms is None:
+            raise ValueError(
+                "max_retries requires retry_on_idle_ms to be set. "
+                "Set retry_on_idle_ms to enable SDK-managed retries with a DLQ."
+            )
+
+        if max_retries is not None and max_retries < 1:
+            raise ValueError("max_retries must be >= 1")
+
+        # Default max_retries only applies when retry_on_idle_ms is set.
+        if retry_on_idle_ms is None:
+            max_retries = None
 
         stream_sub = StreamSub(
             channel,
@@ -276,13 +299,15 @@ class RedisTransport(Transport):
 
         if retry_on_idle_ms is not None and not _internal_retry:
             retry_stream = f"{channel}.retry"
+            dlq_stream = f"{channel}.dlq" if max_retries is not None else None
             retry_handler_id = (
                 f"{handler_id}-retry"
                 if handler_id
                 else f"{channel}-{handler.__name__}-retry"
             )
 
-            # Reclaimer for main stream: moves idle PEL entries to retry_stream.
+            # Reclaimer for main stream: moves idle PEL entries to retry_stream
+            # (or to dlq_stream if max_retries is exceeded).
             self._setup_reclaimer(
                 stream=channel,
                 group=group,
@@ -290,6 +315,9 @@ class RedisTransport(Transport):
                 retry_stream=retry_stream,
                 min_idle_ms=retry_on_idle_ms,
                 interval_s=retry_reclaim_interval_s,
+                max_retries=max_retries,
+                dlq_stream=dlq_stream,
+                on_dlq=on_dlq,
             )
 
             # Auto-subscribe the same handler to the retry stream.
@@ -311,7 +339,8 @@ class RedisTransport(Transport):
             )
 
             # Reclaimer for retry stream: re-queues back to the same retry stream
-            # (avoids creating a .retry.retry chain — Bug 3 fix).
+            # (avoids creating a .retry.retry chain). Routes to DLQ if max_retries
+            # is exceeded.
             self._setup_reclaimer(
                 stream=retry_stream,
                 group=retry_handler_id,
@@ -319,6 +348,9 @@ class RedisTransport(Transport):
                 retry_stream=retry_stream,
                 min_idle_ms=retry_on_idle_ms,
                 interval_s=retry_reclaim_interval_s,
+                max_retries=max_retries,
+                dlq_stream=dlq_stream,
+                on_dlq=on_dlq,
             )
 
         return registered_handler
@@ -332,6 +364,9 @@ class RedisTransport(Transport):
         retry_stream: str,
         min_idle_ms: int,
         interval_s: float,
+        max_retries: int | None = None,
+        dlq_stream: str | None = None,
+        on_dlq: Callable | None = None,
     ) -> None:
         if self._reclaimer_manager is None:
             self._reclaimer_manager = PendingReclaimerManager(self._redis_url)
@@ -343,6 +378,9 @@ class RedisTransport(Transport):
                 retry_stream=self._get_stream_key(retry_stream),
                 min_idle_ms=min_idle_ms,
                 interval_s=interval_s,
+                max_retries=max_retries,
+                dlq_stream=self._get_stream_key(dlq_stream) if dlq_stream else None,
+                on_dlq=on_dlq,
             )
         )
 
