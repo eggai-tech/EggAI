@@ -262,7 +262,11 @@ class RedisTransport(Transport):
                 "min_idle_time for FastStream's built-in XAUTOCLAIM."
             )
 
-        if _explicit_max_retries and max_retries is not None and retry_on_idle_ms is None:
+        if (
+            _explicit_max_retries
+            and max_retries is not None
+            and retry_on_idle_ms is None
+        ):
             raise ValueError(
                 "max_retries requires retry_on_idle_ms to be set. "
                 "Set retry_on_idle_ms to enable SDK-managed retries with a DLQ."
