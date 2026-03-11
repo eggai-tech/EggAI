@@ -127,6 +127,73 @@ await agent.start()
 | **Best For** | Unit tests, local dev | Most production workloads | High-throughput distributed systems |
 | **Operational Cost** | None | Lower | Higher |
 
+## Reliable Message Delivery (Redis Streams)
+
+### Pending Entries List (PEL) and Retry Streams
+
+With `NACK_ON_ERROR` (the default), a handler exception leaves the message in Redis's Pending
+Entries List (PEL). FastStream only reads new messages, so a failed message would be stuck
+forever without intervention.
+
+Enable SDK-managed retry by setting `retry_on_idle_ms` on any subscription:
+
+```python
+from eggai import Agent, Channel
+from eggai.transport import RedisTransport
+
+transport = RedisTransport(url="redis://localhost:6379")
+agent = Agent("order-service", transport=transport)
+orders = Channel("orders", transport=transport)
+
+@agent.subscribe(channel=orders, retry_on_idle_ms=30_000)
+async def handle_order(message):
+    # If this raises, the message stays in the PEL.
+    # After 30s idle the reclaimer moves it to eggai.orders.retry
+    # and this same handler is called again.
+    await process_order(message)
+
+await agent.start()
+```
+
+The SDK automatically:
+1. Starts a background reclaimer that scans the PEL every 15 seconds (configurable via `retry_reclaim_interval_s`).
+2. Moves idle messages (older than `retry_on_idle_ms`) to a dedicated `{channel}.retry` stream.
+3. Subscribes the same handler to the retry stream.
+4. Runs a second reclaimer on the retry stream that re-queues back to itself (no `.retry.retry` chain).
+
+**Delivery guarantee:** at-least-once. `XADD` and `XACK` are not atomic — a crash between
+them will re-deliver the message on the next cycle. Handlers must be **idempotent**.
+Two fields are injected on retry delivery to aid deduplication:
+
+| Field | Value |
+|-------|-------|
+| `_retry_count` | `"1"`, `"2"`, … — incremented on each reclaim cycle |
+| `_original_message_id` | Redis stream ID of the original message |
+
+**Constraints:**
+- `min_idle_time` (FastStream XAUTOCLAIM) and `retry_on_idle_ms` are mutually exclusive on the same subscription — mixing them raises `ValueError`.
+- Binary (non-UTF-8) field values are not supported; use JSON-serialisable payloads.
+
+### Retry delivery reference
+
+```
+Main stream  (eggai.orders)
+    │
+    ├── FastStream consumer  (group/consumer: order-service-handle_order-1)
+    │       on exception → NACK → message stays in main PEL
+    │
+    └── Reclaimer            (consumer: order-service-handle_order-1-reclaimer)
+            every 15s: XPENDING → idle > 30s → XCLAIM → XADD orders.retry → XACK
+
+Retry stream (eggai.orders.retry)
+    │
+    ├── FastStream consumer  (group: order-service-handle_order-1-retry)
+    │       same handler — on exception → NACK → message stays in retry PEL
+    │
+    └── Reclaimer            (target: same retry stream — no .retry.retry chain)
+            every 15s: XPENDING → idle > 30s → XCLAIM → XADD orders.retry → XACK
+```
+
 ## Production Recommendations
 
 For production deployments, we recommend:
