@@ -93,8 +93,17 @@ The SDK automatically:
 2. Moves idle messages (older than `retry_on_idle_ms`) to a dedicated `{channel}.retry` stream.
 3. Subscribes the **same handler** to the retry stream.
 4. Runs a second reclaimer on the retry stream that re-queues back to itself — no `.retry.retry` chain.
+5. After `max_retries` retry attempts (default 5), routes the message to a `{channel}.dlq` Dead Letter Queue instead of retrying again.
 
 ### How It Works
+
+Three Redis streams are involved:
+
+| Stream | Purpose |
+|---|---|
+| `eggai.orders` | Main stream — where messages arrive normally |
+| `eggai.orders.retry` | Retry stream — where failed messages get another chance |
+| `eggai.orders.dlq` | Dead Letter Queue — terminal; poison messages land here |
 
 ```mermaid
 flowchart TD
@@ -104,18 +113,26 @@ flowchart TD
     FC -->|success| ACK1[XACK ✓]
     FC -->|exception| PEL1["Main PEL\n(message stuck)"]
 
-    PEL1 -->|every 15 s: idle > retry_on_idle_ms| RC1["Reclaimer\nconsumer: …-reclaimer"]
-    RC1 -->|XCLAIM + XADD| RS["Retry stream\neggai.orders.retry"]
+    PEL1 -->|"every 15 s: idle &gt; retry_on_idle_ms"| RC1["Reclaimer #1\nconsumer: …-reclaimer"]
+    RC1 -->|"_retry_count ≤ max_retries"| RS["Retry stream\neggai.orders.retry"]
+    RC1 -->|"_retry_count &gt; max_retries"| DLQ["Dead Letter Queue\neggai.orders.dlq\n(terminal)"]
     RC1 -->|XACK| DONE1[cleared from main PEL]
 
-    RS -->|XREADGROUP &gt;| FC2["FastStream consumer\ngroup: order-service-handle_order-1-retry\nsame handler"]
+    RS -->|XREADGROUP &gt;| FC2["FastStream consumer\ngroup: …-retry\nsame handler"]
     FC2 -->|success| ACK2[XACK ✓]
     FC2 -->|exception| PEL2["Retry PEL\n(message stuck)"]
 
-    PEL2 -->|every 15 s: idle > retry_on_idle_ms| RC2["Reclaimer\nconsumer: …-retry-reclaimer"]
-    RC2 -->|XCLAIM + XADD back to retry stream| RS
+    PEL2 -->|"every 15 s: idle &gt; retry_on_idle_ms"| RC2["Reclaimer #2\nconsumer: …-retry-reclaimer"]
+    RC2 -->|"_retry_count ≤ max_retries"| RS
+    RC2 -->|"_retry_count &gt; max_retries"| DLQ
     RC2 -->|XACK| DONE2[cleared from retry PEL]
+
+    DLQ -.->|manual re-drive only| RS
+
+    style DLQ fill:#f96,stroke:#333
 ```
+
+With `max_retries=5` (the default), a message gets up to **6 total handler calls** (1 original + 5 retries). On the 6th reclaim cycle, it is routed to the DLQ instead of the retry stream.
 
 ### Injected Retry Metadata
 
@@ -142,6 +159,55 @@ async def handle_order(message):
 
 **At-least-once.** `XADD` and `XACK` are not atomic — a crash between them will re-deliver the message on the next reclaim cycle. Handlers must be **idempotent**. Use `_original_message_id` for application-level deduplication.
 
+### Dead Letter Queue (DLQ)
+
+By default, messages that fail more than `max_retries` times (default 5) are routed to a `{channel}.dlq` stream. The DLQ is **terminal** — no automatic reclaimer watches it. Messages sit there until manually re-driven.
+
+```python
+@agent.subscribe(
+    channel=orders,
+    retry_on_idle_ms=30_000,
+    max_retries=3,  # 3 retries → 4 total handler calls, then DLQ
+)
+async def handle_order(message):
+    await process_order(message)
+```
+
+To disable the DLQ and get unlimited retries (previous behavior):
+
+```python
+@agent.subscribe(
+    channel=orders,
+    retry_on_idle_ms=30_000,
+    max_retries=None,  # no DLQ, retries forever
+)
+async def handle_order(message):
+    ...
+```
+
+#### `on_dlq` Callback
+
+You can provide a callback that fires whenever a message is sent to the DLQ — useful for alerting or metrics:
+
+```python
+async def alert_on_dlq(fields, msg_id, retry_count):
+    print(f"Message {msg_id} sent to DLQ after {retry_count} retries")
+
+@agent.subscribe(
+    channel=orders,
+    retry_on_idle_ms=30_000,
+    max_retries=5,
+    on_dlq=alert_on_dlq,
+)
+async def handle_order(message):
+    ...
+```
+
+The callback can be sync or async. Errors in the callback are logged but never prevent the DLQ write.
+
+!!! note "At-least-once applies to DLQ writes too"
+    The `XADD` (to DLQ) and `XACK` are not atomic. A crash between them can produce duplicate DLQ entries — and fire `on_dlq` more than once — for the same logical message. Re-drive tooling and `on_dlq` callbacks should deduplicate using `_original_message_id`.
+
 ### Tuning the Reclaimer
 
 ```python
@@ -149,6 +215,7 @@ async def handle_order(message):
     channel=orders,
     retry_on_idle_ms=30_000,        # reclaim after 30 s idle (default: None = disabled)
     retry_reclaim_interval_s=15.0,  # scan PEL every 15 s   (default: 15.0)
+    max_retries=5,                  # route to DLQ after 5 retries (default: 5)
 )
 async def handle_order(message):
     ...
@@ -158,6 +225,7 @@ Guidelines:
 
 - `retry_on_idle_ms` should be comfortably longer than your handler's expected worst-case execution time to avoid false positives.
 - `retry_reclaim_interval_s` controls how often the background reclaimer wakes up. Lower values increase Redis load; 15 s is a sensible default for most workloads.
+- `max_retries` prevents poison messages from looping forever. Set to `None` for unlimited retries (no DLQ).
 
 ### Constraints
 

@@ -88,6 +88,15 @@ class Agent:
                     "Use retry_on_idle_ms for SDK-managed retry streams, or "
                     "min_idle_time for FastStream's built-in XAUTOCLAIM."
                 )
+            if "max_retries" in kwargs:
+                max_retries = kwargs["max_retries"]
+                if max_retries is not None and "retry_on_idle_ms" not in kwargs:
+                    raise ValueError(
+                        "max_retries requires retry_on_idle_ms to be set. "
+                        "Set retry_on_idle_ms to enable SDK-managed retries with a DLQ."
+                    )
+                if max_retries is not None and max_retries < 1:
+                    raise ValueError("max_retries must be >= 1")
             original_kwargs = kwargs.copy()
 
             # Extract plugin-specific kwargs dynamically and clean them from kwargs

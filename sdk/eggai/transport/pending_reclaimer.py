@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from struct import pack
 from typing import Any
@@ -46,9 +47,12 @@ class ReclaimerConfig:
     retry_stream: str  # where to XADD rescued messages — never == stream
     min_idle_ms: int
     interval_s: float
+    max_retries: int | None = None  # None = unlimited retries (no DLQ)
+    dlq_stream: str | None = None  # e.g. "eggai.orders.dlq"
+    on_dlq: Callable | None = None  # async or sync callback(fields, msg_id, count)
 
 
-def _inject_retry_metadata(data: bytes, msg_id_str: str) -> bytes:
+def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int]:
     """
     Inject _retry_count and _original_message_id into a FastStream binary stream
     entry's JSON body so the handler can read them for idempotency checks.
@@ -58,8 +62,9 @@ def _inject_retry_metadata(data: bytes, msg_id_str: str) -> bytes:
       [2B num_headers]([2B key_len][key][2B val_len][val])*
       [JSON body bytes]
 
-    Returns the modified __data__ bytes, or the original if parsing fails
-    (e.g. non-JSON body, unrecognised format).
+    Returns a tuple of (modified __data__ bytes, new retry count).
+    On parse failure returns (original data, 0) so the message is never
+    mistakenly routed to the DLQ.
     """
     try:
         body_bytes, headers = BinaryMessageFormatV1.parse(data)
@@ -70,9 +75,10 @@ def _inject_retry_metadata(data: bytes, msg_id_str: str) -> bytes:
             msg_id_str,
             exc_info=True,
         )
-        return data
+        return data, 0
 
-    body_dict["_retry_count"] = str(int(body_dict.get("_retry_count", "0")) + 1)
+    new_count = int(body_dict.get("_retry_count", "0")) + 1
+    body_dict["_retry_count"] = str(new_count)
     body_dict.setdefault("_original_message_id", msg_id_str)
     new_body_bytes = json.dumps(body_dict, separators=(",", ":")).encode()
 
@@ -94,7 +100,7 @@ def _inject_retry_metadata(data: bytes, msg_id_str: str) -> bytes:
     writer.write_short(len(headers))  # 2B → len=20
     writer.write(headers_bytes)
     writer.write(new_body_bytes)
-    return writer.get_bytes()
+    return writer.get_bytes(), new_count
 
 
 class PendingReclaimerManager:
@@ -210,9 +216,36 @@ class PendingReclaimerManager:
             # NOTE: XADD then XACK is not atomic. A crash here re-delivers on the
             # next cycle (at-least-once). Use _original_message_id to deduplicate.
             data_key = b"__data__"
+            new_count = 0
             if data_key in fields:
-                fields[data_key] = _inject_retry_metadata(fields[data_key], msg_id_str)
+                fields[data_key], new_count = _inject_retry_metadata(
+                    fields[data_key], msg_id_str
+                )
 
-            await self._redis_client.xadd(config.retry_stream, fields)
-            await self._redis_client.xack(config.stream, config.group, msg_id)
-            logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
+            # Route to DLQ if max retries exceeded, otherwise to retry stream.
+            if (
+                config.max_retries is not None
+                and config.dlq_stream is not None
+                and new_count > config.max_retries
+            ):
+                await self._redis_client.xadd(config.dlq_stream, fields)
+                await self._redis_client.xack(config.stream, config.group, msg_id)
+                logger.warning(
+                    "Message %s exceeded max_retries=%d; moved to DLQ %s",
+                    msg_id_str,
+                    config.max_retries,
+                    config.dlq_stream,
+                )
+                if config.on_dlq is not None:
+                    try:
+                        result = config.on_dlq(fields, msg_id_str, new_count)
+                        if asyncio.iscoroutine(result):
+                            await result
+                    except Exception:
+                        logger.exception(
+                            "on_dlq callback failed for message %s", msg_id_str
+                        )
+            else:
+                await self._redis_client.xadd(config.retry_stream, fields)
+                await self._redis_client.xack(config.stream, config.group, msg_id)
+                logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)

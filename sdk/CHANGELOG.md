@@ -24,6 +24,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `min_idle_time` (FastStream XAUTOCLAIM) and `retry_on_idle_ms` are mutually
     exclusive on the same subscription; mixing them raises `ValueError` at
     decoration time.
+- **RedisTransport**: Dead Letter Queue (DLQ) with configurable `max_retries`
+  (default 5). Poison messages that exceed the retry limit are routed to a
+  `{channel}.dlq` stream instead of retrying forever. The DLQ is terminal — no
+  automatic reclaimer watches it. Key details:
+  - `max_retries=5` means 6 total handler calls (1 original + 5 retries); on the
+    6th reclaim cycle the message is moved to the DLQ.
+  - Set `max_retries=None` to disable the DLQ and get unlimited retries
+    (previous behavior).
+  - Optional `on_dlq` callback (sync or async) fires when a message lands in the
+    DLQ — useful for alerting or metrics. Errors in the callback are logged but
+    never prevent the DLQ write.
+  - Both reclaimers (main stream and retry stream) enforce the same threshold.
+  - Unparseable messages (binary parse failure) return `_retry_count=0` and are
+    never mistakenly routed to the DLQ.
 
 ## [0.2.11] - 2026-01-28
 
