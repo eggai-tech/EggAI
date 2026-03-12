@@ -238,7 +238,18 @@ class PendingReclaimerManager:
                 )
                 if config.on_dlq is not None:
                     try:
-                        result = config.on_dlq(fields, msg_id_str, new_count)
+                        # Parse the binary envelope so the callback receives a
+                        # plain dict instead of raw bytes.
+                        parsed_msg: dict | bytes = fields
+                        if data_key in fields:
+                            try:
+                                body_bytes, _ = BinaryMessageFormatV1.parse(
+                                    fields[data_key]
+                                )
+                                parsed_msg = json.loads(body_bytes)
+                            except Exception:
+                                parsed_msg = fields
+                        result = config.on_dlq(parsed_msg, msg_id_str, new_count)
                         if asyncio.iscoroutine(result):
                             await result
                     except Exception:
