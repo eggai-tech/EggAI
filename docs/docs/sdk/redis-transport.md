@@ -205,6 +205,9 @@ async def handle_order(message):
 
 The callback can be sync or async. Errors in the callback are logged but never prevent the DLQ write.
 
+!!! note "At-least-once applies to DLQ writes too"
+    The `XADD` (to DLQ) and `XACK` are not atomic. A crash between them can produce duplicate DLQ entries — and fire `on_dlq` more than once — for the same logical message. Re-drive tooling and `on_dlq` callbacks should deduplicate using `_original_message_id`.
+
 ### Tuning the Reclaimer
 
 ```python
