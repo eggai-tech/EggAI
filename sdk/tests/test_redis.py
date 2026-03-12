@@ -654,7 +654,9 @@ async def test_max_retries_on_dlq_callback():
     dlq_callback_fired = asyncio.Event()
 
     async def my_on_dlq(fields, msg_id, retry_count):
-        callback_calls.append({"msg_id": msg_id, "retry_count": retry_count})
+        callback_calls.append(
+            {"fields": fields, "msg_id": msg_id, "retry_count": retry_count}
+        )
         dlq_callback_fired.set()
 
     @agent.subscribe(
@@ -683,6 +685,11 @@ async def test_max_retries_on_dlq_callback():
     assert callback_calls[0]["retry_count"] > 1, (
         f"Expected retry_count > 1, got {callback_calls[0]['retry_count']}"
     )
+    # on_dlq should receive a parsed dict, not raw bytes
+    fields = callback_calls[0]["fields"]
+    assert isinstance(fields, dict), f"Expected parsed dict, got {type(fields)}"
+    assert "test_id" in fields, f"Expected 'test_id' key in parsed message, got {fields.keys()}"
+    assert fields["test_id"] == test_id
 
 
 @pytest.mark.asyncio
