@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-03-12
+
 ### Added
 - **RedisTransport**: SDK-managed PEL reclaimer via new `retry_on_idle_ms` opt-in
   kwarg on `agent.subscribe()`. With `NACK_ON_ERROR` (the default), a handler
