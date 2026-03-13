@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **CI**: Replace `skip-changelog` label with path-based auto-skip; changelog is only
+  required when SDK code changes. Strengthen validation to require at least one bullet entry.
+- **CI**: Replace broken `auto-tag.yaml` with manual `tag-release.yaml` workflow.
+  Fix `release.yaml` PR creation bug (missing `--head` flag).
+
 ## [0.2.12] - 2026-03-12
 
 ### Added

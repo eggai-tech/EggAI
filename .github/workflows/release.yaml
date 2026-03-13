@@ -32,56 +32,42 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version }}"
 
-          # Check if this is a prerelease
           if echo "$VERSION" | grep -qE "(rc|alpha|beta)[0-9]+$"; then
             echo "prerelease=true" >> $GITHUB_OUTPUT
           else
             echo "prerelease=false" >> $GITHUB_OUTPUT
-            # For stable releases, require changelog content
             if ! grep -A 5 "## \[Unreleased\]" sdk/CHANGELOG.md | grep -qE "^### "; then
               echo "::error::No changes found under [Unreleased] in CHANGELOG.md"
               exit 1
             fi
           fi
 
-      - name: Create release branch
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          git checkout -b release/v$VERSION
-
-      - name: Update version in pyproject.toml
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          sed -i 's/^version = ".*"/version = "'$VERSION'"/' sdk/pyproject.toml
-
-      - name: Update CHANGELOG.md
-        if: steps.check.outputs.prerelease == 'false'
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          DATE=$(date +%Y-%m-%d)
-          sed -i "s/## \[Unreleased\]/## [Unreleased]\n\n## [$VERSION] - $DATE/" sdk/CHANGELOG.md
-
-      - name: Commit changes
+      - name: Create release branch and commit
         run: |
           VERSION="${{ github.event.inputs.version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b release/v$VERSION
+
+          sed -i 's/^version = ".*"/version = "'$VERSION'"/' sdk/pyproject.toml
+
+          if [ "${{ steps.check.outputs.prerelease }}" = "false" ]; then
+            DATE=$(date +%Y-%m-%d)
+            sed -i "s/## \[Unreleased\]/## [Unreleased]\n\n## [$VERSION] - $DATE/" sdk/CHANGELOG.md
+          fi
+
           git add sdk/pyproject.toml sdk/CHANGELOG.md
           git commit -m "chore: release v$VERSION"
 
-      - name: Push branch
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git release/v$VERSION
-
-      - name: Create Pull Request
+      - name: Push branch and create PR
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           VERSION="${{ github.event.inputs.version }}"
           PRERELEASE="${{ steps.check.outputs.prerelease }}"
+          BRANCH="release/v$VERSION"
+
+          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git "$BRANCH"
 
           if [ "$PRERELEASE" = "true" ]; then
             cat > /tmp/pr-body.md << EOF
@@ -91,15 +77,14 @@ jobs:
           EOF
 
             gh pr create \
+              --head "$BRANCH" \
               --title "chore: release v$VERSION" \
               --body-file /tmp/pr-body.md \
               --label "release" \
               --label "skip-changelog"
           else
-            # Extract changelog for this version
             CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" sdk/CHANGELOG.md | sed '$d' | tail -n +2)
 
-            # Use a temp file to safely pass changelog content with special characters
             {
               echo "## Release v$VERSION"
               echo ""
@@ -107,9 +92,10 @@ jobs:
             } > /tmp/pr-body.md
 
             gh pr create \
+              --head "$BRANCH" \
               --title "chore: release v$VERSION" \
               --body-file /tmp/pr-body.md \
               --label "release"
           fi
 
-          echo "Release PR created! Merge it to trigger the release."
+          echo "Release PR created! Merge it, then run 'Tag and Publish Release' workflow."

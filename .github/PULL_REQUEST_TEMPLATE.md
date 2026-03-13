@@ -47,10 +47,9 @@ Fixes #(issue number)
 
 ## Changelog
 
-<!-- All PRs must update sdk/CHANGELOG.md unless labeled 'skip-changelog' -->
+<!-- PRs that change SDK code require a CHANGELOG.md update. PRs that only touch docs/, .github/, or config files are auto-skipped. -->
 
-- [ ] I have updated `sdk/CHANGELOG.md` under `[Unreleased]` section
-- [ ] Or: This PR has the `skip-changelog` label (docs, CI, etc.)
+- [ ] I have updated `sdk/CHANGELOG.md` under `[Unreleased]` section (required for code changes)
 
 ## Checklist
 
