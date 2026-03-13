@@ -133,7 +133,7 @@ fix: resolve issue with login timeout
 2. Ensure all tests pass locally before creating a pull request.
 3. **Update `sdk/CHANGELOG.md`** under the `[Unreleased]` section with your changes.
    - Use `### Added`, `### Changed`, `### Fixed`, or `### Removed` subsections.
-   - If your PR doesn't require a changelog entry (docs, CI, etc.), add the `skip-changelog` label.
+   - PRs that only touch `docs/`, `.github/`, or root config files are auto-skipped by CI.
 4. Provide a detailed description of your changes in the pull request.
 5. Reference the issue you are addressing (if applicable).
 6. Be responsive to feedback and make changes as requested.

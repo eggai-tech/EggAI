@@ -52,38 +52,58 @@ jobs:
   changelog:
     runs-on: ubuntu-latest
     name: Changelog check
-    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'skip-changelog') && github.actor != 'dependabot[bot]'
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
 
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Check CHANGELOG.md updated
+      - name: Check if changelog is required
+        id: needs-changelog
         run: |
-          # Check if CHANGELOG.md was modified in this PR
+          # Changelog is required if the PR touches code or test files under sdk/
+          # (excluding sdk/CHANGELOG.md itself). PRs that only touch docs/, .github/,
+          # or root config files are auto-skipped — no label needed.
+          CHANGED=$(git diff origin/main --name-only)
+          CODE_CHANGED=$(echo "$CHANGED" | grep -E "^sdk/" | grep -v "^sdk/CHANGELOG.md" || true)
+
+          if [ -z "$CODE_CHANGED" ]; then
+            echo "required=false" >> $GITHUB_OUTPUT
+            echo "No SDK code changes — changelog not required."
+          else
+            echo "required=true" >> $GITHUB_OUTPUT
+            echo "SDK code changed — changelog required:"
+            echo "$CODE_CHANGED"
+          fi
+
+      - name: Check CHANGELOG.md updated
+        if: steps.needs-changelog.outputs.required == 'true'
+        run: |
           if ! git diff origin/main --name-only | grep -q "sdk/CHANGELOG.md"; then
             echo "::error::CHANGELOG.md must be updated. Add your changes under [Unreleased] section."
-            echo ""
-            echo "If this PR doesn't need a changelog entry (docs, CI, etc.), add the 'skip-changelog' label."
             exit 1
           fi
 
       - name: Check changelog content
+        if: steps.needs-changelog.outputs.required == 'true'
         env:
           IS_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
         run: |
           if [ "$IS_RELEASE" = "true" ]; then
-            # Release PRs: verify version section exists
             if ! grep -qE "## \[[0-9]+\.[0-9]+\.[0-9]+\] - [0-9]{4}-[0-9]{2}-[0-9]{2}" sdk/CHANGELOG.md; then
               echo "::error::Release PR must have a version section (e.g., ## [0.2.9] - 2025-01-01)"
               exit 1
             fi
             echo "Release changelog check passed!"
           else
-            # Regular PRs: require content under [Unreleased]
-            if ! grep -A 10 "## \[Unreleased\]" sdk/CHANGELOG.md | grep -qE "^### "; then
-              echo "::error::Add your changes under [Unreleased] section in CHANGELOG.md"
+            UNRELEASED=$(sed -n '/## \[Unreleased\]/,/## \[/p' sdk/CHANGELOG.md | sed '1d;$d')
+            if ! echo "$UNRELEASED" | grep -qE "^### "; then
+              echo "::error::Add a category header (### Added, ### Fixed, etc.) under [Unreleased] in CHANGELOG.md"
+              exit 1
+            fi
+            if ! echo "$UNRELEASED" | grep -qE "^- "; then
+              echo "::error::Add at least one entry (- description) under [Unreleased] in CHANGELOG.md"
               exit 1
             fi
             echo "Changelog check passed!"
@@ -214,7 +234,7 @@ jobs:
     steps:
       - name: Check if all jobs passed
         run: |
-          # Changelog is optional (skipped on push to main or with skip-changelog label)
+          # Changelog is optional (skipped on push to main or when no code changes)
           CHANGELOG_OK="${{ needs.changelog.result }}"
           if [[ "$CHANGELOG_OK" != "success" && "$CHANGELOG_OK" != "skipped" ]]; then
             echo "Changelog check failed"
