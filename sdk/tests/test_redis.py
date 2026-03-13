@@ -688,7 +688,9 @@ async def test_max_retries_on_dlq_callback():
     # on_dlq should receive a parsed dict, not raw bytes
     fields = callback_calls[0]["fields"]
     assert isinstance(fields, dict), f"Expected parsed dict, got {type(fields)}"
-    assert "test_id" in fields, f"Expected 'test_id' key in parsed message, got {fields.keys()}"
+    assert "test_id" in fields, (
+        f"Expected 'test_id' key in parsed message, got {fields.keys()}"
+    )
     assert fields["test_id"] == test_id
 
 
