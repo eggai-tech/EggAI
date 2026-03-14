@@ -89,6 +89,7 @@ jobs:
         with:
           name: release-dists
           path: sdk/dist/
+          retention-days: 7
 
   create-tag:
     needs: [prepare, build-and-test]

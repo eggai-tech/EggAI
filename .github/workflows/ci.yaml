@@ -62,7 +62,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check if changelog skip requested
+        id: skip-check
+        env:
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          if echo "$PR_LABELS" | grep -q "skip-changelog"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "skip-changelog label found, skipping changelog check"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Check if changelog is required
+        if: steps.skip-check.outputs.skip != 'true'
         id: needs-changelog
         run: |
           # Changelog is required if the PR touches code or test files under sdk/
@@ -81,7 +94,7 @@ jobs:
           fi
 
       - name: Check CHANGELOG.md updated
-        if: steps.needs-changelog.outputs.required == 'true'
+        if: steps.skip-check.outputs.skip != 'true' && steps.needs-changelog.outputs.required == 'true'
         run: |
           if ! git diff origin/main --name-only | grep -q "sdk/CHANGELOG.md"; then
             echo "::error::CHANGELOG.md must be updated. Add your changes under [Unreleased] section."
@@ -89,7 +102,7 @@ jobs:
           fi
 
       - name: Check changelog content
-        if: steps.needs-changelog.outputs.required == 'true'
+        if: steps.skip-check.outputs.skip != 'true' && steps.needs-changelog.outputs.required == 'true'
         env:
           IS_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
         run: |
