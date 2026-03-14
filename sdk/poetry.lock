@@ -2,15 +2,15 @@
 
 [[package]]
 name = "a2a-sdk"
-version = "0.3.22"
+version = "0.3.25"
 description = "A2A Python SDK"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"a2a\""
 files = [
-    {file = "a2a_sdk-0.3.22-py3-none-any.whl", hash = "sha256:b98701135bb90b0ff85d35f31533b6b7a299bf810658c1c65f3814a6c15ea385"},
-    {file = "a2a_sdk-0.3.22.tar.gz", hash = "sha256:77a5694bfc4f26679c11b70c7f1062522206d430b34bc1215cfbb1eba67b7e7d"},
+    {file = "a2a_sdk-0.3.25-py3-none-any.whl", hash = "sha256:2fce38faea82eb0b6f9f9c2bcf761b0d78612c80ef0e599b50d566db1b2654b5"},
+    {file = "a2a_sdk-0.3.25.tar.gz", hash = "sha256:afda85bab8d6af0c5d15e82f326c94190f6be8a901ce562d045a338b7127242f"},
 ]
 
 [package.dependencies]
@@ -21,7 +21,7 @@ protobuf = ">=5.29.5"
 pydantic = ">=2.11.3"
 
 [package.extras]
-all = ["cryptography (>=43.0.0)", "fastapi (>=0.115.2)", "grpcio (>=1.60)", "grpcio-reflection (>=1.7.0)", "grpcio-tools (>=1.60)", "opentelemetry-api (>=1.33.0)", "opentelemetry-sdk (>=1.33.0)", "pyjwt (>=2.0.0)", "sqlalchemy[aiomysql,asyncio] (>=2.0.0)", "sqlalchemy[aiosqlite,asyncio] (>=2.0.0)", "sqlalchemy[asyncio,postgresql-asyncpg] (>=2.0.0)", "sse-starlette", "starlette"]
+all = ["cryptography (>=43.0.0)", "fastapi (>=0.115.2)", "google-cloud-aiplatform (>=1.140.0)", "grpcio (>=1.60)", "grpcio-reflection (>=1.7.0)", "grpcio-tools (>=1.60)", "opentelemetry-api (>=1.33.0)", "opentelemetry-sdk (>=1.33.0)", "pyjwt (>=2.0.0)", "sqlalchemy[aiomysql,asyncio] (>=2.0.0)", "sqlalchemy[aiosqlite,asyncio] (>=2.0.0)", "sqlalchemy[asyncio,postgresql-asyncpg] (>=2.0.0)", "sse-starlette", "starlette"]
 encryption = ["cryptography (>=43.0.0)"]
 grpc = ["grpcio (>=1.60)", "grpcio-reflection (>=1.7.0)", "grpcio-tools (>=1.60)"]
 http-server = ["fastapi (>=0.115.2)", "sse-starlette", "starlette"]
@@ -31,6 +31,7 @@ signing = ["pyjwt (>=2.0.0)"]
 sql = ["sqlalchemy[aiomysql,asyncio] (>=2.0.0)", "sqlalchemy[aiosqlite,asyncio] (>=2.0.0)", "sqlalchemy[asyncio,postgresql-asyncpg] (>=2.0.0)"]
 sqlite = ["sqlalchemy[aiosqlite,asyncio] (>=2.0.0)"]
 telemetry = ["opentelemetry-api (>=1.33.0)", "opentelemetry-sdk (>=1.33.0)"]
+vertex = ["google-cloud-aiplatform (>=1.140.0)"]
 
 [[package]]
 name = "aiokafka"
@@ -890,27 +891,27 @@ openai = ["openai (>=1.102.0)"]
 
 [[package]]
 name = "faststream"
-version = "0.6.5"
+version = "0.6.7"
 description = "FastStream: the simplest way to work with a messaging queues"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "faststream-0.6.5-py3-none-any.whl", hash = "sha256:714b13b84cdbe2bdcf0b2b8a5e2b04648cb7683784a5297d445adfee9f2b4f7e"},
-    {file = "faststream-0.6.5.tar.gz", hash = "sha256:ddef9e85631edf1aba87e81c8886067bd94ee752f41a09f1d1cd6f75f7e4fade"},
+    {file = "faststream-0.6.7-py3-none-any.whl", hash = "sha256:a904a4b1e3babeaa244a9460821f5b05dd71b00c959c816360b2acbbe267cd5c"},
+    {file = "faststream-0.6.7.tar.gz", hash = "sha256:c732eaf861c4cbddd9c7f9098608486a9f05dff67a72335686c3044039045346"},
 ]
 
 [package.dependencies]
-aiokafka = {version = ">=0.9,<0.13", optional = true, markers = "extra == \"kafka\""}
+aiokafka = {version = ">=0.9,<0.14", optional = true, markers = "extra == \"kafka\""}
 anyio = ">=4.0,<5"
 fast-depends = {version = ">=3.0.0", extras = ["pydantic"]}
 redis = {version = ">=5.0.0,<8.0.0", optional = true, markers = "extra == \"redis\""}
 typing-extensions = ">=4.12.0"
 
 [package.extras]
-cli = ["typer (>=0.9,!=0.12,<=0.20.1)", "watchfiles (>=0.15.0,<1.2.0)"]
+cli = ["typer (>=0.9,!=0.12,<=0.21.1)", "watchfiles (>=0.15.0,<1.2.0)"]
 confluent = ["confluent-kafka (>=2,!=2.8.1,<3) ; python_full_version < \"3.13.0\"", "confluent-kafka (>=2.6,!=2.8.1,<3) ; python_full_version >= \"3.13.0\""]
-kafka = ["aiokafka (>=0.9,<0.13)"]
+kafka = ["aiokafka (>=0.9,<0.14)"]
 nats = ["nats-py (>=2.12.0,<=3.0.0)"]
 otel = ["opentelemetry-sdk (>=1.24.0,<2.0.0)"]
 prometheus = ["prometheus-client (>=0.20.0,<0.30.0)"]
