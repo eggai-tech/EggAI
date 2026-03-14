@@ -1,128 +1,201 @@
 name: Release and Publish
 
 on:
-  push:
-    tags:
-      - 'v*'
+  pull_request:
+    types: [closed]
+    branches: [main]
 
-permissions:
-  contents: write
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
-  release-build:
+  prepare:
+    if: >
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/v')
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      prerelease: ${{ steps.version.outputs.prerelease }}
-      changelog: ${{ steps.changelog.outputs.changelog }}
+      version: ${{ steps.version.outputs.VERSION }}
+      prerelease: ${{ steps.version.outputs.PRERELEASE }}
+      changelog: ${{ steps.changelog.outputs.CONTENT }}
 
     steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-python@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
-          python-version: "3.x"
+          fetch-depth: 0
 
-      - uses: Gr1N/setup-poetry@v9
-
-      - name: Extract version from tag
+      - name: Extract version from branch name
         id: version
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Releasing version: $VERSION"
-
-          # Check if this is a prerelease (rc, alpha, beta)
+          VERSION=${HEAD_REF#release/v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           if echo "$VERSION" | grep -qE "(rc|alpha|beta)[0-9]+$"; then
-            echo "prerelease=true" >> $GITHUB_OUTPUT
-            echo "This is a pre-release"
+            echo "PRERELEASE=true" >> $GITHUB_OUTPUT
           else
-            echo "prerelease=false" >> $GITHUB_OUTPUT
-            echo "This is a stable release"
+            echo "PRERELEASE=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Extract changelog for this version
-        id: changelog
+      - name: Validate version matches pyproject.toml
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          VERSION=${{ steps.version.outputs.version }}
-          PRERELEASE=${{ steps.version.outputs.prerelease }}
-
-          if [ "$PRERELEASE" = "true" ]; then
-            # For prereleases, use a simple message
-            CHANGELOG="Pre-release v$VERSION for testing.
-
-          Install with: \`pip install eggai==$VERSION\`
-
-          This is a release candidate. Please report any issues."
-          else
-            # Extract changelog section for this version
-            CHANGELOG=$(sed -n "/## \[$VERSION\]/,/## \[/p" sdk/CHANGELOG.md | sed '$d')
-            if [ -z "$CHANGELOG" ]; then
-              CHANGELOG="Release v$VERSION"
-            fi
+          PYPROJECT_VERSION=$(grep '^version = ' sdk/pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          if [ "$VERSION" != "$PYPROJECT_VERSION" ]; then
+            echo "::error::Version mismatch: branch=$VERSION, pyproject.toml=$PYPROJECT_VERSION"
+            exit 1
           fi
 
-          # Use EOF delimiter for multiline output
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Extract changelog
+        id: changelog
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          PRERELEASE: ${{ steps.version.outputs.PRERELEASE }}
+        run: |
+          if [ "$PRERELEASE" = "true" ]; then
+            echo "CONTENT=Pre-release version $VERSION" >> $GITHUB_OUTPUT
+          else
+            CONTENT=$(sed -n "/## \[$VERSION\]/,/## \[/p" sdk/CHANGELOG.md | tail -n +2 | head -n -1)
+            DELIMITER=$(openssl rand -hex 8)
+            echo "CONTENT<<${DELIMITER}" >> $GITHUB_OUTPUT
+            echo "$CONTENT" >> $GITHUB_OUTPUT
+            echo "${DELIMITER}" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Copy Readme to SDK
-        run: cp README.md sdk/
+  build-and-test:
+    needs: prepare
+    runs-on: ubuntu-latest
 
-      - name: Build release distributions
-        run: cd sdk && poetry build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build distributions
+        run: python -m build sdk/
 
       - name: Upload distributions
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: release-dists
           path: sdk/dist/
 
-  pypi-publish:
+  create-tag:
+    needs: [prepare, build-and-test]
     runs-on: ubuntu-latest
-    needs:
-      - release-build
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create and push tag
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+  pypi-publish:
+    needs: [prepare, build-and-test, create-tag]
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
-
     environment:
       name: pypi
       url: https://pypi.org/p/eggai
 
     steps:
-      - name: Retrieve release distributions
-        uses: actions/download-artifact@v7
+      - name: Check if already published
+        id: check
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://pypi.org/pypi/eggai/$VERSION/json)
+          echo "exists=$([ "$STATUS" = "200" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Download distributions
+        if: steps.check.outputs.exists == 'false'
+        uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
 
       - name: Publish to PyPI
+        if: steps.check.outputs.exists == 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
 
   github-release:
+    needs: [prepare, build-and-test, create-tag]
     runs-on: ubuntu-latest
-    needs:
-      - release-build
-      - pypi-publish
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - name: Retrieve release distributions
-        uses: actions/download-artifact@v7
+      - name: Download distributions
+        uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: v${{ needs.release-build.outputs.version }}
-          body: ${{ needs.release-build.outputs.changelog }}
-          files: |
-            dist/*
-          draft: false
-          prerelease: ${{ needs.release-build.outputs.prerelease == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          CHANGELOG_BODY: ${{ needs.prepare.outputs.changelog }}
+        run: |
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            echo "Release v$VERSION already exists, uploading artifacts."
+            gh release upload "v$VERSION" dist/* --clobber
+          else
+            PRERELEASE_FLAG=""
+            if [ "$PRERELEASE" = "true" ]; then
+              PRERELEASE_FLAG="--prerelease"
+            fi
+            printf '%s\n' "## What's Changed" "" "$CHANGELOG_BODY" "" "## Installation" "" '```bash' "pip install eggai==$VERSION" '```' > /tmp/notes.md
+            gh release create "v$VERSION" dist/* \
+              --title "v$VERSION" \
+              --notes-file /tmp/notes.md \
+              $PRERELEASE_FLAG
+          fi
+
+  notify-failure:
+    needs: [prepare, build-and-test, create-tag, pypi-publish, github-release]
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Create failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Release v$VERSION failed" \
+            --body "Workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --label "bug"
