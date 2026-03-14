@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-03-14
+
 ### Changed
 - **CI**: Replace `skip-changelog` label with path-based auto-skip; changelog is only
   required when SDK code changes. Strengthen validation to require at least one bullet entry.
