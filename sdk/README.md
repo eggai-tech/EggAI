@@ -182,6 +182,12 @@ Two fields are injected on retry delivery to aid deduplication:
 `{channel}.dlq`. The DLQ is terminal — no automatic reclaimer. Set `max_retries=None` for
 unlimited retries. An optional `on_dlq` callback fires when a message lands in the DLQ.
 
+**Automatic recovery from Redis stream loss (NOGROUP):**
+If Redis loses streams (restart without persistence, failover, memory eviction), the SDK
+auto-recovers. A background monitor periodically ensures consumer groups exist via
+`XGROUP CREATE` with `MKSTREAM`, and the reclaimer recreates groups on `NOGROUP` errors.
+No configuration needed — always active with `RedisTransport`.
+
 **Constraints:**
 - `min_idle_time` (FastStream XAUTOCLAIM) and `retry_on_idle_ms` are mutually exclusive on the same subscription — mixing them raises `ValueError`.
 - Binary (non-UTF-8) field values are not supported; use JSON-serialisable payloads.

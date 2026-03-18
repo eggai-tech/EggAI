@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **RedisTransport**: Auto-recover from NOGROUP errors when Redis loses streams
+  (restart without persistence, failover, memory eviction). A background stream
+  group monitor periodically ensures consumer groups exist via `XGROUP CREATE`
+  with `MKSTREAM`, and `PendingReclaimerManager` now recreates consumer groups
+  on NOGROUP errors instead of logging unhandled exceptions.
+
 ## [0.2.13] - 2026-03-14
 
 ### Changed

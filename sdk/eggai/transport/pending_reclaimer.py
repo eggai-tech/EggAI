@@ -8,6 +8,7 @@ from typing import Any
 
 import redis.asyncio as aioredis
 from faststream.redis.parser.binary import BinaryMessageFormatV1
+from redis.exceptions import ResponseError
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +167,44 @@ class PendingReclaimerManager:
                 await self._reclaim_once(config)
             except asyncio.CancelledError:
                 raise
+            except ResponseError as e:
+                if "NOGROUP" in str(e):
+                    await self._ensure_group(config)
+                else:
+                    logger.exception(
+                        "Reclaimer error — stream=%s group=%s",
+                        config.stream,
+                        config.group,
+                    )
             except Exception:
                 logger.exception(
                     "Reclaimer error — stream=%s group=%s", config.stream, config.group
                 )
+
+    async def _ensure_group(self, config: ReclaimerConfig) -> None:
+        """Recreate a consumer group after a NOGROUP error (e.g. Redis restart).
+
+        Uses id="0" when the stream still has entries (partial group loss) so
+        unprocessed messages are redelivered.  Falls back to id="$" with
+        MKSTREAM when the stream itself is gone.
+        """
+        try:
+            stream_exists = await self._redis_client.exists(config.stream)
+            create_id = "0" if stream_exists else "$"
+            await self._redis_client.xgroup_create(
+                name=config.stream,
+                groupname=config.group,
+                id=create_id,
+                mkstream=True,
+            )
+            logger.info(
+                "Recreated consumer group %s on stream %s after NOGROUP error",
+                config.group,
+                config.stream,
+            )
+        except ResponseError as e:
+            if "BUSYGROUP" not in str(e):
+                raise
 
     async def _reclaim_once(self, config: ReclaimerConfig) -> None:
         # --- Paginated XPENDING scan ---
