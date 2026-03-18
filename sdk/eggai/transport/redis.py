@@ -1,9 +1,13 @@
+import asyncio
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
+import redis.asyncio as aioredis
 from faststream import AckPolicy
 from faststream.redis import RedisBroker, StreamSub
+from redis.exceptions import ResponseError
 
 from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
@@ -13,6 +17,17 @@ from eggai.transport.middleware_utils import (
     create_filter_middleware,
 )
 from eggai.transport.pending_reclaimer import PendingReclaimerManager, ReclaimerConfig
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class _StreamGroupInfo:
+    """Tracks a registered stream consumer group for health monitoring."""
+
+    stream_key: str
+    group: str
+    group_create_id: str
 
 
 class RedisTransport(Transport):
@@ -31,6 +46,7 @@ class RedisTransport(Transport):
         self,
         broker: RedisBroker | None = None,
         url: str = "redis://localhost:6379",
+        group_monitor_interval_s: float = 5.0,
         **kwargs,
     ):
         """
@@ -100,6 +116,9 @@ class RedisTransport(Transport):
         self._redis_url = url
         self._running = False
         self._reclaimer_manager: PendingReclaimerManager | None = None
+        self._stream_subscriptions: list[_StreamGroupInfo] = []
+        self._group_monitor_task: asyncio.Task | None = None
+        self._group_monitor_interval_s: float = group_monitor_interval_s
 
     async def connect(self):
         """
@@ -115,6 +134,11 @@ class RedisTransport(Transport):
         if self._reclaimer_manager is not None:
             await self._reclaimer_manager.start()
         self._running = True
+        if self._stream_subscriptions:
+            self._group_monitor_task = asyncio.create_task(
+                self._monitor_stream_groups(),
+                name="stream-group-monitor",
+            )
 
     async def disconnect(self):
         """
@@ -124,6 +148,13 @@ class RedisTransport(Transport):
         and to release any resources held by the RedisBroker.
         """
         self._running = False
+        if self._group_monitor_task is not None:
+            self._group_monitor_task.cancel()
+            try:
+                await self._group_monitor_task
+            except asyncio.CancelledError:
+                pass
+            self._group_monitor_task = None
         if self._reclaimer_manager is not None:
             await self._reclaimer_manager.stop()
         await self.broker.stop()
@@ -291,6 +322,17 @@ class RedisTransport(Transport):
             min_idle_time=min_idle_time,
         )
 
+        # Track the subscription so the background monitor can recreate the
+        # consumer group if Redis loses the stream (restart, failover, eviction).
+        if group:
+            self._stream_subscriptions.append(
+                _StreamGroupInfo(
+                    stream_key=self._get_stream_key(channel),
+                    group=group,
+                    group_create_id="$" if last_id == ">" else last_id,
+                )
+            )
+
         # Extract ack_policy or default to NACK_ON_ERROR for reliability
         # This ensures messages are NOT acknowledged when handlers raise exceptions,
         # allowing them to be redelivered for retry
@@ -358,6 +400,52 @@ class RedisTransport(Transport):
             )
 
         return registered_handler
+
+    async def _monitor_stream_groups(self) -> None:
+        """Periodically ensure all registered stream consumer groups exist.
+
+        When Redis loses streams (restart, failover, eviction), FastStream's
+        consume loop retries xreadgroup but never re-runs xgroup_create.
+        This monitor closes that gap by periodically attempting xgroup_create
+        for every registered subscription.  The call raises BUSYGROUP when the
+        group already exists, making it cheap under normal operation.
+
+        Uses id="0" when the stream still has entries (partial group loss) so
+        unprocessed messages are redelivered.  Falls back to the original
+        group_create_id with MKSTREAM when the stream itself is gone.
+        """
+        client = aioredis.from_url(self._redis_url, decode_responses=True)
+        try:
+            while self._running:
+                await asyncio.sleep(self._group_monitor_interval_s)
+                for info in self._stream_subscriptions:
+                    try:
+                        stream_exists = await client.exists(info.stream_key)
+                        create_id = "0" if stream_exists else info.group_create_id
+                        await client.xgroup_create(
+                            name=info.stream_key,
+                            groupname=info.group,
+                            id=create_id,
+                            mkstream=True,
+                        )
+                        logger.info(
+                            "Recreated missing consumer group %s on stream %s (id=%s)",
+                            info.group,
+                            info.stream_key,
+                            create_id,
+                        )
+                    except ResponseError as e:
+                        if "BUSYGROUP" not in str(e):
+                            logger.warning(
+                                "Failed to ensure consumer group %s on %s: %s",
+                                info.group,
+                                info.stream_key,
+                                e,
+                            )
+        except asyncio.CancelledError:
+            pass
+        finally:
+            await client.aclose()
 
     def _setup_reclaimer(
         self,

@@ -227,6 +227,18 @@ Guidelines:
 - `retry_reclaim_interval_s` controls how often the background reclaimer wakes up. Lower values increase Redis load; 15 s is a sensible default for most workloads.
 - `max_retries` prevents poison messages from looping forever. Set to `None` for unlimited retries (no DLQ).
 
+### Automatic Recovery from Redis Stream Loss (NOGROUP)
+
+If Redis loses streams mid-life — due to a restart without persistence, a failover, or memory eviction — FastStream's consume loop retries `XREADGROUP` but never re-runs `XGROUP CREATE`, resulting in an infinite `NOGROUP` error loop.
+
+The SDK handles this automatically with two mechanisms:
+
+1. **Background stream group monitor** — `RedisTransport` runs a lightweight background task that periodically calls `XGROUP CREATE` with `MKSTREAM` for every registered subscription. When groups already exist the call is a no-op (`BUSYGROUP`), so overhead under normal operation is negligible.
+
+2. **NOGROUP-aware reclaimer** — `PendingReclaimerManager` catches `NOGROUP` errors during reclaim cycles and recreates the consumer group instead of logging an unhandled exception every cycle.
+
+No configuration is needed — both mechanisms are always active when using `RedisTransport`.
+
 ### Constraints
 
 - `min_idle_time` (FastStream's built-in `XAUTOCLAIM`) and `retry_on_idle_ms` are **mutually exclusive** on the same subscription — mixing them raises `ValueError`.

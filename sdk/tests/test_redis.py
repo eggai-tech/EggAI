@@ -796,3 +796,217 @@ async def test_dlq_stream_naming():
         assert config.dlq_stream == "eggai.orders.dlq", (
             f"Expected dlq_stream='eggai.orders.dlq', got {config.dlq_stream}"
         )
+
+
+@pytest.mark.asyncio
+async def test_monitor_tracks_stream_subscriptions():
+    """subscribe() populates _stream_subscriptions for the group monitor."""
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-handler-1",
+        retry_on_idle_ms=500,
+    )
+
+    # Main subscription + retry subscription
+    assert len(transport._stream_subscriptions) == 2
+    stream_keys = [s.stream_key for s in transport._stream_subscriptions]
+    assert "eggai.orders" in stream_keys
+    assert "eggai.orders.retry" in stream_keys
+
+    groups = [s.group for s in transport._stream_subscriptions]
+    assert "orders-handler-1" in groups
+    assert "orders-handler-1-retry" in groups
+
+    # Both use last_id=">" so group_create_id should be "$"
+    for sub in transport._stream_subscriptions:
+        assert sub.group_create_id == "$"
+
+
+@pytest.mark.asyncio
+async def test_nogroup_recovery_via_monitor():
+    """
+    When Redis loses a stream, the background group monitor should recreate
+    the consumer group so that FastStream's consume loop recovers without
+    a pod restart.
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-nogroup-{test_id}"
+    stream_name = f"eggai.{channel_name}"
+
+    transport = RedisTransport(group_monitor_interval_s=1.0)
+    agent = Agent(f"nogroup-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    first_msg = asyncio.Event()
+    second_msg = asyncio.Event()
+
+    @agent.subscribe(channel=channel)
+    async def handler(message):
+        if first_msg.is_set():
+            second_msg.set()
+        else:
+            first_msg.set()
+
+    await agent.start()
+
+    # Verify initial message processing works
+    await channel.publish({"type": "test", "data": "before-delete", "test_id": test_id})
+    await asyncio.wait_for(first_msg.wait(), timeout=5.0)
+    assert first_msg.is_set()
+
+    # Simulate Redis data loss by deleting the stream
+    await redis_client.delete(stream_name)
+
+    # Wait for the monitor to recreate the group (interval=1s + FastStream retry~4.5s)
+    await asyncio.sleep(12)
+
+    # Publish a new message — should be processed after recovery
+    await channel.publish(
+        {"type": "test", "data": "after-recovery", "test_id": test_id}
+    )
+
+    try:
+        await asyncio.wait_for(second_msg.wait(), timeout=10.0)
+    except asyncio.TimeoutError:
+        pass
+
+    await agent.stop()
+    await redis_client.aclose()
+
+    assert second_msg.is_set(), "Expected second message to be set"
+
+
+@pytest.mark.asyncio
+async def test_reclaimer_nogroup_recovery():
+    """
+    When the reclaimer encounters a NOGROUP error it should recreate the
+    consumer group and continue on the next cycle instead of logging an
+    unhandled exception every interval.
+    """
+    from eggai.transport.pending_reclaimer import (
+        PendingReclaimerManager,
+        ReclaimerConfig,
+    )
+
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    stream_name = f"eggai.test-reclaimer-nogroup-{test_id}"
+    group_name = f"test-group-{test_id}"
+
+    # Create a stream and consumer group, then delete the stream
+    await redis_client.xgroup_create(stream_name, group_name, id="$", mkstream=True)
+    await redis_client.delete(stream_name)
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager.add(
+        ReclaimerConfig(
+            stream=stream_name,
+            group=group_name,
+            consumer=f"{group_name}-reclaimer",
+            retry_stream=f"{stream_name}.retry",
+            min_idle_ms=1000,
+            interval_s=0.5,
+        )
+    )
+
+    await manager.start()
+    # Give the reclaimer time to hit NOGROUP and recover
+    await asyncio.sleep(2)
+    await manager.stop()
+
+    # The reclaimer should have recreated the group
+    groups = await redis_client.xinfo_groups(stream_name)
+    group_names = [
+        g["name"] if isinstance(g["name"], str) else g["name"].decode() for g in groups
+    ]
+    assert group_name in group_names, (
+        f"Expected group {group_name} to be recreated, found {group_names}"
+    )
+
+    await redis_client.delete(stream_name)
+    await redis_client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_partial_group_loss_redelivers_existing_messages():
+    """
+    When the consumer group is lost but the stream still has messages
+    (partial loss), the monitor should recreate the group with id="0"
+    so existing unprocessed messages are redelivered — not dropped.
+
+    With the old id="$" behaviour, the message published while the group
+    was missing would be permanently skipped.
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-partial-{test_id}"
+    stream_name = f"eggai.{channel_name}"
+
+    transport = RedisTransport(group_monitor_interval_s=1.0)
+    agent = Agent(f"partial-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    first_msg = asyncio.Event()
+    second_msg = asyncio.Event()
+
+    @agent.subscribe(channel=channel)
+    async def handler(message):
+        if first_msg.is_set():
+            second_msg.set()
+        else:
+            first_msg.set()
+
+    await agent.start()
+
+    # Publish a first message and wait for it to be consumed
+    await channel.publish({"type": "test", "data": "before", "test_id": test_id})
+    await asyncio.wait_for(first_msg.wait(), timeout=5.0)
+    assert first_msg.is_set()
+
+    # Resolve the actual group name used by the subscription
+    group_name = transport._stream_subscriptions[0].group
+
+    # Delete ONLY the consumer group, leaving the stream (with its entries) intact
+    await redis_client.xgroup_destroy(stream_name, group_name)
+
+    # Verify stream exists but group is gone
+    assert await redis_client.exists(stream_name)
+    groups = await redis_client.xinfo_groups(stream_name)
+    group_names = [
+        g["name"] if isinstance(g["name"], str) else g["name"].decode() for g in groups
+    ]
+    assert group_name not in group_names, "Group should have been destroyed"
+
+    # Publish via SDK while the group is missing — the message lands in the
+    # stream but no consumer group exists to deliver it yet.
+    await channel.publish(
+        {"type": "test", "data": "after-group-loss", "test_id": test_id}
+    )
+
+    # Wait for the monitor to recreate the group with id="0" and FastStream
+    # to recover (~4.5s recovery + monitor interval)
+    try:
+        await asyncio.wait_for(second_msg.wait(), timeout=15.0)
+    except asyncio.TimeoutError:
+        pass
+
+    await agent.stop()
+    await redis_client.delete(stream_name)
+    await redis_client.aclose()
+
+    # The key assertion: the message published while the group was missing
+    # must have been delivered. With id="$" it would be permanently dropped.
+    assert second_msg.is_set(), (
+        "Message published during partial group loss was not redelivered. "
+        "The group was likely recreated with id='$' instead of id='0'."
+    )
