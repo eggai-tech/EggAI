@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with `MKSTREAM`, and `PendingReclaimerManager` now recreates consumer groups
   on NOGROUP errors instead of logging unhandled exceptions.
 
+### Changed
+- Bump `faststream` from 0.6.5 to 0.6.6 — fixes `xautoclaim` crash on Redis < 7.0.
+- Bump `a2a-sdk` from 0.3.22 to 0.3.24.
+- Bump `pyasn1` from 0.6.1 to 0.6.2 — fixes CVE-2026-23490.
+
 ## [0.2.13] - 2026-03-14
 
 ### Changed
