@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-03-20
+
 ### Fixed
 - **RedisTransport**: Auto-recover from NOGROUP errors when Redis loses streams
   (restart without persistence, failover, memory eviction). A background stream
