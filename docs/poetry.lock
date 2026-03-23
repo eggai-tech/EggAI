@@ -491,14 +491,14 @@ cache = ["platformdirs"]
 
 [[package]]
 name = "mkdocs-material"
-version = "9.7.5"
+version = "9.7.6"
 description = "Documentation that simply works"
 optional = false
 python-versions = ">=3.8"
 groups = ["dev"]
 files = [
-    {file = "mkdocs_material-9.7.5-py3-none-any.whl", hash = "sha256:7cf9df2ff121fd098ff6e05c732b0be3699afca9642e2dfe4926c40eb5873eec"},
-    {file = "mkdocs_material-9.7.5.tar.gz", hash = "sha256:f76bdab532bad1d9c57ca7187b37eccf64dd12e1586909307f8856db3be384ea"},
+    {file = "mkdocs_material-9.7.6-py3-none-any.whl", hash = "sha256:71b84353921b8ea1ba84fe11c50912cc512da8fe0881038fcc9a0761c0e635ba"},
+    {file = "mkdocs_material-9.7.6.tar.gz", hash = "sha256:00bdde50574f776d328b1862fe65daeaf581ec309bd150f7bff345a098c64a69"},
 ]
 
 [package.dependencies]
@@ -905,4 +905,4 @@ bracex = ">=2.1.1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "b62a06c7716f907106ae9af1ba47914b3782bb9ed61d54f773fa24b27aed0a72"
+content-hash = "98b33d6ac41bcbfadb9feff0e9fd460d524d2579be6eac3889d299929c308df4"
