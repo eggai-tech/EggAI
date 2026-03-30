@@ -13,8 +13,8 @@ python = "^3.10"
 [tool.poetry.group.dev.dependencies]
 mkdocs = "^1.6.1"
 mkdocstrings = {extras = ["python"], version = "^1.0.3"}
-mkdocs-material = "^9.7.5"
-mkdocs-include-markdown-plugin = "^7.2.1"
+mkdocs-material = "^9.7.6"
+mkdocs-include-markdown-plugin = "^7.2.2"
 
 [build-system]
 requires = ["poetry-core"]
