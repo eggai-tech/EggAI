@@ -79,7 +79,7 @@
                 "kafka://"
               ],
               "filePatterns": ["sdk/**/*.py"],
-              "excludePatterns": ["**/test_*.py", "**/*_test.py"]
+              "excludePatterns": ["**/test_*.py", "**/*_test.py", "**/conftest.py"]
             }
           },
           {
@@ -101,7 +101,7 @@
                 "create_task"
               ],
               "filePatterns": ["sdk/**/*.py"],
-              "excludePatterns": ["**/test_*.py", "**/*_test.py"]
+              "excludePatterns": ["**/test_*.py", "**/*_test.py", "**/conftest.py"]
             }
           },
           {
@@ -123,7 +123,7 @@
                 "sdk/setup.py",
                 "sdk/setup.cfg"
               ],
-              "excludePatterns": ["**/test_*.py", "**/*_test.py"]
+              "excludePatterns": ["**/test_*.py", "**/*_test.py", "**/conftest.py"]
             }
           }
         ]

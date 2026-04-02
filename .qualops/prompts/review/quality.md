@@ -1,7 +1,7 @@
 # Code Quality Review
 
 Review the code for:
-- **Bugs & Logic Errors** — incorrect behavior, off-by-one errors, null/undefined issues
+- **Bugs & Logic Errors** — incorrect behavior, off-by-one errors, None handling, type errors
 - **Security** — injection, auth issues, data exposure, insecure defaults
 - **Performance** — unnecessary allocations, N+1 queries, missing indexes
 - **Maintainability** — unclear naming, excessive complexity, missing error handling

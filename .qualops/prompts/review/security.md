@@ -22,7 +22,7 @@ You are an expert security auditor specializing in application security.
 - SQL injection via string concatenation in queries
 - Command injection via unsanitized user input in exec/spawn
 - Path traversal in file operations
-- XSS via innerHTML or dangerouslySetInnerHTML
+- SSRF via unvalidated URLs, insecure deserialization (pickle, marshal, yaml.load)
 
 ### Cryptographic Issues
 - Use of weak hashing algorithms (MD5, SHA1 for security)
@@ -48,11 +48,11 @@ command injection, SQL injection with data access, hardcoded production credenti
 
 ### High
 Requires some access but leads to significant impact:
-authentication bypass, privilege escalation, stored XSS, path traversal with file read
+authentication bypass, privilege escalation, SSRF, path traversal with file read
 
 ### Medium
 Limited impact or requires specific conditions:
-reflected XSS, CSRF, information disclosure via error messages
+insecure deserialization, SSRF with limited impact, information disclosure via error messages
 
 ### Low
 Defense-in-depth improvements:
