@@ -1,0 +1,163 @@
+{
+  "$schema": "https://raw.githubusercontent.com/eggai-tech/qualops/main/qualops-config.schema.json",
+  "ai": {
+    "reviewStage": {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "inputPerMillion": 3,
+      "outputPerMillion": 15,
+      "temperature": 0
+    },
+    "fixStage": {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "inputPerMillion": 3,
+      "outputPerMillion": 15,
+      "temperature": 0
+    },
+    "judgeStage": {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-6",
+      "inputPerMillion": 3,
+      "outputPerMillion": 15,
+      "temperature": 0
+    }
+  },
+  "review": {
+    "minConfidence": 7,
+    "maxConcurrentFiles": 3,
+    "deduplication": {
+      "enabled": true,
+      "prompt": "deduplication.md"
+    },
+    "pipeline": [
+      {
+        "name": "codeReview",
+        "enabled": true,
+        "validation": {
+          "enabled": true,
+          "minConfidence": 7,
+          "prompt": "review/validation.md"
+        },
+        "deduplication": {
+          "enabled": true,
+          "prompt": "deduplication.md"
+        },
+        "passes": [
+          {
+            "name": "quality",
+            "enabled": true,
+            "prompt": "review/quality.md",
+            "filters": {
+              "filePatterns": ["sdk/**/*.py"],
+              "excludePatterns": [
+                "**/test_*.py",
+                "**/*_test.py",
+                "**/conftest.py"
+              ]
+            }
+          },
+          {
+            "name": "security",
+            "enabled": true,
+            "prompt": "review/security.md",
+            "filters": {
+              "detectionTriggers": [
+                "os\\.environ",
+                "subprocess",
+                "pickle",
+                "marshal",
+                "eval\\(",
+                "exec\\(",
+                "SECRET",
+                "API_KEY",
+                "PASSWORD",
+                "TOKEN",
+                "credentials",
+                "auth",
+                "redis://",
+                "kafka://"
+              ],
+              "filePatterns": ["sdk/**/*.py"],
+              "excludePatterns": ["**/test_*.py", "**/*_test.py", "**/conftest.py"]
+            }
+          },
+          {
+            "name": "performance",
+            "enabled": true,
+            "prompt": "review/performance.md",
+            "filters": {
+              "detectionTriggers": [
+                "asyncio",
+                "await ",
+                "async def",
+                "sleep\\(",
+                "time\\.time",
+                "threading",
+                "Lock\\(",
+                "Semaphore",
+                "Queue",
+                "gather\\(",
+                "create_task"
+              ],
+              "filePatterns": ["sdk/**/*.py"],
+              "excludePatterns": ["**/test_*.py", "**/*_test.py", "**/conftest.py"]
+            }
+          },
+          {
+            "name": "migration",
+            "enabled": true,
+            "prompt": "review/migration.md",
+            "filters": {
+              "detectionTriggers": [
+                "version",
+                "deprecated",
+                "breaking",
+                "migration",
+                "upgrade",
+                "import "
+              ],
+              "filePatterns": [
+                "sdk/**/*.py",
+                "sdk/pyproject.toml",
+                "sdk/setup.py",
+                "sdk/setup.cfg"
+              ],
+              "excludePatterns": ["**/test_*.py", "**/*_test.py", "**/conftest.py"]
+            }
+          }
+        ]
+      },
+      {
+        "name": "agenticSecurityAudit",
+        "enabled": true,
+        "mode": "agentic",
+        "agentic": {
+          "maxTurns": 15,
+          "contextMode": "auto",
+          "maxTokensPerFile": 8000,
+          "maxTotalTokens": 50000,
+          "enabledSubagents": [
+            "security-analyzer",
+            "dependency-tracer",
+            "breaking-change-detector"
+          ],
+          "systemPrompt": "You are a security-focused code reviewer analyzing the EggAI Python SDK — an async multi-agent messaging framework built on CloudEvents, Pydantic, and pluggable transports (Redis Streams, Kafka, in-memory). Focus on:\n1. Credential exposure in transport URLs, logs, or error messages (Redis/Kafka connection strings, API keys)\n2. Message injection or tampering via CloudEvents fields (source, type, subject, data) — especially in A2A adapter handler dispatch and retry metadata injection\n3. Unsafe deserialization: any use of pickle, marshal, eval, or exec on message payloads; JSON parsing without Pydantic validation\n4. Async safety issues: missing await on coroutines, blocking I/O in async handlers, unguarded shared mutable state across agent handlers\n5. A2A adapter security: CORS configuration, skill name validation before handler dispatch, message extraction from untrusted a2a protocol payloads\n6. Transport-layer concerns: unencrypted Redis/Kafka connections, consumer group ACK/NACK logic that could cause message replay attacks, DLQ exposure\n7. Cross-file security implications: how a vulnerability in one agent handler or transport could affect other agents sharing the same channel namespace"
+        },
+        "deduplication": {
+          "enabled": true,
+          "prompt": "deduplication.md"
+        },
+        "validation": {
+          "enabled": true,
+          "minConfidence": 8,
+          "prompt": "review/validation.md"
+        }
+      }
+    ]
+  },
+  "report": {
+    "includedSeverities": ["critical", "high", "medium"],
+    "generateIssueMarkdown": true
+  }
+}
