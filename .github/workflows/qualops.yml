@@ -13,12 +13,45 @@ permissions:
 jobs:
   qualops:
     runs-on: ubuntu-latest
+    concurrency:
+      group: 'qualops-analysis'
+      cancel-in-progress: false
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
-      - uses: eggai-tech/qualops@268e12e0dd69ddb08b0fd77d16f91973aee36aa7 # v0.2.1
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 20.x
+
+      - name: Install QualOps
+        run: npm install -g @eggai/qualops@0.2.1
+
+      - name: Run QualOps Analysis
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          qualops all \
+            --base "origin/$BASE_REF" \
+            --head "$HEAD_SHA" \
+            --stages analyze,review,report
+
+      - name: Post GitHub Integration
+        if: always()
+        working-directory: .qualops
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node "$(npm root -g)/@eggai/qualops/dist/github/run-integration.js"
+
+      - name: Upload QualOps Reports
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: qualops-reports
+          path: .qualops/reports/
