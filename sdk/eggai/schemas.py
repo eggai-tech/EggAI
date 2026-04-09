@@ -9,7 +9,7 @@ TData = TypeVar("TData")
 
 
 def current_datetime_factory():
-    return datetime.datetime.now(datetime.UTC)
+    return datetime.datetime.now(datetime.timezone.utc)
 
 
 class BaseMessage(BaseModel, Generic[TData]):
@@ -60,6 +60,10 @@ class BaseMessage(BaseModel, Generic[TData]):
     )
     dataschema: str | None = Field(
         default=None, description="URI of the schema that `data` adheres to."
+    )
+    traceparent: str | None = Field(
+        default=None,
+        description="W3C traceparent for distributed trace context propagation.",
     )
     data: TData = Field(
         default_factory=dict,
