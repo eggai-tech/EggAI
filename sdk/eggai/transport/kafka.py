@@ -188,6 +188,10 @@ class KafkaTransport(Transport):
         Returns:
             Callable: A callback function that represents the subscription.
         """
+        from eggai.tracing import make_tracing_wrapper
+
+        handler = make_tracing_wrapper(channel, handler)
+
         if "filter_by_message" in kwargs:
             if "middlewares" not in kwargs:
                 kwargs["middlewares"] = []

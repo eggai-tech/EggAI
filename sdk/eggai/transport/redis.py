@@ -240,6 +240,23 @@ class RedisTransport(Transport):
             Callable: A callback function that represents the subscription. When invoked, it will call the handler with
                       incoming messages.
         """
+        # Reclaimer options — extracted before StreamSub is built.
+        retry_on_idle_ms = kwargs.pop("retry_on_idle_ms", None)
+        retry_reclaim_interval_s = kwargs.pop("retry_reclaim_interval_s", 15.0)
+        _explicit_max_retries = "max_retries" in kwargs
+        max_retries = kwargs.pop("max_retries", 5)
+        on_dlq = kwargs.pop("on_dlq", None)
+        _internal_retry = kwargs.pop("_internal_retry", False)
+
+        # Only wrap the handler on the initial subscribe call, not on the
+        # internal recursive call for the retry stream — otherwise the retry
+        # handler gets double-wrapped, producing duplicate spans and corrupting
+        # the consumer group name (handler.__name__ becomes "traced_handler").
+        if not _internal_retry:
+            from eggai.tracing import make_tracing_wrapper
+
+            handler = make_tracing_wrapper(channel, handler)
+
         if "filter_by_message" in kwargs:
             if "middlewares" not in kwargs:
                 kwargs["middlewares"] = []
@@ -262,14 +279,6 @@ class RedisTransport(Transport):
                         data_type, kwargs.pop("filter_by_data")
                     )
                 )
-
-        # Reclaimer options — extracted before StreamSub is built.
-        retry_on_idle_ms = kwargs.pop("retry_on_idle_ms", None)
-        retry_reclaim_interval_s = kwargs.pop("retry_reclaim_interval_s", 15.0)
-        _explicit_max_retries = "max_retries" in kwargs
-        max_retries = kwargs.pop("max_retries", 5)
-        on_dlq = kwargs.pop("on_dlq", None)
-        _internal_retry = kwargs.pop("_internal_retry", False)
 
         handler_id = kwargs.pop("handler_id", None)
 
