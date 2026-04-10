@@ -26,8 +26,8 @@ def test_traceparent_survives_json_round_trip():
 async def test_noop_publish_and_subscribe_work_without_setup_tracing():
     import eggai.tracing as t
 
-    original_tracer = t._tracer
-    t._tracer = None
+    original_backend = t._backend
+    t._backend = None
 
     transport = InMemoryTransport()
     eggai_set_default_transport(transport)
@@ -50,7 +50,7 @@ async def test_noop_publish_and_subscribe_work_without_setup_tracing():
     await transport.disconnect()
     InMemoryTransport._CHANNELS.clear()
     InMemoryTransport._SUBSCRIPTIONS.clear()
-    t._tracer = original_tracer
+    t._backend = original_backend
 
 
 # OTEL does not allow overriding the global TracerProvider, so a single shared
@@ -75,13 +75,13 @@ def _activate_tracer():
     import eggai.tracing as t
 
     _SHARED_EXPORTER.clear()
-    t._tracer = _otel_trace.get_tracer("eggai", eggai.__version__)
+    t._backend = t._OtelBackend(_otel_trace.get_tracer("eggai", eggai.__version__))
 
 
 def _deactivate_tracer():
     import eggai.tracing as t
 
-    t._tracer = None
+    t._backend = t._NoOpBackend()
 
 
 @pytest.fixture()

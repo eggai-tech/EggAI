@@ -72,36 +72,17 @@ class Channel:
             message (Dict[str, Any]): The message payload to publish.
         """
         await self._ensure_connected()
-        from .tracing import _set_span_attrs, apply_traceparent, get_tracer
+        from .tracing import _set_span_attrs, apply_traceparent, get_backend
 
-        tracer = get_tracer()
-        if tracer is not None:
-            from opentelemetry.propagate import extract as otel_extract
-            from opentelemetry.propagate import inject as otel_inject
-            from opentelemetry.trace import SpanKind
+        backend = get_backend()
+        if backend is None:
+            await self._get_transport().publish(self._name, message)
+            return
 
-            # If the message already carries a traceparent, continue that trace.
-            existing_tp = (
-                message.get("traceparent")
-                if isinstance(message, dict)
-                else getattr(message, "traceparent", None)
-            )
-            parent_ctx = (
-                otel_extract({"traceparent": existing_tp}) if existing_tp else None
-            )
-
-            with tracer.start_as_current_span(
-                f"eggai.publish {self._name}",
-                context=parent_ctx,
-                kind=SpanKind.PRODUCER,
-            ) as span:
-                _set_span_attrs(span, self._name, message, "publish")
-                carrier: dict = {}
-                otel_inject(carrier)
-                if carrier.get("traceparent"):
-                    message = apply_traceparent(message, carrier["traceparent"])
-                await self._get_transport().publish(self._name, message)
-        else:
+        with backend.start_producer_span(self._name, message) as (span, carrier):
+            _set_span_attrs(span, self._name, message, "publish")
+            if carrier.get("traceparent"):
+                message = apply_traceparent(message, carrier["traceparent"])
             await self._get_transport().publish(self._name, message)
 
     async def subscribe(
