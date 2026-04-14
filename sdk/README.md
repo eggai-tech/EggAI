@@ -23,9 +23,10 @@ Redis Streams and Kafka support are included by default.
 
 Optional extras:
 ```bash
+pip install eggai[otel]   # Distributed tracing via OpenTelemetry
 pip install eggai[cli]    # CLI tools for scaffolding
-pip install eggai[a2a]     # A2A (Agent-to-Agent) SDK integration
-pip install eggai[mcp]     # MCP (Model Context Protocol) support
+pip install eggai[a2a]    # A2A (Agent-to-Agent) SDK integration
+pip install eggai[mcp]    # MCP (Model Context Protocol) support
 ```
 
 ## Quick Start
@@ -218,6 +219,100 @@ Retry stream (eggai.orders.retry)
 DLQ stream   (eggai.orders.dlq)
         terminal — no reclaimer, manual re-drive only
 ```
+
+## Observability (OpenTelemetry)
+
+EggAI has built-in distributed tracing via OpenTelemetry. Every message hop — from publisher through to handler — shares a single `trace_id`, giving you end-to-end visibility across agents.
+
+Install the optional tracing dependencies:
+
+```bash
+pip install eggai[otel]
+```
+
+### Auto-configuration via environment variables
+
+If `OTEL_EXPORTER_OTLP_ENDPOINT` is set when the process starts, tracing activates automatically. The protocol is selected from `OTEL_EXPORTER_OTLP_PROTOCOL` (defaults to `grpc`):
+
+```bash
+# gRPC backend (Jaeger, Grafana Tempo, …)
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+export OTEL_SERVICE_NAME=my-agent
+
+# HTTP backend (Langfuse, Honeycomb, Datadog, …)
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64-encoded-key>"
+export OTEL_SERVICE_NAME=my-agent
+```
+
+No code changes needed — just set the env vars and run your agent.
+
+### Explicit setup in code
+
+```python
+from eggai import setup_tracing, Agent, Channel
+
+# gRPC (default)
+setup_tracing(service_name="my-agent")
+
+# HTTP (required for Langfuse, Honeycomb, Datadog, etc.)
+setup_tracing(exporter="otlp-http", service_name="my-agent")
+
+# Console (useful during development)
+setup_tracing(exporter="console", service_name="my-agent")
+```
+
+Call `setup_tracing()` once at startup, before any agents publish or subscribe.
+
+### What gets traced automatically
+
+Every `channel.publish()` creates a producer span and every handler invocation creates a consumer span. All spans within a single request share the same `trace_id`:
+
+```
+eggai.publish eggai.orders          ← producer span (your publish call)
+  └─ eggai.process eggai.orders     ← consumer span (handler invocation)
+       └─ eggai.publish eggai.bills ← producer span (handler publishes downstream)
+            └─ eggai.process …      ← and so on
+```
+
+Span attributes set on every span:
+
+| Attribute | Value |
+|-----------|-------|
+| `messaging.system` | `eggai` |
+| `messaging.destination` | channel name |
+| `messaging.operation` | `publish` or `process` |
+| `eggai.message.id` | message UUID |
+| `eggai.message.type` | message type field |
+| `eggai.message.source` | message source field |
+
+### Langfuse
+
+Langfuse supports OTLP natively (HTTP only, v3.22+). Point EggAI at its endpoint and your agent traces appear as Langfuse traces with each span as an observation:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic $(echo -n 'pk-lf-...:sk-lf-...' | base64)"
+export OTEL_SERVICE_NAME=my-agent
+```
+
+To attach a Langfuse session or user to spans, set the attributes on your own root span before publishing:
+
+```python
+from opentelemetry import trace
+
+tracer = trace.get_tracer("myapp")
+
+with tracer.start_as_current_span("handle-user-request") as span:
+    span.set_attribute("langfuse.session.id", "session-abc")
+    span.set_attribute("langfuse.user.id", "user-123")
+    await channel.publish(msg)  # EggAI spans are nested under this span
+```
+
+Self-hosted Langfuse: replace the endpoint with `http://your-host:3000/api/public/otel`.
 
 ## Production Recommendations
 

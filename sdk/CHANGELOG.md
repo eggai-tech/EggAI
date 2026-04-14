@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Distributed tracing via OpenTelemetry**: Agents now propagate a shared `trace_id` across every message hop. Opt-in via `setup_tracing()`; zero-cost when not configured.
+
 ## [0.2.14] - 2026-03-20
 
 ### Fixed

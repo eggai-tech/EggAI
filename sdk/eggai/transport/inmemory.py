@@ -173,6 +173,9 @@ class InMemoryTransport(Transport):
 
             final_callback = filtered_callback
 
+        from eggai.tracing import make_tracing_wrapper
+
+        final_callback = make_tracing_wrapper(channel, final_callback)
         InMemoryTransport._SUBSCRIPTIONS[channel][group_id].append(final_callback)
 
         if group_id not in InMemoryTransport._CHANNELS[channel]:

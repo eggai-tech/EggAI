@@ -72,7 +72,18 @@ class Channel:
             message (Dict[str, Any]): The message payload to publish.
         """
         await self._ensure_connected()
-        await self._get_transport().publish(self._name, message)
+        from .tracing import _set_span_attrs, apply_traceparent, get_backend
+
+        backend = get_backend()
+        if backend is None:
+            await self._get_transport().publish(self._name, message)
+            return
+
+        with backend.start_producer_span(self._name, message) as (span, carrier):
+            _set_span_attrs(span, self._name, message, "publish")
+            if carrier.get("traceparent"):
+                message = apply_traceparent(message, carrier["traceparent"])
+            await self._get_transport().publish(self._name, message)
 
     async def subscribe(
         self, callback: Callable[[dict[str, Any]], "asyncio.Future"], **kwargs
