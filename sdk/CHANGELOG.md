@@ -10,6 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Distributed tracing via OpenTelemetry**: Agents now propagate a shared `trace_id` across every message hop. Opt-in via `setup_tracing()`; zero-cost when not configured.
 
+### Fixed
+- **RedisTransport** (#225): Retry and DLQ stream keys are now per-handler
+  (`{channel}.{handler_suffix}.retry` / `.dlq`) instead of per-channel.
+  Previously, multiple handlers subscribing to the same channel with different
+  consumer groups shared a single `{channel}.retry` stream, so one handler's
+  reclaimed failure would be redelivered to **every** handler on that channel
+  via its auto-created `-retry` group. This caused work amplification (N
+  replays per nack, where N is the number of consumer groups on the channel)
+  and visible duplicate side-effects in downstream systems with non-idempotent
+  handlers.
+
+### Migration
+- **Breaking on-wire change.** Existing inflight messages in `{channel}.retry`
+  and `{channel}.dlq` streams will not be picked up by upgraded consumers —
+  they will continue to exist but new retries will land in the per-handler
+  streams. Drain the legacy streams before deploying, or `XADD` any pending
+  entries into the new per-handler keys.
+
 ## [0.2.14] - 2026-03-20
 
 ### Fixed

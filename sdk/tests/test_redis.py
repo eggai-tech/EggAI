@@ -309,7 +309,9 @@ async def test_retry_on_idle_ms_basic():
     test_id = uuid.uuid4().hex[:8]
     channel_name = f"test-retry-idle-{test_id}"
     stream_name = f"eggai.{channel_name}"
-    retry_stream_name = f"{stream_name}.retry"
+    # Per-handler retry stream key (issue #225).
+    group_main = f"retry-agent-{test_id}-handler-1"
+    retry_stream_name = f"{stream_name}.{group_main}.retry"
 
     transport = RedisTransport()
     agent = Agent(f"retry-agent-{test_id}", transport=transport)
@@ -344,7 +346,6 @@ async def test_retry_on_idle_ms_basic():
     await agent.stop()
 
     # Determine group names (mirrors agent.py handler_id format).
-    group_main = f"retry-agent-{test_id}-handler-1"
     group_retry = f"{group_main}-retry"
 
     def get_pending(info):
@@ -368,6 +369,77 @@ async def test_retry_on_idle_ms_basic():
 
 
 @pytest.mark.asyncio
+async def test_retry_does_not_fan_out_to_other_handlers():
+    """
+    Regression test for issue #225.
+
+    When two handlers subscribe to the same channel with different consumer
+    groups, a nack in one handler must NOT cause the message to be re-delivered
+    to the other handler that already acked it. The pre-fix behaviour was that
+    the reclaimer for the failing group XADDed the payload to a shared
+    ``{channel}.retry`` stream, and every other handler's auto-created
+    ``-retry`` consumer group on that same shared key received the entry.
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-no-fanout-{test_id}"
+
+    transport = RedisTransport()
+    agent_ok = Agent(f"agent-ok-{test_id}", transport=transport)
+    agent_fail = Agent(f"agent-fail-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    ok_calls: list[str] = []
+    fail_calls: list[str] = []
+    fail_retry_done = asyncio.Event()
+
+    @agent_ok.subscribe(
+        channel=channel,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+    )
+    async def handler_ok(message):
+        ok_calls.append(message.get("data"))
+
+    @agent_fail.subscribe(
+        channel=channel,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+    )
+    async def handler_fail(message):
+        fail_calls.append(message.get("data"))
+        if len(fail_calls) == 1:
+            raise RuntimeError("first attempt fails")
+        fail_retry_done.set()
+
+    await agent_ok.start()
+    await agent_fail.start()
+
+    await channel.publish({"type": "test", "data": "x", "test_id": test_id})
+
+    # Wait for the failing handler to retry-succeed.
+    await asyncio.wait_for(fail_retry_done.wait(), timeout=10.0)
+    # Give any potential fan-out replay a chance to land in handler_ok.
+    await asyncio.sleep(2.0)
+
+    await agent_ok.stop()
+    await agent_fail.stop()
+    await redis_client.aclose()
+
+    assert len(ok_calls) == 1, (
+        f"handler_ok should have processed the message exactly once, got "
+        f"{len(ok_calls)} calls. Pre-fix behaviour: handler_fail's retry "
+        f"republish on the shared retry stream would have re-delivered the "
+        f"message to handler_ok via its `-retry` group."
+    )
+    assert len(fail_calls) == 2, (
+        f"handler_fail should have been called twice (1 original + 1 retry), "
+        f"got {len(fail_calls)} calls."
+    )
+
+
+@pytest.mark.asyncio
 async def test_retry_on_idle_ms_no_retry_retry_stream():
     """
     Persistent failure in the retry handler must NOT create a .retry.retry stream.
@@ -381,7 +453,12 @@ async def test_retry_on_idle_ms_no_retry_retry_stream():
 
     test_id = uuid.uuid4().hex[:8]
     channel_name = f"test-no-retry-retry-{test_id}"
-    retry_retry_stream = f"eggai.{channel_name}.retry.retry"
+    # Per-handler retry key (issue #225). The forbidden ".retry.retry" would
+    # nest under the new per-handler retry key, so check that path.
+    group_main = f"persistent-fail-agent-{test_id}-always_failing_handler-1"
+    retry_retry_stream = (
+        f"eggai.{channel_name}.{group_main}.retry.{group_main}-retry.retry"
+    )
 
     transport = RedisTransport()
     agent = Agent(f"persistent-fail-agent-{test_id}", transport=transport)
@@ -460,14 +537,15 @@ async def test_retry_on_idle_ms_uses_prefixed_stream_keys():
 
     assert len(configs) == 2
     assert configs[0].stream == "eggai.orders"
-    assert configs[0].retry_stream == "eggai.orders.retry"
+    # Per-handler retry/dlq keys (issue #225).
+    assert configs[0].retry_stream == "eggai.orders.orders-handler-1.retry"
     # Default max_retries=5 should set up DLQ stream
     assert configs[0].max_retries == 5
-    assert configs[0].dlq_stream == "eggai.orders.dlq"
-    assert configs[1].stream == "eggai.orders.retry"
-    assert configs[1].retry_stream == "eggai.orders.retry"
+    assert configs[0].dlq_stream == "eggai.orders.orders-handler-1.dlq"
+    assert configs[1].stream == "eggai.orders.orders-handler-1.retry"
+    assert configs[1].retry_stream == "eggai.orders.orders-handler-1.retry"
     assert configs[1].max_retries == 5
-    assert configs[1].dlq_stream == "eggai.orders.dlq"
+    assert configs[1].dlq_stream == "eggai.orders.orders-handler-1.dlq"
 
 
 @pytest.mark.asyncio
@@ -583,7 +661,9 @@ async def test_max_retries_routes_to_dlq():
 
     test_id = uuid.uuid4().hex[:8]
     channel_name = f"test-dlq-{test_id}"
-    dlq_stream_name = f"eggai.{channel_name}.dlq"
+    # Per-handler DLQ key (issue #225).
+    group_main = f"dlq-agent-{test_id}-always_fails-1"
+    dlq_stream_name = f"eggai.{channel_name}.{group_main}.dlq"
 
     transport = RedisTransport()
     agent = Agent(f"dlq-agent-{test_id}", transport=transport)
@@ -704,7 +784,9 @@ async def test_max_retries_none_disables_dlq():
 
     test_id = uuid.uuid4().hex[:8]
     channel_name = f"test-no-dlq-{test_id}"
-    dlq_stream_name = f"eggai.{channel_name}.dlq"
+    # Per-handler DLQ key (issue #225).
+    group_main = f"no-dlq-agent-{test_id}-always_fails-1"
+    dlq_stream_name = f"eggai.{channel_name}.{group_main}.dlq"
 
     transport = RedisTransport()
     agent = Agent(f"no-dlq-agent-{test_id}", transport=transport)
@@ -792,9 +874,10 @@ async def test_dlq_stream_naming():
     assert transport._reclaimer_manager is not None
 
     configs = list(transport._reclaimer_manager._configs.values())
+    expected_dlq = "eggai.orders.orders-handler-1.dlq"
     for config in configs:
-        assert config.dlq_stream == "eggai.orders.dlq", (
-            f"Expected dlq_stream='eggai.orders.dlq', got {config.dlq_stream}"
+        assert config.dlq_stream == expected_dlq, (
+            f"Expected dlq_stream={expected_dlq!r}, got {config.dlq_stream}"
         )
 
 
@@ -817,7 +900,8 @@ async def test_monitor_tracks_stream_subscriptions():
     assert len(transport._stream_subscriptions) == 2
     stream_keys = [s.stream_key for s in transport._stream_subscriptions]
     assert "eggai.orders" in stream_keys
-    assert "eggai.orders.retry" in stream_keys
+    # Per-handler retry stream key (issue #225).
+    assert "eggai.orders.orders-handler-1.retry" in stream_keys
 
     groups = [s.group for s in transport._stream_subscriptions]
     assert "orders-handler-1" in groups

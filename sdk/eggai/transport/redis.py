@@ -208,7 +208,8 @@ class RedisTransport(Transport):
             min_idle_time (int, optional): Minimum idle time in milliseconds before a pending message can be auto-claimed
                 via FastStream's built-in XAUTOCLAIM. Mutually exclusive with retry_on_idle_ms.
             retry_on_idle_ms (int, optional): Enables SDK-managed PEL reclaiming. Messages stuck in the PEL longer than
-                this threshold are moved to a dedicated ``{channel}.retry`` stream and re-delivered to the same handler.
+                this threshold are moved to a dedicated ``{channel}.{handler_suffix}.retry`` stream (per-handler, so
+                concurrent handlers on the same channel do not see each other's retries) and re-delivered to the same handler.
                 Mutually exclusive with min_idle_time. Recommended: 30_000 (30 seconds).
                 Delivery is at-least-once — handlers must be idempotent. Injected fields _retry_count and
                 _original_message_id can be used for deduplication.
@@ -216,7 +217,7 @@ class RedisTransport(Transport):
             retry_reclaim_interval_s (float, optional): How often the reclaimer scans for stuck messages (default 15.0s).
                 Only used when retry_on_idle_ms is set.
             max_retries (int, optional): Maximum number of retry attempts before routing to the Dead Letter Queue
-                (``{channel}.dlq``). Default is 5 when retry_on_idle_ms is set. With max_retries=5, the handler is
+                (``{channel}.{handler_suffix}.dlq``). Default is 5 when retry_on_idle_ms is set. With max_retries=5, the handler is
                 called up to 6 times total (1 original + 5 retries). Set to None for unlimited retries (no DLQ).
                 Requires retry_on_idle_ms.
             on_dlq (Callable, optional): Callback invoked when a message is routed to the DLQ. Can be sync or async.
@@ -353,13 +354,20 @@ class RedisTransport(Transport):
         )(handler)
 
         if retry_on_idle_ms is not None and not _internal_retry:
-            retry_stream = f"{channel}.retry"
-            dlq_stream = f"{channel}.dlq" if max_retries is not None else None
-            retry_handler_id = (
-                f"{handler_id}-retry"
-                if handler_id
-                else f"{channel}-{handler.__name__}-retry"
+            # Per-handler retry/dlq stream keys: when multiple handlers
+            # subscribe to the same channel with different consumer groups,
+            # each gets its own retry/dlq streams. A single shared retry
+            # stream would broadcast one handler's failures to every other
+            # handler on the channel via the auto-created `-retry` consumer
+            # groups. See issue #225.
+            handler_suffix = (
+                handler_id if handler_id else f"{channel}-{handler.__name__}"
             )
+            retry_stream = f"{channel}.{handler_suffix}.retry"
+            dlq_stream = (
+                f"{channel}.{handler_suffix}.dlq" if max_retries is not None else None
+            )
+            retry_handler_id = f"{handler_suffix}-retry"
 
             # Reclaimer for main stream: moves idle PEL entries to retry_stream
             # (or to dlq_stream if max_retries is exceeded).
