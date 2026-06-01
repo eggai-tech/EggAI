@@ -45,15 +45,17 @@ class ReclaimerConfig:
     stream: str  # full Redis key, e.g. "eggai.orders"
     group: str  # consumer group name (mirrors handler_id)
     consumer: str  # distinct from live consumer: f"{handler_id}-reclaimer"
-    retry_stream: str  # where to XADD rescued messages — never == stream
+    retry_stream: str  # full Redis key for reclaimed messages; equals `stream` for the retry reclaimer
     min_idle_ms: int
     interval_s: float
     max_retries: int | None = None  # None = unlimited retries (no DLQ)
-    dlq_stream: str | None = None  # e.g. "eggai.orders.dlq"
+    dlq_stream: str | None = (
+        None  # full key, e.g. "eggai.orders.order-service-handle_order-1.dlq"
+    )
     on_dlq: Callable | None = None  # async or sync callback(fields, msg_id, count)
 
 
-def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int]:
+def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int, bool]:
     """
     Inject _retry_count and _original_message_id into a FastStream binary stream
     entry's JSON body so the handler can read them for idempotency checks.
@@ -63,20 +65,22 @@ def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int]:
       [2B num_headers]([2B key_len][key][2B val_len][val])*
       [JSON body bytes]
 
-    Returns a tuple of (modified __data__ bytes, new retry count).
-    On parse failure returns (original data, 0) so the message is never
-    mistakenly routed to the DLQ.
+    Returns a tuple of (modified __data__ bytes, new retry count, parsed_ok).
+    On parse failure returns (original data, 0, False): the caller treats an
+    unparseable envelope as a poison message (its retry count can never be
+    incremented, so re-queueing it would livelock the retry stream) and routes
+    it to the DLQ or drops it instead.
     """
     try:
         body_bytes, headers = BinaryMessageFormatV1.parse(data)
         body_dict = json.loads(body_bytes)
     except Exception:
         logger.warning(
-            "Failed to inject retry metadata for message %s; passing through unchanged",
+            "Failed to inject retry metadata for message %s; treating as poison",
             msg_id_str,
             exc_info=True,
         )
-        return data, 0
+        return data, 0, False
 
     new_count = int(body_dict.get("_retry_count", "0")) + 1
     body_dict["_retry_count"] = str(new_count)
@@ -101,7 +105,7 @@ def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int]:
     writer.write_short(len(headers))  # 2B → len=20
     writer.write(headers_bytes)
     writer.write(new_body_bytes)
-    return writer.get_bytes(), new_count
+    return writer.get_bytes(), new_count, True
 
 
 class PendingReclaimerManager:
@@ -129,9 +133,14 @@ class PendingReclaimerManager:
         self._configs: dict[tuple[str, str, str], ReclaimerConfig] = {}
         self._tasks: dict[tuple[str, str, str], asyncio.Task] = {}
 
-    def add(self, config: ReclaimerConfig) -> None:
+    def add(self, config: ReclaimerConfig) -> tuple[str, str, str]:
         key = (config.stream, config.group, config.consumer)
         self._configs[key] = config
+        return key
+
+    def discard(self, key: tuple[str, str, str]) -> None:
+        """Remove a registered config by key — used to roll back a partial subscribe."""
+        self._configs.pop(key, None)
 
     async def start(self) -> None:
         """Start one background task per registered config. Safe to call again after stop."""
@@ -252,10 +261,37 @@ class PendingReclaimerManager:
             # next cycle (at-least-once). Use _original_message_id to deduplicate.
             data_key = b"__data__"
             new_count = 0
+            parsed_ok = True
             if data_key in fields:
-                fields[data_key], new_count = _inject_retry_metadata(
+                fields[data_key], new_count, parsed_ok = _inject_retry_metadata(
                     fields[data_key], msg_id_str
                 )
+
+            # Poison message: a permanently-unparseable envelope can never have its
+            # retry count incremented, so re-queueing it to the retry stream would
+            # livelock forever. Route it to the DLQ if configured, otherwise drop it
+            # (XACK) with a loud warning rather than spin on it indefinitely.
+            if not parsed_ok:
+                if config.dlq_stream is not None:
+                    await self._redis_client.xadd(config.dlq_stream, fields)
+                    await self._redis_client.xack(config.stream, config.group, msg_id)
+                    logger.warning(
+                        "Message %s has an unparseable envelope; moved to DLQ %s "
+                        "(retry count cannot be tracked)",
+                        msg_id_str,
+                        config.dlq_stream,
+                    )
+                    await self._invoke_on_dlq(
+                        config, fields, data_key, msg_id_str, new_count
+                    )
+                else:
+                    await self._redis_client.xack(config.stream, config.group, msg_id)
+                    logger.error(
+                        "Message %s has an unparseable envelope and no DLQ is "
+                        "configured; dropping it to avoid a retry-stream livelock",
+                        msg_id_str,
+                    )
+                continue
 
             # Route to DLQ if max retries exceeded, otherwise to retry stream.
             if (
@@ -271,27 +307,40 @@ class PendingReclaimerManager:
                     config.max_retries,
                     config.dlq_stream,
                 )
-                if config.on_dlq is not None:
-                    try:
-                        # Parse the binary envelope so the callback receives a
-                        # plain dict instead of raw bytes.
-                        parsed_msg: dict | bytes = fields
-                        if data_key in fields:
-                            try:
-                                body_bytes, _ = BinaryMessageFormatV1.parse(
-                                    fields[data_key]
-                                )
-                                parsed_msg = json.loads(body_bytes)
-                            except Exception:
-                                parsed_msg = fields
-                        result = config.on_dlq(parsed_msg, msg_id_str, new_count)
-                        if asyncio.iscoroutine(result):
-                            await result
-                    except Exception:
-                        logger.exception(
-                            "on_dlq callback failed for message %s", msg_id_str
-                        )
+                await self._invoke_on_dlq(
+                    config, fields, data_key, msg_id_str, new_count
+                )
             else:
                 await self._redis_client.xadd(config.retry_stream, fields)
                 await self._redis_client.xack(config.stream, config.group, msg_id)
                 logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
+
+    async def _invoke_on_dlq(
+        self,
+        config: ReclaimerConfig,
+        fields: dict,
+        data_key: bytes,
+        msg_id_str: str,
+        new_count: int,
+    ) -> None:
+        """Invoke the optional on_dlq callback with a parsed message dict.
+
+        Parses the binary envelope so the callback receives a plain dict instead
+        of raw bytes; falls back to the raw fields if parsing fails. Callback
+        errors are logged but never block the DLQ write that already happened.
+        """
+        if config.on_dlq is None:
+            return
+        try:
+            parsed_msg: dict | bytes = fields
+            if data_key in fields:
+                try:
+                    body_bytes, _ = BinaryMessageFormatV1.parse(fields[data_key])
+                    parsed_msg = json.loads(body_bytes)
+                except Exception:
+                    parsed_msg = fields
+            result = config.on_dlq(parsed_msg, msg_id_str, new_count)
+            if asyncio.iscoroutine(result):
+                await result
+        except Exception:
+            logger.exception("on_dlq callback failed for message %s", msg_id_str)

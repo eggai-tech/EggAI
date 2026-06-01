@@ -20,6 +20,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   replays per nack, where N is the number of consumer groups on the channel)
   and visible duplicate side-effects in downstream systems with non-idempotent
   handlers.
+- **RedisTransport**: A permanently-unparseable ("poison") retry message is now
+  routed to the DLQ — or dropped with an error log when no DLQ is configured —
+  instead of being re-queued to the retry stream forever. Its retry count can
+  never be incremented, so it would previously livelock the per-handler retry
+  stream.
+- **RedisTransport**: The auto-created retry-stream subscriber now always reads
+  only new entries (`last_id=">"`) regardless of the main subscription's
+  `last_id`. Restarting with `last_id="0"` to replay the main backlog no longer
+  also replays the retry stream's history on every restart.
+- **RedisTransport**: A `RedisTransport` shared across multiple `Agent`s no
+  longer spawns duplicate consumer loops or orphans its consumer-group monitor
+  task when each agent calls `connect()`. Re-entrant `connect()` now starts only
+  not-yet-running subscribers and reuses the existing monitor.
+- **Tracing**: Retry-stream consumption now emits spans with the retry stream as
+  `messaging.destination` instead of the original channel, so retry attempts can
+  be observed separately from main-stream processing.
+- **RedisTransport**: `subscribe()` now rolls back the in-memory reclaimer configs
+  and stream-subscription entries it registered if retry-stream setup fails, so a
+  retried `start()` no longer accumulates orphaned registrations. Identical
+  stream-group subscriptions are also de-duplicated.
+
+### Changed
+- **RedisTransport**: `retry_on_idle_ms` now rejects `ack_policy=AckPolicy.ACK`
+  and `AckPolicy.ACK_FIRST` with a `ValueError`. Those acknowledge messages even
+  when the handler fails, emptying the PEL the reclaimer scans, which would
+  silently disable retries and the DLQ. Use the default `NACK_ON_ERROR`.
 
 ### Migration
 - **Breaking on-wire change.** Existing inflight messages in `{channel}.retry`
