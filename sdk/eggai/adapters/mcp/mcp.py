@@ -39,11 +39,15 @@ async def run_mcp_adapter(name: str, mcp_server: FastMCP):
         mcp_tools = await mcp_server.list_tools()
         tools: list[ExternalTool] = []
         for tool in mcp_tools:
+            # fastmcp 3.x returns FunctionTool objects whose schemas live on
+            # `parameters`/`output_schema`; convert to the MCP protocol Tool to
+            # read the canonical `inputSchema`/`outputSchema` fields.
+            mcp_tool = tool.to_mcp_tool()
             external_tool = ExternalTool(
-                name=tool.name,
-                description=tool.description,
-                parameters=getattr(tool, "inputSchema", {}),
-                return_type=getattr(tool, "outputSchema", {}),
+                name=mcp_tool.name,
+                description=mcp_tool.description or "",
+                parameters=mcp_tool.inputSchema or {},
+                return_type=mcp_tool.outputSchema or {},
             )
             tools.append(external_tool)
 
