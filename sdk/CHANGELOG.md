@@ -10,8 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Bump `fastmcp` from `^2.14.0` to `^3.0.0` (resolves to 3.4.0), which pulls in `authlib` 1.7.2. The MCP adapter now uses `Tool.to_mcp_tool()` to read tool schemas, since fastmcp 3.x `list_tools()` returns `FunctionTool` objects that expose schemas via `parameters`/`output_schema` instead of `inputSchema`/`outputSchema`.
 
-## [Unreleased]
-
 ### Added
 - **Distributed tracing via OpenTelemetry**: Agents now propagate a shared `trace_id` across every message hop. Opt-in via `setup_tracing()`; zero-cost when not configured.
 
