@@ -80,8 +80,9 @@ orders = Channel("orders", transport=transport)
 @agent.subscribe(channel=orders, retry_on_idle_ms=30_000)
 async def handle_order(message):
     # If this raises, the message stays in the PEL.
-    # After 30 s idle the SDK moves it to eggai.orders.retry
-    # and this same handler is called again.
+    # After 30 s idle the SDK moves it to a per-handler retry stream
+    # (e.g. eggai.orders.order-service-handle_order-1.retry) and this
+    # same handler is called again.
     await process_order(message)
 
 asyncio.run(agent.start())
@@ -90,10 +91,10 @@ asyncio.run(agent.start())
 The SDK automatically:
 
 1. Starts a background reclaimer that scans the PEL every 15 seconds (configurable via `retry_reclaim_interval_s`).
-2. Moves idle messages (older than `retry_on_idle_ms`) to a dedicated `{channel}.retry` stream.
+2. Moves idle messages (older than `retry_on_idle_ms`) to a dedicated **per-handler** `{channel}.{handler_suffix}.retry` stream. The per-handler suffix avoids one handler's failures being broadcast to other handlers on the same channel.
 3. Subscribes the **same handler** to the retry stream.
 4. Runs a second reclaimer on the retry stream that re-queues back to itself — no `.retry.retry` chain.
-5. After `max_retries` retry attempts (default 5), routes the message to a `{channel}.dlq` Dead Letter Queue instead of retrying again.
+5. After `max_retries` retry attempts (default 5), routes the message to a `{channel}.{handler_suffix}.dlq` Dead Letter Queue instead of retrying again.
 
 ### How It Works
 
@@ -102,8 +103,8 @@ Three Redis streams are involved:
 | Stream | Purpose |
 |---|---|
 | `eggai.orders` | Main stream — where messages arrive normally |
-| `eggai.orders.retry` | Retry stream — where failed messages get another chance |
-| `eggai.orders.dlq` | Dead Letter Queue — terminal; poison messages land here |
+| `eggai.orders.order-service-handle_order-1.retry` | Retry stream — where failed messages get another chance (per-handler; suffix is the handler id) |
+| `eggai.orders.order-service-handle_order-1.dlq` | Dead Letter Queue — terminal; poison messages land here (per-handler) |
 
 ```mermaid
 flowchart TD
@@ -114,8 +115,8 @@ flowchart TD
     FC -->|exception| PEL1["Main PEL\n(message stuck)"]
 
     PEL1 -->|"every 15 s: idle &gt; retry_on_idle_ms"| RC1["Reclaimer #1\nconsumer: …-reclaimer"]
-    RC1 -->|"_retry_count ≤ max_retries"| RS["Retry stream\neggai.orders.retry"]
-    RC1 -->|"_retry_count &gt; max_retries"| DLQ["Dead Letter Queue\neggai.orders.dlq\n(terminal)"]
+    RC1 -->|"_retry_count ≤ max_retries"| RS["Retry stream (per-handler)\neggai.orders.{handler}.retry"]
+    RC1 -->|"_retry_count &gt; max_retries"| DLQ["Dead Letter Queue (per-handler)\neggai.orders.{handler}.dlq\n(terminal)"]
     RC1 -->|XACK| DONE1[cleared from main PEL]
 
     RS -->|XREADGROUP &gt;| FC2["FastStream consumer\ngroup: …-retry\nsame handler"]
@@ -161,7 +162,7 @@ async def handle_order(message):
 
 ### Dead Letter Queue (DLQ)
 
-By default, messages that fail more than `max_retries` times (default 5) are routed to a `{channel}.dlq` stream. The DLQ is **terminal** — no automatic reclaimer watches it. Messages sit there until manually re-driven.
+By default, messages that fail more than `max_retries` times (default 5) are routed to a `{channel}.{handler_suffix}.dlq` stream (per-handler). The DLQ is **terminal** — no automatic reclaimer watches it. Messages sit there until manually re-driven.
 
 ```python
 @agent.subscribe(
