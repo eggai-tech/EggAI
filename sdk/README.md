@@ -23,9 +23,10 @@ Redis Streams and Kafka support are included by default.
 
 Optional extras:
 ```bash
+pip install eggai[otel]   # Distributed tracing via OpenTelemetry
 pip install eggai[cli]    # CLI tools for scaffolding
-pip install eggai[a2a]     # A2A (Agent-to-Agent) SDK integration
-pip install eggai[mcp]     # MCP (Model Context Protocol) support
+pip install eggai[a2a]    # A2A (Agent-to-Agent) SDK integration
+pip install eggai[mcp]    # MCP (Model Context Protocol) support
 ```
 
 ## Quick Start
@@ -154,9 +155,10 @@ orders = Channel("orders", transport=transport)
 )
 async def handle_order(message):
     # If this raises, the message stays in the PEL.
-    # After 30s idle the reclaimer moves it to eggai.orders.retry
-    # and this same handler is called again.
-    # After 5 failed retries, the message is routed to eggai.orders.dlq.
+    # After 30s idle the reclaimer moves it to a per-handler retry stream
+    # (e.g. eggai.orders.order-service-handle_order-1.retry) and this same
+    # handler is called again. After 5 failed retries, the message is routed
+    # to the per-handler DLQ (eggai.orders.order-service-handle_order-1.dlq).
     await process_order(message)
 
 await agent.start()
@@ -164,10 +166,10 @@ await agent.start()
 
 The SDK automatically:
 1. Starts a background reclaimer that scans the PEL every 15 seconds (configurable via `retry_reclaim_interval_s`).
-2. Moves idle messages (older than `retry_on_idle_ms`) to a dedicated `{channel}.retry` stream.
+2. Moves idle messages (older than `retry_on_idle_ms`) to a dedicated **per-handler** `{channel}.{handler_suffix}.retry` stream. The per-handler suffix keeps one handler's failures from being broadcast to other handlers on the same channel.
 3. Subscribes the same handler to the retry stream.
 4. Runs a second reclaimer on the retry stream that re-queues back to itself (no `.retry.retry` chain).
-5. After `max_retries` retry attempts (default 5), routes the message to a `{channel}.dlq` Dead Letter Queue instead of retrying again.
+5. After `max_retries` retry attempts (default 5), routes the message to a per-handler `{channel}.{handler_suffix}.dlq` Dead Letter Queue instead of retrying again.
 
 **Delivery guarantee:** at-least-once. `XADD` and `XACK` are not atomic — a crash between
 them will re-deliver the message on the next cycle. Handlers must be **idempotent**.
@@ -179,8 +181,9 @@ Two fields are injected on retry delivery to aid deduplication:
 | `_original_message_id` | Redis stream ID of the original message |
 
 **Dead Letter Queue (DLQ):** Messages that exceed `max_retries` (default 5) are routed to
-`{channel}.dlq`. The DLQ is terminal — no automatic reclaimer. Set `max_retries=None` for
-unlimited retries. An optional `on_dlq` callback fires when a message lands in the DLQ.
+the per-handler `{channel}.{handler_suffix}.dlq`. The DLQ is terminal — no automatic
+reclaimer. Set `max_retries=None` for unlimited retries. An optional `on_dlq` callback
+fires when a message lands in the DLQ.
 
 **Automatic recovery from Redis stream loss (NOGROUP):**
 If Redis loses streams (restart without persistence, failover, memory eviction), the SDK
@@ -202,22 +205,116 @@ Main stream  (eggai.orders)
     │
     └── Reclaimer            (consumer: order-service-handle_order-1-reclaimer)
             every 15s: XPENDING → idle > 30s → XCLAIM
-            _retry_count ≤ max_retries → XADD orders.retry → XACK
-            _retry_count > max_retries → XADD orders.dlq   → XACK
+            _retry_count ≤ max_retries → XADD <retry stream> → XACK
+            _retry_count > max_retries → XADD <dlq stream>   → XACK
 
-Retry stream (eggai.orders.retry)
+Retry stream (eggai.orders.order-service-handle_order-1.retry)   ← per-handler
     │
     ├── FastStream consumer  (group: order-service-handle_order-1-retry)
     │       same handler — on exception → NACK → message stays in retry PEL
     │
     └── Reclaimer            (target: same retry stream — no .retry.retry chain)
             every 15s: XPENDING → idle > 30s → XCLAIM
-            _retry_count ≤ max_retries → XADD orders.retry → XACK
-            _retry_count > max_retries → XADD orders.dlq   → XACK
+            _retry_count ≤ max_retries → XADD <retry stream> → XACK
+            _retry_count > max_retries → XADD <dlq stream>   → XACK
 
-DLQ stream   (eggai.orders.dlq)
+DLQ stream   (eggai.orders.order-service-handle_order-1.dlq)      ← per-handler
         terminal — no reclaimer, manual re-drive only
 ```
+
+## Observability (OpenTelemetry)
+
+EggAI has built-in distributed tracing via OpenTelemetry. Every message hop — from publisher through to handler — shares a single `trace_id`, giving you end-to-end visibility across agents.
+
+Install the optional tracing dependencies:
+
+```bash
+pip install eggai[otel]
+```
+
+### Auto-configuration via environment variables
+
+If `OTEL_EXPORTER_OTLP_ENDPOINT` is set when the process starts, tracing activates automatically. The protocol is selected from `OTEL_EXPORTER_OTLP_PROTOCOL` (defaults to `grpc`):
+
+```bash
+# gRPC backend (Jaeger, Grafana Tempo, …)
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+export OTEL_SERVICE_NAME=my-agent
+
+# HTTP backend (Langfuse, Honeycomb, Datadog, …)
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64-encoded-key>"
+export OTEL_SERVICE_NAME=my-agent
+```
+
+No code changes needed — just set the env vars and run your agent.
+
+### Explicit setup in code
+
+```python
+from eggai import setup_tracing, Agent, Channel
+
+# gRPC (default)
+setup_tracing(service_name="my-agent")
+
+# HTTP (required for Langfuse, Honeycomb, Datadog, etc.)
+setup_tracing(exporter="otlp-http", service_name="my-agent")
+
+# Console (useful during development)
+setup_tracing(exporter="console", service_name="my-agent")
+```
+
+Call `setup_tracing()` once at startup, before any agents publish or subscribe.
+
+### What gets traced automatically
+
+Every `channel.publish()` creates a producer span and every handler invocation creates a consumer span. All spans within a single request share the same `trace_id`:
+
+```
+eggai.publish eggai.orders          ← producer span (your publish call)
+  └─ eggai.process eggai.orders     ← consumer span (handler invocation)
+       └─ eggai.publish eggai.bills ← producer span (handler publishes downstream)
+            └─ eggai.process …      ← and so on
+```
+
+Span attributes set on every span:
+
+| Attribute | Value |
+|-----------|-------|
+| `messaging.system` | `eggai` |
+| `messaging.destination` | channel name |
+| `messaging.operation` | `publish` or `process` |
+| `eggai.message.id` | message UUID |
+| `eggai.message.type` | message type field |
+| `eggai.message.source` | message source field |
+
+### Langfuse
+
+Langfuse supports OTLP natively (HTTP only, v3.22+). Point EggAI at its endpoint and your agent traces appear as Langfuse traces with each span as an observation:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic $(echo -n 'pk-lf-...:sk-lf-...' | base64)"
+export OTEL_SERVICE_NAME=my-agent
+```
+
+To attach a Langfuse session or user to spans, set the attributes on your own root span before publishing:
+
+```python
+from opentelemetry import trace
+
+tracer = trace.get_tracer("myapp")
+
+with tracer.start_as_current_span("handle-user-request") as span:
+    span.set_attribute("langfuse.session.id", "session-abc")
+    span.set_attribute("langfuse.user.id", "user-123")
+    await channel.publish(msg)  # EggAI spans are nested under this span
+```
+
+Self-hosted Langfuse: replace the endpoint with `http://your-host:3000/api/public/otel`.
 
 ## Production Recommendations
 

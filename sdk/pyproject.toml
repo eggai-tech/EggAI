@@ -39,11 +39,21 @@ click = {version = "^8.0.0", optional = true}
 jinja2 = {version = "^3.1.6", optional = true}
 a2a-sdk = {version = "^0.3.0", optional = true}
 fastmcp = {version = "^2.14.0", optional = true}
+opentelemetry-api = {version = "^1.25", optional = true}
+opentelemetry-sdk = {version = "^1.25", optional = true}
+opentelemetry-exporter-otlp-proto-grpc = {version = "^1.25", optional = true}
+opentelemetry-exporter-otlp-proto-http = {version = "^1.25", optional = true}
 
 [tool.poetry.extras]
 cli = ["click", "jinja2"]
 a2a = ["a2a-sdk"]
 mcp = ["fastmcp"]
+otel = [
+    "opentelemetry-api",
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp-proto-grpc",
+    "opentelemetry-exporter-otlp-proto-http",
+]
 
 [tool.poetry.group.dev.dependencies]
 twine = "^6.0.1"

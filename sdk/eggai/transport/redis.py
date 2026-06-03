@@ -116,7 +116,10 @@ class RedisTransport(Transport):
         self._redis_url = url
         self._running = False
         self._reclaimer_manager: PendingReclaimerManager | None = None
-        self._stream_subscriptions: list[_StreamGroupInfo] = []
+        # A set so repeated subscribe() calls with an identical (stream_key, group,
+        # group_create_id) collapse instead of accumulating duplicate XGROUP CREATE
+        # work in the monitor. _StreamGroupInfo is frozen/hashable.
+        self._stream_subscriptions: set[_StreamGroupInfo] = set()
         self._group_monitor_task: asyncio.Task | None = None
         self._group_monitor_interval_s: float = group_monitor_interval_s
 
@@ -130,11 +133,33 @@ class RedisTransport(Transport):
         # broker.start() creates all consumer groups (and streams via MKSTREAM).
         # Both the main and retry subscriptions were registered in subscribe() before
         # connect() is called, so all groups exist after this line.
-        await self.broker.start()
+        #
+        # A single RedisTransport may be shared across multiple Agents, and each
+        # Agent.start() calls connect(). FastStream's broker.start() restarts
+        # *every* registered subscriber on each call (it carries an upstream TODO
+        # to guard this), which would spawn a duplicate consume loop for handlers
+        # already running from an earlier connect(). Guard against that: do the
+        # full start the first time, then on subsequent connect()s only start the
+        # subscribers that aren't running yet (e.g. those a second Agent just
+        # registered). Falls back to the original full start() if FastStream ever
+        # stops exposing the `running` flags.
+        if not getattr(self.broker, "running", False):
+            await self.broker.start()
+        else:
+            await self.broker.connect()
+            for sub in self.broker.subscribers:
+                if not getattr(sub, "running", False):
+                    await sub.start()
         if self._reclaimer_manager is not None:
+            # start() is idempotent — it skips reclaimer tasks already running.
             await self._reclaimer_manager.start()
         self._running = True
-        if self._stream_subscriptions:
+        # Don't overwrite (and orphan) a monitor task still running from an
+        # earlier connect() on a shared transport — it already iterates the
+        # shared _stream_subscriptions set, which now includes the new groups.
+        if self._stream_subscriptions and (
+            self._group_monitor_task is None or self._group_monitor_task.done()
+        ):
             self._group_monitor_task = asyncio.create_task(
                 self._monitor_stream_groups(),
                 name="stream-group-monitor",
@@ -208,7 +233,8 @@ class RedisTransport(Transport):
             min_idle_time (int, optional): Minimum idle time in milliseconds before a pending message can be auto-claimed
                 via FastStream's built-in XAUTOCLAIM. Mutually exclusive with retry_on_idle_ms.
             retry_on_idle_ms (int, optional): Enables SDK-managed PEL reclaiming. Messages stuck in the PEL longer than
-                this threshold are moved to a dedicated ``{channel}.retry`` stream and re-delivered to the same handler.
+                this threshold are moved to a dedicated ``{channel}.{handler_suffix}.retry`` stream (per-handler, so
+                concurrent handlers on the same channel do not see each other's retries) and re-delivered to the same handler.
                 Mutually exclusive with min_idle_time. Recommended: 30_000 (30 seconds).
                 Delivery is at-least-once — handlers must be idempotent. Injected fields _retry_count and
                 _original_message_id can be used for deduplication.
@@ -216,7 +242,7 @@ class RedisTransport(Transport):
             retry_reclaim_interval_s (float, optional): How often the reclaimer scans for stuck messages (default 15.0s).
                 Only used when retry_on_idle_ms is set.
             max_retries (int, optional): Maximum number of retry attempts before routing to the Dead Letter Queue
-                (``{channel}.dlq``). Default is 5 when retry_on_idle_ms is set. With max_retries=5, the handler is
+                (``{channel}.{handler_suffix}.dlq``). Default is 5 when retry_on_idle_ms is set. With max_retries=5, the handler is
                 called up to 6 times total (1 original + 5 retries). Set to None for unlimited retries (no DLQ).
                 Requires retry_on_idle_ms.
             on_dlq (Callable, optional): Callback invoked when a message is routed to the DLQ. Can be sync or async.
@@ -240,6 +266,29 @@ class RedisTransport(Transport):
             Callable: A callback function that represents the subscription. When invoked, it will call the handler with
                       incoming messages.
         """
+        # Reclaimer options — extracted before StreamSub is built.
+        retry_on_idle_ms = kwargs.pop("retry_on_idle_ms", None)
+        retry_reclaim_interval_s = kwargs.pop("retry_reclaim_interval_s", 15.0)
+        _explicit_max_retries = "max_retries" in kwargs
+        max_retries = kwargs.pop("max_retries", 5)
+        on_dlq = kwargs.pop("on_dlq", None)
+        _internal_retry = kwargs.pop("_internal_retry", False)
+
+        # The tracing wrapper binds the channel name into each span's
+        # messaging.destination, so we wrap per-stream: the main subscriber is
+        # wrapped with `channel` here, and (in the retry block below) the retry
+        # subscriber is wrapped with the retry stream key — otherwise retry-attempt
+        # spans would report the original channel and could not be dashboarded
+        # separately. We keep the unwrapped `original_handler` so the retry wrapper
+        # wraps it directly rather than nesting a second span on the channel
+        # wrapper. The recursive retry subscribe is marked _internal_retry=True and
+        # receives an already-wrapped handler, so it must not wrap again.
+        original_handler = handler
+        if not _internal_retry:
+            from eggai.tracing import make_tracing_wrapper
+
+            handler = make_tracing_wrapper(channel, handler)
+
         if "filter_by_message" in kwargs:
             if "middlewares" not in kwargs:
                 kwargs["middlewares"] = []
@@ -262,14 +311,6 @@ class RedisTransport(Transport):
                         data_type, kwargs.pop("filter_by_data")
                     )
                 )
-
-        # Reclaimer options — extracted before StreamSub is built.
-        retry_on_idle_ms = kwargs.pop("retry_on_idle_ms", None)
-        retry_reclaim_interval_s = kwargs.pop("retry_reclaim_interval_s", 15.0)
-        _explicit_max_retries = "max_retries" in kwargs
-        max_retries = kwargs.pop("max_retries", 5)
-        on_dlq = kwargs.pop("on_dlq", None)
-        _internal_retry = kwargs.pop("_internal_retry", False)
 
         handler_id = kwargs.pop("handler_id", None)
 
@@ -306,6 +347,21 @@ class RedisTransport(Transport):
         if max_retries is not None and max_retries < 1:
             raise ValueError("max_retries must be >= 1")
 
+        # SDK-managed retries need failed messages to stay in the PEL so the
+        # reclaimer can find them. ACK / ACK_FIRST acknowledge a message even when
+        # the handler raises, which empties the PEL and makes retries and the DLQ
+        # silently never fire. Reject that combination up front.
+        if retry_on_idle_ms is not None and kwargs.get("ack_policy") in (
+            AckPolicy.ACK,
+            AckPolicy.ACK_FIRST,
+        ):
+            raise ValueError(
+                "retry_on_idle_ms is incompatible with ack_policy=AckPolicy.ACK / "
+                "AckPolicy.ACK_FIRST: those acknowledge messages even when the "
+                "handler fails, so the PEL-based reclaimer never sees them and "
+                "retries/DLQ never trigger. Use the default NACK_ON_ERROR."
+            )
+
         # Default max_retries only applies when retry_on_idle_ms is set.
         if retry_on_idle_ms is None:
             max_retries = None
@@ -324,14 +380,15 @@ class RedisTransport(Transport):
 
         # Track the subscription so the background monitor can recreate the
         # consumer group if Redis loses the stream (restart, failover, eviction).
+        # Keep a reference so the retry block below can roll it back on failure.
+        main_sub_info = None
         if group:
-            self._stream_subscriptions.append(
-                _StreamGroupInfo(
-                    stream_key=self._get_stream_key(channel),
-                    group=group,
-                    group_create_id="$" if last_id == ">" else last_id,
-                )
+            main_sub_info = _StreamGroupInfo(
+                stream_key=self._get_stream_key(channel),
+                group=group,
+                group_create_id="$" if last_id == ">" else last_id,
             )
+            self._stream_subscriptions.add(main_sub_info)
 
         # Extract ack_policy or default to NACK_ON_ERROR for reliability
         # This ensures messages are NOT acknowledged when handlers raise exceptions,
@@ -344,60 +401,118 @@ class RedisTransport(Transport):
         )(handler)
 
         if retry_on_idle_ms is not None and not _internal_retry:
-            retry_stream = f"{channel}.retry"
-            dlq_stream = f"{channel}.dlq" if max_retries is not None else None
-            retry_handler_id = (
-                f"{handler_id}-retry"
-                if handler_id
-                else f"{channel}-{handler.__name__}-retry"
+            # Per-handler retry/dlq stream keys: when multiple handlers
+            # subscribe to the same channel with different consumer groups,
+            # each gets its own retry/dlq streams. A single shared retry
+            # stream would broadcast one handler's failures to every other
+            # handler on the channel via the auto-created `-retry` consumer
+            # groups. See issue #225.
+            # `Agent`/`Channel` always inject a unique handler_id (via the
+            # HANDLERS_IDS counter), so the fallback only applies to callers that
+            # use transport.subscribe() directly. getattr guards objects without a
+            # __name__ (e.g. functools.partial), which would otherwise raise after
+            # the main-stream subscriber is already registered. Direct callers that
+            # run multiple distinct handlers on one channel with retry_on_idle_ms
+            # should pass a distinct handler_id per handler — otherwise same-named
+            # handlers (or lambdas) collapse to the same per-handler key. Derive
+            # the name from the original handler, not the tracing wrapper.
+            handler_name = (
+                getattr(original_handler, "__name__", None)
+                or type(original_handler).__name__
             )
-
-            # Reclaimer for main stream: moves idle PEL entries to retry_stream
-            # (or to dlq_stream if max_retries is exceeded).
-            self._setup_reclaimer(
-                stream=channel,
-                group=group,
-                consumer=f"{group}-reclaimer",
-                retry_stream=retry_stream,
-                min_idle_ms=retry_on_idle_ms,
-                interval_s=retry_reclaim_interval_s,
-                max_retries=max_retries,
-                dlq_stream=dlq_stream,
-                on_dlq=on_dlq,
+            handler_suffix = handler_id if handler_id else f"{channel}-{handler_name}"
+            retry_stream = f"{channel}.{handler_suffix}.retry"
+            dlq_stream = (
+                f"{channel}.{handler_suffix}.dlq" if max_retries is not None else None
             )
+            retry_handler_id = f"{handler_suffix}-retry"
 
-            # Auto-subscribe the same handler to the retry stream.
-            # _internal_retry=True prevents infinite recursion and .retry.retry chains.
-            await self.subscribe(
-                retry_stream,
-                handler,
-                _internal_retry=True,
-                handler_id=retry_handler_id,
+            # Set up the retry machinery transactionally: if any step below (incl.
+            # the recursive retry subscribe) raises, roll back the in-memory
+            # registrations this call made so a retried Agent.start() does not
+            # accumulate orphaned reclaimer configs / stream-subscription entries.
+            # The FastStream broker subscriber(s) cannot be un-registered, but
+            # nothing is live until connect(), which never runs on failure.
+            added_reclaimer_keys: list[tuple[str, str, str]] = []
+            # The recursive subscribe below adds this entry (last_id=">" → "$").
+            retry_sub_info = _StreamGroupInfo(
+                stream_key=self._get_stream_key(retry_stream),
                 group=retry_handler_id,
-                consumer=retry_handler_id,
-                polling_interval=polling_interval,
-                batch=batch,
-                max_records=max_records,
-                last_id=last_id,
-                no_ack=no_ack,
-                ack_policy=ack_policy,
-                **kwargs,
+                group_create_id="$",
             )
+            try:
+                # Reclaimer for main stream: moves idle PEL entries to retry_stream
+                # (or to dlq_stream if max_retries is exceeded).
+                added_reclaimer_keys.append(
+                    self._setup_reclaimer(
+                        stream=channel,
+                        group=group,
+                        consumer=f"{group}-reclaimer",
+                        retry_stream=retry_stream,
+                        min_idle_ms=retry_on_idle_ms,
+                        interval_s=retry_reclaim_interval_s,
+                        max_retries=max_retries,
+                        dlq_stream=dlq_stream,
+                        on_dlq=on_dlq,
+                    )
+                )
 
-            # Reclaimer for retry stream: re-queues back to the same retry stream
-            # (avoids creating a .retry.retry chain). Routes to DLQ if max_retries
-            # is exceeded.
-            self._setup_reclaimer(
-                stream=retry_stream,
-                group=retry_handler_id,
-                consumer=f"{retry_handler_id}-reclaimer",
-                retry_stream=retry_stream,
-                min_idle_ms=retry_on_idle_ms,
-                interval_s=retry_reclaim_interval_s,
-                max_retries=max_retries,
-                dlq_stream=dlq_stream,
-                on_dlq=on_dlq,
-            )
+                # Wrap the *original* (unwrapped) handler with the retry stream as
+                # its tracing destination, so retry-attempt spans report the retry
+                # stream key rather than the original channel. Wrapping the original
+                # (not the channel-wrapped handler) keeps it to a single consumer
+                # span per retry.
+                from eggai.tracing import make_tracing_wrapper
+
+                retry_handler = make_tracing_wrapper(retry_stream, original_handler)
+
+                # Auto-subscribe the same handler to the retry stream.
+                # _internal_retry=True prevents infinite recursion and .retry.retry
+                # chains. last_id is pinned to ">" (new entries only) rather than
+                # forwarding the caller's last_id: an operator replaying the main
+                # stream (e.g. last_id="0") must not also replay the retry stream's
+                # history — the retry stream only ever holds freshly-reclaimed entries.
+                await self.subscribe(
+                    retry_stream,
+                    retry_handler,
+                    _internal_retry=True,
+                    handler_id=retry_handler_id,
+                    group=retry_handler_id,
+                    consumer=retry_handler_id,
+                    polling_interval=polling_interval,
+                    batch=batch,
+                    max_records=max_records,
+                    last_id=">",
+                    no_ack=no_ack,
+                    ack_policy=ack_policy,
+                    **kwargs,
+                )
+
+                # Reclaimer for retry stream: re-queues back to the same retry
+                # stream (avoids creating a .retry.retry chain). Routes to DLQ if
+                # max_retries is exceeded.
+                added_reclaimer_keys.append(
+                    self._setup_reclaimer(
+                        stream=retry_stream,
+                        group=retry_handler_id,
+                        consumer=f"{retry_handler_id}-reclaimer",
+                        retry_stream=retry_stream,
+                        min_idle_ms=retry_on_idle_ms,
+                        interval_s=retry_reclaim_interval_s,
+                        max_retries=max_retries,
+                        dlq_stream=dlq_stream,
+                        on_dlq=on_dlq,
+                    )
+                )
+            except Exception:
+                # Undo the reversible state this call registered, then re-raise.
+                if main_sub_info is not None:
+                    self._stream_subscriptions.discard(main_sub_info)
+                self._stream_subscriptions.discard(retry_sub_info)
+                if self._reclaimer_manager is not None:
+                    for key in added_reclaimer_keys:
+                        self._reclaimer_manager.discard(key)
+                raise
 
         return registered_handler
 
@@ -418,7 +533,9 @@ class RedisTransport(Transport):
         try:
             while self._running:
                 await asyncio.sleep(self._group_monitor_interval_s)
-                for info in self._stream_subscriptions:
+                # Iterate a snapshot: a concurrent subscribe() on a shared
+                # transport may mutate the set between awaits below.
+                for info in list(self._stream_subscriptions):
                     try:
                         stream_exists = await client.exists(info.stream_key)
                         create_id = "0" if stream_exists else info.group_create_id
@@ -459,10 +576,10 @@ class RedisTransport(Transport):
         max_retries: int | None = None,
         dlq_stream: str | None = None,
         on_dlq: Callable | None = None,
-    ) -> None:
+    ) -> tuple[str, str, str]:
         if self._reclaimer_manager is None:
             self._reclaimer_manager = PendingReclaimerManager(self._redis_url)
-        self._reclaimer_manager.add(
+        return self._reclaimer_manager.add(
             ReclaimerConfig(
                 stream=self._get_stream_key(stream),
                 group=group,
