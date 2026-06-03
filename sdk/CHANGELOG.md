@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-03
+
 ### Security
 - Bump dev dependency `pytest` to `^9.0.0` (9.0.3), with `pytest-asyncio` to `>=1.0,<2` (1.4.0) for compatibility, to remediate GHSA-6w46-j5rx-g56g (insecure tmpdir handling). Test-only; no runtime impact.
 
