@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Bump dev dependency `pytest` to `^9.0.0` (9.0.3), with `pytest-asyncio` to `>=1.0,<2` (1.4.0) for compatibility, to remediate GHSA-6w46-j5rx-g56g (insecure tmpdir handling). Test-only; no runtime impact.
+
 ### Changed
 - Bump `fastmcp` from `^2.14.0` to `^3.0.0` (resolves to 3.4.0), which pulls in `authlib` 1.7.2. The MCP adapter now uses `Tool.to_mcp_tool()` to read tool schemas, since fastmcp 3.x `list_tools()` returns `FunctionTool` objects that expose schemas via `parameters`/`output_schema` instead of `inputSchema`/`outputSchema`.
 
