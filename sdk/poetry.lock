@@ -891,18 +891,18 @@ openai = ["openai (>=1.102.0)"]
 
 [[package]]
 name = "faststream"
-version = "0.6.7"
+version = "0.7.0"
 description = "FastStream: the simplest way to work with a messaging queues"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "faststream-0.6.7-py3-none-any.whl", hash = "sha256:a904a4b1e3babeaa244a9460821f5b05dd71b00c959c816360b2acbbe267cd5c"},
-    {file = "faststream-0.6.7.tar.gz", hash = "sha256:c732eaf861c4cbddd9c7f9098608486a9f05dff67a72335686c3044039045346"},
+    {file = "faststream-0.7.0-py3-none-any.whl", hash = "sha256:e3fddd25bc8ca6999ca97b017947d7951fa431d4b7f093f2c84f2bb19a36759b"},
+    {file = "faststream-0.7.0.tar.gz", hash = "sha256:1841930d8189594e2058ba19670b17ad31295841f2cbc346f027b6084c807376"},
 ]
 
 [package.dependencies]
-aiokafka = {version = ">=0.9,<0.14", optional = true, markers = "extra == \"kafka\""}
+aiokafka = {version = ">=0.9,<0.15", optional = true, markers = "extra == \"kafka\""}
 anyio = ">=4.0,<5"
 fast-depends = {version = ">=3.0.0", extras = ["pydantic"]}
 redis = {version = ">=5.0.0,<8.0.0", optional = true, markers = "extra == \"redis\""}
@@ -911,7 +911,8 @@ typing-extensions = ">=4.12.0"
 [package.extras]
 cli = ["typer (>=0.9,!=0.12,<=0.21.1)", "watchfiles (>=0.15.0,<1.2.0)"]
 confluent = ["confluent-kafka (>=2,!=2.8.1,<3) ; python_full_version < \"3.13.0\"", "confluent-kafka (>=2.6,!=2.8.1,<3) ; python_full_version >= \"3.13.0\""]
-kafka = ["aiokafka (>=0.9,<0.14)"]
+kafka = ["aiokafka (>=0.9,<0.15)"]
+mqtt = ["zmqtt (>=0.0.4)"]
 nats = ["nats-py (>=2.12.0,<=3.0.0)"]
 otel = ["opentelemetry-sdk (>=1.24.0,<2.0.0)"]
 prometheus = ["prometheus-client (>=0.20.0,<0.30.0)"]
@@ -3428,4 +3429,4 @@ otel = ["opentelemetry-api", "opentelemetry-exporter-otlp-proto-grpc", "opentele
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "d0675cb232828bedbe1bd0bdd5e3129a2f029fbcfc1f9b1009b1e5a586adb2e8"
+content-hash = "b84e44cb18a510a62926e62aca93ccc89e22a436e40434ddf35131e4e63807a1"
