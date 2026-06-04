@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Redis & Kafka transports**: `filter_by_message`, `data_type`, and
+  `filter_by_data` subscriptions raised `TypeError` at subscribe time under
+  FastStream 0.7, which removed publisher/subscriber-level middlewares. Filtering
+  and typed-message handling are now applied in EggAI's own handler wrapper
+  (application code) rather than via FastStream subscriber middlewares — aligning
+  with FastStream 0.7's removal of subscriber/publisher middlewares. This keeps the
+  per-subscription filter logic independent of FastStream's middleware API (it is
+  the same approach the in-memory transport already uses). As part of this,
+  `data_type` subscriptions on Redis/Kafka now deliver the **typed model instance**
+  to the handler (matching the in-memory transport and the documented behaviour),
+  rather than the raw dict. Invalid filter-option combinations now raise
+  `ValueError` instead of silently dropping an option: `data_type` and
+  `filter_by_message` are mutually exclusive, and `filter_by_data` requires
+  `data_type`. These validations are consistent across the Redis, Kafka, and
+  in-memory transports.
+
+### Added
+- **RedisTransport**: New `max_len` and `retry_max_len` constructor options to cap
+  Redis stream growth via approximate trimming (`XADD ... MAXLEN ~`). `max_len`
+  (default `None`/unbounded) caps the producer/`publish()` path; it is opt-in
+  because `MAXLEN` trims the oldest entries by count regardless of ack state, so a
+  value below `throughput × consumer-lag` can drop un-delivered messages.
+  `retry_max_len` (default `10_000`) caps the SDK-managed retry and DLQ streams,
+  bounding the blast radius of a runaway retry loop. This wires up the previously
+  documented-but-inert `max_len` knob.
+
+### Changed
+- **RedisTransport**: The stream consumer name now defaults to a per-process-unique
+  value (`{handler_id}-{hostname}-{pid}`) while the consumer **group** still defaults
+  to the stable `handler_id`. A fleet of workers running the same handler now shares
+  one group (Redis load-balances the stream across them) while each worker owns a
+  distinct slice of the pending-entries list — the competing-consumers pattern. The
+  auto-created retry-stream subscriber gets the same per-process-unique consumer, so
+  retried messages load-balance across a worker fleet too. Pass an explicit
+  `consumer=` to opt out.
+
 ## [0.3.0] - 2026-06-03
 
 ### Security

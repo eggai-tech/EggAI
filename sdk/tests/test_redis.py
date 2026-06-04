@@ -15,8 +15,10 @@ import uuid
 import pytest
 import redis.asyncio as redis
 from faststream import AckPolicy
+from pydantic import BaseModel
 
 from eggai import Agent, Channel
+from eggai.schemas import BaseMessage
 from eggai.transport import RedisTransport, eggai_set_default_transport
 
 
@@ -1268,3 +1270,356 @@ async def test_partial_group_loss_redelivers_existing_messages():
         "Message published during partial group loss was not redelivered. "
         "The group was likely recreated with id='$' instead of id='0'."
     )
+
+
+# --- Consumer naming (load balancing) ---------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_consumer_defaults_to_unique_per_process(monkeypatch):
+    """The stream consumer name defaults to a per-process-unique value while the
+    group stays = handler_id.
+
+    This is the competing-consumers prerequisite: a fleet of workers running the
+    same handler shares one group (so Redis load-balances the stream) but each
+    owns a distinct consumer name (so PEL entries are not conflated).
+    """
+    import eggai.transport.redis as redis_mod
+
+    captured = {}
+    real_stream_sub = redis_mod.StreamSub
+
+    def spy_stream_sub(channel, **kwargs):
+        captured["group"] = kwargs.get("group")
+        captured["consumer"] = kwargs.get("consumer")
+        return real_stream_sub(channel, **kwargs)
+
+    monkeypatch.setattr(redis_mod, "StreamSub", spy_stream_sub)
+
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe("orders", handler, handler_id="orders-handler-1")
+
+    assert captured["group"] == "orders-handler-1"
+    assert captured["consumer"] == f"orders-handler-1-{redis_mod._CONSUMER_INSTANCE}"
+    # group is stable across workers; consumer carries the per-process suffix.
+    assert captured["consumer"] != captured["group"]
+
+
+@pytest.mark.asyncio
+async def test_retry_subscriber_uses_unique_consumer(monkeypatch):
+    """The auto-created retry-stream subscriber must also get a per-process-unique
+    consumer name (group stays stable) — otherwise a worker fleet conflates the
+    retry stream's PEL under one consumer name, undercutting load balancing for
+    retried messages."""
+    import eggai.transport.redis as redis_mod
+
+    captured = []
+    real_stream_sub = redis_mod.StreamSub
+
+    def spy_stream_sub(channel, **kwargs):
+        captured.append((channel, kwargs.get("group"), kwargs.get("consumer")))
+        return real_stream_sub(channel, **kwargs)
+
+    monkeypatch.setattr(redis_mod, "StreamSub", spy_stream_sub)
+
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders", handler, handler_id="orders-handler-1", retry_on_idle_ms=500
+    )
+
+    retry_handler_id = "orders-handler-1-retry"
+    retry_subs = [c for c in captured if c[0] == "orders.orders-handler-1.retry"]
+    assert retry_subs, f"no retry-stream subscriber registered; saw {captured}"
+    _, group, consumer = retry_subs[0]
+    assert group == retry_handler_id  # group stable across workers
+    assert consumer == f"{retry_handler_id}-{redis_mod._CONSUMER_INSTANCE}"
+    assert consumer != retry_handler_id  # not the shared/static name
+
+
+@pytest.mark.asyncio
+async def test_explicit_consumer_is_respected(monkeypatch):
+    """An explicit consumer= is passed through unchanged (no per-process suffix)."""
+    import eggai.transport.redis as redis_mod
+
+    captured = {}
+    real_stream_sub = redis_mod.StreamSub
+
+    def spy_stream_sub(channel, **kwargs):
+        captured.update(group=kwargs.get("group"), consumer=kwargs.get("consumer"))
+        return real_stream_sub(channel, **kwargs)
+
+    monkeypatch.setattr(redis_mod, "StreamSub", spy_stream_sub)
+
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-handler-1",
+        group="shared-group",
+        consumer="fixed-consumer",
+    )
+
+    assert captured["group"] == "shared-group"
+    assert captured["consumer"] == "fixed-consumer"
+
+
+# --- max_len / stream length capping ----------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_publish_passes_maxlen_when_configured(monkeypatch):
+    """publish() forwards maxlen to the broker only when max_len is configured."""
+    transport = RedisTransport(max_len=1000)
+
+    calls = []
+
+    async def fake_publish(message, **kwargs):
+        calls.append(kwargs)
+
+    monkeypatch.setattr(transport.broker, "publish", fake_publish)
+
+    await transport.publish("orders", {"x": 1})
+
+    assert calls == [{"stream": "orders", "maxlen": 1000}]
+
+
+@pytest.mark.asyncio
+async def test_publish_omits_maxlen_by_default(monkeypatch):
+    """With the default max_len=None, publish() must not pass maxlen (no silent
+    trimming of the producer's stream)."""
+    transport = RedisTransport()  # max_len defaults to None
+
+    calls = []
+
+    async def fake_publish(message, **kwargs):
+        calls.append(kwargs)
+
+    monkeypatch.setattr(transport.broker, "publish", fake_publish)
+
+    await transport.publish("orders", {"x": 1})
+
+    assert calls == [{"stream": "orders"}]
+    assert "maxlen" not in calls[0]
+
+
+@pytest.mark.asyncio
+async def test_retry_max_len_propagates_to_reclaimer_configs():
+    """retry_max_len caps the retry/DLQ streams; default is 10_000, overridable."""
+    transport = RedisTransport()  # retry_max_len defaults to 10_000
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders", handler, handler_id="orders-handler-1", retry_on_idle_ms=500
+    )
+
+    assert transport._reclaimer_manager is not None
+    configs = list(transport._reclaimer_manager._configs.values())
+    assert configs, "expected reclaimer configs to be registered"
+    assert all(config.max_len == 10_000 for config in configs)
+
+    # Custom value flows through.
+    transport2 = RedisTransport(retry_max_len=250)
+    await transport2.subscribe(
+        "orders", handler, handler_id="orders-handler-2", retry_on_idle_ms=500
+    )
+    configs2 = list(transport2._reclaimer_manager._configs.values())
+    assert all(config.max_len == 250 for config in configs2)
+
+
+@pytest.mark.asyncio
+async def test_publish_maxlen_bounds_stream_length():
+    """Integration: publishing well past max_len keeps the stream approximately
+    bounded (XADD MAXLEN ~). Approximate trimming works on whole-node boundaries,
+    so we publish far more than the cap and assert it stays within a generous
+    multiple rather than an exact count."""
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-maxlen-{test_id}"
+    stream_name = f"eggai.{channel_name}"
+
+    max_len = 100
+    transport = RedisTransport(max_len=max_len)
+    channel = Channel(channel_name, transport=transport)
+
+    # Publish 20x the cap so trimming definitely crosses node boundaries.
+    for i in range(max_len * 20):
+        await channel.publish({"type": "test", "n": i, "test_id": test_id})
+
+    length = await redis_client.xlen(stream_name)
+
+    # Approximate trimming never trims below the cap and only slightly above it;
+    # without trimming the length would be 2000. Assert it is meaningfully bounded.
+    await redis_client.delete(stream_name)
+    await redis_client.aclose()
+    await transport.disconnect()
+
+    assert length < max_len * 5, (
+        f"Stream length {length} not bounded by max_len~{max_len} "
+        f"(expected well under {max_len * 5}, unbounded would be {max_len * 20})"
+    )
+
+
+# --- Filtering / typed subscriptions (FastStream 0.7 middleware removal) ------
+#
+# These prove that filter_by_message / data_type / filter_by_data work on the
+# Redis transport without FastStream subscriber middlewares (removed in 0.7), and
+# that data_type delivers the *typed model instance* to the handler — the same
+# contract the InMemory transport and test_typed_subscribe.py already rely on.
+
+
+class _Order(BaseModel):
+    order_id: int
+    status: str
+
+
+class _OrderMessage(BaseMessage[_Order]):
+    type: str = "_OrderMessage"
+
+
+class _PaymentMessage(BaseMessage[_Order]):
+    type: str = "_PaymentMessage"
+
+
+@pytest.mark.asyncio
+async def test_redis_filter_by_message_routes_dicts():
+    """filter_by_message invokes the handler (with the dict) only for matches."""
+    test_id = uuid.uuid4().hex[:8]
+    transport = RedisTransport()
+    agent = Agent(f"filter-agent-{test_id}", transport=transport)
+    channel = Channel(f"test-filter-msg-{test_id}", transport=transport)
+
+    seen = []
+    got = asyncio.Event()
+
+    @agent.subscribe(
+        channel=channel,
+        filter_by_message=lambda m: m.get("type") == "wanted",
+    )
+    async def handler(message):
+        seen.append(message["type"])
+        got.set()
+
+    await agent.start()
+    await channel.publish({"type": "unwanted", "v": 1})
+    await channel.publish({"type": "wanted", "v": 2})
+
+    await asyncio.wait_for(got.wait(), timeout=5.0)
+    await asyncio.sleep(0.3)  # give the unwanted message a chance to (not) arrive
+    await agent.stop()
+
+    assert seen == ["wanted"], f"filter_by_message let through: {seen}"
+
+
+@pytest.mark.asyncio
+async def test_redis_data_type_delivers_typed_instance():
+    """data_type passes the validated *typed model* (not a dict) to the handler,
+    and skips messages whose type doesn't match."""
+    test_id = uuid.uuid4().hex[:8]
+    transport = RedisTransport()
+    agent = Agent(f"typed-agent-{test_id}", transport=transport)
+    channel = Channel(f"test-typed-{test_id}", transport=transport)
+
+    received = []
+    got = asyncio.Event()
+
+    @agent.subscribe(channel=channel, data_type=_OrderMessage)
+    async def handle_order(order: _OrderMessage):
+        received.append(order)
+        got.set()
+
+    await agent.start()
+
+    # Wrong type → skipped.
+    await channel.publish(
+        _PaymentMessage(source="t", data=_Order(order_id=1, status="x"))
+    )
+    # Right type → delivered as a typed instance.
+    await channel.publish(
+        _OrderMessage(source="t", data=_Order(order_id=42, status="new"))
+    )
+
+    await asyncio.wait_for(got.wait(), timeout=5.0)
+    await asyncio.sleep(0.3)
+    await agent.stop()
+
+    assert len(received) == 1, f"expected 1 matching message, got {len(received)}"
+    order = received[0]
+    # The headline contract: a typed model instance, not a dict.
+    assert isinstance(order, _OrderMessage), f"handler got {type(order)!r}, not typed"
+    assert isinstance(order.data, _Order)
+    assert order.data.order_id == 42
+    assert order.data.status == "new"
+
+
+@pytest.mark.asyncio
+async def test_redis_filter_by_data_on_typed_message():
+    """filter_by_data narrows typed messages by their validated content."""
+    test_id = uuid.uuid4().hex[:8]
+    transport = RedisTransport()
+    agent = Agent(f"fbd-agent-{test_id}", transport=transport)
+    channel = Channel(f"test-fbd-{test_id}", transport=transport)
+
+    received = []
+    got = asyncio.Event()
+
+    @agent.subscribe(
+        channel=channel,
+        data_type=_OrderMessage,
+        filter_by_data=lambda o: o.data.status == "shipped",
+    )
+    async def handle_shipped(order: _OrderMessage):
+        received.append(order.data.order_id)
+        got.set()
+
+    await agent.start()
+    await channel.publish(
+        _OrderMessage(source="t", data=_Order(order_id=1, status="new"))
+    )
+    await channel.publish(
+        _OrderMessage(source="t", data=_Order(order_id=2, status="shipped"))
+    )
+
+    await asyncio.wait_for(got.wait(), timeout=5.0)
+    await asyncio.sleep(0.3)
+    await agent.stop()
+
+    assert received == [2], f"filter_by_data let through: {received}"
+
+
+@pytest.mark.asyncio
+async def test_redis_invalid_payload_is_skipped_not_retried():
+    """A message of the right type but invalid payload is skipped silently
+    (validation fails → no handler call, no error/retry)."""
+    test_id = uuid.uuid4().hex[:8]
+    transport = RedisTransport()
+    agent = Agent(f"invalid-agent-{test_id}", transport=transport)
+    channel = Channel(f"test-invalid-{test_id}", transport=transport)
+
+    calls = []
+
+    @agent.subscribe(channel=channel, data_type=_OrderMessage)
+    async def handler(order: _OrderMessage):
+        calls.append(order)
+
+    await agent.start()
+    # Correct type, but data is missing required fields → ValidationError → skip.
+    await channel.publish({"type": "_OrderMessage", "source": "t", "data": {"bad": 1}})
+    await asyncio.sleep(0.6)
+    await agent.stop()
+
+    assert calls == [], "invalid-payload message should not reach the handler"

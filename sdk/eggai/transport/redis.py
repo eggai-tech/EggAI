@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+import socket
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -11,14 +13,16 @@ from redis.exceptions import ResponseError
 
 from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
-from eggai.transport.middleware_utils import (
-    create_data_type_middleware,
-    create_filter_by_data_middleware,
-    create_filter_middleware,
-)
+from eggai.transport.middleware_utils import wrap_handler_with_filters
 from eggai.transport.pending_reclaimer import PendingReclaimerManager, ReclaimerConfig
 
 logger = logging.getLogger(__name__)
+
+# Stable for the lifetime of this process, unique across processes/hosts. Used as
+# the default Redis stream consumer name so that multiple workers sharing a
+# consumer group (same handler code → same group) each claim a distinct slice of
+# the stream and own their own PEL entries — the competing-consumers pattern.
+_CONSUMER_INSTANCE = f"{socket.gethostname()}-{os.getpid()}"
 
 
 @dataclass(frozen=True)
@@ -47,6 +51,8 @@ class RedisTransport(Transport):
         broker: RedisBroker | None = None,
         url: str = "redis://localhost:6379",
         group_monitor_interval_s: float = 5.0,
+        max_len: int | None = None,
+        retry_max_len: int | None = 10_000,
         **kwargs,
     ):
         """
@@ -56,6 +62,18 @@ class RedisTransport(Transport):
             broker (Optional[RedisBroker]): An existing RedisBroker instance to use. If not provided, a new instance will
                                              be created with the specified URL and additional parameters.
             url (str): The Redis connection URL (default is "redis://localhost:6379").
+            group_monitor_interval_s (float): How often the background monitor re-asserts that every
+                registered consumer group exists (default 5.0s).
+            max_len (Optional[int]): Approximate cap on the length of streams written by ``publish()``
+                (the producer path), applied as ``XADD ... MAXLEN ~ max_len``. Default ``None`` (unbounded).
+                NOTE: ``MAXLEN`` trims the *oldest* entries by count regardless of whether they have been
+                consumed/acked, so a value smaller than ``throughput × consumer-lag`` can silently drop
+                un-delivered messages. Left opt-in for that reason — set it deliberately per your retention
+                needs (e.g. 100_000) once you understand your traffic.
+            retry_max_len (Optional[int]): Approximate cap on the SDK-managed retry and DLQ streams
+                (default 10_000). These hold only reclaimed failures, so their volume is bounded by your
+                error rate and a default cap prevents a runaway retry loop from growing without bound.
+                Set to ``None`` to disable trimming on retry/DLQ streams.
             **kwargs: Additional keyword arguments to pass to the RedisBroker if a new instance is created.
 
         Attributes:
@@ -114,6 +132,8 @@ class RedisTransport(Transport):
         else:
             self.broker = RedisBroker(url, log_level=logging.INFO, **kwargs)
         self._redis_url = url
+        self._max_len = max_len
+        self._retry_max_len = retry_max_len
         self._running = False
         self._reclaimer_manager: PendingReclaimerManager | None = None
         # A set so repeated subscribe() calls with an identical (stream_key, group,
@@ -195,7 +215,12 @@ class RedisTransport(Transport):
                                                          before being sent.
 
         """
-        await self.broker.publish(message, stream=channel)
+        # When max_len is configured, cap the stream approximately (XADD MAXLEN ~)
+        # so the producer path can't grow without bound. None → no trimming.
+        if self._max_len is not None:
+            await self.broker.publish(message, stream=channel, maxlen=self._max_len)
+        else:
+            await self.broker.publish(message, stream=channel)
 
     async def subscribe(self, channel: str, handler, **kwargs) -> Callable:
         """
@@ -207,11 +232,15 @@ class RedisTransport(Transport):
             **kwargs: Additional keyword arguments that can be used to configure the subscription.
 
         Keyword Args:
-            filter_by_message (Callable, optional): A function to filter incoming messages based on their payload. If provided,
-                                                this function will be applied to the message payload before passing it to
-                                                the handler.
-            data_type (BaseModel, optional): A Pydantic model class to validate and filter incoming messages by type.
-            filter_by_data (Callable, optional): A function to filter typed messages after validation (requires `data_type`).
+            filter_by_message (Callable, optional): Predicate applied to the decoded message dict; the handler
+                is invoked (with the dict) only for messages where it returns truthy. Non-matching messages
+                are skipped (acked, not retried).
+            data_type (BaseModel, optional): A Pydantic model class used to validate and type incoming messages.
+                Messages that fail validation, or whose ``type`` field does not match the model's default
+                ``type``, are skipped. Matching messages are passed to the handler as the **typed model
+                instance** (not the raw dict).
+            filter_by_data (Callable, optional): Predicate applied to the validated typed message (requires
+                `data_type`); the handler runs only when it returns truthy.
 
             # Redis Pub/Sub parameters
             pattern (bool, optional): Whether to use pattern-based subscription (default is False).
@@ -219,8 +248,12 @@ class RedisTransport(Transport):
             # Redis Stream parameters
             stream (Optional[str], optional): Redis stream name to consume from instead of Pub/Sub channel.
             polling_interval (int, optional): Interval in milliseconds for polling streams (default is 100).
-            group (Optional[str], optional): Consumer group name for stream consumption.
-            consumer (Optional[str], optional): Consumer name within the group.
+            group (Optional[str], optional): Consumer group name for stream consumption. Defaults to the
+                handler_id, which is stable across workers running the same handler — so a fleet of workers
+                shares one group and load-balances the stream (competing consumers).
+            consumer (Optional[str], optional): Consumer name within the group. Defaults to a
+                per-process-unique name (``{handler_id}-{hostname}-{pid}``) so each worker in the group owns
+                a distinct slice of the PEL. Pass an explicit value only if you need a stable consumer name.
             batch (bool, optional): Whether to consume messages in batches (default is False).
             max_records (Optional[int], optional): Maximum number of records to consume in one batch (default is None).
             last_id (str, optional): Starting message ID for stream consumption (default is ">" for consumer groups).
@@ -251,13 +284,13 @@ class RedisTransport(Transport):
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters
-            max_len (Optional[int], optional): Maximum stream length to prevent unbounded growth (default is None).
-                                               Recommend setting to a reasonable value like 10000 for production.
+            #
+            # Stream length is capped at the transport level, not per-subscriber: pass
+            # ``max_len`` (producer/publish path) and/or ``retry_max_len`` (retry & DLQ
+            # streams, default 10_000) to ``RedisTransport(...)``. See the constructor docstring.
 
             # General parameters
             dependencies (Sequence[Depends], optional): Custom dependencies for this subscriber.
-            middlewares (Sequence[BrokerMiddleware], optional): Custom middlewares for this subscriber.
-            filter (Filter, optional): Message filter configuration.
             parser (Optional[CustomCallable], optional): Custom parser for this subscriber.
             decoder (Optional[CustomCallable], optional): Custom decoder for this subscriber.
             no_reply (bool, optional): Whether to disable message acknowledgment (default is False).
@@ -274,52 +307,57 @@ class RedisTransport(Transport):
         on_dlq = kwargs.pop("on_dlq", None)
         _internal_retry = kwargs.pop("_internal_retry", False)
 
-        # The tracing wrapper binds the channel name into each span's
-        # messaging.destination, so we wrap per-stream: the main subscriber is
-        # wrapped with `channel` here, and (in the retry block below) the retry
-        # subscriber is wrapped with the retry stream key — otherwise retry-attempt
-        # spans would report the original channel and could not be dashboarded
-        # separately. We keep the unwrapped `original_handler` so the retry wrapper
-        # wraps it directly rather than nesting a second span on the channel
-        # wrapper. The recursive retry subscribe is marked _internal_retry=True and
+        # EggAI applies content filtering (filter_by_message) and typed-subscription
+        # support (data_type / filter_by_data) by wrapping the handler — see
+        # wrap_handler_with_filters — NOT via FastStream subscriber middlewares,
+        # which FastStream 0.7 removed from subscriber()/the broker constructor.
+        #
+        # Wrapper order matters: tracing must stay OUTERMOST so traceparent is read
+        # from the raw decoded dict before a data_type subscription validates it
+        # into a typed model (the typed model may not carry the traceparent field).
+        # So the stack is  tracing( filters( handler ) ).
+        #
+        # The tracing wrapper also binds the channel name into each span's
+        # messaging.destination, so we wrap per-stream: the main subscriber with
+        # `channel` here and (in the retry block below) the retry subscriber with the
+        # retry stream key — otherwise retry-attempt spans would report the original
+        # channel and could not be dashboarded separately. We keep the unwrapped
+        # `original_handler` so the retry block can rebuild the same filter+trace
+        # stack. The recursive retry subscribe is marked _internal_retry=True and
         # receives an already-wrapped handler, so it must not wrap again.
+        filter_opts = {
+            "filter_by_message": kwargs.pop("filter_by_message", None),
+            "data_type": kwargs.pop("data_type", None),
+            "filter_by_data": kwargs.pop("filter_by_data", None),
+        }
         original_handler = handler
         if not _internal_retry:
             from eggai.tracing import make_tracing_wrapper
 
-            handler = make_tracing_wrapper(channel, handler)
-
-        if "filter_by_message" in kwargs:
-            if "middlewares" not in kwargs:
-                kwargs["middlewares"] = []
-            kwargs["middlewares"].append(
-                create_filter_middleware(kwargs.pop("filter_by_message"))
+            handler = make_tracing_wrapper(
+                channel, wrap_handler_with_filters(handler, **filter_opts)
             )
-
-        if "data_type" in kwargs:
-            data_type = kwargs.pop("data_type")
-
-            if "middlewares" not in kwargs:
-                kwargs["middlewares"] = []
-            kwargs["middlewares"].append(create_data_type_middleware(data_type))
-
-            if "filter_by_data" in kwargs:
-                if "middlewares" not in kwargs:
-                    kwargs["middlewares"] = []
-                kwargs["middlewares"].append(
-                    create_filter_by_data_middleware(
-                        data_type, kwargs.pop("filter_by_data")
-                    )
-                )
 
         handler_id = kwargs.pop("handler_id", None)
 
         # Ignore Kafka-specific parameter (Redis uses 'group' for streams, not 'group_id')
         kwargs.pop("group_id", None)
 
-        # Extract stream-related parameters
+        # Extract stream-related parameters.
+        # `group` defaults to handler_id so that multiple workers running the same
+        # handler code share one consumer group (Redis distributes new messages
+        # across the group — competing-consumers load balancing). `consumer` must
+        # be distinct *per worker* within that group, otherwise two processes share
+        # one consumer name and their PEL entries become indistinguishable. So when
+        # the caller doesn't pin a consumer, default it to a per-process-unique name
+        # derived from handler_id. Direct callers passing consumer= keep full
+        # control; handler_id=None (no group) leaves consumer None as before.
         group = kwargs.pop("group", handler_id)
-        consumer = kwargs.pop("consumer", handler_id)
+        consumer = kwargs.pop("consumer", None)
+        if consumer is None:
+            consumer = (
+                f"{handler_id}-{_CONSUMER_INSTANCE}" if handler_id else handler_id
+            )
         polling_interval = kwargs.pop("polling_interval", 100)
         batch = kwargs.pop("batch", False)
         max_records = kwargs.pop("max_records", None)
@@ -457,14 +495,20 @@ class RedisTransport(Transport):
                     )
                 )
 
-                # Wrap the *original* (unwrapped) handler with the retry stream as
-                # its tracing destination, so retry-attempt spans report the retry
-                # stream key rather than the original channel. Wrapping the original
-                # (not the channel-wrapped handler) keeps it to a single consumer
-                # span per retry.
+                # Rebuild the same filter+trace stack against the retry stream:
+                # tracing( filters( original_handler ) ), with the retry stream as the
+                # tracing destination so retry-attempt spans report the retry stream
+                # key rather than the original channel. Reclaimed messages re-enter as
+                # raw dicts, so they must pass back through wrap_handler_with_filters
+                # to be typed/filtered exactly like a first delivery. Wrapping the
+                # original (not the channel-wrapped handler) keeps it to a single
+                # consumer span per retry.
                 from eggai.tracing import make_tracing_wrapper
 
-                retry_handler = make_tracing_wrapper(retry_stream, original_handler)
+                retry_handler = make_tracing_wrapper(
+                    retry_stream,
+                    wrap_handler_with_filters(original_handler, **filter_opts),
+                )
 
                 # Auto-subscribe the same handler to the retry stream.
                 # _internal_retry=True prevents infinite recursion and .retry.retry
@@ -472,13 +516,18 @@ class RedisTransport(Transport):
                 # forwarding the caller's last_id: an operator replaying the main
                 # stream (e.g. last_id="0") must not also replay the retry stream's
                 # history — the retry stream only ever holds freshly-reclaimed entries.
+                #
+                # `group` is pinned to retry_handler_id (stable across workers) but
+                # `consumer` is deliberately omitted so it defaults to the
+                # per-process-unique name — otherwise a worker fleet would conflate
+                # the retry stream's PEL under one consumer name, undercutting the
+                # competing-consumers behaviour for retried messages.
                 await self.subscribe(
                     retry_stream,
                     retry_handler,
                     _internal_retry=True,
                     handler_id=retry_handler_id,
                     group=retry_handler_id,
-                    consumer=retry_handler_id,
                     polling_interval=polling_interval,
                     batch=batch,
                     max_records=max_records,
@@ -590,6 +639,7 @@ class RedisTransport(Transport):
                 max_retries=max_retries,
                 dlq_stream=self._get_stream_key(dlq_stream) if dlq_stream else None,
                 on_dlq=on_dlq,
+                max_len=self._retry_max_len,
             )
         )
 
