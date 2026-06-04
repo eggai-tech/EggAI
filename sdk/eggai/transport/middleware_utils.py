@@ -1,93 +1,81 @@
 """
-Shared middleware utilities for transport implementations.
+Shared message-filtering utilities for transport implementations.
 
-This module provides common middleware factories used by Kafka and Redis transports
-to handle message filtering and data type validation.
+Kafka and Redis both apply EggAI's content filtering (``filter_by_message``) and
+typed-subscription support (``data_type`` / ``filter_by_data``) by wrapping the
+handler, *not* via broker subscriber middlewares. FastStream 0.7 removed the
+``middlewares`` argument from ``subscriber()`` (and from the broker constructor),
+so the old middleware-based approach raised ``TypeError`` at subscribe time. This
+handler-wrapping approach is independent of FastStream's middleware API and keeps
+the behaviour identical across the Kafka, Redis, and in-memory transports.
 """
 
-import json
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from typing import Any
 
-from faststream.message.message import StreamMessage
+from pydantic import ValidationError
 
 
-def create_filter_middleware(filter_func: Callable[[dict[str, Any]], bool]) -> Callable:
+def wrap_handler_with_filters(
+    handler: Callable,
+    *,
+    data_type: type | None = None,
+    filter_by_data: Callable[[Any], bool] | None = None,
+    filter_by_message: Callable[[dict[str, Any]], bool] | None = None,
+) -> Callable:
+    """Wrap ``handler`` with EggAI's content filtering / typed-message support.
+
+    The returned coroutine receives the broker-decoded message (a ``dict``) and:
+
+    - ``data_type``: validates the dict against the Pydantic model. Messages that
+      fail validation, or whose ``type`` field does not match the model's default
+      ``type``, are skipped. Matching messages are passed to ``handler`` as the
+      **typed model instance** (e.g. ``OrderMessage``), not the raw dict.
+    - ``data_type`` + ``filter_by_data``: as above, and additionally skipped unless
+      ``filter_by_data(typed_message)`` returns truthy.
+    - ``filter_by_message`` (no ``data_type``): ``handler`` is called with the raw
+      dict only when ``filter_by_message(dict)`` returns truthy.
+
+    Skipped messages return ``None`` without invoking ``handler`` — a clean no-op,
+    so the broker acknowledges them (they are not retried). When no filtering
+    option is supplied, ``handler`` is returned unchanged.
+
+    ``filter_by_message`` and ``data_type`` are mutually exclusive: the former is
+    the untyped (raw-dict) filter, the latter validates into a typed model and
+    pairs with ``filter_by_data``. Supplying both is rejected rather than silently
+    dropping one of them.
     """
-    Create a middleware that filters messages based on a predicate function.
+    if data_type is not None and filter_by_message is not None:
+        raise ValueError(
+            "filter_by_message cannot be combined with data_type. Use filter_by_data "
+            "(which receives the validated typed message) to filter typed "
+            "subscriptions, or filter_by_message on its own for raw-dict filtering."
+        )
 
-    Args:
-        filter_func: A function that takes a message dict and returns True if the message
-                    should be processed, False otherwise.
+    if data_type is not None:
+        expected_type = data_type.model_fields["type"].default
 
-    Returns:
-        A middleware function that applies the filter.
-    """
+        async def typed_handler(message: dict[str, Any]) -> Any:
+            try:
+                typed_message = data_type.model_validate(message)
+            except (ValidationError, ValueError, TypeError):
+                # Wrong shape / payload for this data_type — not ours to handle.
+                return None
+            if typed_message.type != expected_type:
+                return None
+            if filter_by_data is not None and not filter_by_data(typed_message):
+                return None
+            return await handler(typed_message)
 
-    async def middleware(
-        call_next: Callable[[Any], Awaitable[Any]],
-        msg: StreamMessage[Any],
-    ) -> Any:
-        if filter_func(json.loads(msg.body.decode("utf-8"))):
-            return await call_next(msg)
-        return None
+        return typed_handler
 
-    return middleware
+    if filter_by_message is not None:
 
-
-def create_data_type_middleware(data_type: type) -> Callable:
-    """
-    Create a middleware that validates and filters messages by data type.
-
-    Args:
-        data_type: A Pydantic model class with a 'type' field that will be used
-                  for validation and filtering.
-
-    Returns:
-        A middleware function that validates the message against the data type
-        and filters out messages that don't match the expected type.
-    """
-
-    async def middleware(
-        call_next: Callable[[Any], Awaitable[Any]],
-        msg: StreamMessage[Any],
-    ) -> Any:
-        typed_message = data_type.model_validate(json.loads(msg.body.decode("utf-8")))
-
-        if typed_message.type != data_type.model_fields["type"].default:
+        async def filtered_handler(message: dict[str, Any]) -> Any:
+            if filter_by_message(message):
+                return await handler(message)
             return None
 
-        return await call_next(msg)
+        return filtered_handler
 
-    return middleware
-
-
-def create_filter_by_data_middleware(
-    data_type: type, filter_func: Callable[[Any], bool]
-) -> Callable:
-    """
-    Create a middleware that validates messages by data type and applies a filter.
-
-    This combines data type validation with a custom filter function that operates
-    on the validated/typed message object.
-
-    Args:
-        data_type: A Pydantic model class for validation.
-        filter_func: A function that takes the validated message object and returns
-                    True if it should be processed, False otherwise.
-
-    Returns:
-        A middleware function that validates and filters messages.
-    """
-
-    async def middleware(
-        call_next: Callable[[Any], Awaitable[Any]],
-        msg: StreamMessage[Any],
-    ) -> Any:
-        data = json.loads(msg.body.decode("utf-8"))
-        typed_message = data_type.model_validate(data)
-        if filter_func(typed_message):
-            return await call_next(msg)
-        return None
-
-    return middleware
+    return handler

@@ -8,11 +8,7 @@ from faststream.kafka import KafkaBroker
 
 from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
-from eggai.transport.middleware_utils import (
-    create_data_type_middleware,
-    create_filter_by_data_middleware,
-    create_filter_middleware,
-)
+from eggai.transport.middleware_utils import wrap_handler_with_filters
 
 
 class KafkaTransport(Transport):
@@ -181,7 +177,14 @@ class KafkaTransport(Transport):
             **kwargs: Additional keyword arguments that can be used to configure the subscription.
 
         Keyword Args:
-            filter_by_message (Callable, optional): A function to filter incoming messages based on their payload.
+            filter_by_message (Callable, optional): Predicate applied to the decoded message dict; the handler
+                is invoked (with the dict) only when it returns truthy.
+            data_type (BaseModel, optional): A Pydantic model class used to validate and type incoming
+                messages. Messages that fail validation, or whose ``type`` field does not match the model's
+                default ``type``, are skipped. Matching messages are passed to the handler as the **typed
+                model instance** (not the raw dict).
+            filter_by_data (Callable, optional): Predicate applied to the validated typed message (requires
+                `data_type`); the handler runs only when it returns truthy.
             group_id (Optional[str], optional): The consumer group name for dynamic partition assignment.
             auto_offset_reset (str, optional): Policy for resetting offsets ('earliest' or 'latest').
 
@@ -190,30 +193,21 @@ class KafkaTransport(Transport):
         """
         from eggai.tracing import make_tracing_wrapper
 
-        handler = make_tracing_wrapper(channel, handler)
-
-        if "filter_by_message" in kwargs:
-            if "middlewares" not in kwargs:
-                kwargs["middlewares"] = []
-            kwargs["middlewares"].append(
-                create_filter_middleware(kwargs.pop("filter_by_message"))
-            )
-
-        if "data_type" in kwargs:
-            data_type = kwargs.pop("data_type")
-
-            if "middlewares" not in kwargs:
-                kwargs["middlewares"] = []
-            kwargs["middlewares"].append(create_data_type_middleware(data_type))
-
-            if "filter_by_data" in kwargs:
-                if "middlewares" not in kwargs:
-                    kwargs["middlewares"] = []
-                kwargs["middlewares"].append(
-                    create_filter_by_data_middleware(
-                        data_type, kwargs.pop("filter_by_data")
-                    )
-                )
+        # EggAI applies content filtering (filter_by_message) and typed-subscription
+        # support (data_type / filter_by_data) by wrapping the handler — see
+        # wrap_handler_with_filters — NOT via FastStream subscriber middlewares,
+        # which FastStream 0.7 removed. Tracing stays OUTERMOST so traceparent is
+        # read from the raw decoded dict before a data_type subscription validates
+        # it into a typed model: tracing( filters( handler ) ).
+        handler = make_tracing_wrapper(
+            channel,
+            wrap_handler_with_filters(
+                handler,
+                filter_by_message=kwargs.pop("filter_by_message", None),
+                data_type=kwargs.pop("data_type", None),
+                filter_by_data=kwargs.pop("filter_by_data", None),
+            ),
+        )
 
         # Use handler_id as default group_id (preserves broadcast behavior)
         handler_id = kwargs.pop("handler_id", None)

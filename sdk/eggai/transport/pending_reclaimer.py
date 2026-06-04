@@ -53,6 +53,9 @@ class ReclaimerConfig:
         None  # full key, e.g. "eggai.orders.order-service-handle_order-1.dlq"
     )
     on_dlq: Callable | None = None  # async or sync callback(fields, msg_id, count)
+    max_len: int | None = (
+        None  # cap retry/DLQ stream length (XADD MAXLEN ~); None = unbounded
+    )
 
 
 def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int, bool]:
@@ -215,6 +218,20 @@ class PendingReclaimerManager:
             if "BUSYGROUP" not in str(e):
                 raise
 
+    async def _xadd(self, stream: str, fields: dict, max_len: int | None) -> None:
+        """XADD with optional approximate length capping.
+
+        ``approximate=True`` (the ``MAXLEN ~`` form) lets Redis trim on whole-node
+        boundaries, which is far cheaper than exact trimming and is the
+        recommended production setting. ``max_len=None`` means no trimming.
+        """
+        if max_len is not None:
+            await self._redis_client.xadd(
+                stream, fields, maxlen=max_len, approximate=True
+            )
+        else:
+            await self._redis_client.xadd(stream, fields)
+
     async def _reclaim_once(self, config: ReclaimerConfig) -> None:
         # --- Paginated XPENDING scan ---
         # A fixed count=100 only scans one page; with large or high-traffic PELs,
@@ -273,7 +290,7 @@ class PendingReclaimerManager:
             # (XACK) with a loud warning rather than spin on it indefinitely.
             if not parsed_ok:
                 if config.dlq_stream is not None:
-                    await self._redis_client.xadd(config.dlq_stream, fields)
+                    await self._xadd(config.dlq_stream, fields, config.max_len)
                     await self._redis_client.xack(config.stream, config.group, msg_id)
                     logger.warning(
                         "Message %s has an unparseable envelope; moved to DLQ %s "
@@ -299,7 +316,7 @@ class PendingReclaimerManager:
                 and config.dlq_stream is not None
                 and new_count > config.max_retries
             ):
-                await self._redis_client.xadd(config.dlq_stream, fields)
+                await self._xadd(config.dlq_stream, fields, config.max_len)
                 await self._redis_client.xack(config.stream, config.group, msg_id)
                 logger.warning(
                     "Message %s exceeded max_retries=%d; moved to DLQ %s",
@@ -311,7 +328,7 @@ class PendingReclaimerManager:
                     config, fields, data_key, msg_id_str, new_count
                 )
             else:
-                await self._redis_client.xadd(config.retry_stream, fields)
+                await self._xadd(config.retry_stream, fields, config.max_len)
                 await self._redis_client.xack(config.stream, config.group, msg_id)
                 logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
 

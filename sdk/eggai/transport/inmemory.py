@@ -124,6 +124,16 @@ class InMemoryTransport(Transport):
 
         final_callback = callback
 
+        # filter_by_message (raw-dict filter) and data_type (typed validation +
+        # filter_by_data) are mutually exclusive — reject the combination rather
+        # than silently ignoring one, matching the Kafka/Redis transports.
+        if "data_type" in kwargs and kwargs.get("filter_by_message") is not None:
+            raise ValueError(
+                "filter_by_message cannot be combined with data_type. Use "
+                "filter_by_data to filter typed subscriptions, or filter_by_message "
+                "on its own for raw-dict filtering."
+            )
+
         # Handle data_type filtering
         if "data_type" in kwargs:
             data_type = kwargs["data_type"]
