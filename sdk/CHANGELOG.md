@@ -18,9 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same approach the in-memory transport already uses). As part of this,
   `data_type` subscriptions on Redis/Kafka now deliver the **typed model instance**
   to the handler (matching the in-memory transport and the documented behaviour),
-  rather than the raw dict. Supplying both `data_type` and `filter_by_message`
-  (mutually exclusive — use `filter_by_data` for typed filtering) now raises
-  `ValueError` instead of silently dropping the raw-dict predicate.
+  rather than the raw dict. Invalid filter-option combinations now raise
+  `ValueError` instead of silently dropping an option: `data_type` and
+  `filter_by_message` are mutually exclusive, and `filter_by_data` requires
+  `data_type`. These validations are consistent across the Redis, Kafka, and
+  in-memory transports.
 
 ### Added
 - **RedisTransport**: New `max_len` and `retry_max_len` constructor options to cap

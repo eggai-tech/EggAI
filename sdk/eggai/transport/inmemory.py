@@ -8,6 +8,7 @@ from typing import Any
 
 from eggai.schemas import BaseMessage
 from eggai.transport import Transport
+from eggai.transport.middleware_utils import wrap_handler_with_filters
 
 logger = logging.getLogger(__name__)
 
@@ -122,66 +123,17 @@ class InMemoryTransport(Transport):
         group_id = kwargs.get("group_id", handler_id or uuid.uuid4().hex)
         key = (channel, group_id)
 
-        final_callback = callback
-
-        # filter_by_message (raw-dict filter) and data_type (typed validation +
-        # filter_by_data) are mutually exclusive — reject the combination rather
-        # than silently ignoring one, matching the Kafka/Redis transports.
-        if "data_type" in kwargs and kwargs.get("filter_by_message") is not None:
-            raise ValueError(
-                "filter_by_message cannot be combined with data_type. Use "
-                "filter_by_data to filter typed subscriptions, or filter_by_message "
-                "on its own for raw-dict filtering."
-            )
-
-        # Handle data_type filtering
-        if "data_type" in kwargs:
-            data_type = kwargs["data_type"]
-
-            async def data_type_filtered_callback(data):
-                try:
-                    typed_message = data_type.model_validate(data)
-                    # Check if message type matches expected type
-                    if typed_message.type != data_type.model_fields["type"].default:
-                        return
-                    # Pass the typed message object to the handler
-                    await callback(typed_message)
-                except Exception:
-                    # Skip messages that don't match the data type
-                    return
-
-            final_callback = data_type_filtered_callback
-
-            # Handle filter_by_data if present along with data_type
-            if "filter_by_data" in kwargs:
-                filter_func = kwargs["filter_by_data"]
-
-                async def data_and_filter_callback(data):
-                    try:
-                        typed_message = data_type.model_validate(data)
-                        # Check if message type matches expected type
-                        if typed_message.type != data_type.model_fields["type"].default:
-                            return
-                        # Apply the data filter
-                        if filter_func(typed_message):
-                            await callback(typed_message)
-                    except (json.JSONDecodeError, ValueError, TypeError) as e:
-                        # Skip messages that don't match the data type or filter
-                        logger.debug(f"Message validation failed: {e}")
-                        return
-
-                final_callback = data_and_filter_callback
-
-        # Handle legacy filter_by_message (for backward compatibility)
-        elif "filter_by_message" in kwargs:
-            filter_func = kwargs["filter_by_message"]
-            original_callback = final_callback  # Store original before reassignment
-
-            async def filtered_callback(data):
-                if filter_func(data):
-                    await original_callback(data)  # Use original, not final_callback
-
-            final_callback = filtered_callback
+        # Content filtering / typed-subscription handling is shared with the Redis
+        # and Kafka transports (the consume loop below already hands callbacks a
+        # decoded dict, the same input the wrapper expects). This keeps validation
+        # and typed delivery identical across all transports and is the single place
+        # that rejects invalid filter-option combinations. Tracing stays outermost.
+        final_callback = wrap_handler_with_filters(
+            callback,
+            data_type=kwargs.get("data_type"),
+            filter_by_data=kwargs.get("filter_by_data"),
+            filter_by_message=kwargs.get("filter_by_message"),
+        )
 
         from eggai.tracing import make_tracing_wrapper
 
