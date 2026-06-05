@@ -97,6 +97,31 @@ class Agent:
                     )
                 if max_retries is not None and max_retries < 1:
                     raise ValueError("max_retries must be >= 1")
+            _backoff_keys = (
+                "retry_backoff_multiplier",
+                "retry_backoff_max_ms",
+                "retry_backoff_jitter",
+            )
+            if any(k in kwargs for k in _backoff_keys):
+                if "retry_on_idle_ms" not in kwargs:
+                    raise ValueError(
+                        "retry_backoff_multiplier / retry_backoff_max_ms / "
+                        "retry_backoff_jitter require retry_on_idle_ms to be set."
+                    )
+                if kwargs.get("retry_backoff_multiplier", 1.0) < 1.0:
+                    raise ValueError(
+                        "retry_backoff_multiplier must be >= 1.0 (1.0 = constant "
+                        "cadence; values <1 would retry faster the more a message fails)."
+                    )
+                if not 0.0 <= kwargs.get("retry_backoff_jitter", 0.0) <= 1.0:
+                    raise ValueError("retry_backoff_jitter must be between 0.0 and 1.0")
+                _cap = kwargs.get("retry_backoff_max_ms")
+                if _cap is not None and _cap < kwargs["retry_on_idle_ms"]:
+                    raise ValueError(
+                        "retry_backoff_max_ms must be >= retry_on_idle_ms (the base "
+                        "idle threshold); a cap below the base would disable backoff "
+                        "entirely."
+                    )
             original_kwargs = kwargs.copy()
 
             # Extract plugin-specific kwargs dynamically and clean them from kwargs
