@@ -24,6 +24,28 @@ logger = logging.getLogger(__name__)
 # the stream and own their own PEL entries — the competing-consumers pattern.
 _CONSUMER_INSTANCE = f"{socket.gethostname()}-{os.getpid()}"
 
+# Connection settings that, when passed to the broker, must also be forwarded to
+# the PEL reclaimer's independent Redis client so both connections recover from a
+# silently dropped socket the same way. Kept to redis-py connection/resilience
+# kwargs that are valid for ``aioredis.from_url`` — broker/FastStream-only kwargs
+# (decoder, middlewares, asyncapi_*, …) are intentionally excluded. ``decode_responses``
+# is omitted on purpose: the reclaimer pins it to False for binary passthrough.
+_RECLAIMER_CONNECTION_KEYS = (
+    "socket_timeout",
+    "socket_connect_timeout",
+    "socket_keepalive",
+    "socket_keepalive_options",
+    "health_check_interval",
+    "retry_on_timeout",
+    "retry_on_error",
+    "max_connections",
+    "ssl_keyfile",
+    "ssl_certfile",
+    "ssl_cert_reqs",
+    "ssl_ca_certs",
+    "ssl_check_hostname",
+)
+
 
 @dataclass(frozen=True)
 class _StreamGroupInfo:
@@ -132,6 +154,11 @@ class RedisTransport(Transport):
         else:
             self.broker = RedisBroker(url, log_level=logging.INFO, **kwargs)
         self._redis_url = url
+        # Forward connection-resilience kwargs to the reclaimer's own client so it
+        # doesn't hang on a silently dropped connection while the broker recovers.
+        self._connection_kwargs: dict[str, Any] = {
+            k: kwargs[k] for k in _RECLAIMER_CONNECTION_KEYS if k in kwargs
+        }
         self._max_len = max_len
         self._retry_max_len = retry_max_len
         self._running = False
@@ -684,7 +711,9 @@ class RedisTransport(Transport):
         backoff_jitter: float = 0.0,
     ) -> tuple[str, str, str]:
         if self._reclaimer_manager is None:
-            self._reclaimer_manager = PendingReclaimerManager(self._redis_url)
+            self._reclaimer_manager = PendingReclaimerManager(
+                self._redis_url, connection_kwargs=self._connection_kwargs
+            )
         return self._reclaimer_manager.add(
             ReclaimerConfig(
                 stream=self._get_stream_key(stream),

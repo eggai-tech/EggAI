@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **RedisTransport / PEL reclaimer**: connection-resilience kwargs passed to the
+  transport (`socket_timeout`, `socket_connect_timeout`, `socket_keepalive`,
+  `socket_keepalive_options`, `health_check_interval`, `retry_on_timeout`,
+  `retry_on_error`, `max_connections`, and the `ssl_*` options) are now forwarded
+  to the background reclaimer's independent Redis client. Previously the reclaimer
+  created its client with no socket timeout or keepalive regardless of the
+  transport's settings, so a silently dropped connection (e.g. cloud Redis
+  failover or an idle-connection reaper) left its blocking reads hung indefinitely
+  with no way to recover. `decode_responses` remains pinned to `False` for binary
+  passthrough and cannot be overridden by callers.
+
 ### Added
 - **RedisTransport**: Exponential **retry backoff** for SDK-managed retries. New
   `subscribe()` options `retry_backoff_multiplier` (default `1.0` = the previous

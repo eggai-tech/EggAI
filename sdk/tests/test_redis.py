@@ -1442,6 +1442,82 @@ async def test_retry_max_len_propagates_to_reclaimer_configs():
 
 
 @pytest.mark.asyncio
+async def test_connection_kwargs_propagate_to_reclaimer():
+    """Connection-resilience kwargs passed to the transport reach the reclaimer's
+    own client, so it recovers from a dropped connection like the broker does."""
+    transport = RedisTransport(
+        socket_timeout=10.0,
+        socket_keepalive=True,
+        health_check_interval=30,
+        retry_on_timeout=True,
+        # A broker/FastStream-only kwarg that must NOT leak into the reclaimer's
+        # aioredis.from_url call.
+        graceful_timeout=20.0,
+    )
+
+    assert transport._connection_kwargs == {
+        "socket_timeout": 10.0,
+        "socket_keepalive": True,
+        "health_check_interval": 30,
+        "retry_on_timeout": True,
+    }
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders", handler, handler_id="orders-handler-1", retry_on_idle_ms=500
+    )
+
+    assert transport._reclaimer_manager is not None
+    assert transport._reclaimer_manager._connection_kwargs == {
+        "socket_timeout": 10.0,
+        "socket_keepalive": True,
+        "health_check_interval": 30,
+        "retry_on_timeout": True,
+    }
+
+
+@pytest.mark.asyncio
+async def test_reclaimer_start_applies_connection_kwargs(monkeypatch):
+    """start() forwards connection_kwargs to from_url while pinning
+    decode_responses=False (callers cannot override the binary-passthrough flag)."""
+    from eggai.transport import pending_reclaimer
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    captured: dict = {}
+
+    class _FakeClient:
+        async def aclose(self):
+            pass
+
+    def fake_from_url(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return _FakeClient()
+
+    monkeypatch.setattr(pending_reclaimer.aioredis, "from_url", fake_from_url)
+
+    manager = PendingReclaimerManager(
+        "redis://localhost:6379",
+        connection_kwargs={
+            "socket_timeout": 10.0,
+            "socket_keepalive": True,
+            # Even if a caller sneaks decode_responses in, it must stay False.
+            "decode_responses": True,
+        },
+    )
+    await manager.start()
+
+    assert captured["url"] == "redis://localhost:6379"
+    assert captured["kwargs"]["socket_timeout"] == 10.0
+    assert captured["kwargs"]["socket_keepalive"] is True
+    assert captured["kwargs"]["decode_responses"] is False
+
+    await manager.stop()
+
+
+@pytest.mark.asyncio
 async def test_publish_maxlen_bounds_stream_length():
     """Integration: publishing well past max_len keeps the stream approximately
     bounded (XADD MAXLEN ~). Approximate trimming works on whole-node boundaries,
