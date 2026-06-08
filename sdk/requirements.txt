@@ -1,4 +1,4 @@
-faststream[kafka]==0.6.7
+faststream[kafka]==0.7.1
 pydantic==2.13.4
 click==8.4.1
 jinja2==3.1.6
