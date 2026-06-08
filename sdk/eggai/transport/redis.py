@@ -274,6 +274,21 @@ class RedisTransport(Transport):
                 Binary (non-UTF-8) field values are not supported.
             retry_reclaim_interval_s (float, optional): How often the reclaimer scans for stuck messages (default 15.0s).
                 Only used when retry_on_idle_ms is set.
+            retry_backoff_multiplier (float, optional): Exponential backoff factor applied between retry attempts
+                (default 1.0 = constant cadence, the original behaviour). A failing message is reclaimed once it has
+                been idle for ``retry_on_idle_ms * (retry_backoff_multiplier ** retry_count)``. With base 30s and
+                multiplier 2.0 the attempts space out as 30s → 60s → 120s → 240s …, so an overloaded downstream gets
+                progressively more room to recover instead of being retried on a fixed clock. Must be >= 1.0.
+                Requires retry_on_idle_ms.
+            retry_backoff_max_ms (int, optional): Upper bound on the escalated idle threshold so it doesn't grow without
+                limit (e.g. 900_000 caps backoff at 15 minutes). Default None (uncapped). Must be >= retry_on_idle_ms.
+                Requires retry_on_idle_ms.
+            retry_backoff_jitter (float, optional): Fraction in [0.0, 1.0] (default 0.0 = none). Adds a random
+                0..jitter share *on top of* each computed threshold, so a fleet of workers that all failed during the
+                same outage don't come due in lockstep (thundering herd) on recovery. Jitter is applied upward (never
+                below ``retry_on_idle_ms``) because that base is a hard floor — the reclaim scan won't touch an entry
+                idle for less than it. The spread is only effective once ``jitter * threshold`` is comparable to
+                ``retry_reclaim_interval_s`` (the scan cadence quantises smaller jitter away). Requires retry_on_idle_ms.
             max_retries (int, optional): Maximum number of retry attempts before routing to the Dead Letter Queue
                 (``{channel}.{handler_suffix}.dlq``). Default is 5 when retry_on_idle_ms is set. With max_retries=5, the handler is
                 called up to 6 times total (1 original + 5 retries). Set to None for unlimited retries (no DLQ).
@@ -305,6 +320,14 @@ class RedisTransport(Transport):
         _explicit_max_retries = "max_retries" in kwargs
         max_retries = kwargs.pop("max_retries", 5)
         on_dlq = kwargs.pop("on_dlq", None)
+        _explicit_backoff = (
+            "retry_backoff_multiplier" in kwargs
+            or "retry_backoff_max_ms" in kwargs
+            or "retry_backoff_jitter" in kwargs
+        )
+        retry_backoff_multiplier = kwargs.pop("retry_backoff_multiplier", 1.0)
+        retry_backoff_max_ms = kwargs.pop("retry_backoff_max_ms", None)
+        retry_backoff_jitter = kwargs.pop("retry_backoff_jitter", 0.0)
         _internal_retry = kwargs.pop("_internal_retry", False)
 
         # EggAI applies content filtering (filter_by_message) and typed-subscription
@@ -384,6 +407,31 @@ class RedisTransport(Transport):
 
         if max_retries is not None and max_retries < 1:
             raise ValueError("max_retries must be >= 1")
+
+        # Retry-backoff knobs only have meaning for SDK-managed retries, which are
+        # gated on retry_on_idle_ms. Reject them up front otherwise so a typo can't
+        # silently no-op (mirrors the max_retries guard above).
+        if _explicit_backoff and retry_on_idle_ms is None:
+            raise ValueError(
+                "retry_backoff_multiplier / retry_backoff_max_ms / "
+                "retry_backoff_jitter require retry_on_idle_ms to be set."
+            )
+        if retry_backoff_multiplier < 1.0:
+            raise ValueError(
+                "retry_backoff_multiplier must be >= 1.0 (1.0 = constant cadence; "
+                "values <1 would retry faster the more a message fails)."
+            )
+        if not 0.0 <= retry_backoff_jitter <= 1.0:
+            raise ValueError("retry_backoff_jitter must be between 0.0 and 1.0")
+        if (
+            retry_on_idle_ms is not None
+            and retry_backoff_max_ms is not None
+            and retry_backoff_max_ms < retry_on_idle_ms
+        ):
+            raise ValueError(
+                "retry_backoff_max_ms must be >= retry_on_idle_ms (the base idle "
+                "threshold); a cap below the base would disable backoff entirely."
+            )
 
         # SDK-managed retries need failed messages to stay in the PEL so the
         # reclaimer can find them. ACK / ACK_FIRST acknowledge a message even when
@@ -492,6 +540,9 @@ class RedisTransport(Transport):
                         max_retries=max_retries,
                         dlq_stream=dlq_stream,
                         on_dlq=on_dlq,
+                        backoff_multiplier=retry_backoff_multiplier,
+                        backoff_max_ms=retry_backoff_max_ms,
+                        backoff_jitter=retry_backoff_jitter,
                     )
                 )
 
@@ -551,6 +602,9 @@ class RedisTransport(Transport):
                         max_retries=max_retries,
                         dlq_stream=dlq_stream,
                         on_dlq=on_dlq,
+                        backoff_multiplier=retry_backoff_multiplier,
+                        backoff_max_ms=retry_backoff_max_ms,
+                        backoff_jitter=retry_backoff_jitter,
                     )
                 )
             except Exception:
@@ -625,6 +679,9 @@ class RedisTransport(Transport):
         max_retries: int | None = None,
         dlq_stream: str | None = None,
         on_dlq: Callable | None = None,
+        backoff_multiplier: float = 1.0,
+        backoff_max_ms: int | None = None,
+        backoff_jitter: float = 0.0,
     ) -> tuple[str, str, str]:
         if self._reclaimer_manager is None:
             self._reclaimer_manager = PendingReclaimerManager(self._redis_url)
@@ -640,6 +697,9 @@ class RedisTransport(Transport):
                 dlq_stream=self._get_stream_key(dlq_stream) if dlq_stream else None,
                 on_dlq=on_dlq,
                 max_len=self._retry_max_len,
+                backoff_multiplier=backoff_multiplier,
+                backoff_max_ms=backoff_max_ms,
+                backoff_jitter=backoff_jitter,
             )
         )
 

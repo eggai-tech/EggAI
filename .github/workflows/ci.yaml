@@ -134,6 +134,21 @@ jobs:
 
     name: Test SDK (Python ${{ matrix.python-version }})
 
+    # Redis lets the Redis integration suite (tests/test_redis.py) actually run on
+    # CI. Without a reachable service, tests/conftest.py auto-skips every Redis
+    # test — so these were silently not exercised. The container is mapped to the
+    # localhost:6379 that conftest probes. (Kafka integration is not yet wired up.)
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 

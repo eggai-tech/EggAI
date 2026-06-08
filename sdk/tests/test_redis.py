@@ -9,6 +9,7 @@ This test suite verifies:
 """
 
 import asyncio
+import json
 import logging
 import uuid
 
@@ -1623,3 +1624,297 @@ async def test_redis_invalid_payload_is_skipped_not_retried():
     await agent.stop()
 
     assert calls == [], "invalid-payload message should not reach the handler"
+
+
+# ---------------------------------------------------------------------------
+# Retry backoff: escalate the reclaimer's idle threshold by retry count so
+# repeatedly-failing messages are retried progressively less often.
+# ---------------------------------------------------------------------------
+
+
+async def _make_envelope(body: dict) -> bytes:
+    """Build a FastStream BinaryMessageFormatV1 envelope around a JSON body.
+
+    Used by the backoff tests to plant a stream entry with a known _retry_count.
+    """
+    from faststream.redis.parser.binary import BinaryMessageFormatV1
+
+    return await BinaryMessageFormatV1.encode(
+        message=body, reply_to=None, headers=None, correlation_id="test-cid"
+    )
+
+
+def _make_backoff_config(stream: str, retry_stream: str, **overrides):
+    from eggai.transport.pending_reclaimer import ReclaimerConfig
+
+    base = {
+        "stream": stream,
+        "group": "g",
+        "consumer": "g-reclaimer",
+        "retry_stream": retry_stream,
+        "min_idle_ms": 1000,
+        "interval_s": 60.0,
+        **overrides,
+    }
+    return ReclaimerConfig(**base)
+
+
+@pytest.mark.asyncio
+async def test_effective_idle_ms_escalates_and_caps():
+    """_effective_idle_ms grows geometrically with retry count and respects the cap."""
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    config = _make_backoff_config(
+        "s", "s.retry", backoff_multiplier=2.0, backoff_max_ms=5000
+    )
+
+    assert manager._effective_idle_ms(config, 0) == 1000
+    assert manager._effective_idle_ms(config, 1) == 2000
+    assert manager._effective_idle_ms(config, 2) == 4000
+    # 1000 * 2**3 = 8000, capped at 5000
+    assert manager._effective_idle_ms(config, 3) == 5000
+    assert manager._effective_idle_ms(config, 10) == 5000
+
+
+@pytest.mark.asyncio
+async def test_effective_idle_ms_huge_retry_count_does_not_overflow():
+    """A retry_count large enough to overflow multiplier**retry_count must not raise.
+
+    Capped: clamps to backoff_max_ms (the float overflow becomes +inf, then min()
+    pins it to the cap). Uncapped: returns +inf so the entry just isn't due — but
+    crucially the reclaimer cycle never dies on an OverflowError, which would
+    otherwise starve every other message on the stream.
+    """
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+
+    # 2.0 ** 5000 overflows the max float (~1.8e308) several times over.
+    capped = _make_backoff_config(
+        "s", "s.retry", backoff_multiplier=2.0, backoff_max_ms=900_000
+    )
+    assert manager._effective_idle_ms(capped, 5000) == 900_000
+
+    uncapped = _make_backoff_config("s", "s.retry", backoff_multiplier=2.0)
+    assert manager._effective_idle_ms(uncapped, 5000) == float("inf")
+
+    # Jitter must not turn +inf into a NaN or raise.
+    jittered = _make_backoff_config(
+        "s", "s.retry", backoff_multiplier=2.0, backoff_jitter=0.5
+    )
+    assert manager._effective_idle_ms(jittered, 5000) == float("inf")
+
+
+@pytest.mark.asyncio
+async def test_effective_idle_ms_constant_when_multiplier_one():
+    """multiplier=1.0 reproduces the original constant cadence at every count."""
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    config = _make_backoff_config("s", "s.retry")  # multiplier defaults to 1.0
+    for count in range(5):
+        assert manager._effective_idle_ms(config, count) == 1000
+
+
+@pytest.mark.asyncio
+async def test_effective_idle_ms_jitter_spreads_upward_above_base():
+    """Jitter spreads *upward* — [base, base*(1+jitter)] — never below the base floor.
+
+    Downward jitter would be invisible: the reclaim scan and XCLAIM both floor at
+    min_idle_ms, so a threshold below the base is never observable. Spreading upward
+    keeps every reclaim at/after the visibility timeout while still decorrelating a
+    cohort. This is the constant-cadence (multiplier=1.0) case — the one where the
+    old downward jitter was a complete no-op.
+    """
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    config = _make_backoff_config("s", "s.retry", backoff_jitter=0.5)  # multiplier 1.0
+    samples = [manager._effective_idle_ms(config, 0) for _ in range(200)]
+    # Upward only: never below the base floor (1000), never above base*(1+jitter).
+    assert all(1000.0 <= s <= 1500.0 for s in samples), (
+        f"jitter out of bounds: min={min(samples)}, max={max(samples)}"
+    )
+    # Genuinely observable past the base floor (the bug this guards against), and
+    # actually spread rather than constant.
+    assert max(samples) > 1000.0
+    assert len(set(samples)) > 1
+
+
+@pytest.mark.asyncio
+async def test_effective_idle_ms_jitter_stays_under_cap():
+    """Jitter is applied before the cap, so backoff_max_ms remains a hard ceiling."""
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    # base*mult^count = 1000*2**3 = 8000; jitter would push to 12000, but the cap
+    # pins it at 5000 regardless.
+    config = _make_backoff_config(
+        "s", "s.retry", backoff_multiplier=2.0, backoff_max_ms=5000, backoff_jitter=0.5
+    )
+    samples = [manager._effective_idle_ms(config, 3) for _ in range(50)]
+    assert all(s == 5000 for s in samples), f"cap breached: max={max(samples)}"
+
+
+@pytest.mark.asyncio
+async def test_backoff_validation():
+    """retry_backoff_* knobs reject invalid values and require retry_on_idle_ms."""
+    transport = RedisTransport()
+    agent = Agent("backoff-val-agent", transport=transport)
+    channel = Channel("test-backoff-val", transport=transport)
+
+    with pytest.raises(ValueError, match="require retry_on_idle_ms"):
+
+        @agent.subscribe(channel=channel, retry_backoff_multiplier=2.0)
+        async def h_no_idle(message):
+            pass
+
+    with pytest.raises(ValueError, match="retry_backoff_multiplier must be >= 1.0"):
+
+        @agent.subscribe(
+            channel=channel, retry_on_idle_ms=500, retry_backoff_multiplier=0.5
+        )
+        async def h_low_mult(message):
+            pass
+
+    with pytest.raises(ValueError, match="retry_backoff_jitter must be between"):
+
+        @agent.subscribe(
+            channel=channel, retry_on_idle_ms=500, retry_backoff_jitter=1.5
+        )
+        async def h_bad_jitter(message):
+            pass
+
+    with pytest.raises(ValueError, match="retry_backoff_max_ms must be >="):
+
+        @agent.subscribe(
+            channel=channel, retry_on_idle_ms=500, retry_backoff_max_ms=100
+        )
+        async def h_low_cap(message):
+            pass
+
+
+@pytest.mark.asyncio
+async def test_backoff_params_propagate_to_reclaimer_configs():
+    """Backoff kwargs flow into every reclaimer config (main + retry streams)."""
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-backoff-1",
+        retry_on_idle_ms=500,
+        retry_backoff_multiplier=3.0,
+        retry_backoff_max_ms=60_000,
+        retry_backoff_jitter=0.2,
+    )
+
+    configs = list(transport._reclaimer_manager._configs.values())
+    assert len(configs) == 2, "expected a main-stream and a retry-stream reclaimer"
+    for config in configs:
+        assert config.backoff_multiplier == 3.0
+        assert config.backoff_max_ms == 60_000
+        assert config.backoff_jitter == 0.2
+
+
+async def _deliver_to_pel(client, stream, group, consumer, envelope):
+    """XADD an envelope, create the group, and XREADGROUP it so it lands in the PEL.
+
+    Returns the message id (bytes) of the delivered entry.
+    """
+    await client.xadd(stream, {b"__data__": envelope})
+    await client.xgroup_create(name=stream, groupname=group, id="0", mkstream=True)
+    delivered = await client.xreadgroup(
+        groupname=group, consumername=consumer, streams={stream: ">"}, count=10
+    )
+    # delivered: [[stream, [(id, fields), ...]]]
+    return delivered[0][1][0][0]
+
+
+@pytest.mark.asyncio
+async def test_backoff_skips_high_retry_count_message_not_yet_due():
+    """A high-_retry_count entry whose escalated threshold hasn't elapsed is left
+    in the PEL — not prematurely moved to the retry stream."""
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    test_id = uuid.uuid4().hex[:8]
+    stream = f"eggai.backoff-skip-{test_id}"
+    retry_stream = f"{stream}.retry"
+    group = f"g-{test_id}"
+
+    client = redis.Redis(host="localhost", port=6379, decode_responses=False)
+    # _retry_count=3 with multiplier=10, base=100ms → threshold = 100 * 10**3 = 100s.
+    envelope = await _make_envelope({"type": "t", "_retry_count": "3", "id": test_id})
+    await _deliver_to_pel(client, stream, group, f"{group}-live", envelope)
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager._redis_client = redis.Redis(
+        host="localhost", port=6379, decode_responses=False
+    )
+    config = _make_backoff_config(
+        stream, retry_stream, group=group, min_idle_ms=100, backoff_multiplier=10.0
+    )
+
+    # Idle is now ~0ms; wait past the BASE threshold (100ms) but nowhere near the
+    # escalated 100s threshold for _retry_count=3.
+    await asyncio.sleep(0.3)
+    await manager._reclaim_once(config)
+
+    # Message must still be pending on the original stream, retry stream empty.
+    pending = await client.xpending(stream, group)
+    assert pending["pending"] == 1, (
+        "high-retry-count message should not be reclaimed yet"
+    )
+    # xlen returns 0 for a never-created stream, so this covers "retry stream empty".
+    assert await client.xlen(retry_stream) == 0
+
+    await manager._redis_client.aclose()
+    await client.delete(stream, retry_stream)
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_backoff_reclaims_message_once_threshold_elapsed():
+    """A low-_retry_count entry past its (small) threshold is reclaimed normally."""
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    test_id = uuid.uuid4().hex[:8]
+    stream = f"eggai.backoff-due-{test_id}"
+    retry_stream = f"{stream}.retry"
+    group = f"g-{test_id}"
+
+    client = redis.Redis(host="localhost", port=6379, decode_responses=False)
+    # _retry_count=0 with multiplier=10, base=100ms → threshold = 100ms.
+    envelope = await _make_envelope({"type": "t", "_retry_count": "0", "id": test_id})
+    await _deliver_to_pel(client, stream, group, f"{group}-live", envelope)
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager._redis_client = redis.Redis(
+        host="localhost", port=6379, decode_responses=False
+    )
+    config = _make_backoff_config(
+        stream, retry_stream, group=group, min_idle_ms=100, backoff_multiplier=10.0
+    )
+
+    await asyncio.sleep(0.3)  # idle ~300ms >= 100ms threshold for _retry_count=0
+    await manager._reclaim_once(config)
+
+    # Reclaimed: original PEL drained, message moved to the retry stream with
+    # _retry_count bumped to 1.
+    pending = await client.xpending(stream, group)
+    assert pending["pending"] == 0, "due message should have been reclaimed"
+    assert await client.xlen(retry_stream) == 1
+
+    entries = await client.xrange(retry_stream)
+    from faststream.redis.parser.binary import BinaryMessageFormatV1
+
+    body_bytes, _ = BinaryMessageFormatV1.parse(entries[0][1][b"__data__"])
+    assert int(json.loads(body_bytes)["_retry_count"]) == 1
+
+    await manager._redis_client.aclose()
+    await client.delete(stream, retry_stream)
+    await client.aclose()

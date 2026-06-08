@@ -151,6 +151,9 @@ orders = Channel("orders", transport=transport)
     retry_on_idle_ms=30_000,          # reclaim after 30s idle (required to enable retry)
     max_retries=5,                    # route to DLQ after 5 retries (default: 5, None = unlimited)
     retry_reclaim_interval_s=15.0,    # PEL scan interval (default: 15.0)
+    retry_backoff_multiplier=2.0,     # exponential backoff between retries (default: 1.0 = constant)
+    retry_backoff_max_ms=900_000,     # cap the escalated delay (default: None = uncapped)
+    retry_backoff_jitter=0.2,         # add up to 20% on top of each delay to avoid a thundering herd (default: 0.0)
     on_dlq=None,                      # optional async/sync callback(fields, msg_id, count)
 )
 async def handle_order(message):
@@ -184,6 +187,21 @@ Two fields are injected on retry delivery to aid deduplication:
 the per-handler `{channel}.{handler_suffix}.dlq`. The DLQ is terminal — no automatic
 reclaimer. Set `max_retries=None` for unlimited retries. An optional `on_dlq` callback
 fires when a message lands in the DLQ.
+
+**Retry backoff:** By default retries fire at a constant cadence equal to
+`retry_on_idle_ms`. Set `retry_backoff_multiplier > 1.0` to back off exponentially: a
+message is treated as due for reclaim once it has been idle for
+`retry_on_idle_ms * (retry_backoff_multiplier ** _retry_count)`, capped at
+`retry_backoff_max_ms`. With a 30s base and multiplier `2.0` the attempts space out as
+30s → 60s → 120s → 240s …, giving an overloaded or recovering downstream room to breathe
+instead of being retried on a fixed clock. `retry_backoff_jitter` (a fraction in `[0, 1]`)
+adds a random `0..jitter` slice *on top of* each computed threshold so a fleet of workers
+that failed during the same outage don't come due in lockstep. Jitter is applied upward,
+never below `retry_on_idle_ms` — that base is a hard floor, since the reclaimer won't touch
+a message idle for less than it (it may be slow rather than stuck). Note the spread is only
+effective once `jitter × threshold` is comparable to `retry_reclaim_interval_s` (the scan
+cadence quantises smaller jitter away). Backoff is opt-in and backward compatible —
+the default `multiplier=1.0` preserves the constant `retry_on_idle_ms` spacing exactly.
 
 **Automatic recovery from Redis stream loss (NOGROUP):**
 If Redis loses streams (restart without persistence, failover, memory eviction), the SDK

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **RedisTransport**: Exponential **retry backoff** for SDK-managed retries. New
+  `subscribe()` options `retry_backoff_multiplier` (default `1.0` = the previous
+  constant cadence), `retry_backoff_max_ms` (cap on the escalated delay), and
+  `retry_backoff_jitter` (spread retries across a worker fleet to avoid a
+  thundering herd). The PEL reclaimer now treats a failing message as due once it
+  has been idle for `retry_on_idle_ms * (retry_backoff_multiplier ** retry_count)`
+  (capped at `retry_backoff_max_ms`), so a repeatedly-failing message is retried
+  progressively less often (e.g. 30s → 60s → 120s …), giving an overloaded
+  downstream room to recover instead of being hammered on a fixed clock. Backoff
+  is opt-in and fully backward compatible: the default `multiplier=1.0` reproduces
+  the existing fixed `retry_on_idle_ms` spacing exactly.
+
 ## [0.3.1] - 2026-06-04
 
 ### Fixed

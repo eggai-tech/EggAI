@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import random
 from collections.abc import Callable
 from dataclasses import dataclass
 from struct import pack
@@ -56,6 +57,13 @@ class ReclaimerConfig:
     max_len: int | None = (
         None  # cap retry/DLQ stream length (XADD MAXLEN ~); None = unbounded
     )
+    # Exponential backoff between retry attempts. The reclaimer treats a PEL entry
+    # as "stale" once it has been idle for `min_idle_ms * (backoff_multiplier **
+    # retry_count)` (capped at backoff_max_ms). multiplier=1.0 reproduces the
+    # original constant cadence (stale at exactly min_idle_ms regardless of count).
+    backoff_multiplier: float = 1.0  # 1.0 = constant cadence (no escalation)
+    backoff_max_ms: int | None = None  # cap on the escalated threshold; None = uncapped
+    backoff_jitter: float = 0.0  # fraction in [0,1]; adds up to this share on top of the threshold at random
 
 
 def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int, bool]:
@@ -232,11 +240,81 @@ class PendingReclaimerManager:
         else:
             await self._redis_client.xadd(stream, fields)
 
+    def _effective_idle_ms(self, config: ReclaimerConfig, retry_count: int) -> float:
+        """Idle time a message must accrue before this reclaim cycle treats it as stale.
+
+        With backoff_multiplier=1.0 this is just min_idle_ms (the original constant
+        cadence). Otherwise it grows geometrically with the message's retry count —
+        30s, 60s, 120s, … for multiplier=2 — so a repeatedly-failing message is
+        retried progressively less often, giving an overloaded downstream room to
+        recover instead of being hammered on a fixed clock. backoff_max_ms caps the
+        escalation.
+
+        backoff_jitter spreads a cohort of messages that failed together so they
+        don't all come due in the same instant (thundering herd). It is applied
+        *upward* — adding a random 0..jitter fraction on top of the threshold —
+        rather than downward, because min_idle_ms / retry_on_idle_ms is a hard floor:
+        the reclaim scan and XCLAIM both refuse to touch a PEL entry idle for less
+        than min_idle_ms (it may merely be slow, not stuck), so jitter that dipped
+        below the base would be invisible. Spreading upward keeps every reclaim at or
+        after the visibility timeout while still decorrelating the cohort. NOTE: the
+        spread is only effective once jitter * threshold is comparable to the scan
+        interval (retry_reclaim_interval_s, default 15s); smaller jitter is quantised
+        away by the scan cadence, which matters mostly at the lowest backoff levels.
+        """
+        # A large retry_count can make multiplier**retry_count exceed the max float
+        # and raise OverflowError. That's only realistically reachable when a cap is
+        # set (the cap bounds the interval, so retry_count climbs linearly over days
+        # for a never-acked poison message); uncapped, the interval grows so fast the
+        # count can't physically get there. Treat overflow as "infinitely far away"
+        # (+inf): with a cap, min() below clamps it to backoff_max_ms; uncapped, the
+        # entry simply isn't due this cycle. Either way the reclaimer never dies — an
+        # unguarded OverflowError here would abort the whole cycle and starve every
+        # other message on the stream.
+        try:
+            threshold = config.min_idle_ms * (config.backoff_multiplier**retry_count)
+        except OverflowError:
+            threshold = float("inf")
+        # Jitter before the cap so backoff_max_ms stays a hard ceiling on the result.
+        if config.backoff_jitter > 0.0 and threshold != float("inf"):
+            threshold *= 1.0 + random.uniform(0.0, config.backoff_jitter)
+        if config.backoff_max_ms is not None:
+            threshold = min(threshold, float(config.backoff_max_ms))
+        return threshold
+
+    async def _read_retry_count(self, stream: str, msg_id: Any) -> int:
+        """Read a pending entry's current ``_retry_count`` without disturbing it.
+
+        Uses XRANGE (non-destructive: unlike XCLAIM it neither resets the idle
+        timer nor transfers PEL ownership) so we can decide whether a message's
+        escalated backoff threshold has elapsed *before* committing to claim it.
+        Any failure (missing entry, unparseable envelope) falls back to 0 so the
+        message is treated with the base threshold rather than being skipped
+        forever.
+        """
+        try:
+            entries = await self._redis_client.xrange(stream, min=msg_id, max=msg_id)
+            if not entries:
+                return 0
+            _id, fields = entries[0]
+            data = fields.get(b"__data__")
+            if data is None:
+                return 0
+            body_bytes, _headers = BinaryMessageFormatV1.parse(data)
+            return int(json.loads(body_bytes).get("_retry_count", "0"))
+        except Exception:
+            return 0
+
     async def _reclaim_once(self, config: ReclaimerConfig) -> None:
         # --- Paginated XPENDING scan ---
         # A fixed count=100 only scans one page; with large or high-traffic PELs,
         # stale entries outside the first page would be delayed indefinitely.
-        stale_ids: list[Any] = []
+        #
+        # min_idle_ms is the *minimum* possible threshold (retry_count=0), so it
+        # works as a cheap pre-filter here regardless of backoff settings: anything
+        # below it can't be due yet under any retry count. When backoff is active we
+        # refine the survivors below with their per-message escalated threshold.
+        candidates: list[tuple[Any, int]] = []  # (message_id, idle_ms)
         cursor = "-"
         while True:
             page: list[dict] = await self._redis_client.xpending_range(
@@ -251,15 +329,31 @@ class PendingReclaimerManager:
             for entry in page:
                 idle = entry.get("time_since_delivered", 0)
                 if idle >= config.min_idle_ms:
-                    stale_ids.append(entry["message_id"])
+                    candidates.append((entry["message_id"], idle))
             if len(page) < 100:
                 break  # last page
             # Exclusive lower bound for next page — decode bytes to str if needed.
             last_id = page[-1]["message_id"]
             cursor = "(" + (last_id.decode() if isinstance(last_id, bytes) else last_id)
 
-        if not stale_ids:
+        if not candidates:
             return
+
+        # Fast path: constant cadence (no escalation, no jitter) keeps the original
+        # behaviour and skips the extra per-message XRANGE reads entirely.
+        backoff_active = config.backoff_multiplier != 1.0 or config.backoff_jitter > 0.0
+        if not backoff_active:
+            stale_ids: list[Any] = [msg_id for msg_id, _ in candidates]
+        else:
+            stale_ids = []
+            for msg_id, idle in candidates:
+                retry_count = await self._read_retry_count(config.stream, msg_id)
+                if idle >= self._effective_idle_ms(config, retry_count):
+                    stale_ids.append(msg_id)
+            # Messages not yet due stay in the PEL untouched; their idle keeps
+            # growing and a later cycle reclaims them once the threshold passes.
+            if not stale_ids:
+                return
 
         claimed: list[tuple[Any, dict]] = await self._redis_client.xclaim(
             name=config.stream,
