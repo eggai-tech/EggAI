@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-06-15
+
 ### Fixed
 - **RedisTransport background clients**: connection-resilience kwargs passed to the
   transport (`socket_timeout`, `socket_connect_timeout`, `socket_keepalive`,
