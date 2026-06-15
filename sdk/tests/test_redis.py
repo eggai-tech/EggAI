@@ -1518,6 +1518,43 @@ async def test_reclaimer_start_applies_connection_kwargs(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_monitor_applies_connection_kwargs(monkeypatch):
+    """The group monitor's background client gets the transport's resilience
+    kwargs while pinning decode_responses=True (its string commands need decoding,
+    and that flag must not be overridable)."""
+    from eggai.transport import redis as redis_module
+
+    transport = RedisTransport(
+        socket_timeout=10.0,
+        socket_keepalive=True,
+        health_check_interval=30,
+    )
+
+    captured: dict = {}
+
+    class _FakeClient:
+        async def aclose(self):
+            pass
+
+    def fake_from_url(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return _FakeClient()
+
+    monkeypatch.setattr(redis_module.aioredis, "from_url", fake_from_url)
+
+    # _running stays False, so the monitor creates its client, skips the loop body,
+    # and closes the client via the finally block — enough to capture from_url.
+    await transport._monitor_stream_groups()
+
+    assert captured["url"] == transport._redis_url
+    assert captured["kwargs"]["socket_timeout"] == 10.0
+    assert captured["kwargs"]["socket_keepalive"] is True
+    assert captured["kwargs"]["health_check_interval"] == 30
+    assert captured["kwargs"]["decode_responses"] is True
+
+
+@pytest.mark.asyncio
 async def test_publish_maxlen_bounds_stream_length():
     """Integration: publishing well past max_len keeps the stream approximately
     bounded (XADD MAXLEN ~). Approximate trimming works on whole-node boundaries,

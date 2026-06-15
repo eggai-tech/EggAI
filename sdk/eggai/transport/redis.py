@@ -25,12 +25,14 @@ logger = logging.getLogger(__name__)
 _CONSUMER_INSTANCE = f"{socket.gethostname()}-{os.getpid()}"
 
 # Connection settings that, when passed to the broker, must also be forwarded to
-# the PEL reclaimer's independent Redis client so both connections recover from a
-# silently dropped socket the same way. Kept to redis-py connection/resilience
-# kwargs that are valid for ``aioredis.from_url`` — broker/FastStream-only kwargs
-# (decoder, middlewares, asyncapi_*, …) are intentionally excluded. ``decode_responses``
-# is omitted on purpose: the reclaimer pins it to False for binary passthrough.
-_RECLAIMER_CONNECTION_KEYS = (
+# the transport's other long-lived background clients — the PEL reclaimer and the
+# consumer-group monitor — so every connection recovers from a silently dropped
+# socket the same way. Kept to redis-py connection/resilience kwargs that are valid
+# for ``aioredis.from_url`` — broker/FastStream-only kwargs (decoder, middlewares,
+# asyncapi_*, …) are intentionally excluded. ``decode_responses`` is omitted on
+# purpose: each background client pins it itself (False for the reclaimer's binary
+# passthrough, True for the monitor's string commands).
+_BACKGROUND_CLIENT_CONNECTION_KEYS = (
     "socket_timeout",
     "socket_connect_timeout",
     "socket_keepalive",
@@ -154,10 +156,11 @@ class RedisTransport(Transport):
         else:
             self.broker = RedisBroker(url, log_level=logging.INFO, **kwargs)
         self._redis_url = url
-        # Forward connection-resilience kwargs to the reclaimer's own client so it
-        # doesn't hang on a silently dropped connection while the broker recovers.
+        # Forward connection-resilience kwargs to the transport's background clients
+        # (PEL reclaimer, group monitor) so they don't hang on a silently dropped
+        # connection while the broker recovers.
         self._connection_kwargs: dict[str, Any] = {
-            k: kwargs[k] for k in _RECLAIMER_CONNECTION_KEYS if k in kwargs
+            k: kwargs[k] for k in _BACKGROUND_CLIENT_CONNECTION_KEYS if k in kwargs
         }
         self._max_len = max_len
         self._retry_max_len = retry_max_len
@@ -659,7 +662,14 @@ class RedisTransport(Transport):
         unprocessed messages are redelivered.  Falls back to the original
         group_create_id with MKSTREAM when the stream itself is gone.
         """
-        client = aioredis.from_url(self._redis_url, decode_responses=True)
+        # decode_responses=True (string commands here) is pinned and must not be
+        # overridden; the forwarded resilience kwargs (socket_timeout, keepalive, …)
+        # keep this client from hanging on a half-dead socket during the very
+        # failover this monitor exists to recover from.
+        client = aioredis.from_url(
+            self._redis_url,
+            **{**self._connection_kwargs, "decode_responses": True},
+        )
         try:
             while self._running:
                 await asyncio.sleep(self._group_monitor_interval_s)
