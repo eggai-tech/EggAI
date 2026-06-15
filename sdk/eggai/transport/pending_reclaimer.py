@@ -138,8 +138,15 @@ class PendingReclaimerManager:
     message body) can be used for application-level deduplication.
     """
 
-    def __init__(self, redis_url: str):
+    def __init__(self, redis_url: str, connection_kwargs: dict[str, Any] | None = None):
         self._redis_url = redis_url
+        # Connection-resilience settings (socket_timeout, socket_keepalive,
+        # health_check_interval, retry_on_timeout, …) forwarded from the
+        # transport so this independent client recovers from a silently dropped
+        # connection the same way the broker does. Without them a blocking read
+        # against a half-dead socket (e.g. cloud Redis failover) hangs forever
+        # with no socket timeout to break it.
+        self._connection_kwargs: dict[str, Any] = connection_kwargs or {}
         self._redis_client: aioredis.Redis | None = None
         self._configs: dict[tuple[str, str, str], ReclaimerConfig] = {}
         self._tasks: dict[tuple[str, str, str], asyncio.Task] = {}
@@ -157,7 +164,11 @@ class PendingReclaimerManager:
         """Start one background task per registered config. Safe to call again after stop."""
         # decode_responses=False: field values are kept as raw bytes so that
         # FastStream's binary-encoded __data__ field is passed through unchanged.
-        self._redis_client = aioredis.from_url(self._redis_url, decode_responses=False)
+        # decode_responses is pinned here and must not be overridden by callers.
+        self._redis_client = aioredis.from_url(
+            self._redis_url,
+            **{**self._connection_kwargs, "decode_responses": False},
+        )
         for key, config in self._configs.items():
             if key in self._tasks and not self._tasks[key].done():
                 continue
