@@ -120,6 +120,18 @@ def test_data_type_without_type_field_is_rejected():
         wrap_handler_with_filters(handler, data_type=NoType)
 
 
+def test_data_type_with_no_default_type_is_rejected():
+    """A 'type' field with no default has no discriminator value to match, so the
+    wrapper must raise rather than silently drop every message. Raw BaseMessage
+    declares `type: str = Field(...)` (required, no default) and triggers this."""
+
+    async def handler(m):
+        return m
+
+    with pytest.raises(ValueError, match="'type' field with no .*default"):
+        wrap_handler_with_filters(handler, data_type=BaseMessage)
+
+
 @pytest.mark.asyncio
 async def test_sync_handler_works_with_filter_by_message():
     """A synchronous handler combined with a filter must not raise from an

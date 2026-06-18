@@ -15,6 +15,7 @@ from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
+from pydantic_core import PydanticUndefined
 
 # Identity attributes copied from the user handler onto a wrapper. We intentionally
 # do NOT use functools.wraps here: it sets __wrapped__, which inspect.signature
@@ -98,6 +99,16 @@ def wrap_handler_with_filters(
                 "(the discriminator used to match messages, as on BaseMessage)."
             )
         expected_type = data_type.model_fields["type"].default
+        if expected_type is PydanticUndefined:
+            # The 'type' field exists but has no default, so there is no
+            # discriminator value to match against — every message would fail the
+            # check at line below and be silently dropped. Fail loudly instead.
+            raise ValueError(
+                f"data_type {data_type.__name__!r} has a 'type' field with no "
+                "default, so there is no value to match messages against (every "
+                "message would be silently dropped). Give it a default discriminator, "
+                'e.g. `type: str = "OrderCreated"`.'
+            )
 
         async def typed_handler(message: dict[str, Any]) -> Any:
             try:

@@ -20,6 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PEL reclaimer**: data-plane Redis calls now go through a `_client` accessor that
   raises a clear error if used before `start()`, instead of an opaque
   `AttributeError` on `None`.
+- **Typed subscriptions**: a `data_type` whose `type` field has no default (e.g. raw
+  `BaseMessage`, where `type` is required) silently dropped *every* message, because
+  the discriminator was compared against `PydanticUndefined`. This now raises a clear
+  `ValueError` at subscribe time telling you to give `type` a default discriminator.
+- **Agent plugins**: passing plugin-prefixed kwargs (e.g. `a2a_*`) to `subscribe()`
+  without initializing that plugin via the `Agent(...)` constructor raised an opaque
+  `KeyError`; it now raises a `ValueError` explaining the plugin is not initialized.
+- **A2A executor**: the "unknown skill" error path enqueued a raw dict instead of a
+  proper A2A message; it now uses the same `_send_agent_response` wrapper as every
+  other response path.
+- **A2A executor**: a skill registered with `data_type=None` raised `TypeError`
+  (`None(...)`) when building the message; the type lookup is now done once and
+  falls back to the generic `BaseMessage` when no data type is set.
 
 ### Changed
 - **Dev dependencies**: bumped `pytest` (9.0.3 → 9.1.0) and `ruff` (0.15.x patch).

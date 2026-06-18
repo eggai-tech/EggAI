@@ -136,7 +136,19 @@ class Agent:
 
             # Call plugin subscribe methods if they have relevant kwargs
             for plugin_found_key in plugin_found_keys:
-                self.plugins[plugin_found_key]["_instance"].subscribe(
+                plugin = self.plugins.get(plugin_found_key)
+                if plugin is None or "_instance" not in plugin:
+                    # Plugin-prefixed kwargs were passed to subscribe(), but the
+                    # plugin is only instantiated when matching kwargs are passed to
+                    # Agent(...). Without that, self.plugins has no entry and the
+                    # access below would raise an opaque KeyError.
+                    raise ValueError(
+                        f"Subscription passed {plugin_found_key!r}-prefixed kwargs, "
+                        f"but the {plugin_found_key!r} plugin is not initialized on "
+                        f"this agent. Pass {plugin_found_key!r} configuration to the "
+                        "Agent(...) constructor to enable it."
+                    )
+                plugin["_instance"].subscribe(
                     channel_name, handler, **original_kwargs
                 )
 
