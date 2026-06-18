@@ -216,6 +216,6 @@ class EggAIAgentExecutor(AgentExecutor):
             # Fallback: try to send as simple event
             try:
                 await event_queue.enqueue_event({"text": json.dumps(data)})
-            except (json.JSONEncodeError, TypeError) as json_err:
+            except (TypeError, ValueError) as json_err:
                 logger.error(f"Failed to serialize response data: {json_err}")
                 raise

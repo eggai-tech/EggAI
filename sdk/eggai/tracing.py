@@ -113,7 +113,7 @@ def setup_tracing(
     from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
 
     resource = Resource.create(
-        {"service.name": service_name or os.getenv("OTEL_SERVICE_NAME", "eggai")}
+        {"service.name": service_name or os.getenv("OTEL_SERVICE_NAME", "eggai")}  # type: ignore[dict-item]
     )
     provider = TracerProvider(resource=resource)
 
@@ -141,7 +141,8 @@ def setup_tracing(
     if isinstance(trace.get_tracer_provider(), ProxyTracerProvider):
         trace.set_tracer_provider(provider)
     else:
-        provider = trace.get_tracer_provider()
+        # Adopt the already-configured provider (API base type, not the SDK one).
+        provider = trace.get_tracer_provider()  # type: ignore[assignment]
 
     from importlib.metadata import version
 

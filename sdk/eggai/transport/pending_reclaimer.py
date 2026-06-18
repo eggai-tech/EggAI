@@ -151,6 +151,16 @@ class PendingReclaimerManager:
         self._configs: dict[tuple[str, str, str], ReclaimerConfig] = {}
         self._tasks: dict[tuple[str, str, str], asyncio.Task] = {}
 
+    @property
+    def _client(self) -> aioredis.Redis:
+        """The connected Redis client; raises if accessed before start()."""
+        client = self._redis_client
+        if client is None:
+            raise RuntimeError(
+                "PendingReclaimerManager used before start(); no Redis client."
+            )
+        return client
+
     def add(self, config: ReclaimerConfig) -> tuple[str, str, str]:
         key = (config.stream, config.group, config.consumer)
         self._configs[key] = config
@@ -187,7 +197,7 @@ class PendingReclaimerManager:
                 pass
         self._tasks.clear()
         if self._redis_client is not None:
-            await self._redis_client.aclose()
+            await self._client.aclose()
             self._redis_client = None
 
     async def _run(self, config: ReclaimerConfig) -> None:
@@ -220,9 +230,9 @@ class PendingReclaimerManager:
         MKSTREAM when the stream itself is gone.
         """
         try:
-            stream_exists = await self._redis_client.exists(config.stream)
+            stream_exists = await self._client.exists(config.stream)
             create_id = "0" if stream_exists else "$"
-            await self._redis_client.xgroup_create(
+            await self._client.xgroup_create(
                 name=config.stream,
                 groupname=config.group,
                 id=create_id,
@@ -245,11 +255,9 @@ class PendingReclaimerManager:
         recommended production setting. ``max_len=None`` means no trimming.
         """
         if max_len is not None:
-            await self._redis_client.xadd(
-                stream, fields, maxlen=max_len, approximate=True
-            )
+            await self._client.xadd(stream, fields, maxlen=max_len, approximate=True)
         else:
-            await self._redis_client.xadd(stream, fields)
+            await self._client.xadd(stream, fields)
 
     def _effective_idle_ms(self, config: ReclaimerConfig, retry_count: int) -> float:
         """Idle time a message must accrue before this reclaim cycle treats it as stale.
@@ -304,7 +312,7 @@ class PendingReclaimerManager:
         forever.
         """
         try:
-            entries = await self._redis_client.xrange(stream, min=msg_id, max=msg_id)
+            entries = await self._client.xrange(stream, min=msg_id, max=msg_id)
             if not entries:
                 return 0
             _id, fields = entries[0]
@@ -328,7 +336,7 @@ class PendingReclaimerManager:
         candidates: list[tuple[Any, int]] = []  # (message_id, idle_ms)
         cursor = "-"
         while True:
-            page: list[dict] = await self._redis_client.xpending_range(
+            page: list[dict] = await self._client.xpending_range(
                 name=config.stream,
                 groupname=config.group,
                 min=cursor,
@@ -366,7 +374,7 @@ class PendingReclaimerManager:
             if not stale_ids:
                 return
 
-        claimed: list[tuple[Any, dict]] = await self._redis_client.xclaim(
+        claimed: list[tuple[Any, dict]] = await self._client.xclaim(
             name=config.stream,
             groupname=config.group,
             consumername=config.consumer,  # "-reclaimer" suffix — no feedback loop
@@ -396,7 +404,7 @@ class PendingReclaimerManager:
             if not parsed_ok:
                 if config.dlq_stream is not None:
                     await self._xadd(config.dlq_stream, fields, config.max_len)
-                    await self._redis_client.xack(config.stream, config.group, msg_id)
+                    await self._client.xack(config.stream, config.group, msg_id)
                     logger.warning(
                         "Message %s has an unparseable envelope; moved to DLQ %s "
                         "(retry count cannot be tracked)",
@@ -407,7 +415,7 @@ class PendingReclaimerManager:
                         config, fields, data_key, msg_id_str, new_count
                     )
                 else:
-                    await self._redis_client.xack(config.stream, config.group, msg_id)
+                    await self._client.xack(config.stream, config.group, msg_id)
                     logger.error(
                         "Message %s has an unparseable envelope and no DLQ is "
                         "configured; dropping it to avoid a retry-stream livelock",
@@ -422,7 +430,7 @@ class PendingReclaimerManager:
                 and new_count > config.max_retries
             ):
                 await self._xadd(config.dlq_stream, fields, config.max_len)
-                await self._redis_client.xack(config.stream, config.group, msg_id)
+                await self._client.xack(config.stream, config.group, msg_id)
                 logger.warning(
                     "Message %s exceeded max_retries=%d; moved to DLQ %s",
                     msg_id_str,
@@ -434,7 +442,7 @@ class PendingReclaimerManager:
                 )
             else:
                 await self._xadd(config.retry_stream, fields, config.max_len)
-                await self._redis_client.xack(config.stream, config.group, msg_id)
+                await self._client.xack(config.stream, config.group, msg_id)
                 logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
 
     async def _invoke_on_dlq(

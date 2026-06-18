@@ -9,9 +9,9 @@ from typing import Any
 import redis.asyncio as aioredis
 from faststream import AckPolicy
 from faststream.redis import RedisBroker, StreamSub
+from pydantic import BaseModel
 from redis.exceptions import ResponseError
 
-from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
 from eggai.transport.middleware_utils import wrap_handler_with_filters
 from eggai.transport.pending_reclaimer import PendingReclaimerManager, ReclaimerConfig
@@ -234,7 +234,7 @@ class RedisTransport(Transport):
             await self._reclaimer_manager.stop()
         await self.broker.stop()
 
-    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseModel):
         """
         Publishes a message to the specified Redis stream.
 

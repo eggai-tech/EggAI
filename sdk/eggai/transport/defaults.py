@@ -30,4 +30,5 @@ def get_default_transport() -> "Transport":
             "Use eggai_set_default_transport() to set a different default transport."
         )
         eggai_set_default_transport(lambda: InMemoryTransport())
+    assert _DEFAULT_TRANSPORT_FACTORY is not None  # set just above if it was None
     return _DEFAULT_TRANSPORT_FACTORY()
