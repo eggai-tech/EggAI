@@ -132,9 +132,9 @@ class Agent:
                         kwargs.pop(key)
                         plugin_found_keys.add(plugin_name)
 
-            self._subscriptions.append((channel_name, handler, kwargs))
-
-            # Call plugin subscribe methods if they have relevant kwargs
+            # Call plugin subscribe methods if they have relevant kwargs. Validate
+            # before registering the subscription so a misconfiguration doesn't leave
+            # a half-registered handler in self._subscriptions.
             for plugin_found_key in plugin_found_keys:
                 plugin = self.plugins.get(plugin_found_key)
                 if plugin is None or "_instance" not in plugin:
@@ -149,6 +149,8 @@ class Agent:
                         "Agent(...) constructor to enable it."
                     )
                 plugin["_instance"].subscribe(channel_name, handler, **original_kwargs)
+
+            self._subscriptions.append((channel_name, handler, kwargs))
 
             return handler
 

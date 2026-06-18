@@ -20,3 +20,7 @@ def test_plugin_kwargs_without_initialized_plugin_raises():
         @agent.subscribe(channel=Channel("test"), a2a_skill="greet")
         async def handler(message):
             return message
+
+    # The guard runs before the subscription is registered, so a rejected
+    # subscription must not leave a half-registered handler behind.
+    assert agent._subscriptions == []
