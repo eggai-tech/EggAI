@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Static type checking with mypy: the `eggai` package is type-checked in CI
+  (`poetry run mypy`, config in `pyproject.toml`); `mypy` is a new dev dependency.
 - `RedisTransport`: new `group_start` subscribe option (`"$"` default, `"0"` or
   a stream id) chooses where a NEW consumer group starts reading, so a consumer
   added to a channel that already carries traffic can pick up the existing
@@ -15,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   broker starts (#260).
 
 ### Fixed
+- A2A executor: the JSON-serialisation fallback caught the non-existent
+  `json.JSONEncodeError`, so a failing `json.dumps` raised `AttributeError` and
+  masked the real error. It now catches `(TypeError, ValueError)`.
+- A2A executor: the "unknown skill" error path enqueued a raw dict instead of a
+  proper A2A message; a skill registered with `data_type=None` raised
+  `TypeError` when building the message and now falls back to `BaseMessage`.
+- Typed subscriptions: a `data_type` whose `type` field has no default (e.g. raw
+  `BaseMessage`) silently dropped every message; `subscribe()` now raises
+  `ValueError` asking for a default discriminator.
+- `Agent.subscribe()`: plugin-prefixed kwargs (e.g. `a2a_*`) on an agent whose
+  plugin was never initialised raised an opaque `KeyError`; now `ValueError`.
 - `RedisTransport`: `agent.stop()` could hang forever on Python 3.10/3.11 with
   redis-py >= 8. redis-py 8 sends every command through `asyncio.wait_for`
   (`socket_timeout` now defaults to 5s), and on CPython < 3.12 `wait_for` can
@@ -38,6 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Channel().publish()` never reached it (#264).
 
 ### Changed
+- Type-annotation cleanups across transports, channel, agent and hooks to
+  satisfy mypy (no behaviour change). `Transport.subscribe()`'s second
+  parameter is now named `handler` in the abstract base and all transports.
 - **BREAKING: `BaseMessage.data` is now required.** The generic base previously
   declared `data: TData = Field(default_factory=dict)`. Pydantic does not
   validate defaults, so an envelope missing `data` validated cleanly on *any*

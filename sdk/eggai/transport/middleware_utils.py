@@ -14,7 +14,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 # Identity attributes copied from the user handler onto a wrapper. We intentionally
 # do NOT use functools.wraps here: it sets __wrapped__, which inspect.signature
@@ -52,7 +52,7 @@ async def _invoke(handler: Callable, arg: Any) -> Any:
 def wrap_handler_with_filters(
     handler: Callable,
     *,
-    data_type: type | None = None,
+    data_type: type[BaseModel] | None = None,
     filter_by_data: Callable[[Any], bool] | None = None,
     filter_by_message: Callable[[dict[str, Any]], bool] | None = None,
 ) -> Callable:
@@ -105,7 +105,7 @@ def wrap_handler_with_filters(
             except (ValidationError, ValueError, TypeError):
                 # Wrong shape / payload for this data_type — not ours to handle.
                 return None
-            if typed_message.type != expected_type:
+            if getattr(typed_message, "type", None) != expected_type:
                 return None
             if filter_by_data is not None and not filter_by_data(typed_message):
                 return None

@@ -22,7 +22,7 @@ class A2APlugin:
         self.config = None
         self.skills: dict[str, Any] = {}  # AgentSkill objects
         self.handlers: dict[str, Callable] = {}  # Handler functions
-        self.data_types: dict[str, type] = {}  # Data types for conversion
+        self.data_types: dict[str, type | None] = {}  # Data types for conversion
 
     def init(
         self,

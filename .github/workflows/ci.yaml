@@ -52,6 +52,10 @@ jobs:
         working-directory: sdk
         run: poetry run ruff format --check .
 
+      - name: Run mypy type checker
+        working-directory: sdk
+        run: poetry run mypy
+
   changelog:
     runs-on: ubuntu-latest
     name: Changelog check

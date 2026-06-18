@@ -9,7 +9,7 @@ from .hooks import eggai_register_stop
 from .transport import get_default_transport
 from .transport.base import Transport
 
-HANDLERS_IDS = defaultdict(int)
+HANDLERS_IDS: defaultdict[str, int] = defaultdict(int)
 
 PLUGIN_LIST = ["a2a"]
 
@@ -43,7 +43,7 @@ class Agent:
         self._stop_registered = False
 
         # Initialize plugins system
-        self.plugins = {}
+        self.plugins: dict[Any, dict[str, Any]] = {}
 
         # Initialize plugins generically
         for plugin_name in PLUGIN_LIST:
