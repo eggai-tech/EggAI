@@ -148,9 +148,7 @@ class Agent:
                         f"this agent. Pass {plugin_found_key!r} configuration to the "
                         "Agent(...) constructor to enable it."
                     )
-                plugin["_instance"].subscribe(
-                    channel_name, handler, **original_kwargs
-                )
+                plugin["_instance"].subscribe(channel_name, handler, **original_kwargs)
 
             return handler
 
