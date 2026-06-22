@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Static type checking with mypy**: the `eggai` package is now type-checked in CI
+  (`poetry run mypy`). A pragmatic first-adoption config (`ignore_missing_imports`,
+  `warn_unused_ignores`) lives in `pyproject.toml`; `mypy` is a new dev dependency.
+
+### Fixed
+- **A2A executor**: the JSON-serialisation fallback caught a non-existent
+  `json.JSONEncodeError`, so when `json.dumps` failed the `except` clause itself
+  raised `AttributeError` and masked the real error. Now catches `(TypeError,
+  ValueError)`, the exceptions `json.dumps` actually raises.
+- **PEL reclaimer**: data-plane Redis calls now go through a `_client` accessor that
+  raises a clear error if used before `start()`, instead of an opaque
+  `AttributeError` on `None`.
+- **Typed subscriptions**: a `data_type` whose `type` field has no default (e.g. raw
+  `BaseMessage`, where `type` is required) silently dropped *every* message, because
+  the discriminator was compared against `PydanticUndefined`. This now raises a clear
+  `ValueError` at subscribe time telling you to give `type` a default discriminator.
+- **Agent plugins**: passing plugin-prefixed kwargs (e.g. `a2a_*`) to `subscribe()`
+  without initializing that plugin via the `Agent(...)` constructor raised an opaque
+  `KeyError`; it now raises a `ValueError` explaining the plugin is not initialized.
+- **A2A executor**: the "unknown skill" error path enqueued a raw dict instead of a
+  proper A2A message; it now uses the same `_send_agent_response` wrapper as every
+  other response path.
+- **A2A executor**: a skill registered with `data_type=None` raised `TypeError`
+  (`None(...)`) when building the message; the type lookup is now done once and
+  falls back to the generic `BaseMessage` when no data type is set.
+
+### Changed
+- **Dev dependencies**: bumped `pytest` (9.0.3 → 9.1.0) and `ruff` (0.15.x patch).
+- Minor internal type-annotation cleanups across the transports, channel, agent,
+  and hooks to satisfy mypy (no behaviour change).
+
 ## [0.3.2] - 2026-06-15
 
 ### Fixed

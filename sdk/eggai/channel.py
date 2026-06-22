@@ -10,7 +10,7 @@ from .hooks import eggai_register_stop
 from .transport import get_default_transport
 from .transport.base import Transport
 
-HANDLERS_IDS = defaultdict(int)
+HANDLERS_IDS: defaultdict[str, int] = defaultdict(int)
 
 # Environment variable: EGGAI_NAMESPACE
 # Purpose: Prefix for all channel names to enable namespace isolation in shared transports.
@@ -29,7 +29,7 @@ class Channel:
     Connection is established lazily on the first publish or subscription.
     """
 
-    def __init__(self, name: str = None, transport: Transport | None = None):
+    def __init__(self, name: str | None = None, transport: Transport | None = None):
         """
         Initialize a Channel instance.
 

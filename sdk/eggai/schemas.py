@@ -66,7 +66,9 @@ class BaseMessage(BaseModel, Generic[TData]):
         description="W3C traceparent for distributed trace context propagation.",
     )
     data: TData = Field(
-        default_factory=dict,
+        # dict default for the common unparameterised case; concrete subclasses
+        # bind TData (e.g. to dict) — the factory can't be generic over TData.
+        default_factory=dict,  # type: ignore[assignment]
         description="Event payload containing application-specific data.",
     )
 
