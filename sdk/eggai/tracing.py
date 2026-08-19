@@ -191,7 +191,7 @@ def make_tracing_wrapper(channel_name: str, handler: Callable) -> Callable:
         with _backend.start_consumer_span(channel_name, traceparent) as span:
             _set_span_attrs(span, channel_name, message, "process")
             try:
-                return await handler(message)
+                return await handler(*args, **kwargs)
             except Exception as exc:
                 span.record_exception(exc)
                 span.set_error_status(str(exc))
