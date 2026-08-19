@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Tracing wrapper handler dispatch**: `traced_handler` now accepts `*args`/`**kwargs`,
+  fixing `TypeError: got an unexpected keyword argument` for handlers whose message
+  parameter isn't named `message` under FastStream 0.7's keyword-based dispatch.
+
 ## [0.3.2] - 2026-06-15
 
 ### Fixed

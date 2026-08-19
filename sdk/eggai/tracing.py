@@ -175,7 +175,14 @@ def make_tracing_wrapper(channel_name: str, handler: Callable) -> Callable:
         return handler
 
     @functools.wraps(handler)
-    async def traced_handler(message):
+    async def traced_handler(*args, **kwargs):
+        # functools.wraps sets __wrapped__, and inspect.signature() follows it,
+        # so FastStream/fast_depends builds its call model from the *user's*
+        # handler signature, not ours -- the parameter name it passes is
+        # whatever the user named it. FastStream 0.6 called positionally;
+        # 0.7 calls by keyword. Accept either and forward verbatim.
+        message = args[0] if args else next(iter(kwargs.values()), None)
+
         traceparent = (
             message.get("traceparent")
             if isinstance(message, dict)
