@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-08-19
+
 ### Fixed
 - **Tracing wrapper handler dispatch**: `traced_handler` now accepts `*args`/`**kwargs`,
   fixing `TypeError: got an unexpected keyword argument` for handlers whose message
