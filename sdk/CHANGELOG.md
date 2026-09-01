@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING: `BaseMessage.data` is now required.** The generic base previously
+  declared `data: TData = Field(default_factory=dict)`. Pydantic does not
+  validate defaults, so an envelope missing `data` validated cleanly on *any*
+  typed subclass (`BaseMessage[Order]`) with `data` as a plain `{}` — the
+  handler then crashed on first attribute access, and under `NACK_ON_ERROR`
+  that single malformed message wedged the subscription. A missing or malformed
+  payload now fails validation, which typed subscriptions
+  (`wrap_handler_with_filters`) already treat as "not ours: skip and ack".
+  The concrete `Message` keeps its `{}` default, where the annotation really is
+  a dict. Migration: construct payload-less envelopes with `Message` (or pass
+  `data=` explicitly).
+
 ## [0.3.4] - 2026-08-19
 
 ### Fixed

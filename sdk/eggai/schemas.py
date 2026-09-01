@@ -20,8 +20,10 @@ class BaseMessage(BaseModel, Generic[TData]):
     metadata and context as CloudEvents-compliant extension attributes.
 
     The model is generic so that you can specify custom Pydantic models
-    for data, the application-specific event payload.
-    By default, if no custom model is provided, data is a dictionary.
+    for data, the application-specific event payload. ``data`` is required:
+    a typed subclass (``BaseMessage[Order]``) then rejects envelopes whose
+    payload is missing or malformed instead of silently defaulting. For a
+    plain dict payload with an empty default, use :class:`Message`.
 
     Fields:
         specversion (str): CloudEvents version (always "1.0").
@@ -32,7 +34,7 @@ class BaseMessage(BaseModel, Generic[TData]):
         time (Optional[datetime]): Timestamp of event creation.
         datacontenttype (Optional[str]): Media type of the event data.
         dataschema (Optional[str]): URI of the schema that `data` adheres to.
-        data (TData): Application-specific event payload.
+        data (TData): Application-specific event payload (required).
     """
 
     specversion: str = Field(
@@ -65,8 +67,14 @@ class BaseMessage(BaseModel, Generic[TData]):
         default=None,
         description="W3C traceparent for distributed trace context propagation.",
     )
+    # No default here: pydantic does not validate defaults, so a dict default on a
+    # field typed TData would hand every typed subclass a plain `{}` whenever an
+    # envelope omits `data` — the subclass's annotation says Order, the runtime
+    # value is a dict, and the handler crashes on first attribute access. Requiring
+    # the field turns that envelope into a ValidationError, which the transports'
+    # typed subscriptions already treat as "not ours: skip and ack".
     data: TData = Field(
-        default_factory=dict,
+        ...,
         description="Event payload containing application-specific data.",
     )
 
@@ -77,4 +85,8 @@ class Message(BaseMessage[dict[str, Any]]):
     Concrete Message model with `data` defaulting to dict.
     """
 
-    pass
+    # The dict default lives here, where the annotation actually is a dict.
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Event payload containing application-specific data.",
+    )

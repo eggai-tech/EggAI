@@ -196,3 +196,39 @@ async def test_filter_by_data_narrows_typed_messages():
     await wrapped(_order_msg(order_id=2, status="shipped"))
 
     assert seen == [2]
+
+
+@pytest.mark.asyncio
+async def test_data_type_skips_envelope_with_missing_data():
+    """An envelope of the right type but with no ``data`` key must be skipped.
+
+    Regression test: ``data`` used to default to ``{}`` on the generic base and
+    pydantic does not validate defaults, so this envelope validated cleanly and
+    reached the handler with ``data`` as a plain dict — crashing on the first
+    ``order.data.<attr>`` access and, under NACK_ON_ERROR, wedging the stream on
+    a single malformed message.
+    """
+    seen = []
+
+    async def handler(order):
+        seen.append(order)
+
+    wrapped = wrap_handler_with_filters(handler, data_type=OrderMessage)
+    envelope = _order_msg()
+    del envelope["data"]
+
+    assert await wrapped(envelope) is None  # skipped -> acked, not retried
+    assert seen == []
+
+
+@pytest.mark.asyncio
+async def test_data_type_skips_envelope_with_malformed_data():
+    seen = []
+
+    async def handler(order):
+        seen.append(order)
+
+    wrapped = wrap_handler_with_filters(handler, data_type=OrderMessage)
+    await wrapped(_order_msg(data={"unexpected": "shape"}))
+
+    assert seen == []
