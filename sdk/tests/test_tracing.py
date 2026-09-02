@@ -6,19 +6,19 @@ import asyncio
 
 import pytest
 
-from eggai.schemas import BaseMessage
+from eggai.schemas import Message
 from eggai.transport import InMemoryTransport, eggai_set_default_transport
 
 
 def test_traceparent_default_none():
-    msg = BaseMessage(source="test", type="test.event")
+    msg = Message(source="test", type="test.event")
     assert msg.traceparent is None
 
 
 def test_traceparent_survives_json_round_trip():
     tp = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-    msg = BaseMessage(source="test", type="test.event", traceparent=tp)
-    restored = BaseMessage.model_validate_json(msg.model_dump_json())
+    msg = Message(source="test", type="test.event", traceparent=tp)
+    restored = Message.model_validate_json(msg.model_dump_json())
     assert restored.traceparent == tp
 
 
@@ -42,7 +42,7 @@ async def test_noop_publish_and_subscribe_work_without_setup_tracing():
 
     await channel.subscribe(handler)
     await transport.connect()
-    await channel.publish(BaseMessage(source="test", type="test.noop"))
+    await channel.publish(Message(source="test", type="test.noop"))
 
     await asyncio.sleep(0.05)
     assert len(received) == 1
@@ -101,7 +101,7 @@ async def test_span_publish_creates_producer_span(fresh_transport):
 
         ch = Channel("tracing-pub-test", transport=fresh_transport)
         await fresh_transport.connect()
-        await ch.publish(BaseMessage(source="svc", type="test.pub"))
+        await ch.publish(Message(source="svc", type="test.pub"))
 
         spans = _SHARED_EXPORTER.get_finished_spans()
         assert len(spans) == 1
@@ -127,7 +127,7 @@ async def test_span_process_creates_consumer_span_with_same_trace_id(fresh_trans
 
         await ch.subscribe(handler)
         await fresh_transport.connect()
-        await ch.publish(BaseMessage(source="svc", type="test.proc"))
+        await ch.publish(Message(source="svc", type="test.proc"))
         await asyncio.sleep(0.1)
 
         spans = _SHARED_EXPORTER.get_finished_spans()
@@ -161,7 +161,7 @@ async def test_span_existing_traceparent_continues_the_trace(fresh_transport):
         await ch.subscribe(handler)
         await fresh_transport.connect()
         await ch.publish(
-            BaseMessage(source="svc", type="test.incoming", traceparent=external_tp)
+            Message(source="svc", type="test.incoming", traceparent=external_tp)
         )
 
         await asyncio.wait_for(done.wait(), timeout=2.0)
@@ -193,7 +193,7 @@ async def test_span_multi_hop_shares_single_trace_id(fresh_transport):
                 else getattr(msg, "traceparent", None)
             )
             await ch_b.publish(
-                BaseMessage(source="svc-a", type="test.hop.b", traceparent=tp)
+                Message(source="svc-a", type="test.hop.b", traceparent=tp)
             )
 
         async def handler_b(msg):
@@ -203,7 +203,7 @@ async def test_span_multi_hop_shares_single_trace_id(fresh_transport):
         await ch_b.subscribe(handler_b)
         await fresh_transport.connect()
 
-        await ch_a.publish(BaseMessage(source="origin", type="test.hop.a"))
+        await ch_a.publish(Message(source="origin", type="test.hop.a"))
 
         await asyncio.wait_for(done.wait(), timeout=2.0)
         await asyncio.sleep(0.05)
