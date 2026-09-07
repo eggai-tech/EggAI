@@ -67,14 +67,14 @@ class BaseMessage(BaseModel, Generic[TData]):
         default=None,
         description="W3C traceparent for distributed trace context propagation.",
     )
-    # No default here: pydantic does not validate defaults, so a dict default on a
-    # field typed TData would hand every typed subclass a plain `{}` whenever an
-    # envelope omits `data` — the subclass's annotation says Order, the runtime
-    # value is a dict, and the handler crashes on first attribute access. Requiring
-    # the field turns that envelope into a ValidationError, which the transports'
-    # typed subscriptions already treat as "not ours: skip and ack".
+    # validate_default: pydantic does not validate defaults unless asked, so on a
+    # typed subclass (BaseMessage[Order]) a missing `data` used to become a plain
+    # `{}` labelled as Order. With validation the `{}` default fails for typed
+    # subclasses (ValidationError, which typed subscriptions treat as "not ours")
+    # and still works for the untyped base.
     data: TData = Field(
-        ...,
+        default_factory=dict,
+        validate_default=True,
         description="Event payload containing application-specific data.",
     )
 
