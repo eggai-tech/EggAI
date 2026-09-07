@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `RedisTransport`: `agent.stop()` could hang forever on Python 3.10/3.11 with
+  redis-py >= 8. redis-py 8 sends every command through `asyncio.wait_for`
+  (`socket_timeout` now defaults to 5s), and on CPython < 3.12 `wait_for` can
+  swallow the `CancelledError` when the inner await completes concurrently, so
+  the reclaimer task survived its own cancellation. The reclaimer loop now exits
+  on a running flag as well as on cancellation.
+
 ### Changed
 - **BREAKING: `BaseMessage.data` is now required.** The generic base previously
   declared `data: TData = Field(default_factory=dict)`. Pydantic does not

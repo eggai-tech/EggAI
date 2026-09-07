@@ -2031,3 +2031,52 @@ async def test_backoff_reclaims_message_once_threshold_elapsed():
     await manager._redis_client.aclose()
     await client.delete(stream, retry_stream)
     await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_reclaimer_stop_completes_when_cancellation_is_swallowed(monkeypatch):
+    """stop() must return even if the cancellation never reaches _run().
+
+    redis-py >= 8 sends every command through asyncio.wait_for (socket_timeout
+    now defaults to 5s); on CPython < 3.12 wait_for can swallow the
+    CancelledError when the inner await completes concurrently, so the reclaim
+    call returns normally and the loop must exit on its own.
+    """
+    from eggai.transport.pending_reclaimer import (
+        PendingReclaimerManager,
+        ReclaimerConfig,
+    )
+
+    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager.add(
+        ReclaimerConfig(
+            stream="eggai.swallow",
+            group="g",
+            consumer="g-reclaimer",
+            retry_stream="eggai.swallow.g.retry",
+            min_idle_ms=1,
+            interval_s=0.01,
+        )
+    )
+    entered = asyncio.Event()
+    swallowed = False
+
+    async def swallowing_reclaim(config):
+        nonlocal swallowed
+        entered.set()
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            if swallowed:
+                raise
+            swallowed = True
+
+    monkeypatch.setattr(manager, "_reclaim_once", swallowing_reclaim)
+
+    await manager.start()
+    await asyncio.wait_for(entered.wait(), timeout=2)
+
+    stop_task = asyncio.create_task(manager.stop())
+    await asyncio.wait({stop_task}, timeout=2)
+    assert stop_task.done(), "stop() hung after the cancellation was swallowed"
+    await stop_task

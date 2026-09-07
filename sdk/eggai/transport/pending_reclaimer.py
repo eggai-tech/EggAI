@@ -150,6 +150,7 @@ class PendingReclaimerManager:
         self._redis_client: aioredis.Redis | None = None
         self._configs: dict[tuple[str, str, str], ReclaimerConfig] = {}
         self._tasks: dict[tuple[str, str, str], asyncio.Task] = {}
+        self._running = False
 
     def add(self, config: ReclaimerConfig) -> tuple[str, str, str]:
         key = (config.stream, config.group, config.consumer)
@@ -169,6 +170,7 @@ class PendingReclaimerManager:
             self._redis_url,
             **{**self._connection_kwargs, "decode_responses": False},
         )
+        self._running = True
         for key, config in self._configs.items():
             if key in self._tasks and not self._tasks[key].done():
                 continue
@@ -178,20 +180,20 @@ class PendingReclaimerManager:
 
     async def stop(self) -> None:
         """Cancel all reclaimer tasks and close the Redis connection."""
+        self._running = False
         for task in self._tasks.values():
             task.cancel()
-        for task in self._tasks.values():
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
+        await asyncio.gather(*self._tasks.values(), return_exceptions=True)
         self._tasks.clear()
         if self._redis_client is not None:
             await self._redis_client.aclose()
             self._redis_client = None
 
     async def _run(self, config: ReclaimerConfig) -> None:
-        while True:
+        # The flag, not just cancellation, ends the loop: redis-py >= 8 sends every
+        # command through asyncio.wait_for, which on CPython < 3.12 can swallow the
+        # CancelledError, so a cancelled reclaim may return normally.
+        while self._running:
             # Sleep first so the broker has settled before the first scan.
             await asyncio.sleep(config.interval_s)
             try:
