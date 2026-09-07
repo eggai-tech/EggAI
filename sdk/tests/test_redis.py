@@ -675,10 +675,10 @@ async def test_retry_on_idle_ms_rejects_acking_ack_policies(policy):
 
 
 @pytest.mark.asyncio
-@pytest.mark.filterwarnings("ignore:.*polling_interval.*:RuntimeWarning")
 async def test_retry_stream_pins_last_id_to_new_entries():
     """The retry stream must consume only new entries, even when the operator
-    replays the main stream with last_id='0' (issue #225 review).
+    starts the main group at the beginning of the stream with group_start="0"
+    (issue #225 review).
 
     Otherwise restarting with last_id='0' to re-drain the main backlog would
     also replay the retry stream's history on every restart.
@@ -693,7 +693,7 @@ async def test_retry_stream_pins_last_id_to_new_entries():
         handler,
         handler_id="orders-handler-1",
         retry_on_idle_ms=500,
-        last_id="0",
+        group_start="0",
     )
 
     subs = {s.stream_key: s for s in transport._stream_subscriptions}
@@ -2185,3 +2185,61 @@ async def test_reclaimer_stop_completes_when_cancellation_is_swallowed(monkeypat
     await asyncio.wait({stop_task}, timeout=2)
     assert stop_task.done(), "stop() hung after the cancellation was swallowed"
     await stop_task
+
+
+@pytest.mark.asyncio
+async def test_last_id_with_group_is_rejected():
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    with pytest.raises(ValueError, match="group_start"):
+        await transport.subscribe(
+            "orders", handler, handler_id="orders-handler-1", last_id="0"
+        )
+
+
+@pytest.mark.asyncio
+async def test_group_start_zero_delivers_backlog_and_new_entries():
+    """A new consumer with group_start="0" receives the entries published before
+    it existed and the ones published afterwards; a restart (group already
+    exists) keeps delivering only new entries (issue #260)."""
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-group-start-{test_id}"
+    group = f"group-start-agent-{test_id}-handler-1"
+
+    producer = RedisTransport()
+    await producer.connect()
+    channel = Channel(channel_name, transport=producer)
+    await channel.publish({"type": "t", "data": {"n": 1}})
+    await channel.publish({"type": "t", "data": {"n": 2}})
+
+    async def run(expected, **sub_kwargs):
+        received = []
+        done = asyncio.Event()
+        transport = RedisTransport()
+        agent = Agent(f"group-start-agent-{test_id}", transport=transport)
+
+        @agent.subscribe(
+            channel=Channel(channel_name, transport=transport), **sub_kwargs
+        )
+        async def handler(message):
+            received.append(message["data"]["n"])
+            if len(received) == len(expected):
+                done.set()
+
+        await agent.start()
+        await channel.publish({"type": "t", "data": {"n": expected[-1]}})
+        await asyncio.wait_for(done.wait(), timeout=5.0)
+        await agent.stop()
+        assert received == expected
+
+    await run([1, 2, 3], group=group, group_start="0")
+    # Restart with the same, now existing, group: only new entries, no replay.
+    await run([4], group=group, group_start="0")
+
+    redis_client = redis.Redis(host="localhost", port=6379)
+    await redis_client.delete(f"eggai.{channel_name}")
+    await redis_client.aclose()
+    await producer.disconnect()
