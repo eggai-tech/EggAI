@@ -34,8 +34,9 @@ class _BinaryWriter:
         self.write(pack(">I", number))
 
     def write_string(self, data: str | bytes) -> None:
-        self.write_short(len(data))
-        self.write(data.encode() if isinstance(data, str) else data)
+        raw = data.encode() if isinstance(data, str) else data
+        self.write_short(len(raw))
+        self.write(raw)
 
     def get_bytes(self) -> bytes:
         return bytes(self.data)

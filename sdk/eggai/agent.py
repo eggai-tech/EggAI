@@ -73,7 +73,7 @@ class Agent:
         Decorator for adding a subscription.
 
         Args:
-            channel (Optional[Channel]): The channel to subscribe to. If None, defaults to "eggai.channel".
+            channel (Optional[Channel]): The channel to subscribe to. If None, defaults to "<namespace>.channel".
             **kwargs: Additional keyword arguments for the subscription and plugins.
 
         Returns:
@@ -81,7 +81,7 @@ class Agent:
         """
 
         def decorator(handler: Callable[[dict[str, Any]], "asyncio.Future"]):
-            channel_name = channel.get_name() if channel else "eggai.channel"
+            channel_name = (channel or Channel()).get_name()
             if "min_idle_time" in kwargs and "retry_on_idle_ms" in kwargs:
                 raise ValueError(
                     "min_idle_time and retry_on_idle_ms are mutually exclusive. "

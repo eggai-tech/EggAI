@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   under a custom namespace are retried immediately and dead-lettered once the
   retry budget is exhausted. Stale empty `eggai.<ns>.*` shadow keys can be
   deleted.
+- `PendingReclaimer`: the retry envelope's header length prefix counted
+  characters instead of bytes, truncating non-ASCII header values on every
+  retry delivery (#263).
+- `Agent.subscribe()` without a channel listened on the literal `eggai.channel`
+  instead of `<EGGAI_NAMESPACE>.channel`, so under a custom namespace a bare
+  `Channel().publish()` never reached it (#264).
 
 ### Changed
 - **BREAKING: `BaseMessage.data` is now required.** The generic base previously
