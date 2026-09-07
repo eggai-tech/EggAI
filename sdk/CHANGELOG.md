@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **A2A adapter**: migrated the adapter to the A2A SDK 1.x API, including the
+  updated `AgentCard` interface, protobuf-based message parts, and A2A 1.x
+  request handling.
+
 ## [0.3.2] - 2026-06-15
 
 ### Fixed

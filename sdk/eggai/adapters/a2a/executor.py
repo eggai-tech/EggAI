@@ -195,13 +195,15 @@ class EggAIAgentExecutor(AgentExecutor):
         try:
             from uuid import uuid4
 
-            from a2a.types import DataPart, Message, Part, Role
+            from a2a.types import Message, Part, Role
+            from google.protobuf.json_format import ParseDict
+            from google.protobuf.struct_pb2 import Value
 
             # Create A2A message with response data
             response_message = Message(
                 message_id=str(uuid4()),
-                role=Role.agent,
-                parts=[Part(root=DataPart(data=data))],
+                role=Role.ROLE_AGENT,
+                parts=[Part(data=ParseDict(data, Value()))],
             )
 
             # Enqueue the message as an event
