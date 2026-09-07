@@ -98,7 +98,7 @@ The SDK automatically:
 
 ### How It Works
 
-Three Redis streams are involved:
+Three Redis streams are involved. The `eggai.` prefix is the default `EGGAI_NAMESPACE`, not a fixed prefix: with `EGGAI_NAMESPACE=prod` the keys become `prod.orders`, `prod.orders.<handler>.retry` and `prod.orders.<handler>.dlq`.
 
 | Stream | Purpose |
 |---|---|
