@@ -12,5 +12,5 @@ https://github.com/eggai-tech/EggAI/security/advisories/new
 
 | Version | Supported |
 | ------- | --------- |
-| 0.3.x   | ✓         |
-| < 0.3.0 | ✗         |
+| 0.4.x   | ✓         |
+| < 0.4.0 | ✗         |
