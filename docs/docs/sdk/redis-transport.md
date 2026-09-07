@@ -59,6 +59,23 @@ transport = RedisTransport(
 
 The `url` accepts `redis://`, `rediss://` (TLS), and `unix://` schemes.
 
+### Consuming an Existing Backlog
+
+A consumer group is created at `$` by default: it only sees entries published
+after it exists. To let a new consumer pick up the entries already in the
+stream, pass `group_start="0"` (or an explicit stream id):
+
+```python
+@agent.subscribe(channel=orders, group_start="0")
+async def handle_order(message):
+    ...
+```
+
+`group_start` only applies when the group does not exist yet. A group remembers
+its position across restarts, so this does not replay the stream every time the
+service starts. `last_id` is for group-less subscriptions only and is rejected
+together with a consumer group.
+
 ## Reliable Message Delivery
 
 ### The Problem: Stuck Messages
@@ -98,7 +115,7 @@ The SDK automatically:
 
 ### How It Works
 
-Three Redis streams are involved:
+Three Redis streams are involved. The `eggai.` prefix is the default `EGGAI_NAMESPACE`, not a fixed prefix: with `EGGAI_NAMESPACE=prod` the keys become `prod.orders`, `prod.orders.<handler>.retry` and `prod.orders.<handler>.dlq`.
 
 | Stream | Purpose |
 |---|---|

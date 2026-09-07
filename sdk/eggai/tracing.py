@@ -141,6 +141,7 @@ def setup_tracing(
     if isinstance(trace.get_tracer_provider(), ProxyTracerProvider):
         trace.set_tracer_provider(provider)
     else:
+        # Adopt the already-configured provider (API base type, not the SDK one).
         provider = trace.get_tracer_provider()
 
     from importlib.metadata import version
@@ -175,7 +176,14 @@ def make_tracing_wrapper(channel_name: str, handler: Callable) -> Callable:
         return handler
 
     @functools.wraps(handler)
-    async def traced_handler(message):
+    async def traced_handler(*args, **kwargs):
+        # functools.wraps sets __wrapped__, and inspect.signature() follows it,
+        # so FastStream/fast_depends builds its call model from the *user's*
+        # handler signature, not ours -- the parameter name it passes is
+        # whatever the user named it. FastStream 0.6 called positionally;
+        # 0.7 calls by keyword. Accept either and forward verbatim.
+        message = args[0] if args else next(iter(kwargs.values()), None)
+
         traceparent = (
             message.get("traceparent")
             if isinstance(message, dict)
@@ -184,7 +192,7 @@ def make_tracing_wrapper(channel_name: str, handler: Callable) -> Callable:
         with _backend.start_consumer_span(channel_name, traceparent) as span:
             _set_span_attrs(span, channel_name, message, "process")
             try:
-                return await handler(message)
+                return await handler(*args, **kwargs)
             except Exception as exc:
                 span.record_exception(exc)
                 span.set_error_status(str(exc))

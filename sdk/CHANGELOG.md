@@ -7,10 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<<<<<<< HEAD
 ### Fixed
 - **A2A adapter**: migrated the adapter to the A2A SDK 1.x API, including the
   updated `AgentCard` interface, protobuf-based message parts, and A2A 1.x
   request handling.
+=======
+## [0.4.1] - 2026-09-07
+
+### Fixed
+- `BaseMessage.data` has its `{}` default back, now declared with
+  `validate_default=True`. 0.4.0 made the field required to stop typed
+  subclasses (`BaseMessage[Order]`) from silently accepting a missing payload;
+  validating the default achieves the same without breaking
+  `BaseMessage(source=..., type=...)` for the untyped base. Typed subclasses
+  still reject a missing or malformed payload with a `ValidationError`.
+
+## [0.4.0] - 2026-09-07
+
+### Added
+- Static type checking with mypy: the `eggai` package is type-checked in CI
+  (`poetry run mypy`, config in `pyproject.toml`); `mypy` is a new dev dependency.
+- `RedisTransport`: new `group_start` subscribe option (`"$"` default, `"0"` or
+  a stream id) chooses where a NEW consumer group starts reading, so a consumer
+  added to a channel that already carries traffic can pick up the existing
+  backlog. The transport now creates its consumer groups itself before the
+  broker starts (#260).
+
+### Fixed
+- A2A executor: the JSON-serialisation fallback caught the non-existent
+  `json.JSONEncodeError`, so a failing `json.dumps` raised `AttributeError` and
+  masked the real error. It now catches `(TypeError, ValueError)`.
+- A2A executor: the "unknown skill" error path enqueued a raw dict instead of a
+  proper A2A message; a skill registered with `data_type=None` raised
+  `TypeError` when building the message and now falls back to `BaseMessage`.
+- Typed subscriptions: a `data_type` whose `type` field has no default (e.g. raw
+  `BaseMessage`) silently dropped every message; `subscribe()` now raises
+  `ValueError` asking for a default discriminator.
+- `Agent.subscribe()`: plugin-prefixed kwargs (e.g. `a2a_*`) on an agent whose
+  plugin was never initialised raised an opaque `KeyError`; now `ValueError`.
+- `RedisTransport`: `agent.stop()` could hang forever on Python 3.10/3.11 with
+  redis-py >= 8. redis-py 8 sends every command through `asyncio.wait_for`
+  (`socket_timeout` now defaults to 5s), and on CPython < 3.12 `wait_for` can
+  swallow the `CancelledError` when the inner await completes concurrently, so
+  the reclaimer task survived its own cancellation. The reclaimer loop now exits
+  on a running flag as well as on cancellation.
+- **RedisTransport retries with a non-default `EGGAI_NAMESPACE`** (#261): the
+  reclaimer, group monitor, `.retry` and `.dlq` streams were keyed under
+  `eggai.<ns>.<topic>` while consumption and publishing used `<ns>.<topic>`, so
+  `retry_on_idle_ms` / `max_retries` never fired outside the default namespace.
+  The transport no longer adds its own `eggai.` prefix; `Channel` already
+  namespaces the name exactly once. After upgrading, entries stuck in the PEL
+  under a custom namespace are retried immediately and dead-lettered once the
+  retry budget is exhausted. Stale empty `eggai.<ns>.*` shadow keys can be
+  deleted.
+- `PendingReclaimer`: the retry envelope's header length prefix counted
+  characters instead of bytes, truncating non-ASCII header values on every
+  retry delivery (#263).
+- `Agent.subscribe()` without a channel listened on the literal `eggai.channel`
+  instead of `<EGGAI_NAMESPACE>.channel`, so under a custom namespace a bare
+  `Channel().publish()` never reached it (#264).
+
+### Changed
+- Type-annotation cleanups across transports, channel, agent and hooks to
+  satisfy mypy (no behaviour change). `Transport.subscribe()`'s second
+  parameter is now named `handler` in the abstract base and all transports.
+- **BREAKING: `BaseMessage.data` is now required.** The generic base previously
+  declared `data: TData = Field(default_factory=dict)`. Pydantic does not
+  validate defaults, so an envelope missing `data` validated cleanly on *any*
+  typed subclass (`BaseMessage[Order]`) with `data` as a plain `{}` — the
+  handler then crashed on first attribute access, and under `NACK_ON_ERROR`
+  that single malformed message wedged the subscription. A missing or malformed
+  payload now fails validation, which typed subscriptions
+  (`wrap_handler_with_filters`) already treat as "not ours: skip and ack".
+  The concrete `Message` keeps its `{}` default, where the annotation really is
+  a dict. Migration: construct payload-less envelopes with `Message` (or pass
+  `data=` explicitly).
+- Allow ruff 0.16 (`ruff >=0.14.4,<0.17`) and exclude Markdown from ruff, which
+  now formats fenced code blocks by default.
+- `RedisTransport`: `last_id` other than `">"` together with a consumer group
+  now raises `ValueError`. That combination never delivered new entries (Redis
+  returns only the consumer's own pending entries for an explicit id) and
+  hot-looped XREADGROUP; the earlier note about replaying a backlog with
+  `last_id="0"` was wrong. Use `group_start="0"` instead.
+
+## [0.3.4] - 2026-08-19
+
+### Fixed
+- **Forward original args/kwargs to wrapped handler**: 0.3.3 changed traced_handler's signature to *args/**kwargs but still
+  called handler(message) positionally
+
+## [0.3.3] - 2026-08-19
+
+### Fixed
+- **Tracing wrapper handler dispatch**: `traced_handler` now accepts `*args`/`**kwargs`,
+  fixing `TypeError: got an unexpected keyword argument` for handlers whose message
+  parameter isn't named `message` under FastStream 0.7's keyword-based dispatch.
+>>>>>>> upstream/main
 
 ## [0.3.2] - 2026-06-15
 

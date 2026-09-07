@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Coroutine[Any, Any, Any]])
 
 # Global variables for shutdown handling.
-_STOP_CALLBACKS = []
+_STOP_CALLBACKS: list[Callable[..., Any]] = []
 _EXIT_EVENT = None  # will be lazily created
 _SIGNAL_HANDLERS_INSTALLED = False
 _CLEANUP_STARTED = False

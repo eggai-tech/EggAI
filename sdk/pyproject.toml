@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "eggai"
-version = "0.3.2"
+version = "0.4.1"
 description = "EggAI Multi-Agent Meta Framework` is an async-first framework for building, deploying, and scaling multi-agent systems for modern enterprise environments"
 authors = ["Stefano Tucci <stefanotucci89@gmail.com>"]
 readme = "README.md"
@@ -61,7 +61,8 @@ pytest-asyncio = ">=1.0,<2"
 pytest = "^9.0.0"
 pytest-cov = ">=6,<8"
 jinja2 = "^3.1.6"
-ruff = ">=0.14.4,<0.16.0"
+ruff = ">=0.14.4,<0.17.0"
+mypy = "^1.18"
 
 [tool.poetry.scripts]
 eggai = "cli.main:main"
@@ -82,6 +83,7 @@ exclude = [
     "__pycache__",
     "build",
     "dist",
+    "*.md",
 ]
 
 [tool.ruff.lint]
@@ -114,3 +116,11 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.10"
+# The lint job installs no extras, so the a2a adapter and tracing are not type-checked yet.
+files = ["eggai"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true

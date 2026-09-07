@@ -9,9 +9,9 @@ from typing import Any
 import redis.asyncio as aioredis
 from faststream import AckPolicy
 from faststream.redis import RedisBroker, StreamSub
+from pydantic import BaseModel
 from redis.exceptions import ResponseError
 
-from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
 from eggai.transport.middleware_utils import wrap_handler_with_filters
 from eggai.transport.pending_reclaimer import PendingReclaimerManager, ReclaimerConfig
@@ -193,6 +193,7 @@ class RedisTransport(Transport):
         # subscribers that aren't running yet (e.g. those a second Agent just
         # registered). Falls back to the original full start() if FastStream ever
         # stops exposing the `running` flags.
+        await self._create_groups()
         if not getattr(self.broker, "running", False):
             await self.broker.start()
         else:
@@ -234,7 +235,7 @@ class RedisTransport(Transport):
             await self._reclaimer_manager.stop()
         await self.broker.stop()
 
-    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseModel):
         """
         Publishes a message to the specified Redis stream.
 
@@ -286,7 +287,12 @@ class RedisTransport(Transport):
                 a distinct slice of the PEL. Pass an explicit value only if you need a stable consumer name.
             batch (bool, optional): Whether to consume messages in batches (default is False).
             max_records (Optional[int], optional): Maximum number of records to consume in one batch (default is None).
-            last_id (str, optional): Starting message ID for stream consumption (default is ">" for consumer groups).
+            group_start (str, optional): Stream id a NEW consumer group is created at: "$" (default, only entries
+                published after the group exists), "0" (the whole existing backlog) or an explicit stream id.
+                Ignored when the group already exists, a group remembers its own position. Reads always use ">".
+            last_id (str, optional): Starting message ID for group-less (XREAD) subscriptions (default is ">").
+                Not allowed together with a consumer group: XREADGROUP with an explicit id only returns this
+                consumer's own pending entries, never new ones. Use group_start instead.
             no_ack (bool, optional): Whether to skip acknowledgment of stream messages (default is False for durability).
             ack_policy (AckPolicy, optional): Acknowledgment policy for message handling (default is AckPolicy.NACK_ON_ERROR).
                 - NACK_ON_ERROR: Messages are NOT acknowledged on handler errors, allowing redelivery (recommended).
@@ -415,9 +421,17 @@ class RedisTransport(Transport):
         batch = kwargs.pop("batch", False)
         max_records = kwargs.pop("max_records", None)
         last_id = kwargs.pop("last_id", ">")
+        group_start = kwargs.pop("group_start", "$")
         no_ack = kwargs.pop("no_ack", False)
         min_idle_time = kwargs.pop("min_idle_time", None)
 
+        if group and last_id != ">":
+            raise ValueError(
+                "last_id is only meaningful without a consumer group: XREADGROUP with "
+                "an explicit id returns this consumer's own pending entries and never "
+                'new ones. Use group_start="0" (or a stream id) to choose where a new '
+                "group starts reading."
+            )
         if min_idle_time is not None and retry_on_idle_ms is not None:
             raise ValueError(
                 "min_idle_time and retry_on_idle_ms are mutually exclusive. "
@@ -500,9 +514,9 @@ class RedisTransport(Transport):
         main_sub_info = None
         if group:
             main_sub_info = _StreamGroupInfo(
-                stream_key=self._get_stream_key(channel),
+                stream_key=channel,
                 group=group,
-                group_create_id="$" if last_id == ">" else last_id,
+                group_create_id=group_start,
             )
             self._stream_subscriptions.add(main_sub_info)
 
@@ -550,9 +564,9 @@ class RedisTransport(Transport):
             # The FastStream broker subscriber(s) cannot be un-registered, but
             # nothing is live until connect(), which never runs on failure.
             added_reclaimer_keys: list[tuple[str, str, str]] = []
-            # The recursive subscribe below adds this entry (last_id=">" → "$").
+            # The recursive subscribe below adds this entry (retry groups start at "$").
             retry_sub_info = _StreamGroupInfo(
-                stream_key=self._get_stream_key(retry_stream),
+                stream_key=retry_stream,
                 group=retry_handler_id,
                 group_create_id="$",
             )
@@ -649,6 +663,32 @@ class RedisTransport(Transport):
 
         return registered_handler
 
+    async def _create_groups(self) -> None:
+        """Create every registered consumer group at its group_start before the
+        subscribers start. FastStream creates groups at "$" for last_id=">", so
+        creating them here first turns its call into a BUSYGROUP no-op and reads
+        use ">" from a group that starts where the caller asked."""
+        if not self._stream_subscriptions:
+            return
+        client = aioredis.from_url(
+            self._redis_url,
+            **{**self._connection_kwargs, "decode_responses": True},
+        )
+        try:
+            for info in list(self._stream_subscriptions):
+                try:
+                    await client.xgroup_create(
+                        name=info.stream_key,
+                        groupname=info.group,
+                        id=info.group_create_id,
+                        mkstream=True,
+                    )
+                except ResponseError as e:
+                    if "BUSYGROUP" not in str(e):
+                        raise
+        finally:
+            await client.aclose()
+
     async def _monitor_stream_groups(self) -> None:
         """Periodically ensure all registered stream consumer groups exist.
 
@@ -726,14 +766,14 @@ class RedisTransport(Transport):
             )
         return self._reclaimer_manager.add(
             ReclaimerConfig(
-                stream=self._get_stream_key(stream),
+                stream=stream,
                 group=group,
                 consumer=consumer,
-                retry_stream=self._get_stream_key(retry_stream),
+                retry_stream=retry_stream,
                 min_idle_ms=min_idle_ms,
                 interval_s=interval_s,
                 max_retries=max_retries,
-                dlq_stream=self._get_stream_key(dlq_stream) if dlq_stream else None,
+                dlq_stream=dlq_stream,
                 on_dlq=on_dlq,
                 max_len=self._retry_max_len,
                 backoff_multiplier=backoff_multiplier,
@@ -741,9 +781,3 @@ class RedisTransport(Transport):
                 backoff_jitter=backoff_jitter,
             )
         )
-
-    @staticmethod
-    def _get_stream_key(channel: str) -> str:
-        if channel.startswith("eggai."):
-            return channel
-        return f"eggai.{channel}"

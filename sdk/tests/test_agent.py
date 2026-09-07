@@ -1,19 +1,19 @@
 import httpx
 import pytest
 from uuid import uuid4
+
 from google.protobuf.json_format import ParseDict
 from google.protobuf.struct_pb2 import Value
-from a2a.types import Message, Part, Role
 from starlette.applications import Starlette
-from starlette.routing import Route
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.request_handlers import DefaultRequestHandler
-from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
+from a2a.server.routes import create_jsonrpc_routes
 from a2a.server.tasks import InMemoryTaskStore
-from a2a.types import AgentCard, AgentInterface, Message, Part, Role
+from a2a.types import Message, Part, Role
 
+from eggai import Agent, Channel
 from eggai.adapters.a2a.config import A2AConfig
 from eggai.adapters.a2a.plugin import A2APlugin
 
@@ -112,11 +112,7 @@ async def test_a2a_skill_round_trip():
             "message": {
                 "messageId": "test-message-id",
                 "role": "ROLE_USER",
-                "parts": [
-                    {
-                        "text": "test-skill"
-                    }
-                ]
+                "parts": [{"text": "test-skill"}],
             }
         },
     }
@@ -140,3 +136,20 @@ async def test_a2a_skill_round_trip():
     assert body["jsonrpc"] == "2.0"
     assert "error" not in body
     assert "result" in body
+
+
+def test_plugin_kwargs_without_initialized_plugin_raises():
+    """Passing plugin-prefixed kwargs (e.g. ``a2a_*``) to subscribe() without
+    initializing that plugin via the Agent(...) constructor must raise a clear
+    error rather than an opaque KeyError on self.plugins."""
+    agent = Agent("test-agent")  # no a2a config -> a2a plugin not initialized
+
+    with pytest.raises(ValueError, match="'a2a' plugin is not initialized"):
+
+        @agent.subscribe(channel=Channel("test"), a2a_skill="greet")
+        async def handler(message):
+            return message
+
+    # The guard runs before the subscription is registered, so a rejected
+    # subscription must not leave a half-registered handler behind.
+    assert agent._subscriptions == []

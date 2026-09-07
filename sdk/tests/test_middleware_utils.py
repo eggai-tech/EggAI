@@ -120,6 +120,18 @@ def test_data_type_without_type_field_is_rejected():
         wrap_handler_with_filters(handler, data_type=NoType)
 
 
+def test_data_type_with_no_default_type_is_rejected():
+    """A 'type' field with no default has no discriminator value to match, so the
+    wrapper must raise rather than silently drop every message. Raw BaseMessage
+    declares `type: str = Field(...)` (required, no default) and triggers this."""
+
+    async def handler(m):
+        return m
+
+    with pytest.raises(ValueError, match="'type' field with no .*default"):
+        wrap_handler_with_filters(handler, data_type=BaseMessage)
+
+
 @pytest.mark.asyncio
 async def test_sync_handler_works_with_filter_by_message():
     """A synchronous handler combined with a filter must not raise from an
@@ -196,3 +208,39 @@ async def test_filter_by_data_narrows_typed_messages():
     await wrapped(_order_msg(order_id=2, status="shipped"))
 
     assert seen == [2]
+
+
+@pytest.mark.asyncio
+async def test_data_type_skips_envelope_with_missing_data():
+    """An envelope of the right type but with no ``data`` key must be skipped.
+
+    Regression test: ``data`` used to default to ``{}`` on the generic base and
+    pydantic does not validate defaults, so this envelope validated cleanly and
+    reached the handler with ``data`` as a plain dict — crashing on the first
+    ``order.data.<attr>`` access and, under NACK_ON_ERROR, wedging the stream on
+    a single malformed message.
+    """
+    seen = []
+
+    async def handler(order):
+        seen.append(order)
+
+    wrapped = wrap_handler_with_filters(handler, data_type=OrderMessage)
+    envelope = _order_msg()
+    del envelope["data"]
+
+    assert await wrapped(envelope) is None  # skipped -> acked, not retried
+    assert seen == []
+
+
+@pytest.mark.asyncio
+async def test_data_type_skips_envelope_with_malformed_data():
+    seen = []
+
+    async def handler(order):
+        seen.append(order)
+
+    wrapped = wrap_handler_with_filters(handler, data_type=OrderMessage)
+    await wrapped(_order_msg(data={"unexpected": "shape"}))
+
+    assert seen == []
