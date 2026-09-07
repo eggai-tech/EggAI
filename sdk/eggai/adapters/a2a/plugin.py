@@ -107,13 +107,19 @@ class A2APlugin:
                 "A2A functionality requires the a2a extra. Install with: pip install eggai[a2a]"
             )
 
-        from a2a.types import AgentCapabilities
+        from a2a.types import AgentCapabilities, AgentInterface
 
         return AgentCard(
             name=self.config.agent_name,
             description=self.config.description,
             version=self.config.version,
-            url=self.config.base_url,
+            supported_interfaces=[
+                AgentInterface(
+                    url=self.config.base_url,
+                    protocol_binding="JSONRPC",
+                    protocol_version="1.0",
+                )
+            ],
             skills=list(self.skills.values()),
             capabilities=AgentCapabilities(),  # Required field with default capabilities
             default_input_modes=["data", "text"],  # Default modes supported
