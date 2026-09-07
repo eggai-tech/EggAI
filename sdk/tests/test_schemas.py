@@ -36,6 +36,14 @@ def test_typed_subclass_accepts_valid_data():
     assert msg.data.order_id == 7
 
 
+def test_untyped_base_message_defaults_to_empty_dict():
+    # Only typed subclasses reject a missing payload; the generic base keeps
+    # working without one (0.4.0 briefly required it, restored in 0.4.1).
+    msg = BaseMessage(source="t", type="test.event")
+    assert msg.data == {}
+    assert BaseMessage.model_validate({"source": "t", "type": "test.event"}).data == {}
+
+
 def test_message_still_defaults_to_empty_dict():
     # The dict default lives on the concrete Message, where it is honest.
     msg = Message(source="t", type="test.event")

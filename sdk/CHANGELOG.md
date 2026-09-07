@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `BaseMessage.data` has its `{}` default back, now declared with
+  `validate_default=True`. 0.4.0 made the field required to stop typed
+  subclasses (`BaseMessage[Order]`) from silently accepting a missing payload;
+  validating the default achieves the same without breaking
+  `BaseMessage(source=..., type=...)` for the untyped base. Typed subclasses
+  still reject a missing or malformed payload with a `ValidationError`.
+
 ## [0.4.0] - 2026-09-07
 
 ### Added
