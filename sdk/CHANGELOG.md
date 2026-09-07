@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-07
+
 ### Added
 - Static type checking with mypy: the `eggai` package is type-checked in CI
   (`poetry run mypy`, config in `pyproject.toml`); `mypy` is a new dev dependency.
