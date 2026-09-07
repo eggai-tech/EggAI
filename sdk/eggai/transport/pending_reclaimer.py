@@ -315,7 +315,7 @@ class PendingReclaimerManager:
         forever.
         """
         try:
-            entries = await self._client.xrange(stream, min=msg_id, max=msg_id)
+            entries: Any = await self._client.xrange(stream, min=msg_id, max=msg_id)
             if not entries:
                 return 0
             _id, fields = entries[0]
@@ -377,7 +377,7 @@ class PendingReclaimerManager:
             if not stale_ids:
                 return
 
-        claimed: list[tuple[Any, dict]] = await self._client.xclaim(
+        claimed: Any = await self._client.xclaim(
             name=config.stream,
             groupname=config.group,
             consumername=config.consumer,  # "-reclaimer" suffix — no feedback loop

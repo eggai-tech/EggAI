@@ -119,6 +119,7 @@ line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.10"
+# The lint job installs no extras, so the a2a adapter and tracing are not type-checked yet.
 files = ["eggai"]
 ignore_missing_imports = true
 warn_unused_ignores = true
