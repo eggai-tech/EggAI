@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The concrete `Message` keeps its `{}` default, where the annotation really is
   a dict. Migration: construct payload-less envelopes with `Message` (or pass
   `data=` explicitly).
+- Allow ruff 0.16 (`ruff >=0.14.4,<0.17`) and exclude Markdown from ruff, which
+  now formats fenced code blocks by default.
 
 ## [0.3.4] - 2026-08-19
 
