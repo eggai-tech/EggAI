@@ -373,6 +373,74 @@ async def test_retry_on_idle_ms_basic():
 
 
 @pytest.mark.asyncio
+async def test_retry_and_dlq_fire_with_non_default_namespace(monkeypatch):
+    """Regression test for issue #261.
+
+    With a non-default EGGAI_NAMESPACE the transport used to consume on
+    ``<ns>.<topic>`` while the reclaimer, retry and DLQ streams lived under
+    ``eggai.<ns>.<topic>``, so retries never fired. Asserts that a failing
+    handler is retried and finally dead-lettered on the namespaced keys, and
+    that no ``eggai.``-prefixed shadow keys are created.
+    """
+    import eggai.channel as channel_mod
+
+    namespace = f"ns{uuid.uuid4().hex[:6]}"
+    monkeypatch.setattr(channel_mod, "NAMESPACE", namespace)
+
+    # DLQ payloads are binary-framed; do not decode responses.
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=False)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-ns-retry-{test_id}"
+    stream_name = f"{namespace}.{channel_name}"
+    group_main = f"ns-agent-{test_id}-always_fails-1"
+    retry_stream_name = f"{stream_name}.{group_main}.retry"
+    dlq_stream_name = f"{stream_name}.{group_main}.dlq"
+
+    transport = RedisTransport()
+    agent = Agent(f"ns-agent-{test_id}", transport=transport)
+    channel = Channel(channel_name, transport=transport)
+    assert channel.get_name() == stream_name
+
+    call_count = 0
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+        max_retries=1,
+    )
+    async def always_fails(message):
+        nonlocal call_count
+        call_count += 1
+        raise RuntimeError("poison message")
+
+    await agent.start()
+    await channel.publish({"type": "test", "data": "poison", "test_id": test_id})
+
+    dlq_entries = []
+    for _ in range(30):
+        await asyncio.sleep(1.0)
+        if await redis_client.exists(dlq_stream_name):
+            dlq_entries = await redis_client.xrange(dlq_stream_name)
+            if dlq_entries:
+                break
+
+    await agent.stop()
+
+    shadow_keys = await redis_client.keys(f"eggai.{namespace}.*".encode())
+    retry_len = await redis_client.xlen(retry_stream_name)
+    await redis_client.aclose()
+
+    assert call_count >= 2, f"Handler was never retried (calls={call_count})"
+    assert retry_len >= 1, (
+        "Retry stream on the namespaced key never received the message"
+    )
+    assert len(dlq_entries) == 1, "Message never arrived in the namespaced DLQ stream"
+    assert shadow_keys == [], f"Unexpected eggai.-prefixed shadow keys: {shadow_keys}"
+
+
+@pytest.mark.asyncio
 async def test_retry_does_not_fan_out_to_other_handlers():
     """
     Regression test for issue #225.
@@ -544,8 +612,12 @@ async def test_retry_on_idle_ms_conflict_with_min_idle_time():
 
 
 @pytest.mark.asyncio
-async def test_retry_on_idle_ms_uses_prefixed_stream_keys():
-    """Reclaimer configs must target the actual Redis stream keys used by FastStream."""
+async def test_retry_on_idle_ms_uses_channel_stream_keys():
+    """Reclaimer configs must target the exact Redis stream keys FastStream uses.
+
+    The channel name arrives already namespaced by ``Channel`` (issue #261);
+    the transport must not add a second prefix.
+    """
     transport = RedisTransport()
 
     async def handler(message):
@@ -566,16 +638,16 @@ async def test_retry_on_idle_ms_uses_prefixed_stream_keys():
     )
 
     assert len(configs) == 2
-    assert configs[0].stream == "eggai.orders"
+    assert configs[0].stream == "orders"
     # Per-handler retry/dlq keys (issue #225).
-    assert configs[0].retry_stream == "eggai.orders.orders-handler-1.retry"
+    assert configs[0].retry_stream == "orders.orders-handler-1.retry"
     # Default max_retries=5 should set up DLQ stream
     assert configs[0].max_retries == 5
-    assert configs[0].dlq_stream == "eggai.orders.orders-handler-1.dlq"
-    assert configs[1].stream == "eggai.orders.orders-handler-1.retry"
-    assert configs[1].retry_stream == "eggai.orders.orders-handler-1.retry"
+    assert configs[0].dlq_stream == "orders.orders-handler-1.dlq"
+    assert configs[1].stream == "orders.orders-handler-1.retry"
+    assert configs[1].retry_stream == "orders.orders-handler-1.retry"
     assert configs[1].max_retries == 5
-    assert configs[1].dlq_stream == "eggai.orders.orders-handler-1.dlq"
+    assert configs[1].dlq_stream == "orders.orders-handler-1.dlq"
 
 
 @pytest.mark.asyncio
@@ -626,9 +698,9 @@ async def test_retry_stream_pins_last_id_to_new_entries():
 
     subs = {s.stream_key: s for s in transport._stream_subscriptions}
     # Main stream honours the operator's replay request...
-    assert subs["eggai.orders"].group_create_id == "0"
+    assert subs["orders"].group_create_id == "0"
     # ...but the retry stream is pinned to new entries regardless ("$" == ">").
-    assert subs["eggai.orders.orders-handler-1.retry"].group_create_id == "$"
+    assert subs["orders.orders-handler-1.retry"].group_create_id == "$"
 
 
 @pytest.mark.asyncio
@@ -682,7 +754,7 @@ async def test_duplicate_subscribe_dedups_stream_subscriptions():
     await transport.subscribe("orders", handler, handler_id="orders-handler-1")
 
     orders_infos = [
-        s for s in transport._stream_subscriptions if s.stream_key == "eggai.orders"
+        s for s in transport._stream_subscriptions if s.stream_key == "orders"
     ]
     assert len(orders_infos) == 1
 
@@ -1033,7 +1105,7 @@ async def test_max_retries_validation():
 
 @pytest.mark.asyncio
 async def test_dlq_stream_naming():
-    """Reclaimer configs get the correct DLQ stream name with eggai. prefix."""
+    """Reclaimer configs derive the DLQ stream name from the channel as given."""
     transport = RedisTransport()
 
     async def handler(message):
@@ -1050,7 +1122,7 @@ async def test_dlq_stream_naming():
     assert transport._reclaimer_manager is not None
 
     configs = list(transport._reclaimer_manager._configs.values())
-    expected_dlq = "eggai.orders.orders-handler-1.dlq"
+    expected_dlq = "orders.orders-handler-1.dlq"
     for config in configs:
         assert config.dlq_stream == expected_dlq, (
             f"Expected dlq_stream={expected_dlq!r}, got {config.dlq_stream}"
@@ -1075,9 +1147,9 @@ async def test_monitor_tracks_stream_subscriptions():
     # Main subscription + retry subscription
     assert len(transport._stream_subscriptions) == 2
     stream_keys = [s.stream_key for s in transport._stream_subscriptions]
-    assert "eggai.orders" in stream_keys
+    assert "orders" in stream_keys
     # Per-handler retry stream key (issue #225).
-    assert "eggai.orders.orders-handler-1.retry" in stream_keys
+    assert "orders.orders-handler-1.retry" in stream_keys
 
     groups = [s.group for s in transport._stream_subscriptions]
     assert "orders-handler-1" in groups

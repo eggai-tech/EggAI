@@ -43,7 +43,7 @@ class _BinaryWriter:
 
 @dataclass(frozen=True)
 class ReclaimerConfig:
-    stream: str  # full Redis key, e.g. "eggai.orders"
+    stream: str  # full Redis key, e.g. "eggai.orders" (already namespaced by Channel)
     group: str  # consumer group name (mirrors handler_id)
     consumer: str  # distinct from live consumer: f"{handler_id}-reclaimer"
     retry_stream: str  # full Redis key for reclaimed messages; equals `stream` for the retry reclaimer

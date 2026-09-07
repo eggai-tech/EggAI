@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   swallow the `CancelledError` when the inner await completes concurrently, so
   the reclaimer task survived its own cancellation. The reclaimer loop now exits
   on a running flag as well as on cancellation.
+- **RedisTransport retries with a non-default `EGGAI_NAMESPACE`** (#261): the
+  reclaimer, group monitor, `.retry` and `.dlq` streams were keyed under
+  `eggai.<ns>.<topic>` while consumption and publishing used `<ns>.<topic>`, so
+  `retry_on_idle_ms` / `max_retries` never fired outside the default namespace.
+  The transport no longer adds its own `eggai.` prefix; `Channel` already
+  namespaces the name exactly once. After upgrading, entries stuck in the PEL
+  under a custom namespace are retried immediately and dead-lettered once the
+  retry budget is exhausted. Stale empty `eggai.<ns>.*` shadow keys can be
+  deleted.
 
 ### Changed
 - **BREAKING: `BaseMessage.data` is now required.** The generic base previously

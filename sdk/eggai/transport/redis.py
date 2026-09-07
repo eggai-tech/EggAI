@@ -500,7 +500,7 @@ class RedisTransport(Transport):
         main_sub_info = None
         if group:
             main_sub_info = _StreamGroupInfo(
-                stream_key=self._get_stream_key(channel),
+                stream_key=channel,
                 group=group,
                 group_create_id="$" if last_id == ">" else last_id,
             )
@@ -552,7 +552,7 @@ class RedisTransport(Transport):
             added_reclaimer_keys: list[tuple[str, str, str]] = []
             # The recursive subscribe below adds this entry (last_id=">" → "$").
             retry_sub_info = _StreamGroupInfo(
-                stream_key=self._get_stream_key(retry_stream),
+                stream_key=retry_stream,
                 group=retry_handler_id,
                 group_create_id="$",
             )
@@ -726,14 +726,14 @@ class RedisTransport(Transport):
             )
         return self._reclaimer_manager.add(
             ReclaimerConfig(
-                stream=self._get_stream_key(stream),
+                stream=stream,
                 group=group,
                 consumer=consumer,
-                retry_stream=self._get_stream_key(retry_stream),
+                retry_stream=retry_stream,
                 min_idle_ms=min_idle_ms,
                 interval_s=interval_s,
                 max_retries=max_retries,
-                dlq_stream=self._get_stream_key(dlq_stream) if dlq_stream else None,
+                dlq_stream=dlq_stream,
                 on_dlq=on_dlq,
                 max_len=self._retry_max_len,
                 backoff_multiplier=backoff_multiplier,
@@ -741,9 +741,3 @@ class RedisTransport(Transport):
                 backoff_jitter=backoff_jitter,
             )
         )
-
-    @staticmethod
-    def _get_stream_key(channel: str) -> str:
-        if channel.startswith("eggai."):
-            return channel
-        return f"eggai.{channel}"
