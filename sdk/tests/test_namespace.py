@@ -1,9 +1,11 @@
+import asyncio
 from contextlib import contextmanager
 
 import pytest
 
 import eggai.channel
-from eggai import Channel
+from eggai import Agent, Channel
+from eggai.transport import InMemoryTransport, eggai_set_default_transport
 
 
 class TestNamespace:
@@ -34,3 +36,23 @@ class TestNamespace:
         with self._override_namespace(namespace):
             channel = Channel(name=channel_name)
             assert channel._name == expected
+
+    @pytest.mark.asyncio
+    async def test_agent_subscribe_default_channel_uses_namespace(self):
+        """Bare @agent.subscribe() and bare Channel() must resolve to the same name."""
+        eggai_set_default_transport(lambda: InMemoryTransport())
+        received = []
+        with self._override_namespace("custom"):
+            agent = Agent("namespace-agent")
+
+            @agent.subscribe()
+            async def handler(msg):
+                received.append(msg)
+
+            await agent.start()
+            await Channel().publish({"type": "ping"})
+            await asyncio.sleep(0.1)
+            await agent.stop()
+
+        assert agent._subscriptions[0][0] == "custom.channel"
+        assert len(received) == 1

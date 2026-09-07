@@ -854,6 +854,39 @@ async def test_inject_retry_metadata_malformed_payload(caplog):
     assert any("Failed to inject retry metadata" in r.message for r in caplog.records)
 
 
+def test_inject_retry_metadata_non_ascii_header():
+    """Header length prefixes are byte counts, so multi-byte UTF-8 values survive re-encoding."""
+    from struct import pack
+
+    from faststream.redis.parser.binary import BinaryMessageFormatV1
+
+    from eggai.transport.pending_reclaimer import _inject_retry_metadata
+
+    headers = {"correlation_id": "c1", "x-tenant": "münchen", "x-after": "abc"}
+    headers_bytes = b""
+    for key, value in headers.items():
+        for raw in (key.encode(), value.encode()):
+            headers_bytes += pack(">H", len(raw)) + raw
+    headers_start = 18
+    envelope = (
+        BinaryMessageFormatV1.IDENTITY_HEADER
+        + pack(">H", 1)
+        + pack(">I", headers_start)
+        + pack(">I", 2 + headers_start + len(headers_bytes))
+        + pack(">H", len(headers))
+        + headers_bytes
+        + b'{"type":"t","data":{}}'
+    )
+
+    new_data, count, parsed_ok = _inject_retry_metadata(envelope, "1-0")
+
+    assert parsed_ok is True
+    assert count == 1
+    body, parsed_headers = BinaryMessageFormatV1.parse(new_data)
+    assert parsed_headers == headers
+    assert json.loads(body)["_retry_count"] == "1"
+
+
 @pytest.mark.asyncio
 async def test_reclaimer_manager_start_stop_cycles():
     """PendingReclaimerManager handles repeated start/stop without leaking clients."""

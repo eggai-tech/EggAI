@@ -34,7 +34,7 @@ class Channel:
         Initialize a Channel instance.
 
         Args:
-            name (str): The channel (topic) name. Defaults to "eggai.channel".
+            name (str): The channel (topic) name. Defaults to "<namespace>.channel".
             transport (Optional[Transport]): A concrete transport instance. If None, a default transport is used.
         """
         self._name = f"{NAMESPACE}.{name or DEFAULT_CHANNEL_NAME}"
