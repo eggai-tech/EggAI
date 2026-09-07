@@ -215,6 +215,8 @@ No configuration needed — always active with `RedisTransport`.
 
 ### Retry delivery reference
 
+The `eggai.` prefix below is the default `EGGAI_NAMESPACE`, not a fixed prefix: with `EGGAI_NAMESPACE=prod` the same keys are `prod.orders`, `prod.orders.<handler>.retry` and `prod.orders.<handler>.dlq`.
+
 ```
 Main stream  (eggai.orders)
     │

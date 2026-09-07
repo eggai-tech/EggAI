@@ -43,7 +43,7 @@ class _BinaryWriter:
 
 @dataclass(frozen=True)
 class ReclaimerConfig:
-    stream: str  # full Redis key, e.g. "eggai.orders"
+    stream: str  # full Redis key as given by Channel, e.g. "<namespace>.orders"
     group: str  # consumer group name (mirrors handler_id)
     consumer: str  # distinct from live consumer: f"{handler_id}-reclaimer"
     retry_stream: str  # full Redis key for reclaimed messages; equals `stream` for the retry reclaimer
@@ -51,7 +51,7 @@ class ReclaimerConfig:
     interval_s: float
     max_retries: int | None = None  # None = unlimited retries (no DLQ)
     dlq_stream: str | None = (
-        None  # full key, e.g. "eggai.orders.order-service-handle_order-1.dlq"
+        None  # full key, e.g. "<namespace>.orders.order-service-handle_order-1.dlq"
     )
     on_dlq: Callable | None = None  # async or sync callback(fields, msg_id, count)
     max_len: int | None = (
