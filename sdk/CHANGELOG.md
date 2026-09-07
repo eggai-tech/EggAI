@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `RedisTransport`: new `group_start` subscribe option (`"$"` default, `"0"` or
+  a stream id) chooses where a NEW consumer group starts reading, so a consumer
+  added to a channel that already carries traffic can pick up the existing
+  backlog. The transport now creates its consumer groups itself before the
+  broker starts (#260).
+
 ### Fixed
 - `RedisTransport`: `agent.stop()` could hang forever on Python 3.10/3.11 with
   redis-py >= 8. redis-py 8 sends every command through `asyncio.wait_for`
@@ -44,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `data=` explicitly).
 - Allow ruff 0.16 (`ruff >=0.14.4,<0.17`) and exclude Markdown from ruff, which
   now formats fenced code blocks by default.
+- `RedisTransport`: `last_id` other than `">"` together with a consumer group
+  now raises `ValueError`. That combination never delivered new entries (Redis
+  returns only the consumer's own pending entries for an explicit id) and
+  hot-looped XREADGROUP; the earlier note about replaying a backlog with
+  `last_id="0"` was wrong. Use `group_start="0"` instead.
 
 ## [0.3.4] - 2026-08-19
 
