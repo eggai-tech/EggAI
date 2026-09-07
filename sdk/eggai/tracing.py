@@ -141,6 +141,7 @@ def setup_tracing(
     if isinstance(trace.get_tracer_provider(), ProxyTracerProvider):
         trace.set_tracer_provider(provider)
     else:
+        # Adopt the already-configured provider (API base type, not the SDK one).
         provider = trace.get_tracer_provider()
 
     from importlib.metadata import version

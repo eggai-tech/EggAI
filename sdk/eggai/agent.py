@@ -9,7 +9,7 @@ from .hooks import eggai_register_stop
 from .transport import get_default_transport
 from .transport.base import Transport
 
-HANDLERS_IDS = defaultdict(int)
+HANDLERS_IDS: defaultdict[str, int] = defaultdict(int)
 
 PLUGIN_LIST = ["a2a"]
 
@@ -43,7 +43,7 @@ class Agent:
         self._stop_registered = False
 
         # Initialize plugins system
-        self.plugins = {}
+        self.plugins: dict[Any, dict[str, Any]] = {}
 
         # Initialize plugins generically
         for plugin_name in PLUGIN_LIST:
@@ -132,13 +132,25 @@ class Agent:
                         kwargs.pop(key)
                         plugin_found_keys.add(plugin_name)
 
-            self._subscriptions.append((channel_name, handler, kwargs))
-
-            # Call plugin subscribe methods if they have relevant kwargs
+            # Call plugin subscribe methods if they have relevant kwargs. Validate
+            # before registering the subscription so a misconfiguration doesn't leave
+            # a half-registered handler in self._subscriptions.
             for plugin_found_key in plugin_found_keys:
-                self.plugins[plugin_found_key]["_instance"].subscribe(
-                    channel_name, handler, **original_kwargs
-                )
+                plugin = self.plugins.get(plugin_found_key)
+                if plugin is None or "_instance" not in plugin:
+                    # Plugin-prefixed kwargs were passed to subscribe(), but the
+                    # plugin is only instantiated when matching kwargs are passed to
+                    # Agent(...). Without that, self.plugins has no entry and the
+                    # access below would raise an opaque KeyError.
+                    raise ValueError(
+                        f"Subscription passed {plugin_found_key!r}-prefixed kwargs, "
+                        f"but the {plugin_found_key!r} plugin is not initialized on "
+                        f"this agent. Pass {plugin_found_key!r} configuration to the "
+                        "Agent(...) constructor to enable it."
+                    )
+                plugin["_instance"].subscribe(channel_name, handler, **original_kwargs)
+
+            self._subscriptions.append((channel_name, handler, kwargs))
 
             return handler
 

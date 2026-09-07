@@ -37,7 +37,7 @@ class Transport(ABC):
     async def subscribe(
         self,
         channel: str,
-        callback: Callable[[dict[str, Any]], "asyncio.Future"],
+        handler: Callable[[dict[str, Any]], "asyncio.Future"],
         **kwargs,
     ) -> Callable:
         """

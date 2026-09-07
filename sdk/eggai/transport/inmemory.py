@@ -6,7 +6,8 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
-from eggai.schemas import BaseMessage
+from pydantic import BaseModel
+
 from eggai.transport import Transport
 from eggai.transport.middleware_utils import wrap_handler_with_filters
 
@@ -90,7 +91,7 @@ class InMemoryTransport(Transport):
         self._consume_tasks.clear()
         self._connected = False
 
-    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseModel):
         """
         Publishes a message to the given channel.
         The message is put into all queues for that channel so each consumer group receives it.
@@ -111,7 +112,7 @@ class InMemoryTransport(Transport):
     async def subscribe(
         self,
         channel: str,
-        callback: Callable[[dict[str, Any]], "asyncio.Future"],
+        handler: Callable[[dict[str, Any]], "asyncio.Future"],
         **kwargs,
     ):
         """
@@ -129,7 +130,7 @@ class InMemoryTransport(Transport):
         # and typed delivery identical across all transports and is the single place
         # that rejects invalid filter-option combinations. Tracing stays outermost.
         final_callback = wrap_handler_with_filters(
-            callback,
+            handler,
             data_type=kwargs.get("data_type"),
             filter_by_data=kwargs.get("filter_by_data"),
             filter_by_message=kwargs.get("filter_by_message"),

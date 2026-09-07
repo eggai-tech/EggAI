@@ -5,8 +5,8 @@ from typing import Any
 from aiokafka.admin import AIOKafkaAdminClient, NewTopic
 from aiokafka.errors import TopicAlreadyExistsError
 from faststream.kafka import KafkaBroker
+from pydantic import BaseModel
 
-from eggai.schemas import BaseMessage
 from eggai.transport.base import Transport
 from eggai.transport.middleware_utils import wrap_handler_with_filters
 
@@ -141,7 +141,11 @@ class KafkaTransport(Transport):
             and self.broker._producer
         ):
             try:
-                await self.broker._producer._producer.client.force_metadata_update()
+                # Reaches into aiokafka internals via FastStream's producer — there
+                # is no public API for force_metadata_update(). Guarded by the
+                # hasattr check above and a broad except so a FastStream internals
+                # change degrades gracefully (stale metadata, not a crash).
+                await self.broker._producer._producer.client.force_metadata_update()  # type: ignore[attr-defined]
             except Exception:
                 pass
 
@@ -151,7 +155,7 @@ class KafkaTransport(Transport):
             await self._ensure_topic(channel)
             self._topics_to_create.add(channel)
 
-    async def publish(self, channel: str, message: dict[str, Any] | BaseMessage):
+    async def publish(self, channel: str, message: dict[str, Any] | BaseModel):
         """
         Publishes a message to the specified Kafka topic (channel).
 

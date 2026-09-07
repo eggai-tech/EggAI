@@ -35,22 +35,23 @@ class EggAIAgentExecutor(AgentExecutor):
             if skill_name not in self.a2a_plugin.handlers:
                 error_msg = f"Unknown skill: {skill_name}. Available skills: {list(self.a2a_plugin.handlers.keys())}"
                 logger.error(error_msg)
-                await event_queue.enqueue_event({"text": error_msg})
+                # Use the same A2A-message wrapper as every other response path,
+                # rather than enqueuing a raw dict the event queue can't model.
+                await self._send_agent_response(event_queue, {"error": error_msg})
                 return
 
             # Get handler and extract message data
             handler = self.a2a_plugin.handlers[skill_name]
             message_data = self._extract_message_data(request_context)
 
-            # Create proper BaseMessage with validated data
+            # Validate the raw data against the skill's declared type (if any) and
+            # wrap it in the BaseMessage subclass the handler expects. Looked up once;
+            # data_type may be None (a skill can register without one), which falls
+            # through to the generic BaseMessage rather than calling None(...).
             validated_data = message_data
-            if skill_name in self.a2a_plugin.data_types:
-                data_type = self.a2a_plugin.data_types[skill_name]
-                if (
-                    data_type
-                    and hasattr(data_type, "__args__")
-                    and len(data_type.__args__) > 0
-                ):
+            data_type = self.a2a_plugin.data_types.get(skill_name)
+            if data_type is not None:
+                if hasattr(data_type, "__args__") and len(data_type.__args__) > 0:
                     # Extract inner type from BaseMessage[T] and validate the raw data
                     inner_type = data_type.__args__[0]
                     if hasattr(inner_type, "model_validate"):
@@ -64,10 +65,6 @@ class EggAIAgentExecutor(AgentExecutor):
                                 f"Failed to validate data as {inner_type.__name__}: {e}"
                             )
                             # Keep as dict if validation fails
-
-            # Create the proper BaseMessage structure that the handler expects
-            if skill_name in self.a2a_plugin.data_types:
-                data_type = self.a2a_plugin.data_types[skill_name]
                 # Create instance of the specific BaseMessage subclass
                 eggai_message = data_type(
                     source="a2a-client",
@@ -216,6 +213,6 @@ class EggAIAgentExecutor(AgentExecutor):
             # Fallback: try to send as simple event
             try:
                 await event_queue.enqueue_event({"text": json.dumps(data)})
-            except (json.JSONEncodeError, TypeError) as json_err:
+            except (TypeError, ValueError) as json_err:
                 logger.error(f"Failed to serialize response data: {json_err}")
                 raise
