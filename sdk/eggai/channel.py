@@ -23,6 +23,27 @@ NAMESPACE = os.getenv("EGGAI_NAMESPACE", "eggai")
 DEFAULT_CHANNEL_NAME = "channel"
 
 
+def resolve_dlq_channel(value: "Channel | str | None") -> str | None:
+    """Turn the ``dlq_channel`` subscribe option into a full stream key.
+
+    ``Agent.subscribe`` / ``Channel.subscribe`` accept either a :class:`Channel`
+    (its namespaced name is used as-is) or a bare topic name, which is
+    namespaced exactly like ``Channel(name)`` would be — so ``"dlq"`` becomes
+    ``"<EGGAI_NAMESPACE>.dlq"``. The transport layer only ever sees the full key.
+    Namespacing here rather than in the transport keeps the rule in one place
+    (see #261/#264 for what happens when two layers both try to prefix).
+    """
+    if value is None:
+        return None
+    if isinstance(value, Channel):
+        return value.get_name()
+    if isinstance(value, str) and value:
+        return f"{NAMESPACE}.{value}"
+    raise ValueError(
+        f"dlq_channel must be a Channel or a non-empty topic name string, got {value!r}"
+    )
+
+
 class Channel:
     """
     A channel that publishes messages to a given 'name' on its own Transport.
@@ -101,6 +122,8 @@ class Channel:
         )
         HANDLERS_IDS[handler_name] += 1
         kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
+        if kwargs.get("dlq_channel") is not None:
+            kwargs["dlq_channel"] = resolve_dlq_channel(kwargs["dlq_channel"])
         await self._get_transport().subscribe(self._name, callback, **kwargs)
         await self._ensure_connected()
 

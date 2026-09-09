@@ -332,6 +332,15 @@ class RedisTransport(Transport):
             on_dlq (Callable, optional): Callback invoked when a message is routed to the DLQ. Can be sync or async.
                 Signature: ``on_dlq(fields: dict, msg_id: str, retry_count: int)``. Errors in the callback are
                 logged but never prevent the DLQ write. Only used when retry_on_idle_ms and max_retries are set.
+            dlq_channel (str, optional): Full stream key to dead-letter into instead of the per-handler
+                ``{channel}.{handler_suffix}.dlq``. Lets many handlers (or many services) share ONE DLQ stream
+                that a single consumer can subscribe to. At this level it is a raw key; ``Agent.subscribe`` /
+                ``Channel.subscribe`` accept a ``Channel`` or a topic name and namespace it for you. Requires
+                retry_on_idle_ms and a non-None max_retries; must differ from the subscribed channel (a
+                handler dead-lettering into its own input would loop). The retry stream stays per-handler —
+                only the terminal sink is shared. Every DLQ entry carries ``_dlq_source`` (origin channel key),
+                ``_dlq_handler``, ``_dlq_at`` and ``_dlq_reason`` in its body so a shared consumer can tell
+                entries apart; subscribe to the DLQ with ``group_start="0"`` to pick up an existing backlog.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters
@@ -356,6 +365,7 @@ class RedisTransport(Transport):
         _explicit_max_retries = "max_retries" in kwargs
         max_retries = kwargs.pop("max_retries", 5)
         on_dlq = kwargs.pop("on_dlq", None)
+        dlq_channel = kwargs.pop("dlq_channel", None)
         _explicit_backoff = (
             "retry_backoff_multiplier" in kwargs
             or "retry_backoff_max_ms" in kwargs
@@ -496,6 +506,31 @@ class RedisTransport(Transport):
         if retry_on_idle_ms is None:
             max_retries = None
 
+        # A shared DLQ only makes sense when there is a DLQ at all, and it must
+        # never be the stream this handler consumes (dead-lettering into your own
+        # input is a feedback loop, not a retry).
+        if dlq_channel is not None:
+            if not isinstance(dlq_channel, str) or not dlq_channel:
+                raise ValueError(
+                    "dlq_channel must be a non-empty stream key (Agent.subscribe / "
+                    "Channel.subscribe also accept a Channel instance)."
+                )
+            if retry_on_idle_ms is None:
+                raise ValueError(
+                    "dlq_channel requires retry_on_idle_ms to be set. "
+                    "Set retry_on_idle_ms to enable SDK-managed retries with a DLQ."
+                )
+            if max_retries is None:
+                raise ValueError(
+                    "dlq_channel requires max_retries: max_retries=None disables the "
+                    "DLQ entirely, so there is nothing to route to the shared channel."
+                )
+            if dlq_channel == channel:
+                raise ValueError(
+                    f"dlq_channel {dlq_channel!r} is the channel this handler "
+                    "subscribes to; dead-lettering into its own input would loop."
+                )
+
         stream_sub = StreamSub(
             channel,
             group=group,
@@ -552,9 +587,16 @@ class RedisTransport(Transport):
             )
             handler_suffix = handler_id if handler_id else f"{channel}-{handler_name}"
             retry_stream = f"{channel}.{handler_suffix}.retry"
-            dlq_stream = (
-                f"{channel}.{handler_suffix}.dlq" if max_retries is not None else None
-            )
+            # The DLQ is the one stream that may be shared across handlers: an
+            # explicit dlq_channel replaces the per-handler default. The retry
+            # stream is never shared — that is the #225 fan-out bug.
+            dlq_stream: str | None
+            if max_retries is None:
+                dlq_stream = None
+            elif dlq_channel is not None:
+                dlq_stream = dlq_channel
+            else:
+                dlq_stream = f"{channel}.{handler_suffix}.dlq"
             retry_handler_id = f"{handler_suffix}-retry"
 
             # Set up the retry machinery transactionally: if any step below (incl.
@@ -571,6 +613,11 @@ class RedisTransport(Transport):
                 group_create_id="$",
             )
             try:
+                if dlq_stream is not None and dlq_stream == retry_stream:
+                    raise ValueError(
+                        f"dlq_channel {dlq_stream!r} collides with this handler's "
+                        "retry stream; pick a different DLQ key."
+                    )
                 # Reclaimer for main stream: moves idle PEL entries to retry_stream
                 # (or to dlq_stream if max_retries is exceeded).
                 added_reclaimer_keys.append(
@@ -587,6 +634,8 @@ class RedisTransport(Transport):
                         backoff_multiplier=retry_backoff_multiplier,
                         backoff_max_ms=retry_backoff_max_ms,
                         backoff_jitter=retry_backoff_jitter,
+                        source_stream=channel,
+                        handler=handler_suffix,
                     )
                 )
 
@@ -649,6 +698,10 @@ class RedisTransport(Transport):
                         backoff_multiplier=retry_backoff_multiplier,
                         backoff_max_ms=retry_backoff_max_ms,
                         backoff_jitter=retry_backoff_jitter,
+                        # Provenance is the *original* channel, not the retry
+                        # stream this reclaimer scans.
+                        source_stream=channel,
+                        handler=handler_suffix,
                     )
                 )
             except Exception:
@@ -759,6 +812,8 @@ class RedisTransport(Transport):
         backoff_multiplier: float = 1.0,
         backoff_max_ms: int | None = None,
         backoff_jitter: float = 0.0,
+        source_stream: str | None = None,
+        handler: str | None = None,
     ) -> tuple[str, str, str]:
         if self._reclaimer_manager is None:
             self._reclaimer_manager = PendingReclaimerManager(
@@ -779,5 +834,7 @@ class RedisTransport(Transport):
                 backoff_multiplier=backoff_multiplier,
                 backoff_max_ms=backoff_max_ms,
                 backoff_jitter=backoff_jitter,
+                source_stream=source_stream,
+                handler=handler,
             )
         )

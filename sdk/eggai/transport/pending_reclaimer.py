@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import datetime
 import json
 import logging
 import random
@@ -65,6 +67,97 @@ class ReclaimerConfig:
     backoff_multiplier: float = 1.0  # 1.0 = constant cadence (no escalation)
     backoff_max_ms: int | None = None  # cap on the escalated threshold; None = uncapped
     backoff_jitter: float = 0.0  # fraction in [0,1]; adds up to this share on top of the threshold at random
+    # Provenance recorded on every DLQ entry (see _dlq_metadata). `source_stream`
+    # is the channel the handler subscribed to — NOT `stream`, which for the retry
+    # reclaimer is the retry stream. `handler` is the handler suffix / consumer
+    # group. Both matter once several handlers share one DLQ stream
+    # (`dlq_channel`): the entry itself must say where it came from, because the
+    # stream key no longer does.
+    source_stream: str | None = None
+    handler: str | None = None
+
+
+def _encode_envelope(headers: dict, body_bytes: bytes) -> bytes:
+    """Build a FastStream BinaryMessageFormatV1 envelope from headers + JSON body.
+
+    Layout (mirrors ``BinaryMessageFormatV1.encode()``):
+      [8B magic][2B version=1][4B headers_start][4B data_start]
+      [2B num_headers]([2B key_len][key][2B val_len][val])*
+      [body bytes]
+    """
+    headers_writer = _BinaryWriter()
+    for key, value in headers.items():
+        headers_writer.write_string(key)
+        headers_writer.write_string(value)
+    headers_bytes = headers_writer.get_bytes()
+
+    writer = _BinaryWriter()
+    writer.write(BinaryMessageFormatV1.IDENTITY_HEADER)  # 8 bytes → len=8
+    writer.write_short(1)  # version=1, 2B → len=10
+    headers_start = len(writer.data) + 8  # 10+8 = 18
+    data_start = 2 + headers_start + len(headers_bytes)  # 2+18+headers_len
+    writer.write_int(headers_start)  # 4B → len=14
+    writer.write_int(data_start)  # 4B → len=18
+    writer.write_short(len(headers))  # 2B → len=20
+    writer.write(headers_bytes)
+    writer.write(body_bytes)
+    return writer.get_bytes()
+
+
+def _dlq_metadata(config: ReclaimerConfig, reason: str) -> dict[str, str]:
+    """Provenance keys added to a DLQ entry's JSON body.
+
+    Kept as string values, like ``_retry_count``, so they survive any consumer
+    that stringifies fields. ``reason`` is ``"max_retries"`` or ``"poison"``.
+    """
+    meta = {
+        "_dlq_reason": reason,
+        "_dlq_at": datetime.datetime.now(datetime.timezone.utc).isoformat(
+            timespec="milliseconds"
+        ),
+    }
+    if config.source_stream is not None:
+        meta["_dlq_source"] = config.source_stream
+    if config.handler is not None:
+        meta["_dlq_handler"] = config.handler
+    return meta
+
+
+def _inject_dlq_metadata(data: bytes, meta: dict[str, str]) -> bytes:
+    """Merge ``meta`` into a parseable envelope's JSON body.
+
+    Only ever called on an envelope that ``_inject_retry_metadata`` just parsed
+    successfully, so the fallback (return the bytes untouched) is defensive.
+    Metadata goes in the *body*, not as extra XADD fields: FastStream's parser
+    reads only ``__data__``, so body keys are the only thing an eggai subscriber
+    on the DLQ stream can see.
+    """
+    try:
+        body_bytes, headers = BinaryMessageFormatV1.parse(data)
+        body = json.loads(body_bytes)
+        if not isinstance(body, dict):
+            return data
+    except Exception:
+        return data
+    body.update(meta)
+    return _encode_envelope(headers, json.dumps(body, separators=(",", ":")).encode())
+
+
+def _wrap_poison(data: bytes, meta: dict[str, str], msg_id_str: str) -> bytes:
+    """Wrap an unparseable ``__data__`` blob in a fresh, well-formed envelope.
+
+    A poison entry copied verbatim would be handed to a DLQ subscriber as raw
+    bytes (FastStream's parser falls back to the bare payload), which a typed
+    subscription silently skips and an untyped one cannot use. Wrapping keeps
+    the original bytes (base64, ``_dlq_raw_b64``) for forensics and re-drive
+    while guaranteeing every DLQ entry decodes to a JSON object.
+    """
+    body = {
+        **meta,
+        "_original_message_id": msg_id_str,
+        "_dlq_raw_b64": base64.b64encode(data).decode("ascii"),
+    }
+    return _encode_envelope({}, json.dumps(body, separators=(",", ":")).encode())
 
 
 def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int, bool]:
@@ -98,26 +191,7 @@ def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int, bo
     body_dict["_retry_count"] = str(new_count)
     body_dict.setdefault("_original_message_id", msg_id_str)
     new_body_bytes = json.dumps(body_dict, separators=(",", ":")).encode()
-
-    # Re-encode headers section.
-    headers_writer = _BinaryWriter()
-    for key, value in headers.items():
-        headers_writer.write_string(key)
-        headers_writer.write_string(value)
-    headers_bytes = headers_writer.get_bytes()
-
-    # Rebuild the binary envelope — mirrors BinaryMessageFormatV1.encode().
-    writer = _BinaryWriter()
-    writer.write(BinaryMessageFormatV1.IDENTITY_HEADER)  # 8 bytes → len=8
-    writer.write_short(1)  # version=1, 2B → len=10
-    headers_start = len(writer.data) + 8  # 10+8 = 18
-    data_start = 2 + headers_start + len(headers_bytes)  # 2+18+headers_len
-    writer.write_int(headers_start)  # 4B → len=14
-    writer.write_int(data_start)  # 4B → len=18
-    writer.write_short(len(headers))  # 2B → len=20
-    writer.write(headers_bytes)
-    writer.write(new_body_bytes)
-    return writer.get_bytes(), new_count, True
+    return _encode_envelope(headers, new_body_bytes), new_count, True
 
 
 class PendingReclaimerManager:
@@ -406,7 +480,13 @@ class PendingReclaimerManager:
             # (XACK) with a loud warning rather than spin on it indefinitely.
             if not parsed_ok:
                 if config.dlq_stream is not None:
-                    await self._xadd(config.dlq_stream, fields, config.max_len)
+                    # Wrap rather than copy verbatim so the DLQ entry is always a
+                    # decodable JSON object (the raw bytes ride along base64'd).
+                    dlq_fields = dict(fields)
+                    dlq_fields[data_key] = _wrap_poison(
+                        fields[data_key], _dlq_metadata(config, "poison"), msg_id_str
+                    )
+                    await self._xadd(config.dlq_stream, dlq_fields, config.max_len)
                     await self._client.xack(config.stream, config.group, msg_id)
                     logger.warning(
                         "Message %s has an unparseable envelope; moved to DLQ %s "
@@ -415,7 +495,7 @@ class PendingReclaimerManager:
                         config.dlq_stream,
                     )
                     await self._invoke_on_dlq(
-                        config, fields, data_key, msg_id_str, new_count
+                        config, dlq_fields, data_key, msg_id_str, new_count
                     )
                 else:
                     await self._client.xack(config.stream, config.group, msg_id)
@@ -432,7 +512,15 @@ class PendingReclaimerManager:
                 and config.dlq_stream is not None
                 and new_count > config.max_retries
             ):
-                await self._xadd(config.dlq_stream, fields, config.max_len)
+                # Stamp provenance (_dlq_source/_dlq_handler/_dlq_at/_dlq_reason)
+                # into the body: on a shared DLQ stream the key no longer says
+                # which channel or handler the message came from.
+                dlq_fields = dict(fields)
+                if data_key in dlq_fields:
+                    dlq_fields[data_key] = _inject_dlq_metadata(
+                        dlq_fields[data_key], _dlq_metadata(config, "max_retries")
+                    )
+                await self._xadd(config.dlq_stream, dlq_fields, config.max_len)
                 await self._client.xack(config.stream, config.group, msg_id)
                 logger.warning(
                     "Message %s exceeded max_retries=%d; moved to DLQ %s",
@@ -441,7 +529,7 @@ class PendingReclaimerManager:
                     config.dlq_stream,
                 )
                 await self._invoke_on_dlq(
-                    config, fields, data_key, msg_id_str, new_count
+                    config, dlq_fields, data_key, msg_id_str, new_count
                 )
             else:
                 await self._xadd(config.retry_stream, fields, config.max_len)

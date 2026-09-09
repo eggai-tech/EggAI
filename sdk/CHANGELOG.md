@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `RedisTransport`: new `dlq_channel` subscribe option. Dead-letters into ONE
+  stream you name instead of the per-handler `{channel}.{handler_suffix}.dlq`,
+  so a single consumer can subscribe to every handler's (or every service's)
+  failures with a plain `@agent.subscribe(channel=dlq, group_start="0")`.
+  Accepts a `Channel` or a topic name (namespaced like `Channel(name)`) on
+  `Agent.subscribe` / `Channel.subscribe`; a full key on
+  `RedisTransport.subscribe`. Requires `retry_on_idle_ms` and a non-`None`
+  `max_retries`; rejects the subscribed channel and the handler's retry stream
+  as targets. The `.retry` stream stays per-handler (#225) — only the terminal
+  sink is shared. Default behaviour without `dlq_channel` is unchanged.
+- Every DLQ entry now carries provenance in its JSON body, alongside the
+  existing `_retry_count` / `_original_message_id`: `_dlq_source` (the channel
+  key the handler subscribed to), `_dlq_handler` (handler suffix / consumer
+  group), `_dlq_at` (ISO-8601 UTC) and `_dlq_reason` (`"max_retries"` or
+  `"poison"`). Additive: typed models ignore the extra keys, as they already do
+  for `_retry_count`. The `on_dlq` callback's dict includes them too.
+
+### Changed
+- Poison messages (envelopes the reclaimer cannot parse) are no longer copied to
+  the DLQ verbatim. They are wrapped in a well-formed envelope whose body holds
+  the `_dlq_*` fields, `_original_message_id`, and the original bytes as
+  `_dlq_raw_b64`, so a DLQ subscriber always receives a decodable JSON object
+  instead of raw bytes. Re-drive scripts that handled raw poison entries should
+  read `_dlq_raw_b64`.
+
 ## [0.4.1] - 2026-09-07
 
 ### Fixed

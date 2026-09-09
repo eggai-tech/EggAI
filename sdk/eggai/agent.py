@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-from .channel import Channel
+from .channel import Channel, resolve_dlq_channel
 from .hooks import eggai_register_stop
 from .transport import get_default_transport
 from .transport.base import Transport
@@ -122,6 +122,28 @@ class Agent:
                         "idle threshold); a cap below the base would disable backoff "
                         "entirely."
                     )
+            # Shared DLQ: resolve Channel / topic name to a full key here (the
+            # transport only knows keys) and fail at decoration time, like the
+            # other retry knobs, so a typo can't silently no-op.
+            if kwargs.get("dlq_channel") is not None:
+                if "retry_on_idle_ms" not in kwargs:
+                    raise ValueError(
+                        "dlq_channel requires retry_on_idle_ms to be set. "
+                        "Set retry_on_idle_ms to enable SDK-managed retries with a DLQ."
+                    )
+                if "max_retries" in kwargs and kwargs["max_retries"] is None:
+                    raise ValueError(
+                        "dlq_channel requires max_retries: max_retries=None disables "
+                        "the DLQ entirely, so there is nothing to route to the shared "
+                        "channel."
+                    )
+                dlq_key = resolve_dlq_channel(kwargs["dlq_channel"])
+                if dlq_key == channel_name:
+                    raise ValueError(
+                        f"dlq_channel {dlq_key!r} is the channel this handler "
+                        "subscribes to; dead-lettering into its own input would loop."
+                    )
+                kwargs["dlq_channel"] = dlq_key
             original_kwargs = kwargs.copy()
 
             # Extract plugin-specific kwargs dynamically and clean them from kwargs
