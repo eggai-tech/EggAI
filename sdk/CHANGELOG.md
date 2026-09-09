@@ -45,6 +45,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unusable. Re-drive scripts that handled raw poison entries should read
   `_dlq_raw_b64`. Consequently `on_dlq` now receives that decoded dict for
   poison entries too, instead of the raw `{b"__data__": bytes}` fields.
+- `Agent.subscribe` / `Channel.subscribe` reject a `dlq_channel` *string* that
+  already starts with `EGGAI_NAMESPACE` (e.g. a pasted `channel.get_name()`),
+  which would otherwise be namespaced twice and route dead letters to an
+  unwatched `<ns>.<ns>.dlq`. Pass the bare topic name or a `Channel`.
+- `RedisTransport.subscribe` rejects `retry_on_idle_ms` without a consumer
+  group (`handler_id=` / `group=`): the reclaimer works on a group's PEL, so
+  without one every reclaim cycle just errored. `Agent`/`Channel` always set a
+  group; this only affects direct transport callers.
 - `dlq_channel` rejects any key ending in `.retry`, not just the handler's own
   retry stream: every `.retry` stream is auto-consumed by some handler, so
   dead-lettering into one would feed that handler's retry loop. The check runs

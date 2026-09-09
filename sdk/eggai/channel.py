@@ -40,6 +40,16 @@ def resolve_dlq_channel(value: "Channel | str | None") -> str | None:
     if isinstance(value, Channel):
         return value.get_name()
     if isinstance(value, str) and value:
+        # A string that already carries the namespace is almost certainly a full
+        # key pasted by mistake (e.g. `dlq.get_name()`); namespacing it again
+        # would route dead letters to "<ns>.<ns>.dlq", a stream nobody watches.
+        # Fail loudly instead: the Channel form exists for full keys.
+        if value.startswith(f"{NAMESPACE}."):
+            raise ValueError(
+                f"dlq_channel {value!r} already starts with the namespace "
+                f"{NAMESPACE!r}; pass the bare topic name "
+                f"({value[len(NAMESPACE) + 1 :]!r}) or a Channel instance."
+            )
         # Channel.__init__ is inert (transport is lazy, no stop hook until it
         # connects), so this is a pure name computation.
         return Channel(value).get_name()

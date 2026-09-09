@@ -475,6 +475,15 @@ class RedisTransport(Transport):
                 "Use retry_on_idle_ms for SDK-managed retry streams, or "
                 "min_idle_time for FastStream's built-in XAUTOCLAIM."
             )
+        # The reclaimer works on a consumer group's PEL (XPENDING / XCLAIM); with
+        # no group there is no PEL and every reclaim cycle would just error.
+        # Agent/Channel always supply a handler_id (hence a group); this only
+        # bites direct transport.subscribe() callers.
+        if retry_on_idle_ms is not None and not group:
+            raise ValueError(
+                "retry_on_idle_ms requires a consumer group: pass handler_id= or "
+                "group= (Agent.subscribe / Channel.subscribe set one automatically)."
+            )
 
         if (
             _explicit_max_retries

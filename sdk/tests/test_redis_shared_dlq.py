@@ -52,6 +52,11 @@ def test_resolve_dlq_channel_namespaces_topic_names():
         resolve_dlq_channel("")
     with pytest.raises(ValueError, match="non-empty"):
         resolve_dlq_channel(42)  # type: ignore[arg-type]
+    # A full key pasted as a string would be namespaced twice → reject loudly.
+    with pytest.raises(ValueError, match="already starts with the namespace"):
+        resolve_dlq_channel(f"{NAMESPACE}.dlq")
+    with pytest.raises(ValueError, match="already starts with the namespace"):
+        resolve_dlq_channel(Channel("dlq").get_name())
 
 
 def test_stamp_dead_letter_resets_budget_and_keeps_first_origin():
@@ -298,6 +303,9 @@ async def test_dlq_channel_validation_at_transport():
         await transport.subscribe(
             "orders", handler, handler_id="h-5", retry_on_idle_ms=500, dlq_channel=""
         )
+    # SDK-managed retries need a consumer group (the reclaimer works on its PEL).
+    with pytest.raises(ValueError, match="requires a consumer group"):
+        await transport.subscribe("orders", handler, retry_on_idle_ms=500)
 
 
 class _RecordingTransport(Transport):
