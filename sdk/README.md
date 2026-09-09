@@ -224,6 +224,12 @@ consumer can tell entries apart:
 | `_dlq_reason` | `"max_retries"`, or `"poison"` for an envelope the reclaimer could not parse |
 | `_retry_count`, `_original_message_id` | as on retry delivery |
 
+A shared DLQ is written **without** `MAXLEN` — `retry_max_len` applies to the retry
+streams and to per-handler DLQs only. `XADD MAXLEN` trims the whole stream regardless of
+which writer appended, so one service's cap would silently delete other services'
+unconsumed dead letters. Retention of a shared DLQ is the sink's job (`XTRIM`, or ack and
+trim on a schedule).
+
 A poison entry (unparseable envelope) is no longer copied to the DLQ verbatim: it is
 wrapped in a fresh envelope whose body holds the metadata above plus the original bytes
 as `_dlq_raw_b64`, so a DLQ subscriber always receives a decodable JSON object.

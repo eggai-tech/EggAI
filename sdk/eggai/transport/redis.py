@@ -97,7 +97,10 @@ class RedisTransport(Transport):
             retry_max_len (Optional[int]): Approximate cap on the SDK-managed retry and DLQ streams
                 (default 10_000). These hold only reclaimed failures, so their volume is bounded by your
                 error rate and a default cap prevents a runaway retry loop from growing without bound.
-                Set to ``None`` to disable trimming on retry/DLQ streams.
+                Set to ``None`` to disable trimming on retry/DLQ streams. Does NOT apply to a shared DLQ
+                (``dlq_channel``): ``XADD MAXLEN`` trims the whole stream regardless of writer, so one
+                service's cap would discard other services' unconsumed dead letters. A shared DLQ is
+                written untrimmed; its retention is the consuming sink's responsibility.
             **kwargs: Additional keyword arguments to pass to the RedisBroker if a new instance is created.
 
         Attributes:
@@ -341,6 +344,9 @@ class RedisTransport(Transport):
                 only the terminal sink is shared. Every DLQ entry carries ``_dlq_source`` (origin channel key),
                 ``_dlq_handler``, ``_dlq_at`` and ``_dlq_reason`` in its body so a shared consumer can tell
                 entries apart; subscribe to the DLQ with ``group_start="0"`` to pick up an existing backlog.
+                A shared DLQ is written WITHOUT ``MAXLEN`` (``retry_max_len`` does not apply): trimming is
+                stream-wide, so any writer's cap would delete other writers' unconsumed dead letters.
+                Retention of a shared DLQ is the sink's job.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters
@@ -597,6 +603,11 @@ class RedisTransport(Transport):
                 dlq_stream = dlq_channel
             else:
                 dlq_stream = f"{channel}.{handler_suffix}.dlq"
+            # A shared DLQ is never trimmed by its writers: XADD MAXLEN applies to
+            # the whole stream, so one service's cap would silently discard other
+            # services' unconsumed dead letters. Retention of a shared DLQ belongs
+            # to the sink (XTRIM / its own policy). Per-handler DLQs keep the cap.
+            dlq_max_len = None if dlq_channel is not None else self._retry_max_len
             retry_handler_id = f"{handler_suffix}-retry"
 
             # Set up the retry machinery transactionally: if any step below (incl.
@@ -636,6 +647,7 @@ class RedisTransport(Transport):
                         backoff_jitter=retry_backoff_jitter,
                         source_stream=channel,
                         handler=handler_suffix,
+                        dlq_max_len=dlq_max_len,
                     )
                 )
 
@@ -702,6 +714,7 @@ class RedisTransport(Transport):
                         # stream this reclaimer scans.
                         source_stream=channel,
                         handler=handler_suffix,
+                        dlq_max_len=dlq_max_len,
                     )
                 )
             except Exception:
@@ -814,6 +827,7 @@ class RedisTransport(Transport):
         backoff_jitter: float = 0.0,
         source_stream: str | None = None,
         handler: str | None = None,
+        dlq_max_len: int | None = None,
     ) -> tuple[str, str, str]:
         if self._reclaimer_manager is None:
             self._reclaimer_manager = PendingReclaimerManager(
@@ -836,5 +850,6 @@ class RedisTransport(Transport):
                 backoff_jitter=backoff_jitter,
                 source_stream=source_stream,
                 handler=handler,
+                dlq_max_len=dlq_max_len,
             )
         )

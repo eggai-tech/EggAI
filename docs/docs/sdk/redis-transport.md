@@ -271,6 +271,8 @@ Do **not** give the sink `retry_on_idle_ms` together with the same `dlq_channel`
 | `_dlq_reason` | `"max_retries"`, or `"poison"` for an unparseable envelope |
 | `_retry_count`, `_original_message_id` | as on retry delivery |
 
+**No `MAXLEN` on a shared DLQ.** `retry_max_len` caps the retry streams and per-handler DLQs, not a shared `dlq_channel`. `XADD MAXLEN` trims the whole stream regardless of which writer appended, so with several services writing to one DLQ the smallest cap among them would silently delete the others' unconsumed dead letters. A shared DLQ is written untrimmed; retention is the sink's responsibility (`XTRIM`, or a scheduled trim once entries are processed).
+
 **Poison entries are wrapped.** An envelope the reclaimer cannot parse used to be copied to the DLQ verbatim; FastStream's parser then falls back to raw bytes, which a typed subscription silently skips and an untyped one cannot use. It is now written as a fresh envelope whose body holds the fields above plus the original bytes as `_dlq_raw_b64`, so every DLQ entry decodes to a JSON object. Re-drive tooling that handled raw poison entries should read `_dlq_raw_b64` instead.
 
 Validation: `dlq_channel` requires `retry_on_idle_ms` and a non-`None` `max_retries` (with `max_retries=None` there is no DLQ to redirect), and must differ from the subscribed channel and from the handler's retry stream. All of it fails at `subscribe()` time.

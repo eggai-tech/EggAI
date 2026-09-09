@@ -165,6 +165,36 @@ async def test_dlq_channel_shared_by_both_reclaimers_and_across_handlers():
 
 
 @pytest.mark.asyncio
+async def test_shared_dlq_is_never_trimmed_by_its_writers():
+    """XADD MAXLEN trims the whole stream regardless of writer, so a shared DLQ
+    must not inherit any single writer's retry_max_len; the per-handler DLQ and
+    the retry streams keep the cap."""
+    transport = RedisTransport(retry_max_len=250)
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-h-1",
+        retry_on_idle_ms=500,
+        dlq_channel="ops.dlq",
+    )
+    await transport.subscribe(
+        "payments", handler, handler_id="payments-h-1", retry_on_idle_ms=500
+    )
+    assert transport._reclaimer_manager is not None
+    by_source = {}
+    for c in transport._reclaimer_manager._configs.values():
+        by_source.setdefault(c.source_stream, set()).add((c.max_len, c.dlq_max_len))
+    # Shared DLQ: retry stream still capped, DLQ untrimmed.
+    assert by_source["orders"] == {(250, None)}
+    # Per-handler default: both capped, as before.
+    assert by_source["payments"] == {(250, 250)}
+
+
+@pytest.mark.asyncio
 async def test_dlq_default_unchanged_when_dlq_channel_not_passed():
     transport = RedisTransport()
 

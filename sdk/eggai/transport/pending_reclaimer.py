@@ -58,8 +58,14 @@ class ReclaimerConfig:
     )
     on_dlq: Callable | None = None  # async or sync callback(fields, msg_id, count)
     max_len: int | None = (
-        None  # cap retry/DLQ stream length (XADD MAXLEN ~); None = unbounded
+        None  # cap retry stream length (XADD MAXLEN ~); None = unbounded
     )
+    # Cap for the DLQ stream, kept separate from `max_len` on purpose: MAXLEN trims
+    # the whole stream regardless of who wrote an entry or whether it was consumed,
+    # so on a *shared* DLQ (`dlq_channel`) every writer's cap would apply to every
+    # other writer's dead letters. The transport therefore passes None for a shared
+    # DLQ (retention is the sink's job) and `retry_max_len` for the per-handler one.
+    dlq_max_len: int | None = None
     # Exponential backoff between retry attempts. The reclaimer treats a PEL entry
     # as "stale" once it has been idle for `min_idle_ms * (backoff_multiplier **
     # retry_count)` (capped at backoff_max_ms). multiplier=1.0 reproduces the
@@ -486,7 +492,7 @@ class PendingReclaimerManager:
                     dlq_fields[data_key] = _wrap_poison(
                         fields[data_key], _dlq_metadata(config, "poison"), msg_id_str
                     )
-                    await self._xadd(config.dlq_stream, dlq_fields, config.max_len)
+                    await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
                     await self._client.xack(config.stream, config.group, msg_id)
                     logger.warning(
                         "Message %s has an unparseable envelope; moved to DLQ %s "
@@ -520,7 +526,7 @@ class PendingReclaimerManager:
                     dlq_fields[data_key] = _inject_dlq_metadata(
                         dlq_fields[data_key], _dlq_metadata(config, "max_retries")
                     )
-                await self._xadd(config.dlq_stream, dlq_fields, config.max_len)
+                await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
                 await self._client.xack(config.stream, config.group, msg_id)
                 logger.warning(
                     "Message %s exceeded max_retries=%d; moved to DLQ %s",
