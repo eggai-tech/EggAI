@@ -333,17 +333,23 @@ class RedisTransport(Transport):
                 called up to 6 times total (1 original + 5 retries). Set to None for unlimited retries (no DLQ).
                 Requires retry_on_idle_ms.
             on_dlq (Callable, optional): Callback invoked when a message is routed to the DLQ. Can be sync or async.
-                Signature: ``on_dlq(fields: dict, msg_id: str, retry_count: int)``. Errors in the callback are
-                logged but never prevent the DLQ write. Only used when retry_on_idle_ms and max_retries are set.
+                Signature: ``on_dlq(body: dict, msg_id: str, retry_count: int)``. ``body`` is the DLQ entry's
+                decoded body — exactly what a subscriber on the DLQ stream receives, including the ``_dlq_*``
+                provenance keys (for a poison entry: the provenance plus ``_dlq_raw_b64``, never raw bytes).
+                ``retry_count`` is the count that exceeded ``max_retries`` (0 for poison). Errors in the
+                callback are logged but never prevent the DLQ write. Only used when retry_on_idle_ms and
+                max_retries are set.
             dlq_channel (str, optional): Full stream key to dead-letter into instead of the per-handler
                 ``{channel}.{handler_suffix}.dlq``. Lets many handlers (or many services) share ONE DLQ stream
                 that a single consumer can subscribe to. At this level it is a raw key; ``Agent.subscribe`` /
                 ``Channel.subscribe`` accept a ``Channel`` or a topic name and namespace it for you. Requires
                 retry_on_idle_ms and a non-None max_retries; must differ from the subscribed channel (a
-                handler dead-lettering into its own input would loop). The retry stream stays per-handler —
-                only the terminal sink is shared. Every DLQ entry carries ``_dlq_source`` (origin channel key),
-                ``_dlq_handler``, ``_dlq_at`` and ``_dlq_reason`` in its body so a shared consumer can tell
-                entries apart; subscribe to the DLQ with ``group_start="0"`` to pick up an existing backlog.
+                handler dead-lettering into its own input would loop) and must not end in ``.retry`` (SDK-managed
+                retry streams). The retry stream stays per-handler — only the terminal sink is shared. Every
+                DLQ entry carries ``_dlq_source`` (origin channel key), ``_dlq_handler``, ``_dlq_at``,
+                ``_dlq_reason`` and ``_dlq_retries`` in its body so a shared consumer can tell entries apart,
+                and ``_retry_count`` is reset to ``"0"`` so a DLQ consumer with its own retries starts with a
+                fresh budget; subscribe to the DLQ with ``group_start="0"`` to pick up an existing backlog.
                 A shared DLQ is written WITHOUT ``MAXLEN`` (``retry_max_len`` does not apply): trimming is
                 stream-wide, so any writer's cap would delete other writers' unconsumed dead letters.
                 Retention of a shared DLQ is the sink's job.
@@ -414,6 +420,21 @@ class RedisTransport(Transport):
             )
 
         handler_id = kwargs.pop("handler_id", None)
+
+        # Per-handler retry/DLQ keys (issue #225): derived once, up front, so the
+        # dlq_channel validation below can run BEFORE the broker subscriber is
+        # registered (that registration cannot be undone). `Agent`/`Channel`
+        # always inject a unique handler_id; the fallback only applies to callers
+        # that use transport.subscribe() directly, who should pass a distinct
+        # handler_id per handler on one channel. getattr guards objects without a
+        # __name__ (e.g. functools.partial). Derived from the original handler,
+        # not the tracing wrapper.
+        handler_name = (
+            getattr(original_handler, "__name__", None)
+            or type(original_handler).__name__
+        )
+        handler_suffix = handler_id if handler_id else f"{channel}-{handler_name}"
+        retry_stream = f"{channel}.{handler_suffix}.retry"
 
         # Ignore Kafka-specific parameter (Redis uses 'group' for streams, not 'group_id')
         kwargs.pop("group_id", None)
@@ -536,6 +557,15 @@ class RedisTransport(Transport):
                     f"dlq_channel {dlq_channel!r} is the channel this handler "
                     "subscribes to; dead-lettering into its own input would loop."
                 )
+            # Not just this handler's retry stream: another handler's `.retry`
+            # is auto-consumed by *that* handler, so dead-lettering into it
+            # would re-run the wrong handler on the message (the #225 class).
+            if dlq_channel.endswith(".retry"):
+                raise ValueError(
+                    f"dlq_channel {dlq_channel!r} names an SDK-managed retry "
+                    "stream ('.retry' suffix); dead-lettering into a retry stream "
+                    "would feed a handler's retry loop. Pick a different key."
+                )
 
         stream_sub = StreamSub(
             channel,
@@ -572,27 +602,12 @@ class RedisTransport(Transport):
         )(handler)
 
         if retry_on_idle_ms is not None and not _internal_retry:
-            # Per-handler retry/dlq stream keys: when multiple handlers
-            # subscribe to the same channel with different consumer groups,
-            # each gets its own retry/dlq streams. A single shared retry
-            # stream would broadcast one handler's failures to every other
-            # handler on the channel via the auto-created `-retry` consumer
-            # groups. See issue #225.
-            # `Agent`/`Channel` always inject a unique handler_id (via the
-            # HANDLERS_IDS counter), so the fallback only applies to callers that
-            # use transport.subscribe() directly. getattr guards objects without a
-            # __name__ (e.g. functools.partial), which would otherwise raise after
-            # the main-stream subscriber is already registered. Direct callers that
-            # run multiple distinct handlers on one channel with retry_on_idle_ms
-            # should pass a distinct handler_id per handler — otherwise same-named
-            # handlers (or lambdas) collapse to the same per-handler key. Derive
-            # the name from the original handler, not the tracing wrapper.
-            handler_name = (
-                getattr(original_handler, "__name__", None)
-                or type(original_handler).__name__
-            )
-            handler_suffix = handler_id if handler_id else f"{channel}-{handler_name}"
-            retry_stream = f"{channel}.{handler_suffix}.retry"
+            # Per-handler retry/dlq stream keys (handler_suffix / retry_stream
+            # were derived above, next to handler_id): when multiple handlers
+            # subscribe to the same channel with different consumer groups, each
+            # gets its own retry/dlq streams. A single shared retry stream would
+            # broadcast one handler's failures to every other handler on the
+            # channel via the auto-created `-retry` consumer groups (#225).
             # The DLQ is the one stream that may be shared across handlers: an
             # explicit dlq_channel replaces the per-handler default. The retry
             # stream is never shared — that is the #225 fan-out bug.
@@ -624,11 +639,6 @@ class RedisTransport(Transport):
                 group_create_id="$",
             )
             try:
-                if dlq_stream is not None and dlq_stream == retry_stream:
-                    raise ValueError(
-                        f"dlq_channel {dlq_stream!r} collides with this handler's "
-                        "retry stream; pick a different DLQ key."
-                    )
                 # Reclaimer for main stream: moves idle PEL entries to retry_stream
                 # (or to dlq_stream if max_retries is exceeded).
                 added_reclaimer_keys.append(

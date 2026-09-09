@@ -845,12 +845,10 @@ async def test_inject_retry_metadata_malformed_payload(caplog):
 
     garbage = b"\x00\x01\x02not-valid-binary-format"
     with caplog.at_level(logging.WARNING, logger="eggai.transport.pending_reclaimer"):
-        result_data, result_count, parsed_ok = _inject_retry_metadata(garbage, "0-1")
-    assert result_data == garbage
-    assert result_count == 0
-    # parsed_ok=False signals the caller to treat this as a poison message
-    # (route to DLQ / drop) instead of re-queueing it forever.
-    assert parsed_ok is False
+        result = _inject_retry_metadata(garbage, "0-1")
+    # None signals the caller to treat this as a poison message (route to DLQ /
+    # drop) instead of re-queueing it forever.
+    assert result is None
     assert any("Failed to inject retry metadata" in r.message for r in caplog.records)
 
 
@@ -860,7 +858,10 @@ def test_inject_retry_metadata_non_ascii_header():
 
     from faststream.redis.parser.binary import BinaryMessageFormatV1
 
-    from eggai.transport.pending_reclaimer import _inject_retry_metadata
+    from eggai.transport.pending_reclaimer import (
+        _encode_body,
+        _inject_retry_metadata,
+    )
 
     headers = {"correlation_id": "c1", "x-tenant": "münchen", "x-after": "abc"}
     headers_bytes = b""
@@ -878,12 +879,14 @@ def test_inject_retry_metadata_non_ascii_header():
         + b'{"type":"t","data":{}}'
     )
 
-    new_data, count, parsed_ok = _inject_retry_metadata(envelope, "1-0")
+    parsed = _inject_retry_metadata(envelope, "1-0")
 
-    assert parsed_ok is True
+    assert parsed is not None
+    parsed_headers, body_dict, count = parsed
     assert count == 1
-    body, parsed_headers = BinaryMessageFormatV1.parse(new_data)
-    assert parsed_headers == headers
+    new_data = _encode_body(parsed_headers, body_dict)
+    body, reparsed_headers = BinaryMessageFormatV1.parse(new_data)
+    assert reparsed_headers == headers
     assert json.loads(body)["_retry_count"] == "1"
 
 
@@ -992,9 +995,11 @@ async def test_max_retries_routes_to_dlq():
 
     body_bytes, _headers = BinaryMessageFormatV1.parse(fields[b"__data__"])
     body = json.loads(body_bytes)
-    assert int(body["_retry_count"]) > 2, (
-        f"Expected _retry_count > 2 (exceeded max_retries=2), got {body['_retry_count']}"
-    )
+    # The exhausted budget is recorded as _dlq_retries (== max_retries) and
+    # _retry_count is reset so a DLQ consumer with its own retries starts fresh.
+    assert body["_dlq_retries"] == "2", body
+    assert body["_retry_count"] == "0", body
+    assert body["_dlq_reason"] == "max_retries"
     assert "_original_message_id" in body
 
     await redis_client.aclose()

@@ -27,18 +27,22 @@ def resolve_dlq_channel(value: "Channel | str | None") -> str | None:
     """Turn the ``dlq_channel`` subscribe option into a full stream key.
 
     ``Agent.subscribe`` / ``Channel.subscribe`` accept either a :class:`Channel`
-    (its namespaced name is used as-is) or a bare topic name, which is
-    namespaced exactly like ``Channel(name)`` would be — so ``"dlq"`` becomes
-    ``"<EGGAI_NAMESPACE>.dlq"``. The transport layer only ever sees the full key.
-    Namespacing here rather than in the transport keeps the rule in one place
-    (see #261/#264 for what happens when two layers both try to prefix).
+    (its namespaced name is used as-is) or a bare *topic name* — not a full
+    key — which is namespaced by going through ``Channel(name)`` itself, so
+    ``"dlq"`` becomes ``"<EGGAI_NAMESPACE>.dlq"``. The transport layer only ever
+    sees the full key. Reusing ``Channel`` rather than re-spelling the prefix
+    keeps the namespacing rule in one place (see #261/#264 for what happens
+    when two places both try to prefix). Pass a ``Channel`` if you already hold
+    a full key.
     """
     if value is None:
         return None
     if isinstance(value, Channel):
         return value.get_name()
     if isinstance(value, str) and value:
-        return f"{NAMESPACE}.{value}"
+        # Channel.__init__ is inert (transport is lazy, no stop hook until it
+        # connects), so this is a pure name computation.
+        return Channel(value).get_name()
     raise ValueError(
         f"dlq_channel must be a Channel or a non-empty topic name string, got {value!r}"
     )

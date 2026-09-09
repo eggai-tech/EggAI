@@ -269,13 +269,17 @@ Do **not** give the sink `retry_on_idle_ms` together with the same `dlq_channel`
 | `_dlq_handler` | handler suffix / consumer group |
 | `_dlq_at` | ISO-8601 UTC timestamp of the DLQ write |
 | `_dlq_reason` | `"max_retries"`, or `"poison"` for an unparseable envelope |
-| `_retry_count`, `_original_message_id` | as on retry delivery |
+| `_dlq_retries` | how many retries actually ran before giving up (`max_retries`; `"0"` for poison) |
+| `_retry_count` | **reset to `"0"`** on the DLQ write |
+| `_original_message_id` | as on retry delivery |
+
+Two rules make a DLQ entry safe to *consume*, not just inspect. `_retry_count` is reset so a DLQ consumer that has its own `retry_on_idle_ms` starts with a fresh budget — otherwise it would inherit an already-exceeded count, be dead-lettered again on its first transient failure and, with backoff, wait `base × multiplier^exhausted` for its first reclaim. And the `_dlq_*` keys are written set-if-absent, so when that consumer does give up and dead-letters the entry into its own DLQ, the original origin is preserved rather than overwritten with the consumer's own channel and handler.
 
 **No `MAXLEN` on a shared DLQ.** `retry_max_len` caps the retry streams and per-handler DLQs, not a shared `dlq_channel`. `XADD MAXLEN` trims the whole stream regardless of which writer appended, so with several services writing to one DLQ the smallest cap among them would silently delete the others' unconsumed dead letters. A shared DLQ is written untrimmed; retention is the sink's responsibility (`XTRIM`, or a scheduled trim once entries are processed).
 
 **Poison entries are wrapped.** An envelope the reclaimer cannot parse used to be copied to the DLQ verbatim; FastStream's parser then falls back to raw bytes, which a typed subscription silently skips and an untyped one cannot use. It is now written as a fresh envelope whose body holds the fields above plus the original bytes as `_dlq_raw_b64`, so every DLQ entry decodes to a JSON object. Re-drive tooling that handled raw poison entries should read `_dlq_raw_b64` instead.
 
-Validation: `dlq_channel` requires `retry_on_idle_ms` and a non-`None` `max_retries` (with `max_retries=None` there is no DLQ to redirect), and must differ from the subscribed channel and from the handler's retry stream. All of it fails at `subscribe()` time.
+Validation: `dlq_channel` requires `retry_on_idle_ms` and a non-`None` `max_retries` (with `max_retries=None` there is no DLQ to redirect), must differ from the subscribed channel, and must not end in `.retry` (every `.retry` stream is auto-consumed by some handler, so dead-lettering into one would feed that handler's retry loop). All of it fails at `subscribe()` time, before anything is registered on the broker.
 
 ### Tuning the Reclaimer
 

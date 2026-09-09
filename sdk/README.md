@@ -205,7 +205,7 @@ async def handle_payment(message): ...          # a topic name is namespaced lik
 # happened before this service booted.
 @ops_agent.subscribe(channel=dlq, group_start="0")
 async def on_dead_letter(message):
-    print(message["_dlq_source"], message["_dlq_handler"], message["_retry_count"])
+    print(message["_dlq_source"], message["_dlq_handler"], message["_dlq_retries"])
 ```
 
 Only the terminal sink is shared; each handler keeps its own `.retry` stream (a shared
@@ -222,7 +222,12 @@ consumer can tell entries apart:
 | `_dlq_handler` | handler suffix / consumer group (e.g. `order-service-handle_order-1`) |
 | `_dlq_at` | ISO-8601 UTC timestamp of the DLQ write |
 | `_dlq_reason` | `"max_retries"`, or `"poison"` for an envelope the reclaimer could not parse |
-| `_retry_count`, `_original_message_id` | as on retry delivery |
+| `_dlq_retries` | how many retries actually ran before giving up (`max_retries`; `"0"` for poison) |
+| `_retry_count` | **reset to `"0"`** on the DLQ write, so a DLQ consumer with its own `retry_on_idle_ms` starts with a fresh budget |
+| `_original_message_id` | as on retry delivery |
+
+The `_dlq_*` keys are written with set-if-absent semantics: if a DLQ consumer itself gives
+up on an entry and dead-letters it again, the *original* origin is preserved.
 
 A shared DLQ is written **without** `MAXLEN` — `retry_max_len` applies to the retry
 streams and to per-handler DLQs only. `XADD MAXLEN` trims the whole stream regardless of

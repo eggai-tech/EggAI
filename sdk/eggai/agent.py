@@ -68,7 +68,7 @@ class Agent:
             self._transport = get_default_transport()
         return self._transport
 
-    def subscribe(self, channel: Channel | None = None, **kwargs):
+    def subscribe(self, channel: Channel | None = None, **subscribe_kwargs):
         """
         Decorator for adding a subscription.
 
@@ -81,6 +81,11 @@ class Agent:
         """
 
         def decorator(handler: Callable[[dict[str, Any]], "asyncio.Future"]):
+            # Work on a copy: the decorator object may be applied to several
+            # handlers, and the resolution/popping below must not leak from one
+            # application into the next (e.g. re-namespacing an already-resolved
+            # dlq_channel into "<ns>.<ns>.dlq").
+            kwargs = dict(subscribe_kwargs)
             channel_name = (channel or Channel()).get_name()
             if "min_idle_time" in kwargs and "retry_on_idle_ms" in kwargs:
                 raise ValueError(
@@ -138,10 +143,17 @@ class Agent:
                         "channel."
                     )
                 dlq_key = resolve_dlq_channel(kwargs["dlq_channel"])
+                assert dlq_key is not None  # input was checked non-None above
                 if dlq_key == channel_name:
                     raise ValueError(
                         f"dlq_channel {dlq_key!r} is the channel this handler "
                         "subscribes to; dead-lettering into its own input would loop."
+                    )
+                if dlq_key.endswith(".retry"):
+                    raise ValueError(
+                        f"dlq_channel {dlq_key!r} names an SDK-managed retry stream "
+                        "('.retry' suffix); dead-lettering into a retry stream would "
+                        "feed a handler's retry loop. Pick a different name."
                     )
                 kwargs["dlq_channel"] = dlq_key
             original_kwargs = kwargs.copy()

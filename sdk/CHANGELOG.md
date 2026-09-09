@@ -25,16 +25,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   existing `_retry_count` / `_original_message_id`: `_dlq_source` (the channel
   key the handler subscribed to), `_dlq_handler` (handler suffix / consumer
   group), `_dlq_at` (ISO-8601 UTC) and `_dlq_reason` (`"max_retries"` or
-  `"poison"`). Additive: typed models ignore the extra keys, as they already do
-  for `_retry_count`. The `on_dlq` callback's dict includes them too.
+  `"poison"`) and `_dlq_retries` (how many retries actually ran). Additive:
+  typed models ignore the extra keys, as they already do for `_retry_count`.
+  The `_dlq_*` keys are set-if-absent, so an entry dead-lettered a second time
+  (by a DLQ consumer that gave up) keeps its original origin.
 
 ### Changed
+- **`_retry_count` is reset to `"0"` on the DLQ write** (the exhausted budget
+  moves to `_dlq_retries`). A DLQ entry is also a *first* delivery to whatever
+  consumes the DLQ; carrying the exceeded count over meant a DLQ consumer with
+  its own `retry_on_idle_ms` got zero retries and, with backoff, an escalated
+  first reclaim. Anything that read `_retry_count` off a DLQ entry should read
+  `_dlq_retries`; the `on_dlq` callback's `retry_count` argument is unchanged.
 - Poison messages (envelopes the reclaimer cannot parse) are no longer copied to
   the DLQ verbatim. They are wrapped in a well-formed envelope whose body holds
   the `_dlq_*` fields, `_original_message_id`, and the original bytes as
   `_dlq_raw_b64`, so a DLQ subscriber always receives a decodable JSON object
-  instead of raw bytes. Re-drive scripts that handled raw poison entries should
-  read `_dlq_raw_b64`.
+  instead of raw bytes. Envelope headers are preserved when only the body was
+  unusable. Re-drive scripts that handled raw poison entries should read
+  `_dlq_raw_b64`. Consequently `on_dlq` now receives that decoded dict for
+  poison entries too, instead of the raw `{b"__data__": bytes}` fields.
+- `dlq_channel` rejects any key ending in `.retry`, not just the handler's own
+  retry stream: every `.retry` stream is auto-consumed by some handler, so
+  dead-lettering into one would feed that handler's retry loop. The check runs
+  before the broker subscriber is registered.
+
+### Fixed
+- `PendingReclaimer`: a pending entry with a parseable envelope but a non-object
+  JSON body (e.g. a published list), a non-integer `_retry_count`, or no
+  `__data__` field at all (non-eggai producer) escaped the poison handling. The
+  first two raised outside the guarded parse and aborted the whole reclaim
+  cycle after `XCLAIM`, head-of-line blocking every later pending entry; the
+  third ping-ponged between main and retry stream forever with a retry count
+  that could never grow. All three are now dead-lettered as poison.
 
 ## [0.4.1] - 2026-09-07
 

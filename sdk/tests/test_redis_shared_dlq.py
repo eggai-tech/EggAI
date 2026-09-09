@@ -34,8 +34,9 @@ from eggai.transport.pending_reclaimer import (
     ReclaimerConfig,
     _dlq_metadata,
     _encode_envelope,
-    _inject_dlq_metadata,
-    _wrap_poison,
+    _parse_entry,
+    _poison_body,
+    _stamp_dead_letter,
 )
 
 # --------------------------------------------------------------------------- #
@@ -53,48 +54,75 @@ def test_resolve_dlq_channel_namespaces_topic_names():
         resolve_dlq_channel(42)  # type: ignore[arg-type]
 
 
-def test_inject_dlq_metadata_preserves_headers_and_body():
-    headers = {"correlation_id": "abc", "x-umlaut": "ü"}
-    body = {"type": "order", "data": {"k": 1}, "_retry_count": "4"}
-    data = _encode_envelope(headers, json.dumps(body).encode())
+def test_stamp_dead_letter_resets_budget_and_keeps_first_origin():
+    body = {
+        "type": "order",
+        "data": {"k": 1},
+        "_retry_count": "4",
+        "_original_message_id": "1-0",
+    }
+    origin = {
+        "_dlq_reason": "max_retries",
+        "_dlq_source": "ns.orders",
+        "_dlq_handler": "svc-h-1",
+        "_dlq_at": "t1",
+    }
+    _stamp_dead_letter(body, origin, 3)
+    assert body["data"] == {"k": 1}  # payload untouched
+    assert body["_dlq_source"] == "ns.orders"
+    assert body["_dlq_retries"] == "3"
+    assert body["_retry_count"] == "0"  # fresh budget for the DLQ consumer
+    assert body["_original_message_id"] == "1-0"
 
-    out = _inject_dlq_metadata(
-        data,
-        {
-            "_dlq_reason": "max_retries",
-            "_dlq_source": "ns.orders",
-            "_dlq_handler": "svc-h-1",
-            "_dlq_at": "2026-09-09T12:00:00.000+00:00",
-        },
+    # Dead-lettered a second time (the DLQ consumer itself gave up after 2
+    # retries): the original origin wins, the consumer's does not overwrite it.
+    sink = {
+        "_dlq_reason": "max_retries",
+        "_dlq_source": "ns.dlq",
+        "_dlq_handler": "sink-1",
+        "_dlq_at": "t2",
+    }
+    body["_retry_count"] = "3"
+    _stamp_dead_letter(body, sink, 2)
+    assert body["_dlq_source"] == "ns.orders"
+    assert body["_dlq_handler"] == "svc-h-1"
+    assert body["_dlq_at"] == "t1"
+    assert body["_dlq_retries"] == "3"
+    assert body["_retry_count"] == "0"
+
+
+def test_parse_entry_rejects_what_cannot_be_retried():
+    assert _parse_entry(b"garbage") is None
+    assert _parse_entry(_encode_envelope({}, b"[1,2]")) is None  # JSON array body
+    assert _parse_entry(_encode_envelope({}, b'{"_retry_count":"n/a"}')) is None
+    parsed = _parse_entry(
+        _encode_envelope({"h": "v"}, b'{"type":"t","_retry_count":"2"}')
     )
-
-    body_bytes, parsed_headers = BinaryMessageFormatV1.parse(out)
-    parsed = json.loads(body_bytes)
-    assert parsed_headers == headers
-    assert parsed["data"] == {"k": 1}
-    assert parsed["_retry_count"] == "4"  # retry metadata untouched
-    assert parsed["_dlq_source"] == "ns.orders"
-    assert parsed["_dlq_handler"] == "svc-h-1"
-    assert parsed["_dlq_reason"] == "max_retries"
+    assert parsed is not None
+    headers, body, count = parsed
+    assert headers == {"h": "v"}
+    assert body["type"] == "t"
+    assert count == 2
 
 
-def test_inject_dlq_metadata_leaves_non_object_bodies_alone():
-    assert _inject_dlq_metadata(b"garbage", {"_dlq_reason": "x"}) == b"garbage"
-    array_body = _encode_envelope({}, b"[1,2]")
-    assert _inject_dlq_metadata(array_body, {"_dlq_reason": "x"}) == array_body
-
-
-def test_wrap_poison_yields_decodable_envelope_with_raw_bytes():
+def test_poison_body_keeps_raw_bytes_headers_and_zero_budget():
     raw = b"\x00\x01definitely-not-an-envelope"
-    out = _wrap_poison(raw, {"_dlq_reason": "poison", "_dlq_source": "ns.o"}, "7-0")
-
-    body_bytes, headers = BinaryMessageFormatV1.parse(out)
-    body = json.loads(body_bytes)
+    headers, body = _poison_body(
+        raw, {"_dlq_reason": "poison", "_dlq_source": "ns.o"}, "7-0"
+    )
     assert headers == {}
     assert body["_dlq_reason"] == "poison"
     assert body["_dlq_source"] == "ns.o"
     assert body["_original_message_id"] == "7-0"
+    assert body["_retry_count"] == "0"
+    assert body["_dlq_retries"] == "0"
     assert base64.b64decode(body["_dlq_raw_b64"]) == raw
+
+    # An envelope whose body is unusable keeps its headers (correlation id…).
+    env = _encode_envelope({"correlation_id": "c1"}, b"[1,2]")
+    headers, body = _poison_body(env, {"_dlq_reason": "poison"}, "8-0")
+    assert headers == {"correlation_id": "c1"}
+    assert base64.b64decode(body["_dlq_raw_b64"]) == env
 
 
 def test_dlq_metadata_records_original_channel_not_scanned_stream():
@@ -253,6 +281,19 @@ async def test_dlq_channel_validation_at_transport():
             retry_on_idle_ms=500,
             dlq_channel="orders.h-4.retry",
         )
+    # …and ANOTHER handler's retry stream, which that handler auto-consumes.
+    with pytest.raises(ValueError, match="retry stream"):
+        await transport.subscribe(
+            "orders",
+            handler,
+            handler_id="h-4b",
+            retry_on_idle_ms=500,
+            dlq_channel="payments.other-1.retry",
+        )
+    # Rejected before anything was registered on the broker for that handler.
+    assert not any(
+        info.group in ("h-4", "h-4b") for info in transport._stream_subscriptions
+    )
     with pytest.raises(ValueError, match="non-empty"):
         await transport.subscribe(
             "orders", handler, handler_id="h-5", retry_on_idle_ms=500, dlq_channel=""
@@ -310,6 +351,36 @@ async def test_agent_subscribe_resolves_dlq_channel_to_namespaced_key():
         await agent.stop()
 
 
+@pytest.mark.asyncio
+async def test_agent_subscribe_decorator_reuse_does_not_double_namespace():
+    """One decorator object applied to two handlers must not re-namespace the
+    already-resolved key (the closure's kwargs are shared between applications)."""
+    transport = _RecordingTransport()
+    agent = Agent("svc", transport=transport)
+    decorate = agent.subscribe(
+        channel=Channel("orders", transport=transport),
+        retry_on_idle_ms=500,
+        dlq_channel="dlq",
+    )
+
+    async def h1(message):
+        return message
+
+    async def h2(message):
+        return message
+
+    decorate(h1)
+    decorate(h2)
+    await agent.start()
+    try:
+        assert [k["dlq_channel"] for _, k in transport.calls] == [
+            f"{NAMESPACE}.dlq",
+            f"{NAMESPACE}.dlq",
+        ]
+    finally:
+        await agent.stop()
+
+
 def test_agent_subscribe_rejects_bad_dlq_channel_at_decoration_time():
     agent = Agent("svc", transport=_RecordingTransport())
     orders = Channel("orders")
@@ -332,6 +403,14 @@ def test_agent_subscribe_rejects_bad_dlq_channel_at_decoration_time():
 
         @agent.subscribe(channel=orders, retry_on_idle_ms=500, dlq_channel=orders)
         async def h3(message):
+            return message
+
+    with pytest.raises(ValueError, match="retry stream"):
+
+        @agent.subscribe(
+            channel=orders, retry_on_idle_ms=500, dlq_channel="orders.svc-h3-1.retry"
+        )
+        async def h4(message):
             return message
 
 
@@ -428,7 +507,8 @@ async def test_shared_dlq_channel_end_to_end():
     assert o["type"] == "order" and o["data"] == {"id": 1}
     assert o["_dlq_handler"] == f"prod-{test_id}-fail_orders-1"
     assert o["_dlq_reason"] == "max_retries"
-    assert int(o["_retry_count"]) > 1
+    assert o["_dlq_retries"] == "1"  # max_retries=1 → one retry actually ran
+    assert o["_retry_count"] == "0"  # fresh budget for the sink
     assert "_dlq_at" in o and "_original_message_id" in o
 
     p = received[payments.get_name()]
@@ -448,8 +528,10 @@ async def test_reclaimer_wraps_poison_entry_into_dlq():
     await redis_client.xgroup_create(stream, group, id="0", mkstream=True)
     raw = b"\x00\x01definitely-not-an-envelope"
     msg_id = await redis_client.xadd(stream, {b"__data__": raw})
+    # A non-eggai producer's entry with no __data__ field at all.
+    no_data_id = await redis_client.xadd(stream, {b"foo": b"bar"})
     # Deliver to a consumer and never ack → sits in the PEL like a crashed handler.
-    await redis_client.xreadgroup(group, "worker", {stream: ">"}, count=1)
+    await redis_client.xreadgroup(group, "worker", {stream: ">"}, count=2)
     await asyncio.sleep(0.05)
 
     manager = PendingReclaimerManager("redis://localhost:6379")
@@ -473,15 +555,24 @@ async def test_reclaimer_wraps_poison_entry_into_dlq():
         await manager.stop()
 
     entries = await redis_client.xrange(dlq_stream)
-    assert len(entries) == 1
-    body_bytes, headers = BinaryMessageFormatV1.parse(entries[0][1][b"__data__"])
-    body = json.loads(body_bytes)
-    assert headers == {}
+    assert len(entries) == 2
+    bodies = {}
+    for _id, fields in entries:
+        body_bytes, headers = BinaryMessageFormatV1.parse(fields[b"__data__"])
+        assert headers == {}
+        body = json.loads(body_bytes)
+        bodies[body["_original_message_id"]] = body
+    body = bodies[msg_id.decode()]
     assert body["_dlq_reason"] == "poison"
     assert body["_dlq_source"] == stream
     assert body["_dlq_handler"] == group
-    assert body["_original_message_id"] == msg_id.decode()
+    assert body["_retry_count"] == "0"
+    assert body["_dlq_retries"] == "0"
     assert base64.b64decode(body["_dlq_raw_b64"]) == raw
+    # The __data__-less entry is wrapped too, instead of looping through retry.
+    other = bodies[no_data_id.decode()]
+    assert other["_dlq_reason"] == "poison"
+    assert json.loads(base64.b64decode(other["_dlq_raw_b64"])) == {"foo": "bar"}
 
     pending = await redis_client.xpending(stream, group)
     assert pending["pending"] == 0, "original entry was acked"
