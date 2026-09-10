@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-10
+
 **Migration note for DLQ consumers.** The *shape of DLQ entries* changes in
 this release; the SDK API, retry-stream entries, handler-side
 `_retry_count` / `_original_message_id`, stream key names and per-handler
