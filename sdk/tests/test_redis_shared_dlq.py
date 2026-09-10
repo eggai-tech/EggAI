@@ -228,6 +228,25 @@ async def test_shared_dlq_is_never_trimmed_by_its_writers():
     # Per-handler default: both capped, as before.
     assert by_source["payments"] == {(250, 250)}
 
+    # Opt-in hard ceiling for the shared DLQ only; per-handler keeps retry_max_len.
+    capped = RedisTransport(retry_max_len=250, dlq_max_len=500)
+    await capped.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-h-2",
+        retry_on_idle_ms=500,
+        dlq_channel="ops.dlq",
+    )
+    await capped.subscribe(
+        "payments", handler, handler_id="payments-h-2", retry_on_idle_ms=500
+    )
+    assert capped._reclaimer_manager is not None
+    caps = {}
+    for c in capped._reclaimer_manager._configs.values():
+        caps.setdefault(c.source_stream, set()).add((c.max_len, c.dlq_max_len))
+    assert caps["orders"] == {(250, 500)}
+    assert caps["payments"] == {(250, 250)}
+
 
 @pytest.mark.asyncio
 async def test_dlq_default_unchanged_when_dlq_channel_not_passed():

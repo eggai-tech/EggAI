@@ -36,10 +36,12 @@ argument are unchanged.
   `RedisTransport.subscribe`. Requires `retry_on_idle_ms` and a non-`None`
   `max_retries`; rejects the subscribed channel and the handler's retry stream
   as targets. The `.retry` stream stays per-handler (#225) — only the terminal
-  sink is shared. A shared DLQ is written without `MAXLEN` (`retry_max_len`
-  keeps applying to retry streams and per-handler DLQs): stream-wide trimming
-  would let one writer's cap delete other writers' unconsumed dead letters.
-  Default behaviour without `dlq_channel` is unchanged.
+  sink is shared. A shared DLQ is written without `MAXLEN` by default
+  (`retry_max_len` keeps applying to retry streams and per-handler DLQs):
+  stream-wide trimming would let one writer's cap delete other writers'
+  unconsumed dead letters. `RedisTransport(dlq_max_len=...)` is the opt-in
+  hard ceiling for a shared DLQ. Default behaviour without `dlq_channel` is
+  unchanged.
 - Every DLQ entry now carries provenance in its JSON body, alongside the
   existing `_retry_count` / `_original_message_id`: `_dlq_source` (the channel
   key the handler subscribed to), `_dlq_handler` (handler suffix / consumer

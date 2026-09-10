@@ -77,6 +77,7 @@ class RedisTransport(Transport):
         group_monitor_interval_s: float = 5.0,
         max_len: int | None = None,
         retry_max_len: int | None = 10_000,
+        dlq_max_len: int | None = None,
         **kwargs,
     ):
         """
@@ -98,9 +99,16 @@ class RedisTransport(Transport):
                 (default 10_000). These hold only reclaimed failures, so their volume is bounded by your
                 error rate and a default cap prevents a runaway retry loop from growing without bound.
                 Set to ``None`` to disable trimming on retry/DLQ streams. Does NOT apply to a shared DLQ
-                (``dlq_channel``): ``XADD MAXLEN`` trims the whole stream regardless of writer, so one
-                service's cap would discard other services' unconsumed dead letters. A shared DLQ is
-                written untrimmed; its retention is the consuming sink's responsibility.
+                (``dlq_channel``); see ``dlq_max_len``.
+            dlq_max_len (Optional[int]): Approximate cap on a *shared* DLQ stream (one named via the
+                ``dlq_channel`` subscribe option), applied as ``XADD ... MAXLEN ~ dlq_max_len`` by this
+                transport's reclaimers. Default ``None`` (untrimmed), deliberately: ``MAXLEN`` trims the
+                whole stream regardless of which writer appended or whether the entry was consumed, so on a
+                stream several services write to, one service's cap silently deletes the others' unread
+                dead letters. Leave it ``None`` and let the consuming sink own retention (``XTRIM`` after
+                processing), or set it only if every writer to that DLQ uses the same value and you prefer
+                a hard memory ceiling over the risk of losing dead letters. Per-handler DLQs are unaffected
+                (they keep ``retry_max_len``).
             **kwargs: Additional keyword arguments to pass to the RedisBroker if a new instance is created.
 
         Attributes:
@@ -167,6 +175,7 @@ class RedisTransport(Transport):
         }
         self._max_len = max_len
         self._retry_max_len = retry_max_len
+        self._dlq_max_len = dlq_max_len
         self._running = False
         self._reclaimer_manager: PendingReclaimerManager | None = None
         # A set so repeated subscribe() calls with an identical (stream_key, group,
@@ -350,9 +359,9 @@ class RedisTransport(Transport):
                 ``_dlq_reason`` and ``_dlq_retries`` in its body so a shared consumer can tell entries apart,
                 and ``_retry_count`` is reset to ``"0"`` so a DLQ consumer with its own retries starts with a
                 fresh budget; subscribe to the DLQ with ``group_start="0"`` to pick up an existing backlog.
-                A shared DLQ is written WITHOUT ``MAXLEN`` (``retry_max_len`` does not apply): trimming is
-                stream-wide, so any writer's cap would delete other writers' unconsumed dead letters.
-                Retention of a shared DLQ is the sink's job.
+                A shared DLQ is written WITHOUT ``MAXLEN`` unless ``RedisTransport(dlq_max_len=...)`` is set
+                (``retry_max_len`` does not apply): trimming is stream-wide, so any writer's cap would delete
+                other writers' unconsumed dead letters. By default retention of a shared DLQ is the sink's job.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters
@@ -627,11 +636,13 @@ class RedisTransport(Transport):
                 dlq_stream = dlq_channel
             else:
                 dlq_stream = f"{channel}.{handler_suffix}.dlq"
-            # A shared DLQ is never trimmed by its writers: XADD MAXLEN applies to
-            # the whole stream, so one service's cap would silently discard other
-            # services' unconsumed dead letters. Retention of a shared DLQ belongs
-            # to the sink (XTRIM / its own policy). Per-handler DLQs keep the cap.
-            dlq_max_len = None if dlq_channel is not None else self._retry_max_len
+            # A shared DLQ is not trimmed by its writers unless the operator opts
+            # in with dlq_max_len: XADD MAXLEN applies to the whole stream, so one
+            # service's retry_max_len would silently discard other services'
+            # unconsumed dead letters. Per-handler DLQs keep retry_max_len.
+            dlq_max_len = (
+                self._dlq_max_len if dlq_channel is not None else self._retry_max_len
+            )
             retry_handler_id = f"{handler_suffix}-retry"
 
             # Set up the retry machinery transactionally: if any step below (incl.

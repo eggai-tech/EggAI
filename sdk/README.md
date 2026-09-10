@@ -230,11 +230,12 @@ If a DLQ consumer itself gives up on an entry and dead-letters it again, `_dlq_s
 `_dlq_handler` and `_dlq_at` keep the *original* failure while `_dlq_reason` and
 `_dlq_retries` describe the latest hop.
 
-A shared DLQ is written **without** `MAXLEN` — `retry_max_len` applies to the retry
-streams and to per-handler DLQs only. `XADD MAXLEN` trims the whole stream regardless of
-which writer appended, so one service's cap would silently delete other services'
+A shared DLQ is written **without** `MAXLEN` by default — `retry_max_len` applies to the
+retry streams and to per-handler DLQs only. `XADD MAXLEN` trims the whole stream regardless
+of which writer appended, so one service's cap would silently delete other services'
 unconsumed dead letters. Retention of a shared DLQ is the sink's job (`XTRIM`, or ack and
-trim on a schedule).
+trim on a schedule). Operators who prefer a hard memory ceiling can opt in with
+`RedisTransport(dlq_max_len=...)`; set the same value on every writer to that DLQ.
 
 A poison entry (unparseable envelope) is no longer copied to the DLQ verbatim: it is
 wrapped in a fresh envelope whose body holds the metadata above plus the original bytes
