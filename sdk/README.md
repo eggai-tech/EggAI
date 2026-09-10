@@ -188,6 +188,59 @@ the per-handler `{channel}.{handler_suffix}.dlq`. The DLQ is terminal — no aut
 reclaimer. Set `max_retries=None` for unlimited retries. An optional `on_dlq` callback
 fires when a message lands in the DLQ.
 
+**Shared DLQ channel:** A DLQ stream is an ordinary stream, so an eggai subscriber can
+consume it — but with one key per handler there is nothing stable to subscribe to. Pass
+`dlq_channel` to dead-letter every handler (or every service) into **one** stream instead:
+
+```python
+dlq = Channel("dlq", transport=transport)
+
+@agent.subscribe(channel=orders, retry_on_idle_ms=30_000, max_retries=3, dlq_channel=dlq)
+async def handle_order(message): ...
+
+@agent.subscribe(channel=payments, retry_on_idle_ms=30_000, max_retries=3, dlq_channel="dlq")
+async def handle_payment(message): ...          # a topic name is namespaced like Channel("dlq")
+
+# One consumer for all of them — start the group at "0" to pick up failures that
+# happened before this service booted.
+@ops_agent.subscribe(channel=dlq, group_start="0")
+async def on_dead_letter(message):
+    print(message["_dlq_source"], message["_dlq_handler"], message["_dlq_retries"])
+```
+
+Only the terminal sink is shared; each handler keeps its own `.retry` stream (a shared
+retry stream would re-introduce the cross-handler fan-out of #225). `dlq_channel` requires
+`retry_on_idle_ms` and a non-`None` `max_retries`, and must not be the channel the handler
+subscribes to. Don't give the sink itself `retry_on_idle_ms` with the same `dlq_channel`.
+
+Every DLQ entry — shared or per-handler — carries provenance in its body so a shared
+consumer can tell entries apart:
+
+| Field | Value |
+|-------|-------|
+| `_dlq_source` | full key of the channel the handler subscribed to (e.g. `eggai.orders`) |
+| `_dlq_handler` | handler suffix / consumer group (e.g. `order-service-handle_order-1`) |
+| `_dlq_at` | ISO-8601 UTC timestamp of the DLQ write |
+| `_dlq_reason` | `"max_retries"`, or `"poison"` for an envelope the reclaimer could not parse |
+| `_dlq_retries` | how many retries actually ran before giving up (`max_retries`; `"0"` for poison) |
+| `_retry_count` | **reset to `"0"`** on the DLQ write, so a DLQ consumer with its own `retry_on_idle_ms` starts with a fresh budget |
+| `_original_message_id` | as on retry delivery |
+
+If a DLQ consumer itself gives up on an entry and dead-letters it again, `_dlq_source`,
+`_dlq_handler` and `_dlq_at` keep the *original* failure while `_dlq_reason` and
+`_dlq_retries` describe the latest hop.
+
+A shared DLQ is written **without** `MAXLEN` by default — `retry_max_len` applies to the
+retry streams and to per-handler DLQs only. `XADD MAXLEN` trims the whole stream regardless
+of which writer appended, so one service's cap would silently delete other services'
+unconsumed dead letters. Retention of a shared DLQ is the sink's job (`XTRIM`, or ack and
+trim on a schedule). Operators who prefer a hard memory ceiling can opt in with
+`RedisTransport(dlq_max_len=...)`; set the same value on every writer to that DLQ.
+
+A poison entry (unparseable envelope) is no longer copied to the DLQ verbatim: it is
+wrapped in a fresh envelope whose body holds the metadata above plus the original bytes
+as `_dlq_raw_b64`, so a DLQ subscriber always receives a decodable JSON object.
+
 **Retry backoff:** By default retries fire at a constant cadence equal to
 `retry_on_idle_ms`. Set `retry_backoff_multiplier > 1.0` to back off exponentially: a
 message is treated as due for reclaim once it has been idle for
@@ -238,8 +291,9 @@ Retry stream (eggai.orders.order-service-handle_order-1.retry)   ← per-handler
             _retry_count ≤ max_retries → XADD <retry stream> → XACK
             _retry_count > max_retries → XADD <dlq stream>   → XACK
 
-DLQ stream   (eggai.orders.order-service-handle_order-1.dlq)      ← per-handler
-        terminal — no reclaimer, manual re-drive only
+DLQ stream   (eggai.orders.order-service-handle_order-1.dlq)      ← per-handler by default,
+        terminal — no reclaimer                                      or one shared key via dlq_channel=
+        entries carry _dlq_source / _dlq_handler / _dlq_at / _dlq_reason
 ```
 
 ## Observability (OpenTelemetry)

@@ -23,6 +23,41 @@ NAMESPACE = os.getenv("EGGAI_NAMESPACE", "eggai")
 DEFAULT_CHANNEL_NAME = "channel"
 
 
+def resolve_dlq_channel(value: "Channel | str | None") -> str | None:
+    """Turn the ``dlq_channel`` subscribe option into a full stream key.
+
+    ``Agent.subscribe`` / ``Channel.subscribe`` accept either a :class:`Channel`
+    (its namespaced name is used as-is) or a bare *topic name* — not a full
+    key — which is namespaced by going through ``Channel(name)`` itself, so
+    ``"dlq"`` becomes ``"<EGGAI_NAMESPACE>.dlq"``. The transport layer only ever
+    sees the full key. Reusing ``Channel`` rather than re-spelling the prefix
+    keeps the namespacing rule in one place (see #261/#264 for what happens
+    when two places both try to prefix). Pass a ``Channel`` if you already hold
+    a full key.
+    """
+    if value is None:
+        return None
+    if isinstance(value, Channel):
+        return value.get_name()
+    if isinstance(value, str) and value:
+        # A string that already carries the namespace is almost certainly a full
+        # key pasted by mistake (e.g. `dlq.get_name()`); namespacing it again
+        # would route dead letters to "<ns>.<ns>.dlq", a stream nobody watches.
+        # Fail loudly instead: the Channel form exists for full keys.
+        if value.startswith(f"{NAMESPACE}."):
+            raise ValueError(
+                f"dlq_channel {value!r} already starts with the namespace "
+                f"{NAMESPACE!r}; pass the bare topic name "
+                f"({value[len(NAMESPACE) + 1 :]!r}) or a Channel instance."
+            )
+        # Channel.__init__ is inert (transport is lazy, no stop hook until it
+        # connects), so this is a pure name computation.
+        return Channel(value).get_name()
+    raise ValueError(
+        f"dlq_channel must be a Channel or a non-empty topic name string, got {value!r}"
+    )
+
+
 class Channel:
     """
     A channel that publishes messages to a given 'name' on its own Transport.
@@ -101,6 +136,8 @@ class Channel:
         )
         HANDLERS_IDS[handler_name] += 1
         kwargs["handler_id"] = f"{handler_name}-{HANDLERS_IDS[handler_name]}"
+        if kwargs.get("dlq_channel") is not None:
+            kwargs["dlq_channel"] = resolve_dlq_channel(kwargs["dlq_channel"])
         await self._get_transport().subscribe(self._name, callback, **kwargs)
         await self._ensure_connected()
 

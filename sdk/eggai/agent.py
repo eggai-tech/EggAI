@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-from .channel import Channel
+from .channel import Channel, resolve_dlq_channel
 from .hooks import eggai_register_stop
 from .transport import get_default_transport
 from .transport.base import Transport
@@ -68,7 +68,7 @@ class Agent:
             self._transport = get_default_transport()
         return self._transport
 
-    def subscribe(self, channel: Channel | None = None, **kwargs):
+    def subscribe(self, channel: Channel | None = None, **subscribe_kwargs):
         """
         Decorator for adding a subscription.
 
@@ -81,6 +81,11 @@ class Agent:
         """
 
         def decorator(handler: Callable[[dict[str, Any]], "asyncio.Future"]):
+            # Work on a copy: the decorator object may be applied to several
+            # handlers, and the resolution/popping below must not leak from one
+            # application into the next (e.g. re-namespacing an already-resolved
+            # dlq_channel into "<ns>.<ns>.dlq").
+            kwargs = dict(subscribe_kwargs)
             channel_name = (channel or Channel()).get_name()
             if "min_idle_time" in kwargs and "retry_on_idle_ms" in kwargs:
                 raise ValueError(
@@ -122,7 +127,40 @@ class Agent:
                         "idle threshold); a cap below the base would disable backoff "
                         "entirely."
                     )
+            # Plugins see the kwargs as the caller wrote them (before the DLQ
+            # key below is resolved to its namespaced form).
             original_kwargs = kwargs.copy()
+
+            # Shared DLQ: resolve Channel / topic name to a full key here (the
+            # transport only knows keys) and fail at decoration time, like the
+            # other retry knobs, so a typo can't silently no-op.
+            if kwargs.get("dlq_channel") is not None:
+                if "retry_on_idle_ms" not in kwargs:
+                    raise ValueError(
+                        "dlq_channel requires retry_on_idle_ms to be set. "
+                        "Set retry_on_idle_ms to enable SDK-managed retries with a DLQ."
+                    )
+                if "max_retries" in kwargs and kwargs["max_retries"] is None:
+                    raise ValueError(
+                        "dlq_channel requires max_retries: max_retries=None disables "
+                        "the DLQ entirely, so there is nothing to route to the shared "
+                        "channel."
+                    )
+                dlq_key = resolve_dlq_channel(kwargs["dlq_channel"])
+                if dlq_key is None:  # unreachable: input checked non-None above
+                    raise ValueError("dlq_channel could not be resolved to a key")
+                if dlq_key == channel_name:
+                    raise ValueError(
+                        f"dlq_channel {dlq_key!r} is the channel this handler "
+                        "subscribes to; dead-lettering into its own input would loop."
+                    )
+                if dlq_key.endswith(".retry"):
+                    raise ValueError(
+                        f"dlq_channel {dlq_key!r} names an SDK-managed retry stream "
+                        "('.retry' suffix); dead-lettering into a retry stream would "
+                        "feed a handler's retry loop. Pick a different name."
+                    )
+                kwargs["dlq_channel"] = dlq_key
 
             # Extract plugin-specific kwargs dynamically and clean them from kwargs
             plugin_found_keys = set()

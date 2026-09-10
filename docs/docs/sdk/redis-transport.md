@@ -226,6 +226,61 @@ The callback can be sync or async. Errors in the callback are logged but never p
 !!! note "At-least-once applies to DLQ writes too"
     The `XADD` (to DLQ) and `XACK` are not atomic. A crash between them can produce duplicate DLQ entries — and fire `on_dlq` more than once — for the same logical message. Re-drive tooling and `on_dlq` callbacks should deduplicate using `_original_message_id`.
 
+#### Shared DLQ channel (`dlq_channel`)
+
+A DLQ stream is a plain Redis stream with the same envelope as any channel, so an eggai subscriber can consume it. What makes that awkward by default is the naming: one key per handler, derived from the agent name, the function name and a counter. Rename a handler and a listener silently watches an empty stream.
+
+`dlq_channel` replaces the per-handler key with one you choose, so every handler — across services, if they share the value — dead-letters into a single stream that one consumer can subscribe to:
+
+```python
+dlq = Channel("dlq", transport=transport)
+
+@agent.subscribe(channel=orders, retry_on_idle_ms=30_000, max_retries=3, dlq_channel=dlq)
+async def handle_order(message): ...
+
+@agent.subscribe(channel=payments, retry_on_idle_ms=30_000, max_retries=3, dlq_channel="dlq")
+async def handle_payment(message): ...
+```
+
+`dlq_channel` accepts a `Channel` or a topic name; a name is namespaced exactly like `Channel(name)`, so `"dlq"` becomes `<EGGAI_NAMESPACE>.dlq`. Only the terminal sink is shared — each handler keeps its own `.retry` stream (sharing it would re-introduce the cross-handler fan-out fixed in #225).
+
+The consumer is an ordinary subscription. Two things to get right:
+
+```python
+@ops_agent.subscribe(
+    channel=dlq,
+    group_start="0",   # new group starts at the beginning: failures that happened
+)                      # before this service booted are picked up, not skipped
+async def on_dead_letter(message):
+    # No data_type here: the shared stream carries every payload type.
+    # Dispatch on message["type"] or on the provenance below.
+    source  = message["_dlq_source"]     # e.g. "eggai.orders"
+    handler = message["_dlq_handler"]    # e.g. "order-service-handle_order-1"
+    ...
+```
+
+Do **not** give the sink `retry_on_idle_ms` together with the same `dlq_channel`: a handler dead-lettering into its own input is a loop, and `subscribe()` rejects it. If the sink needs retries, let it default to its own per-handler DLQ.
+
+**Provenance on every DLQ entry.** Because a shared stream's key no longer says where an entry came from, the reclaimer stamps it into the JSON body (body, not extra `XADD` fields: FastStream's decoder reads only `__data__`, so body keys are all a subscriber sees). This applies to per-handler DLQs too.
+
+| Field | Value |
+|-------|-------|
+| `_dlq_source` | full key of the channel the handler subscribed to |
+| `_dlq_handler` | handler suffix / consumer group |
+| `_dlq_at` | ISO-8601 UTC timestamp of the DLQ write |
+| `_dlq_reason` | `"max_retries"`, or `"poison"` for an unparseable envelope |
+| `_dlq_retries` | how many retries actually ran before giving up (`max_retries`; `"0"` for poison) |
+| `_retry_count` | **reset to `"0"`** on the DLQ write |
+| `_original_message_id` | as on retry delivery |
+
+Two rules make a DLQ entry safe to *consume*, not just inspect. `_retry_count` is reset so a DLQ consumer that has its own `retry_on_idle_ms` starts with a fresh budget — otherwise it would inherit an already-exceeded count, be dead-lettered again on its first transient failure and, with backoff, wait `base × multiplier^exhausted` for its first reclaim. And when that consumer does give up and dead-letters the entry into its own DLQ, `_dlq_source` / `_dlq_handler` / `_dlq_at` keep the original failure (set-if-absent) while `_dlq_reason` / `_dlq_retries` describe the latest hop, so neither piece of information is lost.
+
+**No `MAXLEN` on a shared DLQ.** `retry_max_len` caps the retry streams and per-handler DLQs, not a shared `dlq_channel`. `XADD MAXLEN` trims the whole stream regardless of which writer appended, so with several services writing to one DLQ the smallest cap among them would silently delete the others' unconsumed dead letters. A shared DLQ is written untrimmed by default; retention is the sink's responsibility (`XTRIM`, or a scheduled trim once entries are processed). `RedisTransport(dlq_max_len=...)` is the opt-in hard ceiling for operators who prefer bounded memory over the risk; use the same value on every writer to that DLQ.
+
+**Poison entries are wrapped.** An envelope the reclaimer cannot parse used to be copied to the DLQ verbatim; FastStream's parser then falls back to raw bytes, which a typed subscription silently skips and an untyped one cannot use. It is now written as a fresh envelope whose body holds the fields above plus the original bytes as `_dlq_raw_b64`, so every DLQ entry decodes to a JSON object. Re-drive tooling that handled raw poison entries should read `_dlq_raw_b64` instead.
+
+Validation: `dlq_channel` requires `retry_on_idle_ms` and a non-`None` `max_retries` (with `max_retries=None` there is no DLQ to redirect), must differ from the subscribed channel, and must not end in `.retry` (every `.retry` stream is auto-consumed by some handler, so dead-lettering into one would feed that handler's retry loop). All of it fails at `subscribe()` time, before anything is registered on the broker.
+
 ### Tuning the Reclaimer
 
 ```python

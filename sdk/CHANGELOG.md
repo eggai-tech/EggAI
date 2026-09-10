@@ -7,6 +7,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Migration note for DLQ consumers.** The *shape of DLQ entries* changes in
+this release; the SDK API, retry-stream entries, handler-side
+`_retry_count` / `_original_message_id`, stream key names and per-handler
+trimming do not. If you read DLQ entries yourself (`XRANGE`, re-drive
+scripts, monitoring) or read the dict passed to `on_dlq`:
+
+- read the exhausted retry budget from `_dlq_retries`, not `_retry_count`
+  (which is now `"0"` on every DLQ entry);
+- expect the additional `_dlq_source`, `_dlq_handler`, `_dlq_at`,
+  `_dlq_reason` keys;
+- poison entries are no longer raw bytes: recover the original payload by
+  base64-decoding `_dlq_raw_b64`, and `on_dlq` receives that decoded dict;
+- stream entries with no `__data__` field (only possible from a non-eggai
+  producer) are no longer retried at all; they are dead-lettered as poison on
+  the first reclaim.
+
+The `on_dlq(body, msg_id, retry_count)` signature and its `retry_count`
+argument are unchanged.
+
+### Added
+- `RedisTransport`: new `dlq_channel` subscribe option. Dead-letters into ONE
+  stream you name instead of the per-handler `{channel}.{handler_suffix}.dlq`,
+  so a single consumer can subscribe to every handler's (or every service's)
+  failures with a plain `@agent.subscribe(channel=dlq, group_start="0")`.
+  Accepts a `Channel` or a topic name (namespaced like `Channel(name)`) on
+  `Agent.subscribe` / `Channel.subscribe`; a full key on
+  `RedisTransport.subscribe`. Requires `retry_on_idle_ms` and a non-`None`
+  `max_retries`; rejects the subscribed channel and the handler's retry stream
+  as targets. The `.retry` stream stays per-handler (#225) — only the terminal
+  sink is shared. A shared DLQ is written without `MAXLEN` by default
+  (`retry_max_len` keeps applying to retry streams and per-handler DLQs):
+  stream-wide trimming would let one writer's cap delete other writers'
+  unconsumed dead letters. `RedisTransport(dlq_max_len=...)` is the opt-in
+  hard ceiling for a shared DLQ. Default behaviour without `dlq_channel` is
+  unchanged.
+- Every DLQ entry now carries provenance in its JSON body, alongside the
+  existing `_retry_count` / `_original_message_id`: `_dlq_source` (the channel
+  key the handler subscribed to), `_dlq_handler` (handler suffix / consumer
+  group), `_dlq_at` (ISO-8601 UTC) and `_dlq_reason` (`"max_retries"` or
+  `"poison"`) and `_dlq_retries` (how many retries actually ran). Additive:
+  typed models ignore the extra keys, as they already do for `_retry_count`.
+  On an entry dead-lettered a second time (by a DLQ consumer that gave up)
+  the origin keys `_dlq_source` / `_dlq_handler` / `_dlq_at` keep the first
+  failure, while `_dlq_reason` / `_dlq_retries` describe the latest hop.
+
+### Changed
+- **`_retry_count` is reset to `"0"` on the DLQ write** (the exhausted budget
+  moves to `_dlq_retries`). A DLQ entry is also a *first* delivery to whatever
+  consumes the DLQ; carrying the exceeded count over meant a DLQ consumer with
+  its own `retry_on_idle_ms` got zero retries and, with backoff, an escalated
+  first reclaim. Anything that read `_retry_count` off a DLQ entry should read
+  `_dlq_retries`; the `on_dlq` callback's `retry_count` argument is unchanged.
+- Poison messages (envelopes the reclaimer cannot parse) are no longer copied to
+  the DLQ verbatim. They are wrapped in a well-formed envelope whose body holds
+  the `_dlq_*` fields, `_original_message_id`, and the original bytes as
+  `_dlq_raw_b64`, so a DLQ subscriber always receives a decodable JSON object
+  instead of raw bytes. Envelope headers are preserved when only the body was
+  unusable. Re-drive scripts that handled raw poison entries should read
+  `_dlq_raw_b64`. Consequently `on_dlq` now receives that decoded dict for
+  poison entries too, instead of the raw `{b"__data__": bytes}` fields.
+- `Agent.subscribe` / `Channel.subscribe` reject a `dlq_channel` *string* that
+  already starts with `EGGAI_NAMESPACE` (e.g. a pasted `channel.get_name()`),
+  which would otherwise be namespaced twice and route dead letters to an
+  unwatched `<ns>.<ns>.dlq`. Pass the bare topic name or a `Channel`.
+- `RedisTransport.subscribe` rejects `retry_on_idle_ms` without a consumer
+  group (`handler_id=` / `group=`): the reclaimer works on a group's PEL, so
+  without one every reclaim cycle just errored. `Agent`/`Channel` always set a
+  group; this only affects direct transport callers.
+- `dlq_channel` rejects any key ending in `.retry`, not just the handler's own
+  retry stream: every `.retry` stream is auto-consumed by some handler, so
+  dead-lettering into one would feed that handler's retry loop. The check runs
+  before the broker subscriber is registered.
+
+### Fixed
+- `PendingReclaimer`: a pending entry with a parseable envelope but a non-object
+  JSON body (e.g. a published list), a non-integer `_retry_count`, or no
+  `__data__` field at all (non-eggai producer) escaped the poison handling. The
+  first two raised outside the guarded parse and aborted the whole reclaim
+  cycle after `XCLAIM`, head-of-line blocking every later pending entry; the
+  third ping-ponged between main and retry stream forever with a retry count
+  that could never grow. All three are now dead-lettered as poison; in
+  particular, entries without `__data__` are no longer retried at all.
+
 ## [0.4.1] - 2026-09-07
 
 ### Fixed

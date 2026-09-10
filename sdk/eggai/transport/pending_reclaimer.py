@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import datetime
 import json
 import logging
 import random
@@ -54,10 +56,16 @@ class ReclaimerConfig:
     dlq_stream: str | None = (
         None  # full key, e.g. "<namespace>.orders.order-service-handle_order-1.dlq"
     )
-    on_dlq: Callable | None = None  # async or sync callback(fields, msg_id, count)
+    on_dlq: Callable | None = None  # async or sync callback(body, msg_id, retry_count)
     max_len: int | None = (
-        None  # cap retry/DLQ stream length (XADD MAXLEN ~); None = unbounded
+        None  # cap retry stream length (XADD MAXLEN ~); None = unbounded
     )
+    # Cap for the DLQ stream, kept separate from `max_len` on purpose: MAXLEN trims
+    # the whole stream regardless of who wrote an entry or whether it was consumed,
+    # so on a *shared* DLQ (`dlq_channel`) every writer's cap would apply to every
+    # other writer's dead letters. The transport therefore passes None for a shared
+    # DLQ (retention is the sink's job) and `retry_max_len` for the per-handler one.
+    dlq_max_len: int | None = None
     # Exponential backoff between retry attempts. The reclaimer treats a PEL entry
     # as "stale" once it has been idle for `min_idle_ms * (backoff_multiplier **
     # retry_count)` (capped at backoff_max_ms). multiplier=1.0 reproduces the
@@ -65,48 +73,30 @@ class ReclaimerConfig:
     backoff_multiplier: float = 1.0  # 1.0 = constant cadence (no escalation)
     backoff_max_ms: int | None = None  # cap on the escalated threshold; None = uncapped
     backoff_jitter: float = 0.0  # fraction in [0,1]; adds up to this share on top of the threshold at random
+    # Provenance recorded on every DLQ entry (see _dlq_metadata). `source_stream`
+    # is the channel the handler subscribed to — NOT `stream`, which for the retry
+    # reclaimer is the retry stream. `handler` is the handler suffix / consumer
+    # group. Both matter once several handlers share one DLQ stream
+    # (`dlq_channel`): the entry itself must say where it came from, because the
+    # stream key no longer does.
+    source_stream: str | None = None
+    handler: str | None = None
 
 
-def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int, bool]:
-    """
-    Inject _retry_count and _original_message_id into a FastStream binary stream
-    entry's JSON body so the handler can read them for idempotency checks.
+def _encode_envelope(headers: dict, body_bytes: bytes) -> bytes:
+    """Build a FastStream BinaryMessageFormatV1 envelope from headers + JSON body.
 
-    FastStream BinaryMessageFormatV1 layout:
+    Layout (mirrors ``BinaryMessageFormatV1.encode()``):
       [8B magic][2B version=1][4B headers_start][4B data_start]
       [2B num_headers]([2B key_len][key][2B val_len][val])*
-      [JSON body bytes]
-
-    Returns a tuple of (modified __data__ bytes, new retry count, parsed_ok).
-    On parse failure returns (original data, 0, False): the caller treats an
-    unparseable envelope as a poison message (its retry count can never be
-    incremented, so re-queueing it would livelock the retry stream) and routes
-    it to the DLQ or drops it instead.
+      [body bytes]
     """
-    try:
-        body_bytes, headers = BinaryMessageFormatV1.parse(data)
-        body_dict = json.loads(body_bytes)
-    except Exception:
-        logger.warning(
-            "Failed to inject retry metadata for message %s; treating as poison",
-            msg_id_str,
-            exc_info=True,
-        )
-        return data, 0, False
-
-    new_count = int(body_dict.get("_retry_count", "0")) + 1
-    body_dict["_retry_count"] = str(new_count)
-    body_dict.setdefault("_original_message_id", msg_id_str)
-    new_body_bytes = json.dumps(body_dict, separators=(",", ":")).encode()
-
-    # Re-encode headers section.
     headers_writer = _BinaryWriter()
     for key, value in headers.items():
         headers_writer.write_string(key)
         headers_writer.write_string(value)
     headers_bytes = headers_writer.get_bytes()
 
-    # Rebuild the binary envelope — mirrors BinaryMessageFormatV1.encode().
     writer = _BinaryWriter()
     writer.write(BinaryMessageFormatV1.IDENTITY_HEADER)  # 8 bytes → len=8
     writer.write_short(1)  # version=1, 2B → len=10
@@ -116,8 +106,150 @@ def _inject_retry_metadata(data: bytes, msg_id_str: str) -> tuple[bytes, int, bo
     writer.write_int(data_start)  # 4B → len=18
     writer.write_short(len(headers))  # 2B → len=20
     writer.write(headers_bytes)
-    writer.write(new_body_bytes)
-    return writer.get_bytes(), new_count, True
+    writer.write(body_bytes)
+    return writer.get_bytes()
+
+
+def _dlq_metadata(config: ReclaimerConfig, reason: str) -> dict[str, str]:
+    """Provenance keys added to a DLQ entry's JSON body.
+
+    Kept as string values, like ``_retry_count``, so they survive any consumer
+    that stringifies fields. ``reason`` is ``"max_retries"`` or ``"poison"``.
+    """
+    meta = {
+        "_dlq_reason": reason,
+        "_dlq_at": datetime.datetime.now(datetime.timezone.utc).isoformat(
+            timespec="milliseconds"
+        ),
+    }
+    if config.source_stream is not None:
+        meta["_dlq_source"] = config.source_stream
+    if config.handler is not None:
+        meta["_dlq_handler"] = config.handler
+    return meta
+
+
+def _parse_entry(data: bytes) -> tuple[dict, dict, int] | None:
+    """Parse a FastStream envelope into ``(headers, body, retry_count)``.
+
+    Returns ``None`` for anything the reclaimer cannot safely re-queue: bytes
+    that are not an envelope, a body that is not a JSON object, or a
+    ``_retry_count`` that is not an integer. Such an entry is *poison* — its
+    count can never be incremented, so re-queueing it would livelock the retry
+    stream — and the caller dead-letters it instead of retrying.
+    """
+    try:
+        body_bytes, headers = BinaryMessageFormatV1.parse(data)
+        body = json.loads(body_bytes)
+        if not isinstance(body, dict):
+            raise TypeError(f"body is {type(body).__name__}, not a JSON object")
+        retry_count = int(body.get("_retry_count", "0"))
+    except Exception:
+        return None
+    return headers, body, retry_count
+
+
+def _encode_body(headers: dict, body: dict) -> bytes:
+    """Serialise ``body`` compactly and wrap it in an envelope with ``headers``."""
+    return _encode_envelope(headers, json.dumps(body, separators=(",", ":")).encode())
+
+
+def _inject_retry_metadata(
+    data: bytes, msg_id_str: str
+) -> tuple[dict, dict, int] | None:
+    """Parse an entry and bump its retry metadata in the body dict.
+
+    Returns ``(headers, body, new_count)`` with ``body["_retry_count"]``
+    incremented and ``_original_message_id`` set if absent, so the handler can
+    use them for idempotency checks. Returns ``None`` (after a warning) for a
+    poison entry — see :func:`_parse_entry`. The caller encodes the body exactly
+    once, after deciding whether it goes to the retry stream or the DLQ.
+    """
+    parsed = _parse_entry(data)
+    if parsed is None:
+        logger.warning(
+            "Failed to inject retry metadata for message %s; treating as poison",
+            msg_id_str,
+        )
+        return None
+    headers, body, retry_count = parsed
+    new_count = retry_count + 1
+    body["_retry_count"] = str(new_count)
+    body.setdefault("_original_message_id", msg_id_str)
+    return headers, body, new_count
+
+
+def _stamp_dead_letter(body: dict, meta: dict[str, str], retries: int) -> None:
+    """Turn a message body into a DLQ entry body, in place.
+
+    A DLQ entry is two things at once: the record of a finished retry history,
+    and — once something subscribes to the DLQ — a *first* delivery to a new
+    consumer. Hence:
+
+    - origin keys (``_dlq_source``, ``_dlq_handler``, ``_dlq_at``) are written
+      set-if-absent: if the message is dead-lettered a second time (the DLQ
+      consumer itself gave up), they keep saying where it *originally* failed;
+    - hop keys (``_dlq_reason``, ``_dlq_retries``) are overwritten on every
+      dead-lettering: they say why the entry is in *this* DLQ, which is what its
+      reader needs (the origin is still in the keys above);
+    - ``_retry_count`` is reset to ``"0"``, so a DLQ consumer with its own
+      ``retry_on_idle_ms`` starts with a fresh budget instead of inheriting an
+      already-exceeded one (which would dead-letter it again on its first
+      failure and, with backoff, make its first reclaim wait
+      ``base * multiplier ** exhausted``).
+
+    Metadata lives in the *body*, not in extra XADD fields: FastStream's decoder
+    reads only ``__data__``, so body keys are all a DLQ subscriber can see.
+    """
+    for key in ("_dlq_source", "_dlq_handler", "_dlq_at"):
+        if key in meta:
+            body.setdefault(key, meta[key])  # first dead-lettering wins
+    body["_dlq_reason"] = meta["_dlq_reason"]  # latest hop wins
+    body["_dlq_retries"] = str(retries)
+    body["_retry_count"] = "0"
+
+
+def _poison_body(
+    data: bytes, meta: dict[str, str], msg_id_str: str
+) -> tuple[dict, dict]:
+    """Build ``(headers, body)`` for a poison entry from its raw ``__data__``.
+
+    A poison entry copied verbatim would reach a DLQ subscriber as raw bytes
+    (FastStream's parser falls back to the bare payload), which a typed
+    subscription silently skips and an untyped one cannot use. Instead the DLQ
+    entry is a fresh, well-formed envelope whose body carries the provenance, a
+    zero retry budget, and the original bytes base64-encoded as ``_dlq_raw_b64``
+    for forensics and re-drive. Envelope headers (correlation id, traceparent…)
+    are kept when the envelope itself parsed and only its body was unusable.
+    """
+    try:
+        _, headers = BinaryMessageFormatV1.parse(data)
+    except Exception:
+        headers = {}
+    body: dict = {
+        "_original_message_id": msg_id_str,
+        "_dlq_raw_b64": base64.b64encode(data).decode("ascii"),
+    }
+    _stamp_dead_letter(body, meta, 0)
+    return headers, body
+
+
+def _fields_as_json(fields: dict) -> bytes:
+    """Render a stream entry that has no ``__data__`` field as JSON bytes.
+
+    Such entries can only come from a non-eggai producer; they are wrapped as
+    poison so they reach the DLQ instead of ping-ponging through the retry
+    stream forever (their retry count can never be incremented).
+    """
+
+    def _text(value: Any) -> Any:
+        return (
+            value.decode("utf-8", errors="replace")
+            if isinstance(value, bytes)
+            else value
+        )
+
+    return json.dumps({_text(k): _text(v) for k, v in fields.items()}).encode()
 
 
 class PendingReclaimerManager:
@@ -322,8 +454,8 @@ class PendingReclaimerManager:
             data = fields.get(b"__data__")
             if data is None:
                 return 0
-            body_bytes, _headers = BinaryMessageFormatV1.parse(data)
-            return int(json.loads(body_bytes).get("_retry_count", "0"))
+            parsed = _parse_entry(data)
+            return parsed[2] if parsed is not None else 0
         except Exception:
             return 0
 
@@ -385,28 +517,38 @@ class PendingReclaimerManager:
             message_ids=stale_ids,
         )
 
+        data_key = b"__data__"
         for msg_id, fields in claimed:
             msg_id_str = msg_id.decode() if isinstance(msg_id, bytes) else msg_id
 
-            # Inject retry metadata into the FastStream binary payload body so the
-            # handler sees _retry_count and _original_message_id in the message dict.
+            # Parse once and bump the retry metadata in the body dict; the body is
+            # encoded exactly once below, after routing.
             # NOTE: XADD then XACK is not atomic. A crash here re-delivers on the
             # next cycle (at-least-once). Use _original_message_id to deduplicate.
-            data_key = b"__data__"
-            new_count = 0
-            parsed_ok = True
-            if data_key in fields:
-                fields[data_key], new_count, parsed_ok = _inject_retry_metadata(
-                    fields[data_key], msg_id_str
-                )
+            parsed = (
+                _inject_retry_metadata(fields[data_key], msg_id_str)
+                if data_key in fields
+                else None
+            )
 
-            # Poison message: a permanently-unparseable envelope can never have its
-            # retry count incremented, so re-queueing it to the retry stream would
-            # livelock forever. Route it to the DLQ if configured, otherwise drop it
-            # (XACK) with a loud warning rather than spin on it indefinitely.
-            if not parsed_ok:
+            # Poison: no __data__ field, not an envelope, a non-object body, or a
+            # non-integer _retry_count. Its count can never be incremented, so
+            # re-queueing it would livelock the retry stream. Route it to the DLQ
+            # (wrapped so it decodes) if configured, otherwise drop it (XACK) with
+            # a loud error rather than spin on it indefinitely.
+            if parsed is None:
                 if config.dlq_stream is not None:
-                    await self._xadd(config.dlq_stream, fields, config.max_len)
+                    raw = (
+                        fields[data_key]
+                        if data_key in fields
+                        else _fields_as_json(fields)
+                    )
+                    headers, body = _poison_body(
+                        raw, _dlq_metadata(config, "poison"), msg_id_str
+                    )
+                    dlq_fields = dict(fields)
+                    dlq_fields[data_key] = _encode_body(headers, body)
+                    await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
                     await self._client.xack(config.stream, config.group, msg_id)
                     logger.warning(
                         "Message %s has an unparseable envelope; moved to DLQ %s "
@@ -414,9 +556,7 @@ class PendingReclaimerManager:
                         msg_id_str,
                         config.dlq_stream,
                     )
-                    await self._invoke_on_dlq(
-                        config, fields, data_key, msg_id_str, new_count
-                    )
+                    await self._invoke_on_dlq(config, body, msg_id_str, 0)
                 else:
                     await self._client.xack(config.stream, config.group, msg_id)
                     logger.error(
@@ -426,13 +566,22 @@ class PendingReclaimerManager:
                     )
                 continue
 
+            headers, body, new_count = parsed
+
             # Route to DLQ if max retries exceeded, otherwise to retry stream.
             if (
                 config.max_retries is not None
                 and config.dlq_stream is not None
                 and new_count > config.max_retries
             ):
-                await self._xadd(config.dlq_stream, fields, config.max_len)
+                # new_count is the retry that would have run next; the retries
+                # that actually ran are new_count - 1 (== max_retries).
+                _stamp_dead_letter(
+                    body, _dlq_metadata(config, "max_retries"), new_count - 1
+                )
+                dlq_fields = dict(fields)
+                dlq_fields[data_key] = _encode_body(headers, body)
+                await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
                 await self._client.xack(config.stream, config.group, msg_id)
                 logger.warning(
                     "Message %s exceeded max_retries=%d; moved to DLQ %s",
@@ -440,10 +589,9 @@ class PendingReclaimerManager:
                     config.max_retries,
                     config.dlq_stream,
                 )
-                await self._invoke_on_dlq(
-                    config, fields, data_key, msg_id_str, new_count
-                )
+                await self._invoke_on_dlq(config, body, msg_id_str, new_count)
             else:
+                fields[data_key] = _encode_body(headers, body)
                 await self._xadd(config.retry_stream, fields, config.max_len)
                 await self._client.xack(config.stream, config.group, msg_id)
                 logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
@@ -451,28 +599,23 @@ class PendingReclaimerManager:
     async def _invoke_on_dlq(
         self,
         config: ReclaimerConfig,
-        fields: dict,
-        data_key: bytes,
+        body: dict,
         msg_id_str: str,
-        new_count: int,
+        retry_count: int,
     ) -> None:
-        """Invoke the optional on_dlq callback with a parsed message dict.
+        """Invoke the optional on_dlq callback with the DLQ entry's body dict.
 
-        Parses the binary envelope so the callback receives a plain dict instead
-        of raw bytes; falls back to the raw fields if parsing fails. Callback
-        errors are logged but never block the DLQ write that already happened.
+        The dict is exactly what a subscriber on the DLQ stream receives: the
+        payload plus ``_retry_count`` (reset to "0"), ``_dlq_retries``,
+        ``_original_message_id`` and the ``_dlq_*`` provenance; for a poison
+        entry the same metadata plus ``_dlq_raw_b64`` instead of a payload.
+        Callback errors are logged but never block the DLQ write that already
+        happened.
         """
         if config.on_dlq is None:
             return
         try:
-            parsed_msg: dict | bytes = fields
-            if data_key in fields:
-                try:
-                    body_bytes, _ = BinaryMessageFormatV1.parse(fields[data_key])
-                    parsed_msg = json.loads(body_bytes)
-                except Exception:
-                    parsed_msg = fields
-            result = config.on_dlq(parsed_msg, msg_id_str, new_count)
+            result = config.on_dlq(body, msg_id_str, retry_count)
             if asyncio.iscoroutine(result):
                 await result
         except Exception:
