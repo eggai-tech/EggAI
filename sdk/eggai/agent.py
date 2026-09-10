@@ -127,6 +127,10 @@ class Agent:
                         "idle threshold); a cap below the base would disable backoff "
                         "entirely."
                     )
+            # Plugins see the kwargs as the caller wrote them (before the DLQ
+            # key below is resolved to its namespaced form).
+            original_kwargs = kwargs.copy()
+
             # Shared DLQ: resolve Channel / topic name to a full key here (the
             # transport only knows keys) and fail at decoration time, like the
             # other retry knobs, so a typo can't silently no-op.
@@ -143,7 +147,8 @@ class Agent:
                         "channel."
                     )
                 dlq_key = resolve_dlq_channel(kwargs["dlq_channel"])
-                assert dlq_key is not None  # input was checked non-None above
+                if dlq_key is None:  # unreachable: input checked non-None above
+                    raise ValueError("dlq_channel could not be resolved to a key")
                 if dlq_key == channel_name:
                     raise ValueError(
                         f"dlq_channel {dlq_key!r} is the channel this handler "
@@ -156,7 +161,6 @@ class Agent:
                         "feed a handler's retry loop. Pick a different name."
                     )
                 kwargs["dlq_channel"] = dlq_key
-            original_kwargs = kwargs.copy()
 
             # Extract plugin-specific kwargs dynamically and clean them from kwargs
             plugin_found_keys = set()

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Migration note for DLQ consumers.** The *shape of DLQ entries* changes in
+this release; the SDK API, retry-stream entries, handler-side
+`_retry_count` / `_original_message_id`, stream key names and per-handler
+trimming do not. If you read DLQ entries yourself (`XRANGE`, re-drive
+scripts, monitoring) or read the dict passed to `on_dlq`:
+
+- read the exhausted retry budget from `_dlq_retries`, not `_retry_count`
+  (which is now `"0"` on every DLQ entry);
+- expect the additional `_dlq_source`, `_dlq_handler`, `_dlq_at`,
+  `_dlq_reason` keys;
+- poison entries are no longer raw bytes: recover the original payload by
+  base64-decoding `_dlq_raw_b64`, and `on_dlq` receives that decoded dict;
+- stream entries with no `__data__` field (only possible from a non-eggai
+  producer) are no longer retried at all; they are dead-lettered as poison on
+  the first reclaim.
+
+The `on_dlq(body, msg_id, retry_count)` signature and its `retry_count`
+argument are unchanged.
+
 ### Added
 - `RedisTransport`: new `dlq_channel` subscribe option. Dead-letters into ONE
   stream you name instead of the per-handler `{channel}.{handler_suffix}.dlq`,
@@ -27,8 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group), `_dlq_at` (ISO-8601 UTC) and `_dlq_reason` (`"max_retries"` or
   `"poison"`) and `_dlq_retries` (how many retries actually ran). Additive:
   typed models ignore the extra keys, as they already do for `_retry_count`.
-  The `_dlq_*` keys are set-if-absent, so an entry dead-lettered a second time
-  (by a DLQ consumer that gave up) keeps its original origin.
+  On an entry dead-lettered a second time (by a DLQ consumer that gave up)
+  the origin keys `_dlq_source` / `_dlq_handler` / `_dlq_at` keep the first
+  failure, while `_dlq_reason` / `_dlq_retries` describe the latest hop.
 
 ### Changed
 - **`_retry_count` is reset to `"0"` on the DLQ write** (the exhausted budget
@@ -65,7 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   first two raised outside the guarded parse and aborted the whole reclaim
   cycle after `XCLAIM`, head-of-line blocking every later pending entry; the
   third ping-ponged between main and retry stream forever with a retry count
-  that could never grow. All three are now dead-lettered as poison.
+  that could never grow. All three are now dead-lettered as poison; in
+  particular, entries without `__data__` are no longer retried at all.
 
 ## [0.4.1] - 2026-09-07
 

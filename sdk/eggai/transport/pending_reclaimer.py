@@ -56,7 +56,7 @@ class ReclaimerConfig:
     dlq_stream: str | None = (
         None  # full key, e.g. "<namespace>.orders.order-service-handle_order-1.dlq"
     )
-    on_dlq: Callable | None = None  # async or sync callback(fields, msg_id, count)
+    on_dlq: Callable | None = None  # async or sync callback(body, msg_id, retry_count)
     max_len: int | None = (
         None  # cap retry stream length (XADD MAXLEN ~); None = unbounded
     )
@@ -186,22 +186,26 @@ def _stamp_dead_letter(body: dict, meta: dict[str, str], retries: int) -> None:
     and — once something subscribes to the DLQ — a *first* delivery to a new
     consumer. Hence:
 
-    - provenance (``_dlq_*``) is written with ``setdefault``: if the message is
-      dead-lettered a second time (the DLQ consumer itself gave up), the
-      original origin wins and is not overwritten by the consumer's own
-      channel/handler;
-    - the exhausted budget is recorded as ``_dlq_retries`` and ``_retry_count``
-      is reset to ``"0"``, so a DLQ consumer with its own ``retry_on_idle_ms``
-      starts with a fresh budget instead of inheriting an already-exceeded one
-      (which would dead-letter it again on its first failure and, with backoff,
-      make its first reclaim wait ``base * multiplier ** exhausted``).
+    - origin keys (``_dlq_source``, ``_dlq_handler``, ``_dlq_at``) are written
+      set-if-absent: if the message is dead-lettered a second time (the DLQ
+      consumer itself gave up), they keep saying where it *originally* failed;
+    - hop keys (``_dlq_reason``, ``_dlq_retries``) are overwritten on every
+      dead-lettering: they say why the entry is in *this* DLQ, which is what its
+      reader needs (the origin is still in the keys above);
+    - ``_retry_count`` is reset to ``"0"``, so a DLQ consumer with its own
+      ``retry_on_idle_ms`` starts with a fresh budget instead of inheriting an
+      already-exceeded one (which would dead-letter it again on its first
+      failure and, with backoff, make its first reclaim wait
+      ``base * multiplier ** exhausted``).
 
     Metadata lives in the *body*, not in extra XADD fields: FastStream's decoder
     reads only ``__data__``, so body keys are all a DLQ subscriber can see.
     """
-    for key, value in meta.items():
-        body.setdefault(key, value)
-    body.setdefault("_dlq_retries", str(retries))
+    for key in ("_dlq_source", "_dlq_handler", "_dlq_at"):
+        if key in meta:
+            body.setdefault(key, meta[key])  # first dead-lettering wins
+    body["_dlq_reason"] = meta["_dlq_reason"]  # latest hop wins
+    body["_dlq_retries"] = str(retries)
     body["_retry_count"] = "0"
 
 

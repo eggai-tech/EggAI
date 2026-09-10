@@ -80,9 +80,10 @@ def test_stamp_dead_letter_resets_budget_and_keeps_first_origin():
     assert body["_original_message_id"] == "1-0"
 
     # Dead-lettered a second time (the DLQ consumer itself gave up after 2
-    # retries): the original origin wins, the consumer's does not overwrite it.
+    # retries, here as poison): origin keys keep the first failure, hop keys
+    # describe the latest one.
     sink = {
-        "_dlq_reason": "max_retries",
+        "_dlq_reason": "poison",
         "_dlq_source": "ns.dlq",
         "_dlq_handler": "sink-1",
         "_dlq_at": "t2",
@@ -92,7 +93,8 @@ def test_stamp_dead_letter_resets_budget_and_keeps_first_origin():
     assert body["_dlq_source"] == "ns.orders"
     assert body["_dlq_handler"] == "svc-h-1"
     assert body["_dlq_at"] == "t1"
-    assert body["_dlq_retries"] == "3"
+    assert body["_dlq_reason"] == "poison"
+    assert body["_dlq_retries"] == "2"
     assert body["_retry_count"] == "0"
 
 

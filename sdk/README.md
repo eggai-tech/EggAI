@@ -226,8 +226,9 @@ consumer can tell entries apart:
 | `_retry_count` | **reset to `"0"`** on the DLQ write, so a DLQ consumer with its own `retry_on_idle_ms` starts with a fresh budget |
 | `_original_message_id` | as on retry delivery |
 
-The `_dlq_*` keys are written with set-if-absent semantics: if a DLQ consumer itself gives
-up on an entry and dead-letters it again, the *original* origin is preserved.
+If a DLQ consumer itself gives up on an entry and dead-letters it again, `_dlq_source`,
+`_dlq_handler` and `_dlq_at` keep the *original* failure while `_dlq_reason` and
+`_dlq_retries` describe the latest hop.
 
 A shared DLQ is written **without** `MAXLEN` — `retry_max_len` applies to the retry
 streams and to per-handler DLQs only. `XADD MAXLEN` trims the whole stream regardless of
