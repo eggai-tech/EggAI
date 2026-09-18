@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- MCP adapter reads tool schemas from fastmcp's own `Tool` instead of the
+  protocol `Tool`, so it works on fastmcp 3 and 4 without touching the
+  fields MCP SDK 2 renamed. The `mcp` extra now allows `fastmcp>=3,<5`.
+- MCP adapter subscriptions declare `data_type`, so handlers receive parsed
+  request models instead of raw dicts. Covered by a new end-to-end test.
 - `setup_tracing` type errors: exporter selection is typed, `endpoint` is
   passed explicitly, and the unused provider reassignment is gone.
 - A2A adapter type errors: `A2AConfig` imports `SecurityScheme`

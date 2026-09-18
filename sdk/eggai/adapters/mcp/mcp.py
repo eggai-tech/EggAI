@@ -29,6 +29,7 @@ async def run_mcp_adapter(name: str, mcp_server: FastMCP):
 
     @agent.subscribe(
         channel=c("list.in"),
+        data_type=ToolListRequestMessage,
         auto_offset_reset="latest",
         group_id=name + "_tools_list_in",
     )
@@ -39,15 +40,11 @@ async def run_mcp_adapter(name: str, mcp_server: FastMCP):
         mcp_tools = await mcp_server.list_tools()
         tools: list[ExternalTool] = []
         for tool in mcp_tools:
-            # fastmcp 3.x returns FunctionTool objects whose schemas live on
-            # `parameters`/`output_schema`; convert to the MCP protocol Tool to
-            # read the canonical `inputSchema`/`outputSchema` fields.
-            mcp_tool = tool.to_mcp_tool()
             external_tool = ExternalTool(
-                name=mcp_tool.name,
-                description=mcp_tool.description or "",
-                parameters=mcp_tool.inputSchema or {},
-                return_type=mcp_tool.outputSchema or {},
+                name=tool.name,
+                description=tool.description or "",
+                parameters=tool.parameters,
+                return_type=tool.output_schema or {},
             )
             tools.append(external_tool)
 
@@ -59,6 +56,7 @@ async def run_mcp_adapter(name: str, mcp_server: FastMCP):
 
     @agent.subscribe(
         channel=c("calls.in"),
+        data_type=ToolCallRequestMessage,
         auto_offset_reset="latest",
         group_id=name + "_tool_calls_in",
     )
