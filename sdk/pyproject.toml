@@ -56,7 +56,7 @@ otel = [
 ]
 
 [tool.poetry.group.dev.dependencies]
-twine = "^6.0.1"
+twine = ">=6.0.1,<8.0.0"
 pytest-asyncio = ">=1.0,<2"
 pytest = "^9.0.0"
 pytest-cov = ">=6,<8"
