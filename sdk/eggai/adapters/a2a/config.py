@@ -1,12 +1,7 @@
 """A2A configuration for EggAI agents."""
 
+from a2a.types import SecurityScheme
 from pydantic import BaseModel, ConfigDict, Field
-
-try:
-    from a2a.types import SecurityScheme
-except ImportError:
-    # Fallback if a2a-sdk not installed
-    SecurityScheme = dict
 
 
 class A2AConfig(BaseModel):

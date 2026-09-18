@@ -189,30 +189,14 @@ class EggAIAgentExecutor(AgentExecutor):
 
     async def _send_agent_response(self, event_queue: EventQueue, data: dict):
         """Send agent response through event queue."""
-        try:
-            from uuid import uuid4
+        from uuid import uuid4
 
-            from a2a.types import DataPart, Message, Part, Role
+        from a2a.types import DataPart, Message, Part, Role
 
-            # Create A2A message with response data
-            response_message = Message(
-                message_id=str(uuid4()),
-                role=Role.agent,
-                parts=[Part(root=DataPart(data=data))],
-            )
-
-            # Enqueue the message as an event
-            await event_queue.enqueue_event(response_message)
-            logger.debug(f"Sent agent response: {data}")
-
-        except ImportError as e:
-            logger.error(f"A2A types not available: {e}")
-            raise
-        except (ValueError, TypeError) as e:
-            logger.exception(f"Failed to create A2A message from data: {e}")
-            # Fallback: try to send as simple event
-            try:
-                await event_queue.enqueue_event({"text": json.dumps(data)})
-            except (TypeError, ValueError) as json_err:
-                logger.error(f"Failed to serialize response data: {json_err}")
-                raise
+        response_message = Message(
+            message_id=str(uuid4()),
+            role=Role.agent,
+            parts=[Part(root=DataPart(data=data))],
+        )
+        await event_queue.enqueue_event(response_message)
+        logger.debug(f"Sent agent response: {data}")
