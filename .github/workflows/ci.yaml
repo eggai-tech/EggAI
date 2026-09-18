@@ -42,7 +42,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: sdk
-        run: poetry install
+        run: poetry install --all-extras
 
       - name: Run ruff linter
         working-directory: sdk
@@ -180,7 +180,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: sdk
-        run: poetry install
+        run: poetry install --all-extras
 
       - name: Run tests with coverage
         working-directory: sdk

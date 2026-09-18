@@ -3,7 +3,10 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from opentelemetry.sdk.trace.export import SpanExporter
 
 
 class _NoOpSpan:
@@ -101,7 +104,7 @@ def get_backend():
 
 
 def setup_tracing(
-    exporter="otlp",
+    exporter: str | SpanExporter = "otlp",
     *,
     service_name: str | None = None,
     endpoint: str | None = None,
@@ -110,29 +113,34 @@ def setup_tracing(
     from opentelemetry import trace
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+    from opentelemetry.sdk.trace.export import (
+        BatchSpanProcessor,
+        ConsoleSpanExporter,
+        SpanExporter,
+    )
 
     resource = Resource.create(
-        {"service.name": service_name or os.getenv("OTEL_SERVICE_NAME", "eggai")}
+        {"service.name": service_name or os.getenv("OTEL_SERVICE_NAME") or "eggai"}
     )
     provider = TracerProvider(resource=resource)
 
-    if exporter == "console":
+    span_exporter: SpanExporter
+    if isinstance(exporter, SpanExporter):
+        span_exporter = exporter
+    elif exporter == "console":
         span_exporter = ConsoleSpanExporter()
     elif exporter == "otlp-http":
         from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-            OTLPSpanExporter,
+            OTLPSpanExporter as HttpSpanExporter,
         )
 
-        span_exporter = OTLPSpanExporter(**({"endpoint": endpoint} if endpoint else {}))
-    elif hasattr(exporter, "export"):
-        span_exporter = exporter  # accept pre-built exporter object (for testing)
+        span_exporter = HttpSpanExporter(endpoint=endpoint)
     else:  # "otlp" / "otlp-grpc" (default)
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-            OTLPSpanExporter,
+            OTLPSpanExporter as GrpcSpanExporter,
         )
 
-        span_exporter = OTLPSpanExporter(**({"endpoint": endpoint} if endpoint else {}))
+        span_exporter = GrpcSpanExporter(endpoint=endpoint)
 
     provider.add_span_processor(BatchSpanProcessor(span_exporter))
 
@@ -140,9 +148,6 @@ def setup_tracing(
 
     if isinstance(trace.get_tracer_provider(), ProxyTracerProvider):
         trace.set_tracer_provider(provider)
-    else:
-        # Adopt the already-configured provider (API base type, not the SDK one).
-        provider = trace.get_tracer_provider()
 
     from importlib.metadata import version
 

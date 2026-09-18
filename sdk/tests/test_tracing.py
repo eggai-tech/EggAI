@@ -55,7 +55,7 @@ async def test_noop_publish_and_subscribe_work_without_setup_tracing():
 
 # OTEL does not allow overriding the global TracerProvider, so a single shared
 # provider + exporter is configured once at module level and cleared between tests.
-otel = pytest.importorskip("opentelemetry")
+otel = pytest.importorskip("opentelemetry.sdk")
 
 from opentelemetry import trace as _otel_trace  # noqa: E402
 from opentelemetry.sdk.trace import TracerProvider as _TracerProvider  # noqa: E402

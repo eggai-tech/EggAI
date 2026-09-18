@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `setup_tracing` type errors: exporter selection is typed, `endpoint` is
+  passed explicitly, and the unused provider reassignment is gone.
+- A2A adapter type errors: `A2AConfig` imports `SecurityScheme`
+  unconditionally, and the executor no longer falls back to enqueuing a raw
+  dict the event queue cannot model.
+- CI lint and test jobs install all extras, so the tracing, a2a and mcp
+  modules are type-checked and tested.
+
 ## [0.5.0] - 2026-09-10
 
 **Migration note for DLQ consumers.** The *shape of DLQ entries* changes in
