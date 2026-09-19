@@ -357,7 +357,7 @@ class RedisTransport(Transport):
                 retry streams). The retry stream stays per-handler — only the terminal sink is shared. Every
                 DLQ entry carries ``_dlq_source`` (origin channel key), ``_dlq_handler``, ``_dlq_at``,
                 ``_dlq_reason`` and ``_dlq_retries`` in its body so a shared consumer can tell entries apart,
-                and ``_retry_count`` is reset to ``"0"`` so a DLQ consumer with its own retries starts with a
+                and ``_retry_count`` is reset to ``0`` so a DLQ consumer with its own retries starts with a
                 fresh budget; subscribe to the DLQ with ``group_start="0"`` to pick up an existing backlog.
                 A shared DLQ is written WITHOUT ``MAXLEN`` unless ``RedisTransport(dlq_max_len=...)`` is set
                 (``retry_max_len`` does not apply): trimming is stream-wide, so any writer's cap would delete

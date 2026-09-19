@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `_retry_count` and `_dlq_retries` are written to retry and DLQ entry
+  bodies as JSON numbers instead of strings, matching the `int` that
+  `on_dlq` receives. Entries written by older versions are still read.
+  Consumers that compare these fields to strings must compare to numbers.
+
 ### Fixed
 
 - MCP adapter reads tool schemas from fastmcp's own `Tool` instead of the

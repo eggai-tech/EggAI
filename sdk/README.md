@@ -180,7 +180,7 @@ Two fields are injected on retry delivery to aid deduplication:
 
 | Field | Value |
 |-------|-------|
-| `_retry_count` | `"1"`, `"2"`, … — incremented on each reclaim cycle |
+| `_retry_count` | `1`, `2`, … — incremented on each reclaim cycle |
 | `_original_message_id` | Redis stream ID of the original message |
 
 **Dead Letter Queue (DLQ):** Messages that exceed `max_retries` (default 5) are routed to
@@ -222,8 +222,8 @@ consumer can tell entries apart:
 | `_dlq_handler` | handler suffix / consumer group (e.g. `order-service-handle_order-1`) |
 | `_dlq_at` | ISO-8601 UTC timestamp of the DLQ write |
 | `_dlq_reason` | `"max_retries"`, or `"poison"` for an envelope the reclaimer could not parse |
-| `_dlq_retries` | how many retries actually ran before giving up (`max_retries`; `"0"` for poison) |
-| `_retry_count` | **reset to `"0"`** on the DLQ write, so a DLQ consumer with its own `retry_on_idle_ms` starts with a fresh budget |
+| `_dlq_retries` | how many retries actually ran before giving up (`max_retries`; `0` for poison) |
+| `_retry_count` | **reset to `0`** on the DLQ write, so a DLQ consumer with its own `retry_on_idle_ms` starts with a fresh budget |
 | `_original_message_id` | as on retry delivery |
 
 If a DLQ consumer itself gives up on an entry and dead-letters it again, `_dlq_source`,

@@ -830,8 +830,8 @@ async def test_retry_on_idle_ms_metadata():
     await agent.stop()
 
     assert "_retry_count" in retry_fields, "Missing _retry_count in retry delivery"
-    assert retry_fields["_retry_count"] == "1", (
-        f"Expected _retry_count='1', got {retry_fields.get('_retry_count')!r}"
+    assert retry_fields["_retry_count"] == 1, (
+        f"Expected _retry_count=1, got {retry_fields.get('_retry_count')!r}"
     )
     assert "_original_message_id" in retry_fields, (
         "Missing _original_message_id in retry delivery"
@@ -887,7 +887,7 @@ def test_inject_retry_metadata_non_ascii_header():
     new_data = _encode_body(parsed_headers, body_dict)
     body, reparsed_headers = BinaryMessageFormatV1.parse(new_data)
     assert reparsed_headers == headers
-    assert json.loads(body)["_retry_count"] == "1"
+    assert json.loads(body)["_retry_count"] == 1
 
 
 @pytest.mark.asyncio
@@ -997,8 +997,8 @@ async def test_max_retries_routes_to_dlq():
     body = json.loads(body_bytes)
     # The exhausted budget is recorded as _dlq_retries (== max_retries) and
     # _retry_count is reset so a DLQ consumer with its own retries starts fresh.
-    assert body["_dlq_retries"] == "2", body
-    assert body["_retry_count"] == "0", body
+    assert body["_dlq_retries"] == 2, body
+    assert body["_retry_count"] == 0, body
     assert body["_dlq_reason"] == "max_retries"
     assert "_original_message_id" in body
 
@@ -2071,7 +2071,7 @@ async def test_backoff_skips_high_retry_count_message_not_yet_due():
 
     client = redis.Redis(host="localhost", port=6379, decode_responses=False)
     # _retry_count=3 with multiplier=10, base=100ms → threshold = 100 * 10**3 = 100s.
-    envelope = await _make_envelope({"type": "t", "_retry_count": "3", "id": test_id})
+    envelope = await _make_envelope({"type": "t", "_retry_count": 3, "id": test_id})
     await _deliver_to_pel(client, stream, group, f"{group}-live", envelope)
 
     manager = PendingReclaimerManager("redis://localhost:6379")
@@ -2136,7 +2136,7 @@ async def test_backoff_reclaims_message_once_threshold_elapsed():
     from faststream.redis.parser.binary import BinaryMessageFormatV1
 
     body_bytes, _ = BinaryMessageFormatV1.parse(entries[0][1][b"__data__"])
-    assert int(json.loads(body_bytes)["_retry_count"]) == 1
+    assert json.loads(body_bytes)["_retry_count"] == 1
 
     await manager._redis_client.aclose()
     await client.delete(stream, retry_stream)

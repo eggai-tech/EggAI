@@ -63,7 +63,7 @@ def test_stamp_dead_letter_resets_budget_and_keeps_first_origin():
     body = {
         "type": "order",
         "data": {"k": 1},
-        "_retry_count": "4",
+        "_retry_count": 4,
         "_original_message_id": "1-0",
     }
     origin = {
@@ -75,8 +75,8 @@ def test_stamp_dead_letter_resets_budget_and_keeps_first_origin():
     _stamp_dead_letter(body, origin, 3)
     assert body["data"] == {"k": 1}  # payload untouched
     assert body["_dlq_source"] == "ns.orders"
-    assert body["_dlq_retries"] == "3"
-    assert body["_retry_count"] == "0"  # fresh budget for the DLQ consumer
+    assert body["_dlq_retries"] == 3
+    assert body["_retry_count"] == 0  # fresh budget for the DLQ consumer
     assert body["_original_message_id"] == "1-0"
 
     # Dead-lettered a second time (the DLQ consumer itself gave up after 2
@@ -88,14 +88,14 @@ def test_stamp_dead_letter_resets_budget_and_keeps_first_origin():
         "_dlq_handler": "sink-1",
         "_dlq_at": "t2",
     }
-    body["_retry_count"] = "3"
+    body["_retry_count"] = 3
     _stamp_dead_letter(body, sink, 2)
     assert body["_dlq_source"] == "ns.orders"
     assert body["_dlq_handler"] == "svc-h-1"
     assert body["_dlq_at"] == "t1"
     assert body["_dlq_reason"] == "poison"
-    assert body["_dlq_retries"] == "2"
-    assert body["_retry_count"] == "0"
+    assert body["_dlq_retries"] == 2
+    assert body["_retry_count"] == 0
 
 
 def test_parse_entry_rejects_what_cannot_be_retried():
@@ -110,6 +110,9 @@ def test_parse_entry_rejects_what_cannot_be_retried():
     assert headers == {"h": "v"}
     assert body["type"] == "t"
     assert count == 2
+    # Entries written by older versions carry the count as a string.
+    assert _parse_entry(_encode_envelope({}, b'{"_retry_count":"2"}'))[2] == 2
+    assert _parse_entry(_encode_envelope({}, b'{"_retry_count":2}'))[2] == 2
 
 
 def test_poison_body_keeps_raw_bytes_headers_and_zero_budget():
@@ -121,8 +124,8 @@ def test_poison_body_keeps_raw_bytes_headers_and_zero_budget():
     assert body["_dlq_reason"] == "poison"
     assert body["_dlq_source"] == "ns.o"
     assert body["_original_message_id"] == "7-0"
-    assert body["_retry_count"] == "0"
-    assert body["_dlq_retries"] == "0"
+    assert body["_retry_count"] == 0
+    assert body["_dlq_retries"] == 0
     assert base64.b64decode(body["_dlq_raw_b64"]) == raw
 
     # An envelope whose body is unusable keeps its headers (correlation id…).
@@ -536,8 +539,8 @@ async def test_shared_dlq_channel_end_to_end():
     assert o["type"] == "order" and o["data"] == {"id": 1}
     assert o["_dlq_handler"] == f"prod-{test_id}-fail_orders-1"
     assert o["_dlq_reason"] == "max_retries"
-    assert o["_dlq_retries"] == "1"  # max_retries=1 → one retry actually ran
-    assert o["_retry_count"] == "0"  # fresh budget for the sink
+    assert o["_dlq_retries"] == 1  # max_retries=1 → one retry actually ran
+    assert o["_retry_count"] == 0  # fresh budget for the sink
     assert "_dlq_at" in o and "_original_message_id" in o
 
     p = received[payments.get_name()]
@@ -595,8 +598,8 @@ async def test_reclaimer_wraps_poison_entry_into_dlq():
     assert body["_dlq_reason"] == "poison"
     assert body["_dlq_source"] == stream
     assert body["_dlq_handler"] == group
-    assert body["_retry_count"] == "0"
-    assert body["_dlq_retries"] == "0"
+    assert body["_retry_count"] == 0
+    assert body["_dlq_retries"] == 0
     assert base64.b64decode(body["_dlq_raw_b64"]) == raw
     # The __data__-less entry is wrapped too, instead of looping through retry.
     other = bodies[no_data_id.decode()]
