@@ -113,8 +113,7 @@ def _encode_envelope(headers: dict, body_bytes: bytes) -> bytes:
 def _dlq_metadata(config: ReclaimerConfig, reason: str) -> dict[str, str]:
     """Provenance keys added to a DLQ entry's JSON body.
 
-    Kept as string values, like ``_retry_count``, so they survive any consumer
-    that stringifies fields. ``reason`` is ``"max_retries"`` or ``"poison"``.
+    ``reason`` is ``"max_retries"`` or ``"poison"``.
     """
     meta = {
         "_dlq_reason": reason,
@@ -143,7 +142,7 @@ def _parse_entry(data: bytes) -> tuple[dict, dict, int] | None:
         body = json.loads(body_bytes)
         if not isinstance(body, dict):
             raise TypeError(f"body is {type(body).__name__}, not a JSON object")
-        retry_count = int(body.get("_retry_count", "0"))
+        retry_count = int(body.get("_retry_count", 0))
     except Exception:
         return None
     return headers, body, retry_count
@@ -174,7 +173,7 @@ def _inject_retry_metadata(
         return None
     headers, body, retry_count = parsed
     new_count = retry_count + 1
-    body["_retry_count"] = str(new_count)
+    body["_retry_count"] = new_count
     body.setdefault("_original_message_id", msg_id_str)
     return headers, body, new_count
 
@@ -192,7 +191,7 @@ def _stamp_dead_letter(body: dict, meta: dict[str, str], retries: int) -> None:
     - hop keys (``_dlq_reason``, ``_dlq_retries``) are overwritten on every
       dead-lettering: they say why the entry is in *this* DLQ, which is what its
       reader needs (the origin is still in the keys above);
-    - ``_retry_count`` is reset to ``"0"``, so a DLQ consumer with its own
+    - ``_retry_count`` is reset to ``0``, so a DLQ consumer with its own
       ``retry_on_idle_ms`` starts with a fresh budget instead of inheriting an
       already-exceeded one (which would dead-letter it again on its first
       failure and, with backoff, make its first reclaim wait
@@ -205,8 +204,8 @@ def _stamp_dead_letter(body: dict, meta: dict[str, str], retries: int) -> None:
         if key in meta:
             body.setdefault(key, meta[key])  # first dead-lettering wins
     body["_dlq_reason"] = meta["_dlq_reason"]  # latest hop wins
-    body["_dlq_retries"] = str(retries)
-    body["_retry_count"] = "0"
+    body["_dlq_retries"] = retries
+    body["_retry_count"] = 0
 
 
 def _poison_body(
@@ -606,7 +605,7 @@ class PendingReclaimerManager:
         """Invoke the optional on_dlq callback with the DLQ entry's body dict.
 
         The dict is exactly what a subscriber on the DLQ stream receives: the
-        payload plus ``_retry_count`` (reset to "0"), ``_dlq_retries``,
+        payload plus ``_retry_count`` (reset to 0), ``_dlq_retries``,
         ``_original_message_id`` and the ``_dlq_*`` provenance; for a poison
         entry the same metadata plus ``_dlq_raw_b64`` instead of a payload.
         Callback errors are logged but never block the DLQ write that already

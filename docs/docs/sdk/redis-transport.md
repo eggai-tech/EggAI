@@ -158,13 +158,13 @@ Two fields are added to the message on retry delivery to help with deduplication
 
 | Field | Value |
 |---|---|
-| `_retry_count` | `"1"`, `"2"`, … — incremented on each reclaim cycle |
+| `_retry_count` | `1`, `2`, … — incremented on each reclaim cycle |
 | `_original_message_id` | Redis stream ID of the original message |
 
 ```python
 @agent.subscribe(channel=orders, retry_on_idle_ms=30_000)
 async def handle_order(message):
-    retry_count = int(message.get("_retry_count", "0"))
+    retry_count = message.get("_retry_count", 0)
     original_id = message.get("_original_message_id")
 
     if retry_count > 0:
@@ -269,8 +269,8 @@ Do **not** give the sink `retry_on_idle_ms` together with the same `dlq_channel`
 | `_dlq_handler` | handler suffix / consumer group |
 | `_dlq_at` | ISO-8601 UTC timestamp of the DLQ write |
 | `_dlq_reason` | `"max_retries"`, or `"poison"` for an unparseable envelope |
-| `_dlq_retries` | how many retries actually ran before giving up (`max_retries`; `"0"` for poison) |
-| `_retry_count` | **reset to `"0"`** on the DLQ write |
+| `_dlq_retries` | how many retries actually ran before giving up (`max_retries`; `0` for poison) |
+| `_retry_count` | **reset to `0`** on the DLQ write |
 | `_original_message_id` | as on retry delivery |
 
 Two rules make a DLQ entry safe to *consume*, not just inspect. `_retry_count` is reset so a DLQ consumer that has its own `retry_on_idle_ms` starts with a fresh budget — otherwise it would inherit an already-exceeded count, be dead-lettered again on its first transient failure and, with backoff, wait `base × multiplier^exhausted` for its first reclaim. And when that consumer does give up and dead-letters the entry into its own DLQ, `_dlq_source` / `_dlq_handler` / `_dlq_at` keep the original failure (set-if-absent) while `_dlq_reason` / `_dlq_retries` describe the latest hop, so neither piece of information is lost.
