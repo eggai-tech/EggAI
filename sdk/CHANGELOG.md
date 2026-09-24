@@ -13,9 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   acks is also `XDEL`'d (same `MULTI`), so consumed messages stop occupying
   Redis memory instead of waiting for `MAXLEN` trimming. Covers handler
   success (including filtered-out messages), the retry stream, and the
-  reclaimer's moves to the retry stream / DLQ; a failing handler's entry
-  stays in the PEL. Opt-in because it assumes a single consumer group per
-  stream: `XDEL` removes the entry for every group.
+  reclaimer's moves to the retry stream / DLQ. A failing handler's entry
+  stays in the PEL under the default `NACK_ON_ERROR`, and is deleted under
+  `AckPolicy.ACK` / `ACK_FIRST` (which ack it anyway). Opt-in because it
+  assumes a single consumer group per stream: `XDEL` removes the entry for
+  every group.
 
 ### Fixed
 

@@ -4,6 +4,7 @@ occupying Redis memory. Integration tests against a real Redis at localhost:6379
 """
 
 import asyncio
+import threading
 import uuid
 
 import pytest
@@ -211,6 +212,91 @@ async def test_delete_on_ack_through_dlq(redis_client):
         await _wait_for(lambda: _xlen_is(redis_client, dlq_stream, 1), timeout=15.0)
         await _wait_for(lambda: _xlen_is(redis_client, stream, 0))
         await _wait_for(lambda: _xlen_is(redis_client, retry_stream, 0))
+    finally:
+        await agent.stop()
+
+
+@pytest.mark.asyncio
+async def test_delete_on_ack_with_ack_policy_ack_deletes_failures(redis_client):
+    """AckPolicy.ACK acks a failed run too, so delete_on_ack must delete it too."""
+    agent_name, channel_name, stream = _names("doa-ackpol")
+    transport = RedisTransport()
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+    group = f"{agent_name}-handler-1"
+
+    called = asyncio.Event()
+
+    @agent.subscribe(channel=channel, delete_on_ack=True, ack_policy=AckPolicy.ACK)
+    async def handler(message):
+        called.set()
+        raise RuntimeError("boom")
+
+    await agent.start()
+    try:
+        await channel.publish({"type": "t"})
+        await asyncio.wait_for(called.wait(), timeout=10.0)
+        await _wait_for(lambda: _xlen_is(redis_client, stream, 0))
+        assert _pending(await redis_client.xpending(stream, group)) == 0
+    finally:
+        await agent.stop()
+
+
+@pytest.mark.asyncio
+async def test_delete_on_ack_runs_sync_handler_off_the_event_loop(redis_client):
+    agent_name, channel_name, stream = _names("doa-sync")
+    transport = RedisTransport()
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    loop_thread = threading.get_ident()
+    handler_threads = []
+
+    @agent.subscribe(channel=channel, delete_on_ack=True)
+    def handler(message):
+        handler_threads.append(threading.get_ident())
+
+    await agent.start()
+    try:
+        await channel.publish({"type": "t"})
+        await _wait_for(lambda: _async(len(handler_threads) == 1))
+        await _wait_for(lambda: _xlen_is(redis_client, stream, 0))
+    finally:
+        await agent.stop()
+    assert handler_threads[0] != loop_thread
+
+
+@pytest.mark.asyncio
+async def test_delete_on_ack_keeps_poison_entry_when_no_dlq(redis_client):
+    """With no DLQ a dropped poison entry is the only copy: ack it, don't XDEL it."""
+    agent_name, channel_name, stream = _names("doa-poison")
+    group = f"{agent_name}-handler-1"
+    transport = RedisTransport()
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    @agent.subscribe(
+        channel=channel,
+        delete_on_ack=True,
+        retry_on_idle_ms=300,
+        retry_reclaim_interval_s=0.5,
+        max_retries=None,
+    )
+    async def handler(message):
+        raise RuntimeError("never succeeds")
+
+    await agent.start()
+    try:
+        # No __data__ field: the reclaimer cannot parse it (poison).
+        await redis_client.xadd(stream, {"garbage": "x"})
+
+        async def acked():
+            return _pending(await redis_client.xpending(stream, group)) == 0 and (
+                await redis_client.xlen(stream) == 1
+            )
+
+        await asyncio.sleep(0.5)
+        await _wait_for(acked, timeout=15.0)
     finally:
         await agent.stop()
 

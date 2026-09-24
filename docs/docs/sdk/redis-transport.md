@@ -281,6 +281,20 @@ Two rules make a DLQ entry safe to *consume*, not just inspect. `_retry_count` i
 
 Validation: `dlq_channel` requires `retry_on_idle_ms` and a non-`None` `max_retries` (with `max_retries=None` there is no DLQ to redirect), must differ from the subscribed channel, and must not end in `.retry` (every `.retry` stream is auto-consumed by some handler, so dead-lettering into one would feed that handler's retry loop). All of it fails at `subscribe()` time, before anything is registered on the broker.
 
+### Freeing Memory with `delete_on_ack`
+
+Redis keeps a stream entry after it is acked; only `MAXLEN` trims it, and `MAXLEN` trims by count whether or not an entry was processed. With `delete_on_ack=True` a subscription `XDEL`s every entry at the moment it acks it (`XACK` + `XDEL` in one `MULTI`), so a stream only holds in-flight messages:
+
+```python
+@agent.subscribe(channel=emails, delete_on_ack=True)
+async def handle_email(message):
+    ...
+```
+
+It applies wherever the subscription acks: after the handler returns (including messages a filter skips), on the SDK retry stream, and when the reclaimer moves a stuck entry to `.retry` or the DLQ. Under the default `NACK_ON_ERROR` a failing handler's entry stays in the PEL for retry; under `AckPolicy.ACK` / `ACK_FIRST`, which ack failures too, it is deleted too. DLQ entries are never deleted by this option, and a poison entry dropped with no DLQ configured is only acked so it stays readable with `XRANGE`.
+
+**Only one consumer group per stream.** `XDEL` removes the entry for every group, so a second group (or a group-less subscriber) that has not read an entry yet never will. Competing workers inside one group are fine. For fan-out to several groups, keep `delete_on_ack` off and bound memory with `max_len`. Requires a consumer group; rejected with `no_ack=True` and `AckPolicy.MANUAL`. On Redis >= 8.2 the equivalent command is `XACKDEL`.
+
 ### Tuning the Reclaimer
 
 ```python

@@ -310,8 +310,11 @@ class RedisTransport(Transport):
                 so a consumed message no longer occupies Redis memory (default False: acked entries stay in the
                 stream until ``MAXLEN`` trims them). Applies wherever this subscription acks: after the handler
                 returns (including messages skipped by a filter), on the SDK-managed retry stream, and when
-                the reclaimer moves a stuck entry to the retry stream or DLQ. A handler that raises is NOT
-                deleted, it stays in the PEL for retry. ``XACK`` and ``XDEL`` run in one ``MULTI``.
+                the reclaimer moves a stuck entry to the retry stream or DLQ. Under the default
+                ``NACK_ON_ERROR`` a handler that raises is NOT deleted, it stays in the PEL for retry; under
+                ``AckPolicy.ACK`` / ``ACK_FIRST`` (which ack failures too) it is deleted as well. A poison entry
+                dropped with no DLQ configured is only acked, so it stays readable for ``XRANGE``. ``XACK`` and
+                ``XDEL`` run in one ``MULTI``.
                 ASSUMES THIS IS THE ONLY CONSUMER GROUP ON THE STREAM: ``XDEL`` removes the entry for every
                 group, so another group (or a group-less ``XREAD`` subscriber) that has not read it yet never
                 will. Requires a consumer group; incompatible with ``no_ack=True`` and
@@ -644,10 +647,10 @@ class RedisTransport(Transport):
         ack_policy = kwargs.pop("ack_policy", AckPolicy.NACK_ON_ERROR)
 
         # Outermost wrapper, so a message a filter skips is deleted too (it is
-        # acked either way). Applied per stream: the recursive retry subscribe
+        # acked either way). Deletes exactly where ack_policy acks. Applied per stream: the recursive retry subscribe
         # below wraps its own handler with the retry group.
         if delete_on_ack:
-            handler = self._wrap_delete_on_ack(handler, group)
+            handler = self._wrap_delete_on_ack(handler, group, ack_policy)
 
         # stream must be passed as keyword-only argument
         registered_handler = self.broker.subscriber(
@@ -878,37 +881,43 @@ class RedisTransport(Transport):
         finally:
             await client.aclose()
 
-    def _wrap_delete_on_ack(self, handler: Callable, group: str) -> Callable:
-        """Wrap ``handler`` so a successful run XACKs and XDELs its entry.
+    def _wrap_delete_on_ack(
+        self, handler: Callable, group: str, ack_policy: AckPolicy
+    ) -> Callable:
+        """Wrap ``handler`` so every entry FastStream acks is also XDEL'd.
 
-        FastStream's own ack (XACK after the handler returns) stays in place and
-        becomes a harmless no-op on the already-deleted id. The raw stream message
-        (channel + ids, a list even for one entry, so batch mode works too) comes
-        from FastStream's per-message context. functools.wraps keeps the user's
-        signature visible to fast_depends, same as the tracing wrapper.
+        Under the default NACK_ON_ERROR (and REJECT_ON_ERROR, a no-op on Redis)
+        only a successful run acks, so only a successful run deletes; a failure
+        stays in the PEL. ACK / ACK_FIRST ack a failed run too, so for them a
+        failure is deleted as well, otherwise it would be acked yet never
+        trimmed. FastStream's own XACK still runs afterwards, a harmless no-op on
+        the deleted id. The raw stream message (channel + ids, a list even for
+        one entry, so batch mode works) comes from FastStream's per-message
+        context. functools.wraps keeps the user's signature visible to
+        fast_depends, same as the tracing wrapper. A sync handler is sent to a
+        worker thread, as FastStream would have done without this wrapper.
         """
         import functools
-        import inspect
 
-        @functools.wraps(handler)
-        async def delete_on_ack_handler(*args, **kwargs):
-            result = handler(*args, **kwargs)
-            if inspect.isawaitable(result):
-                result = await result
+        import anyio
 
+        from eggai.transport.pending_reclaimer import xack_del
+
+        delete_on_error = ack_policy in (AckPolicy.ACK, AckPolicy.ACK_FIRST)
+        is_async = asyncio.iscoroutinefunction(handler)
+
+        async def delete_current() -> None:
             message = self.broker.context.get_local("message")
             if message is None:
-                return result
+                return
             raw = message.raw_message
             channel, ids = raw["channel"], raw["message_ids"]
             try:
-                client = self.broker.config.connection.client
-                async with client.pipeline(transaction=True) as pipe:
-                    pipe.xack(channel, group, *ids)
-                    pipe.xdel(channel, *ids)
-                    await pipe.execute()
+                await xack_del(
+                    self.broker.config.connection.client, channel, group, *ids
+                )
             except Exception:
-                # The handler already succeeded: raising here would NACK it and
+                # Raising here would NACK a handler that already succeeded and
                 # re-run it. Leave the entry for FastStream's XACK / MAXLEN.
                 logger.warning(
                     "delete_on_ack: XACK+XDEL failed for %s %s; entry left in stream",
@@ -916,6 +925,21 @@ class RedisTransport(Transport):
                     ids,
                     exc_info=True,
                 )
+
+        @functools.wraps(handler)
+        async def delete_on_ack_handler(*args, **kwargs):
+            try:
+                if is_async:
+                    result = await handler(*args, **kwargs)
+                else:
+                    result = await anyio.to_thread.run_sync(
+                        functools.partial(handler, *args, **kwargs)
+                    )
+            except Exception:
+                if delete_on_error:
+                    await delete_current()
+                raise
+            await delete_current()
             return result
 
         return delete_on_ack_handler

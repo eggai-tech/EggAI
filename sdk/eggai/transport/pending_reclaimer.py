@@ -87,6 +87,18 @@ class ReclaimerConfig:
     delete_on_ack: bool = False
 
 
+async def xack_del(client: Any, stream: str, group: str, *ids: Any) -> None:
+    """XACK and XDEL ``ids`` in one MULTI (the ``delete_on_ack`` primitive).
+
+    Both commands touch the same key, so this is safe on Redis Cluster /
+    Enterprise too. On Redis >= 8.2 this is ``XACKDEL``; swap it here.
+    """
+    async with client.pipeline(transaction=True) as pipe:
+        pipe.xack(stream, group, *ids)
+        pipe.xdel(stream, *ids)
+        await pipe.execute()
+
+
 def _encode_envelope(headers: dict, body_bytes: bytes) -> bytes:
     """Build a FastStream BinaryMessageFormatV1 envelope from headers + JSON body.
 
@@ -562,7 +574,9 @@ class PendingReclaimerManager:
                     )
                     await self._invoke_on_dlq(config, body, msg_id_str, 0)
                 else:
-                    await self._ack(config, msg_id)
+                    # Plain XACK even with delete_on_ack: with no DLQ this entry
+                    # is the only copy, keep it for XRANGE forensics.
+                    await self._client.xack(config.stream, config.group, msg_id)
                     logger.error(
                         "Message %s has an unparseable envelope and no DLQ is "
                         "configured; dropping it to avoid a retry-stream livelock",
@@ -601,13 +615,10 @@ class PendingReclaimerManager:
                 logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
 
     async def _ack(self, config: ReclaimerConfig, msg_id: Any) -> None:
-        if not config.delete_on_ack:
+        if config.delete_on_ack:
+            await xack_del(self._client, config.stream, config.group, msg_id)
+        else:
             await self._client.xack(config.stream, config.group, msg_id)
-            return
-        async with self._client.pipeline(transaction=True) as pipe:
-            pipe.xack(config.stream, config.group, msg_id)
-            pipe.xdel(config.stream, msg_id)
-            await pipe.execute()
 
     async def _invoke_on_dlq(
         self,
