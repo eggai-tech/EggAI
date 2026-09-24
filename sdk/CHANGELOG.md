@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stays in the PEL under the default `NACK_ON_ERROR`, and is deleted under
   `AckPolicy.ACK` / `ACK_FIRST` (which ack it anyway). Opt-in because it
   assumes a single consumer group per stream: `XDEL` removes the entry for
-  every group.
+  every group. `connect()` raises `RuntimeError` if another group already
+  reads the stream, and the group monitor logs an error if one joins later.
 
 ### Fixed
 

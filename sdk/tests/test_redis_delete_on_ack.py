@@ -4,6 +4,7 @@ occupying Redis memory. Integration tests against a real Redis at localhost:6379
 """
 
 import asyncio
+import logging
 import threading
 import uuid
 
@@ -299,6 +300,90 @@ async def test_delete_on_ack_keeps_poison_entry_when_no_dlq(redis_client):
         await _wait_for(acked, timeout=15.0)
     finally:
         await agent.stop()
+
+
+@pytest.mark.asyncio
+async def test_delete_on_ack_refuses_to_start_next_to_another_group(redis_client):
+    """Another group on the stream (e.g. a monitoring bridge) would miss deleted
+    entries: connect() must fail before anything is consumed."""
+    agent_name, channel_name, stream = _names("doa-foreign")
+    await redis_client.xgroup_create(stream, "someone-else", id="$", mkstream=True)
+    await redis_client.xadd(stream, {"k": "v"})
+
+    transport = RedisTransport()
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+    calls = []
+
+    @agent.subscribe(channel=channel, delete_on_ack=True)
+    async def handler(message):
+        calls.append(message)
+
+    with pytest.raises(RuntimeError, match="someone-else"):
+        await agent.start()
+    await transport.disconnect()
+    assert calls == []
+    assert await redis_client.xlen(stream) == 1
+
+
+@pytest.mark.asyncio
+async def test_delete_on_ack_refuses_two_local_groups_on_one_stream():
+    agent_name, channel_name, _ = _names("doa-twolocal")
+    transport = RedisTransport()
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    @agent.subscribe(channel=channel, delete_on_ack=True)
+    async def first(message):
+        pass
+
+    @agent.subscribe(channel=channel)
+    async def second(message):
+        pass
+
+    with pytest.raises(RuntimeError, match="other consumer groups"):
+        await agent.start()
+    await transport.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_delete_on_ack_monitor_reports_group_added_later(redis_client, caplog):
+    agent_name, channel_name, stream = _names("doa-late")
+    transport = RedisTransport(group_monitor_interval_s=0.2)
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+
+    @agent.subscribe(channel=channel, delete_on_ack=True)
+    async def handler(message):
+        pass
+
+    await agent.start()
+    try:
+        with caplog.at_level(logging.ERROR, logger="eggai.transport.redis"):
+            await redis_client.xgroup_create(stream, "late-joiner", id="$")
+            await _wait_for(lambda: _async("late-joiner" in caplog.text))
+            await asyncio.sleep(0.6)  # several more monitor cycles
+        assert caplog.text.count("late-joiner") == 1  # reported once, not per cycle
+    finally:
+        await agent.stop()
+
+
+@pytest.mark.asyncio
+async def test_delete_on_ack_awaits_callable_with_async_call():
+    """An object with an async __call__ must be awaited, not sent to a thread
+    where its coroutine would be created and dropped."""
+    calls = []
+
+    class Handler:
+        async def __call__(self, message):
+            calls.append(message)
+            return "done"
+
+    transport = RedisTransport()
+    wrapped = transport._wrap_delete_on_ack(Handler(), "g", AckPolicy.NACK_ON_ERROR)
+    # Outside a FastStream consume there is no current message: nothing to delete.
+    assert await wrapped({"n": 1}) == "done"
+    assert calls == [{"n": 1}]
 
 
 @pytest.mark.asyncio

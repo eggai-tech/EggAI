@@ -184,6 +184,11 @@ class RedisTransport(Transport):
         self._stream_subscriptions: set[_StreamGroupInfo] = set()
         self._group_monitor_task: asyncio.Task | None = None
         self._group_monitor_interval_s: float = group_monitor_interval_s
+        # (stream_key, group) of every delete_on_ack subscription, checked for
+        # other consumer groups on the same stream (XDEL would starve them).
+        self._delete_on_ack_groups: set[tuple[str, str]] = set()
+        # Foreign-group sets already reported by the monitor, so it logs once.
+        self._reported_foreign_groups: set[tuple[str, frozenset[str]]] = set()
 
     async def connect(self):
         """
@@ -317,7 +322,9 @@ class RedisTransport(Transport):
                 ``XDEL`` run in one ``MULTI``.
                 ASSUMES THIS IS THE ONLY CONSUMER GROUP ON THE STREAM: ``XDEL`` removes the entry for every
                 group, so another group (or a group-less ``XREAD`` subscriber) that has not read it yet never
-                will. Requires a consumer group; incompatible with ``no_ack=True`` and
+                will. Checked at ``connect()``: another group already on the stream raises ``RuntimeError``
+                before anything is consumed, and the group monitor logs an error for one that appears
+                later. Requires a consumer group; incompatible with ``no_ack=True`` and
                 ``ack_policy=AckPolicy.MANUAL``. On Redis >= 8.2 the same effect is ``XACKDEL``.
             ack_policy (AckPolicy, optional): Acknowledgment policy for message handling (default is AckPolicy.NACK_ON_ERROR).
                 - NACK_ON_ERROR: Messages are NOT acknowledged on handler errors, allowing redelivery (recommended).
@@ -651,6 +658,7 @@ class RedisTransport(Transport):
         # below wraps its own handler with the retry group.
         if delete_on_ack:
             handler = self._wrap_delete_on_ack(handler, group, ack_policy)
+            self._delete_on_ack_groups.add((channel, group))
 
         # stream must be passed as keyword-only argument
         registered_handler = self.broker.subscriber(
@@ -793,6 +801,8 @@ class RedisTransport(Transport):
                 if main_sub_info is not None:
                     self._stream_subscriptions.discard(main_sub_info)
                 self._stream_subscriptions.discard(retry_sub_info)
+                self._delete_on_ack_groups.discard((channel, group))
+                self._delete_on_ack_groups.discard((retry_stream, retry_handler_id))
                 if self._reclaimer_manager is not None:
                     for key in added_reclaimer_keys:
                         self._reclaimer_manager.discard(key)
@@ -823,8 +833,29 @@ class RedisTransport(Transport):
                 except ResponseError as e:
                     if "BUSYGROUP" not in str(e):
                         raise
+            # Runs before broker.start(), so a violation stops startup before
+            # any entry is consumed (and deleted).
+            for stream_key, group in sorted(self._delete_on_ack_groups):
+                foreign = await self._foreign_groups(client, stream_key, group)
+                if foreign:
+                    raise RuntimeError(
+                        f"delete_on_ack on stream {stream_key!r} (group {group!r}) "
+                        f"but other consumer groups also read it: {foreign}. XDEL "
+                        "would delete entries they have not read yet. Drop "
+                        "delete_on_ack or remove the other groups "
+                        "(XGROUP DESTROY)."
+                    )
         finally:
             await client.aclose()
+
+    @staticmethod
+    async def _foreign_groups(client: Any, stream_key: str, group: str) -> list[str]:
+        """Names of consumer groups on ``stream_key`` other than ``group``."""
+        try:
+            groups = await client.xinfo_groups(stream_key)
+        except ResponseError:
+            return []  # stream does not exist (yet): nobody to starve
+        return sorted(g["name"] for g in groups if g["name"] != group)
 
     async def _monitor_stream_groups(self) -> None:
         """Periodically ensure all registered stream consumer groups exist.
@@ -876,10 +907,35 @@ class RedisTransport(Transport):
                                 info.stream_key,
                                 e,
                             )
+                await self._check_delete_on_ack_groups(client)
         except asyncio.CancelledError:
             pass
         finally:
             await client.aclose()
+
+    async def _check_delete_on_ack_groups(self, client: Any) -> None:
+        """Log (once per set) a consumer group that joined a delete_on_ack
+        stream after startup. The startup check in _create_groups raises; here
+        the consumers are already running, so the monitor can only report."""
+        for stream_key, group in list(self._delete_on_ack_groups):
+            try:
+                foreign = await self._foreign_groups(client, stream_key, group)
+            except Exception as e:  # connection blips: next cycle retries
+                logger.debug(
+                    "delete_on_ack group check failed on %s: %s", stream_key, e
+                )
+                continue
+            key = (stream_key, frozenset(foreign))
+            if foreign and key not in self._reported_foreign_groups:
+                self._reported_foreign_groups.add(key)
+                logger.error(
+                    "delete_on_ack on stream %s (group %s) but other consumer "
+                    "groups now read it too: %s. They will miss entries this "
+                    "group deletes first.",
+                    stream_key,
+                    group,
+                    foreign,
+                )
 
     def _wrap_delete_on_ack(
         self, handler: Callable, group: str, ack_policy: AckPolicy
@@ -898,27 +954,34 @@ class RedisTransport(Transport):
         worker thread, as FastStream would have done without this wrapper.
         """
         import functools
+        import inspect
 
         import anyio
 
         from eggai.transport.pending_reclaimer import xack_del
 
         delete_on_error = ack_policy in (AckPolicy.ACK, AckPolicy.ACK_FIRST)
-        is_async = asyncio.iscoroutinefunction(handler)
+        # An object with an async __call__ is async too, not a sync function.
+        is_async = asyncio.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+            type(handler).__call__
+        )
 
         async def delete_current() -> None:
-            message = self.broker.context.get_local("message")
-            if message is None:
-                return
-            raw = message.raw_message
-            channel, ids = raw["channel"], raw["message_ids"]
+            # Everything, lookups included, inside the try: raising here would
+            # NACK a handler that already succeeded and re-run it. On failure
+            # the entry is left for FastStream's XACK / MAXLEN.
+            channel: Any = None
+            ids: Any = None
             try:
+                message = self.broker.context.get_local("message")
+                if message is None:
+                    return
+                raw = message.raw_message
+                channel, ids = raw["channel"], raw["message_ids"]
                 await xack_del(
                     self.broker.config.connection.client, channel, group, *ids
                 )
             except Exception:
-                # Raising here would NACK a handler that already succeeded and
-                # re-run it. Leave the entry for FastStream's XACK / MAXLEN.
                 logger.warning(
                     "delete_on_ack: XACK+XDEL failed for %s %s; entry left in stream",
                     channel,
@@ -935,6 +998,10 @@ class RedisTransport(Transport):
                     result = await anyio.to_thread.run_sync(
                         functools.partial(handler, *args, **kwargs)
                     )
+                    # A callable that still returned a coroutine: await it here
+                    # rather than drop it (it would never run).
+                    if inspect.isawaitable(result):
+                        result = await result
             except Exception:
                 if delete_on_error:
                     await delete_current()

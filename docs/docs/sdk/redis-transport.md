@@ -293,7 +293,7 @@ async def handle_email(message):
 
 It applies wherever the subscription acks: after the handler returns (including messages a filter skips), on the SDK retry stream, and when the reclaimer moves a stuck entry to `.retry` or the DLQ. Under the default `NACK_ON_ERROR` a failing handler's entry stays in the PEL for retry; under `AckPolicy.ACK` / `ACK_FIRST`, which ack failures too, it is deleted too. DLQ entries are never deleted by this option, and a poison entry dropped with no DLQ configured is only acked so it stays readable with `XRANGE`.
 
-**Only one consumer group per stream.** `XDEL` removes the entry for every group, so a second group (or a group-less subscriber) that has not read an entry yet never will. Competing workers inside one group are fine. For fan-out to several groups, keep `delete_on_ack` off and bound memory with `max_len`. Requires a consumer group; rejected with `no_ack=True` and `AckPolicy.MANUAL`. On Redis >= 8.2 the equivalent command is `XACKDEL`.
+**Only one consumer group per stream.** `XDEL` removes the entry for every group, so a second group (or a group-less subscriber) that has not read an entry yet never will. Competing workers inside one group are fine. `connect()` checks this: if another group already exists on the stream it raises `RuntimeError` before anything is consumed, and the group monitor logs an error (once) if one appears later. For fan-out to several groups, keep `delete_on_ack` off and bound memory with `max_len`. Requires a consumer group; rejected with `no_ack=True` and `AckPolicy.MANUAL`. On Redis >= 8.2 the equivalent command is `XACKDEL`.
 
 ### Tuning the Reclaimer
 
