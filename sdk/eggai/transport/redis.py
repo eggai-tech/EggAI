@@ -306,6 +306,16 @@ class RedisTransport(Transport):
                 Not allowed together with a consumer group: XREADGROUP with an explicit id only returns this
                 consumer's own pending entries, never new ones. Use group_start instead.
             no_ack (bool, optional): Whether to skip acknowledgment of stream messages (default is False for durability).
+            delete_on_ack (bool, optional): Delete each stream entry (``XDEL``) at the moment it is acknowledged,
+                so a consumed message no longer occupies Redis memory (default False: acked entries stay in the
+                stream until ``MAXLEN`` trims them). Applies wherever this subscription acks: after the handler
+                returns (including messages skipped by a filter), on the SDK-managed retry stream, and when
+                the reclaimer moves a stuck entry to the retry stream or DLQ. A handler that raises is NOT
+                deleted, it stays in the PEL for retry. ``XACK`` and ``XDEL`` run in one ``MULTI``.
+                ASSUMES THIS IS THE ONLY CONSUMER GROUP ON THE STREAM: ``XDEL`` removes the entry for every
+                group, so another group (or a group-less ``XREAD`` subscriber) that has not read it yet never
+                will. Requires a consumer group; incompatible with ``no_ack=True`` and
+                ``ack_policy=AckPolicy.MANUAL``. On Redis >= 8.2 the same effect is ``XACKDEL``.
             ack_policy (AckPolicy, optional): Acknowledgment policy for message handling (default is AckPolicy.NACK_ON_ERROR).
                 - NACK_ON_ERROR: Messages are NOT acknowledged on handler errors, allowing redelivery (recommended).
                 - ACK: Messages are acknowledged regardless of handler success/failure.
@@ -470,6 +480,25 @@ class RedisTransport(Transport):
         group_start = kwargs.pop("group_start", "$")
         no_ack = kwargs.pop("no_ack", False)
         min_idle_time = kwargs.pop("min_idle_time", None)
+        delete_on_ack = kwargs.pop("delete_on_ack", False)
+
+        if delete_on_ack:
+            if not group:
+                raise ValueError(
+                    "delete_on_ack requires a consumer group: pass handler_id= or "
+                    "group= (Agent.subscribe / Channel.subscribe set one automatically)."
+                )
+            if no_ack:
+                raise ValueError(
+                    "delete_on_ack is incompatible with no_ack=True: with no ack "
+                    "there is no point at which the entry is known to be processed."
+                )
+            if kwargs.get("ack_policy") == AckPolicy.MANUAL:
+                raise ValueError(
+                    "delete_on_ack is incompatible with ack_policy=AckPolicy.MANUAL: "
+                    "the SDK cannot tell when a manually-acked message is done. "
+                    "Call XDEL yourself after msg.ack()."
+                )
 
         if group and last_id != ">":
             raise ValueError(
@@ -614,6 +643,12 @@ class RedisTransport(Transport):
         # allowing them to be redelivered for retry
         ack_policy = kwargs.pop("ack_policy", AckPolicy.NACK_ON_ERROR)
 
+        # Outermost wrapper, so a message a filter skips is deleted too (it is
+        # acked either way). Applied per stream: the recursive retry subscribe
+        # below wraps its own handler with the retry group.
+        if delete_on_ack:
+            handler = self._wrap_delete_on_ack(handler, group)
+
         # stream must be passed as keyword-only argument
         registered_handler = self.broker.subscriber(
             stream=stream_sub, ack_policy=ack_policy, **kwargs
@@ -678,6 +713,7 @@ class RedisTransport(Transport):
                         source_stream=channel,
                         handler=handler_suffix,
                         dlq_max_len=dlq_max_len,
+                        delete_on_ack=delete_on_ack,
                     )
                 )
 
@@ -720,6 +756,7 @@ class RedisTransport(Transport):
                     last_id=">",
                     no_ack=no_ack,
                     ack_policy=ack_policy,
+                    delete_on_ack=delete_on_ack,
                     **kwargs,
                 )
 
@@ -745,6 +782,7 @@ class RedisTransport(Transport):
                         source_stream=channel,
                         handler=handler_suffix,
                         dlq_max_len=dlq_max_len,
+                        delete_on_ack=delete_on_ack,
                     )
                 )
             except Exception:
@@ -840,6 +878,48 @@ class RedisTransport(Transport):
         finally:
             await client.aclose()
 
+    def _wrap_delete_on_ack(self, handler: Callable, group: str) -> Callable:
+        """Wrap ``handler`` so a successful run XACKs and XDELs its entry.
+
+        FastStream's own ack (XACK after the handler returns) stays in place and
+        becomes a harmless no-op on the already-deleted id. The raw stream message
+        (channel + ids, a list even for one entry, so batch mode works too) comes
+        from FastStream's per-message context. functools.wraps keeps the user's
+        signature visible to fast_depends, same as the tracing wrapper.
+        """
+        import functools
+        import inspect
+
+        @functools.wraps(handler)
+        async def delete_on_ack_handler(*args, **kwargs):
+            result = handler(*args, **kwargs)
+            if inspect.isawaitable(result):
+                result = await result
+
+            message = self.broker.context.get_local("message")
+            if message is None:
+                return result
+            raw = message.raw_message
+            channel, ids = raw["channel"], raw["message_ids"]
+            try:
+                client = self.broker.config.connection.client
+                async with client.pipeline(transaction=True) as pipe:
+                    pipe.xack(channel, group, *ids)
+                    pipe.xdel(channel, *ids)
+                    await pipe.execute()
+            except Exception:
+                # The handler already succeeded: raising here would NACK it and
+                # re-run it. Leave the entry for FastStream's XACK / MAXLEN.
+                logger.warning(
+                    "delete_on_ack: XACK+XDEL failed for %s %s; entry left in stream",
+                    channel,
+                    ids,
+                    exc_info=True,
+                )
+            return result
+
+        return delete_on_ack_handler
+
     def _setup_reclaimer(
         self,
         *,
@@ -858,6 +938,7 @@ class RedisTransport(Transport):
         source_stream: str | None = None,
         handler: str | None = None,
         dlq_max_len: int | None = None,
+        delete_on_ack: bool = False,
     ) -> tuple[str, str, str]:
         if self._reclaimer_manager is None:
             self._reclaimer_manager = PendingReclaimerManager(
@@ -881,5 +962,6 @@ class RedisTransport(Transport):
                 source_stream=source_stream,
                 handler=handler,
                 dlq_max_len=dlq_max_len,
+                delete_on_ack=delete_on_ack,
             )
         )

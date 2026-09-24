@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Redis `subscribe(..., delete_on_ack=True)`: every entry the subscription
+  acks is also `XDEL`'d (same `MULTI`), so consumed messages stop occupying
+  Redis memory instead of waiting for `MAXLEN` trimming. Covers handler
+  success (including filtered-out messages), the retry stream, and the
+  reclaimer's moves to the retry stream / DLQ; a failing handler's entry
+  stays in the PEL. Opt-in because it assumes a single consumer group per
+  stream: `XDEL` removes the entry for every group.
+
 ### Fixed
 
 - MCP adapter reads tool schemas from fastmcp's own `Tool` instead of the

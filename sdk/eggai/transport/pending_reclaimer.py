@@ -81,6 +81,10 @@ class ReclaimerConfig:
     # stream key no longer does.
     source_stream: str | None = None
     handler: str | None = None
+    # XDEL the original entry together with its XACK once it has been moved to the
+    # retry stream or DLQ (the subscription's delete_on_ack). Assumes this group is
+    # the only consumer of `stream`.
+    delete_on_ack: bool = False
 
 
 def _encode_envelope(headers: dict, body_bytes: bytes) -> bytes:
@@ -263,7 +267,7 @@ class PendingReclaimerManager:
       1. Pages through XPENDING to find entries idle longer than min_idle_ms.
       2. XCLAIM them under a dedicated reclaimer consumer.
       3. XADD the fields to retry_stream (a separate stream — avoids duplicates).
-      4. XACK the original PEL entry.
+      4. XACK the original PEL entry (plus XDEL with delete_on_ack).
 
     Delivery guarantee: at-least-once. XADD and XACK are not atomic; a crash
     between them will re-deliver the message on the next reclaim cycle.
@@ -549,7 +553,7 @@ class PendingReclaimerManager:
                     dlq_fields = dict(fields)
                     dlq_fields[data_key] = _encode_body(headers, body)
                     await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
-                    await self._client.xack(config.stream, config.group, msg_id)
+                    await self._ack(config, msg_id)
                     logger.warning(
                         "Message %s has an unparseable envelope; moved to DLQ %s "
                         "(retry count cannot be tracked)",
@@ -558,7 +562,7 @@ class PendingReclaimerManager:
                     )
                     await self._invoke_on_dlq(config, body, msg_id_str, 0)
                 else:
-                    await self._client.xack(config.stream, config.group, msg_id)
+                    await self._ack(config, msg_id)
                     logger.error(
                         "Message %s has an unparseable envelope and no DLQ is "
                         "configured; dropping it to avoid a retry-stream livelock",
@@ -582,7 +586,7 @@ class PendingReclaimerManager:
                 dlq_fields = dict(fields)
                 dlq_fields[data_key] = _encode_body(headers, body)
                 await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
-                await self._client.xack(config.stream, config.group, msg_id)
+                await self._ack(config, msg_id)
                 logger.warning(
                     "Message %s exceeded max_retries=%d; moved to DLQ %s",
                     msg_id_str,
@@ -593,8 +597,17 @@ class PendingReclaimerManager:
             else:
                 fields[data_key] = _encode_body(headers, body)
                 await self._xadd(config.retry_stream, fields, config.max_len)
-                await self._client.xack(config.stream, config.group, msg_id)
+                await self._ack(config, msg_id)
                 logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
+
+    async def _ack(self, config: ReclaimerConfig, msg_id: Any) -> None:
+        if not config.delete_on_ack:
+            await self._client.xack(config.stream, config.group, msg_id)
+            return
+        async with self._client.pipeline(transaction=True) as pipe:
+            pipe.xack(config.stream, config.group, msg_id)
+            pipe.xdel(config.stream, msg_id)
+            await pipe.execute()
 
     async def _invoke_on_dlq(
         self,
