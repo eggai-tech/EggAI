@@ -58,6 +58,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Redis: consuming resumes after a lost consumer group (stream deleted,
+  Redis flushed or failed over) with FastStream >= 0.7.6. Those versions stop
+  a subscriber for good on `NOGROUP` instead of retrying the read, so the
+  group monitor recreated the group but nothing read from it any more. The
+  monitor now also restarts the stream subscribers `connect()` started, once
+  their group exists again (a partial loss still redelivers from id `0`). No
+  change on FastStream <= 0.7.5, where the read loop never stopped. The lock
+  file moves to FastStream 0.7.7 so CI covers this path.
 - MCP adapter reads tool schemas from fastmcp's own `Tool` instead of the
   protocol `Tool`, so it works on fastmcp 3 and 4 without touching the
   fields MCP SDK 2 renamed. The `mcp` extra now allows `fastmcp>=3,<5`.

@@ -1063,14 +1063,14 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fast-depends"
-version = "3.0.8"
+version = "3.0.9"
 description = "FastDepends - extracted and cleared from HTTP domain logic FastAPI Dependency Injection System. Async and sync are both supported."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "fast_depends-3.0.8-py3-none-any.whl", hash = "sha256:4c52c8a3907bca46d43e70e4364d6d016872d9a3aae4bc0c1c85e72e0a6a21c7"},
-    {file = "fast_depends-3.0.8.tar.gz", hash = "sha256:896b16f79a512b6ea1df721b0aa1708a192a06f964be6597e01fcf5412559101"},
+    {file = "fast_depends-3.0.9-py3-none-any.whl", hash = "sha256:a9fda223e4f9f92ade11dabfdc31d20e62fedc25340f1a5b1f01db2ae25ab1d9"},
+    {file = "fast_depends-3.0.9.tar.gz", hash = "sha256:c31c3985d0196ea4998da9f5913a76ede75cc4484d89eeafcea1a6bd64fbca82"},
 ]
 
 [package.dependencies]
@@ -1163,20 +1163,20 @@ server = ["authlib (>=1.6.11)", "cyclopts (>=4.0.0)", "exceptiongroup (>=1.2.2)"
 
 [[package]]
 name = "faststream"
-version = "0.7.5"
-description = "FastStream: the simplest way to work with a messaging queues"
+version = "0.7.7"
+description = "A thin, typed Python client for Kafka, RabbitMQ, NATS, Redis and MQTT — with AsyncAPI docs and in-memory testing."
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "faststream-0.7.5-py3-none-any.whl", hash = "sha256:27d1bb3a2945cbd914b326d9b78d3e51d6678293835562be962a8a2189abe20b"},
-    {file = "faststream-0.7.5.tar.gz", hash = "sha256:a8185385e4fe64f2f0420c8cd38a55a183f4599e5343b77bf16abc9f62ccaadf"},
+    {file = "faststream-0.7.7-py3-none-any.whl", hash = "sha256:f15f1c2f389d218e5e9b2d2e22286155faffed20f7e16be8d26ccf5e9f1dd0ce"},
+    {file = "faststream-0.7.7.tar.gz", hash = "sha256:dfba491c665f1b962f7c1262496201340bec8711f7d19a786f13cb1e9e2a5bdd"},
 ]
 
 [package.dependencies]
 aiokafka = {version = ">=0.9,<0.15", optional = true, markers = "extra == \"kafka\""}
-anyio = ">=4.0,<5"
-fast-depends = {version = ">=3.0.0", extras = ["pydantic"]}
+anyio = ">=4.14.2,<5"
+fast-depends = {version = ">=3.0.9", extras = ["pydantic"]}
 redis = {version = ">=5.0.0,<9.0.0", optional = true, markers = "extra == \"redis\""}
 typing-extensions = ">=4.12.0"
 
@@ -1185,7 +1185,7 @@ cli = ["typer (>=0.9,!=0.12,<=0.27.1)", "watchfiles (>=0.15.0,<1.2.0)"]
 confluent = ["confluent-kafka (>=2,!=2.8.1,<3) ; python_full_version < \"3.13.0\"", "confluent-kafka (>=2.6,!=2.8.1,<3) ; python_full_version >= \"3.13.0\""]
 kafka = ["aiokafka (>=0.9,<0.15)"]
 mqtt = ["zmqtt (>=0.2.0,<0.3.0)"]
-nats = ["nats-py (>=2.12.0,<=3.0.0)"]
+nats = ["nats-py (>=2.14.0,<=3.0.0)"]
 otel = ["opentelemetry-sdk (>=1.24.0,<2.0.0)"]
 prometheus = ["prometheus-client (>=0.20.0,<0.30.0)"]
 rabbit = ["aio-pika (>=9,<11)"]

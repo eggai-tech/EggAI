@@ -76,6 +76,15 @@ class _StreamGroupInfo:
     group_create_id: str
 
 
+def _stream_group(sub: Any) -> tuple[str, str] | None:
+    """(stream, group) of a consumer-group stream subscriber, else None."""
+    stream_sub: Any = getattr(sub, "stream_sub", None)
+    group = getattr(stream_sub, "group", None)
+    if stream_sub is None or not group:
+        return None
+    return str(stream_sub.name), str(group)
+
+
 class RedisTransport(Transport):
     """
     Redis-based transport layer adapted to use FastStream's RedisBroker for message publishing and consumption.
@@ -216,6 +225,10 @@ class RedisTransport(Transport):
         # lease_renewal: one keeper per (stream, group, consumer), renewed by the
         # manager's own client. Created on the first lease_renewal subscribe.
         self._lease_manager: LeaseManager | None = None
+        # Stream subscribers connect() started, keyed by id(). FastStream
+        # >= 0.7.6 stops a subscriber for good when its group is gone (NOGROUP);
+        # the group monitor restarts these once it has recreated the group.
+        self._started_subscribers: dict[int, Any] = {}
 
     async def connect(self):
         """
@@ -274,6 +287,9 @@ class RedisTransport(Transport):
             if started_lease_manager and self._lease_manager is not None:
                 await self._lease_manager.stop()
             raise
+        for sub in self.broker.subscribers:
+            if getattr(sub, "running", False) and _stream_group(sub):
+                self._started_subscribers[id(sub)] = sub
         if self._reclaimer_manager is not None:
             # start() is idempotent — it skips reclaimer tasks already running.
             await self._reclaimer_manager.start()
@@ -1106,11 +1122,54 @@ class RedisTransport(Transport):
                                 info.stream_key,
                                 e,
                             )
+                await self._restart_stopped_subscribers()
                 await self._check_delete_on_ack_groups(client)
         except asyncio.CancelledError:
             pass
         finally:
             await client.aclose()
+
+    async def _restart_stopped_subscribers(self) -> None:
+        """Restart stream subscribers FastStream stopped after a NOGROUP.
+
+        Up to 0.7.5 FastStream's consume loop kept retrying XREADGROUP, so once
+        this monitor recreated the group, consuming resumed by itself. From
+        0.7.6 a NOGROUP stops the subscriber for good ("restart the
+        application"). Runs right after the groups were ensured above, so
+        FastStream's own XGROUP CREATE in start() is a BUSYGROUP no-op and the
+        group keeps the start id chosen here (id="0" on a partial loss).
+        Subscribers are only started once their stop() has finished (no task
+        left running), so a restart can't be cancelled by a stop still in
+        progress. No-op on FastStream versions that never stop them.
+        """
+        for sub in list(self._started_subscribers.values()):
+            if not self._running:
+                return
+            if getattr(sub, "running", True):
+                continue
+            if any(not task.done() for task in getattr(sub, "tasks", ())):
+                continue  # still stopping (graceful wait for in-flight handlers)
+            stream, group = _stream_group(sub) or ("?", "?")
+            try:
+                await sub.start()
+            except Exception as e:
+                logger.warning(
+                    "Failed to restart the consumer for stream %s group %s "
+                    "(retrying in %.1fs): %s: %s",
+                    stream,
+                    group,
+                    self._group_monitor_interval_s,
+                    type(e).__name__,
+                    e,
+                )
+            else:
+                logger.warning(
+                    "Restarted the consumer for stream %s group %s: FastStream "
+                    "stopped it after the consumer group was lost (NOGROUP); the "
+                    "group has been recreated.",
+                    stream,
+                    group,
+                )
 
     async def _check_delete_on_ack_groups(self, client: Any) -> None:
         """Handle a consumer group that joined a delete_on_ack stream after
