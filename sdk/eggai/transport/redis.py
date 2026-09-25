@@ -18,6 +18,7 @@ from eggai.transport.lease import (
     LEASE_OPTION_KEYS,
     LeaseConfig,
     LeaseKeeper,
+    LeaseKey,
     LeaseManager,
     resolve_lease_options,
     wrap_handler_with_lease,
@@ -256,15 +257,23 @@ class RedisTransport(Transport):
             raise
         # Lease renewal runs before any consumer starts, so the first entries
         # read (and any prefetched behind them) are renewed from the start.
+        started_lease_manager = False
         if self._lease_manager is not None:
+            started_lease_manager = not self._lease_manager.running
             await self._lease_manager.start()
-        if not getattr(self.broker, "running", False):
-            await self.broker.start()
-        else:
-            await self.broker.connect()
-            for sub in self.broker.subscribers:
-                if not getattr(sub, "running", False):
-                    await sub.start()
+        try:
+            if not getattr(self.broker, "running", False):
+                await self.broker.start()
+            else:
+                await self.broker.connect()
+                for sub in self.broker.subscribers:
+                    if not getattr(sub, "running", False):
+                        await sub.start()
+        except BaseException:
+            # Don't leave renewal tasks and their client behind a failed start.
+            if started_lease_manager and self._lease_manager is not None:
+                await self._lease_manager.stop()
+            raise
         if self._reclaimer_manager is not None:
             # start() is idempotent — it skips reclaimer tasks already running.
             await self._reclaimer_manager.start()
@@ -508,6 +517,9 @@ class RedisTransport(Transport):
         # The recursive retry-stream subscribe gets the main subscription's
         # already-validated lease options (it has no retry_on_idle_ms of its own).
         _lease_options = kwargs.pop("_lease_options", None)
+        # The parent subscribe's list of lease keys to roll back if it fails
+        # after this (retry-stream) subscribe succeeded.
+        _parent_lease_keys: list | None = kwargs.pop("_lease_keys_added", None)
 
         # EggAI applies content filtering (filter_by_message) and typed-subscription
         # support (data_type / filter_by_data) by wrapping the handler — see
@@ -780,7 +792,9 @@ class RedisTransport(Transport):
         # delete_on_ack, so renewal stops before the entry is acked (and deleted).
         # Applied per stream: the retry subscribe below wraps its own handler
         # with the retry stream's group and consumer.
-        lease_key: tuple[str, str, str] | None = None
+        # Lease keys this call (and its retry subscribe) registered, rolled back
+        # if anything below fails. A keeper that already existed is left alone.
+        added_lease_keys: list[LeaseKey] = []
         if lease_opts.lease_renewal or lease_opts.max_processing_ms is not None:
             keeper: LeaseKeeper | None = None
             if lease_opts.lease_renewal:
@@ -790,7 +804,7 @@ class RedisTransport(Transport):
                         self._redis_url, connection_kwargs=self._connection_kwargs
                     )
                 max_workers = kwargs.get("max_workers") or 1
-                lease_key, keeper = self._lease_manager.add(
+                lease_key, keeper, created = self._lease_manager.add(
                     LeaseConfig(
                         stream=channel,
                         group=group,
@@ -801,6 +815,13 @@ class RedisTransport(Transport):
                         or (not batch and max_records != 1),
                     )
                 )
+                if created:
+                    added_lease_keys.append(lease_key)
+                if self._lease_manager.running:
+                    # Registered after connect() (e.g. a second Agent on a
+                    # shared transport): start its renewal task now rather
+                    # than relying on the next connect().
+                    await self._lease_manager.start()
             handler = wrap_handler_with_lease(
                 handler,
                 stream=channel,
@@ -818,9 +839,13 @@ class RedisTransport(Transport):
             self._delete_on_ack_groups.add((channel, group))
 
         # stream must be passed as keyword-only argument
-        registered_handler = self.broker.subscriber(
-            stream=stream_sub, ack_policy=ack_policy, **kwargs
-        )(handler)
+        try:
+            registered_handler = self.broker.subscriber(
+                stream=stream_sub, ack_policy=ack_policy, **kwargs
+            )(handler)
+        except BaseException:
+            self._discard_lease_keys(added_lease_keys)
+            raise
 
         if retry_on_idle_ms is not None and not _internal_retry:
             # Per-handler retry/dlq stream keys (handler_suffix / retry_stream
@@ -926,6 +951,7 @@ class RedisTransport(Transport):
                     ack_policy=ack_policy,
                     delete_on_ack=delete_on_ack,
                     _lease_options=lease_opts,
+                    _lease_keys_added=added_lease_keys,
                     **kwargs,
                 )
 
@@ -964,19 +990,20 @@ class RedisTransport(Transport):
                 if self._reclaimer_manager is not None:
                     for key in added_reclaimer_keys:
                         self._reclaimer_manager.discard(key)
-                if self._lease_manager is not None:
-                    if lease_key is not None:
-                        self._lease_manager.discard(lease_key)
-                    self._lease_manager.discard(
-                        (
-                            retry_stream,
-                            retry_handler_id,
-                            f"{retry_handler_id}-{_CONSUMER_INSTANCE}",
-                        )
-                    )
+                # Main and retry-stream keepers (the retry subscribe records
+                # its keys in added_lease_keys once it has succeeded).
+                self._discard_lease_keys(added_lease_keys)
                 raise
 
+        if _parent_lease_keys is not None:
+            _parent_lease_keys.extend(added_lease_keys)
         return registered_handler
+
+    def _discard_lease_keys(self, keys: list[LeaseKey]) -> None:
+        if self._lease_manager is not None:
+            for key in keys:
+                self._lease_manager.discard(key)
+        keys.clear()
 
     async def _create_groups(self) -> None:
         """Create every registered consumer group at its group_start before the
@@ -1121,12 +1148,11 @@ class RedisTransport(Transport):
         """Stream ids of the message FastStream is handling in this context (a
         list even for one entry, several in batch mode)."""
         message = self.broker.context.get_local("message")
-        if message is None:
+        raw = getattr(message, "raw_message", None)
+        ids = raw.get("message_ids") if isinstance(raw, dict) else None
+        if not ids:
             return None
-        return [
-            i.decode() if isinstance(i, bytes) else str(i)
-            for i in message.raw_message["message_ids"]
-        ]
+        return [i.decode() if isinstance(i, bytes) else str(i) for i in ids]
 
     def _wrap_delete_on_ack(
         self, handler: Callable, group: str, ack_policy: AckPolicy

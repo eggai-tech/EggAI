@@ -129,7 +129,8 @@ class Agent:
                         "entirely."
                     )
             # lease_renewal / max_processing_ms: same checks as the transport,
-            # but at decoration time.
+            # but at decoration time. Validation only: kwargs is read, not
+            # changed, and the transport resolves the options again.
             if any(k in kwargs for k in LEASE_OPTION_KEYS):
                 resolve_lease_options(kwargs, kwargs.get("retry_on_idle_ms"))
             # Plugins see the kwargs as the caller wrote them (before the DLQ

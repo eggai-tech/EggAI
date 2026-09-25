@@ -40,9 +40,21 @@ def _carry_identity(wrapper: Callable, handler: Callable) -> Callable:
     return wrapper
 
 
+def _is_coroutine_function(obj: Any) -> bool:
+    if inspect.iscoroutinefunction(obj):
+        return True
+    # Marked the pre-3.12 way (e.g. AsyncMock on 3.10/3.11), which only
+    # asyncio.iscoroutinefunction recognised; that one is deprecated in 3.14.
+    marker = getattr(asyncio.coroutines, "_is_coroutine", None)
+    return marker is not None and getattr(obj, "_is_coroutine", None) is marker
+
+
 def is_async_callable(handler: Callable) -> bool:
-    """True for a coroutine function or an object with an async ``__call__``."""
-    return asyncio.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
+    """True for a coroutine function, an object with an async ``__call__``, or a
+    ``functools.partial`` of either."""
+    while isinstance(handler, functools.partial):
+        handler = handler.func
+    return _is_coroutine_function(handler) or _is_coroutine_function(
         type(handler).__call__
     )
 

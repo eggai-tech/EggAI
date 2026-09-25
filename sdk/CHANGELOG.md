@@ -35,8 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gone from this consumer's PEL, the handler is cancelled and
   `eggai.transport.LeaseLostError` raised (`cancel_on_lease_lost=False` logs
   and lets it finish); an entry still owned but trimmed from the stream is
-  not redelivered by anyone, so its handler finishes. Renewals are bounded by
-  half the interval, failures are logged with stream / group / ids and never
+  not redelivered by anyone, so its handler finishes. Renewals run at a fixed
+  rate (also for subscriptions added after `connect()`), each call bounded by
+  half the interval; failures are logged with stream / group / ids and never
   stop the consumer. Requires `retry_on_idle_ms`; rejected with `no_ack=True`
   and `AckPolicy.MANUAL`. Opt-in, default behaviour unchanged.
 - Redis `subscribe(..., max_processing_ms=...)`: handler deadline. A handler
