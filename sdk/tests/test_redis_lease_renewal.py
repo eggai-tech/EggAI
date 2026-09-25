@@ -1377,3 +1377,109 @@ async def test_rollback_keeps_a_keeper_registered_by_an_earlier_subscribe(
     with pytest.raises(RuntimeError, match="boom"):
         await transport.subscribe("lease-shared", handler, **options)
     assert transport._lease_manager._keepers == keepers
+
+
+@pytest.mark.asyncio
+async def test_lost_entry_in_a_batch_names_the_lost_ids():
+    """A batch is one unit: one lost entry cancels it, and the error says which
+    entry left the PEL."""
+    keeper = _keeper()
+    started = asyncio.Event()
+
+    async def handler(messages):
+        started.set()
+        await asyncio.sleep(30)
+
+    wrapped = wrap_handler_with_lease(
+        handler,
+        stream="s",
+        group="g",
+        keeper=keeper,
+        message_ids=lambda: ["1-0", "2-0"],
+        max_processing_ms=None,
+    )
+    run = asyncio.create_task(wrapped([{}, {}]))
+    await asyncio.wait_for(started.wait(), timeout=2.0)
+    await keeper.renew_once(object(), AsyncMock(return_value=[0, 1]))
+
+    with pytest.raises(LeaseLostError) as exc:
+        await asyncio.wait_for(run, timeout=2.0)
+    assert exc.value.message_ids == ("1-0", "2-0")
+    assert exc.value.lost_ids == ("1-0",)
+    assert "1-0" in str(exc.value) and "batch of 1-0, 2-0" in str(exc.value)
+    assert not keeper.in_flight
+
+
+@pytest.mark.asyncio
+async def test_run_cancelled_before_its_task_exists_never_starts(monkeypatch):
+    """If the keeper cancels an invocation before the wrapper has attached the
+    handler task, the handler still doesn't run."""
+    keeper = _keeper()
+    real_begin = keeper.begin
+
+    def begin_then_lose(ids):
+        inv = real_begin(ids)
+        inv.lost_ids.append("7-0")
+        inv.cancel("lease_lost")  # task not attached yet: only the reason is set
+        return inv
+
+    monkeypatch.setattr(keeper, "begin", begin_then_lose)
+    called = []
+
+    async def handler(message):
+        called.append(message)
+
+    wrapped = wrap_handler_with_lease(
+        handler,
+        stream="s",
+        group="g",
+        keeper=keeper,
+        message_ids=lambda: ["7-0"],
+        max_processing_ms=None,
+    )
+    with pytest.raises(LeaseLostError):
+        await wrapped({})
+    assert called == []
+    assert not keeper.in_flight
+
+
+@pytest.mark.asyncio
+async def test_rounds_slower_than_the_interval_still_pause_and_warn_once(
+    monkeypatch, caplog
+):
+    import eggai.transport.lease as lease_mod
+
+    keeper = _keeper(interval_s=0.1)
+    keeper.begin(["5-0"])
+    real_sleep = asyncio.sleep
+    delays: list[float] = []
+    rounds = 0
+    runner: list[asyncio.Task] = []
+
+    async def slow_round(client, script):
+        nonlocal rounds
+        rounds += 1
+        await real_sleep(0.12)  # longer than the 0.1 s interval
+
+    async def recording_sleep(delay, *args, **kwargs):
+        if asyncio.current_task() in runner:  # only the renewal loop's waits
+            delays.append(delay)
+        await real_sleep(delay, *args, **kwargs)
+
+    monkeypatch.setattr(keeper, "renew_once", slow_round)
+    monkeypatch.setattr(lease_mod.asyncio, "sleep", recording_sleep)
+    manager = _manager(AsyncMock())
+    caplog.set_level(logging.WARNING)
+    task = asyncio.create_task(keeper.run(manager))
+    runner.append(task)
+    try:
+        await _wait_for(lambda: _true(rounds >= 4), timeout=3.0)
+    finally:
+        manager.running = False
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+    # delays[0] is the initial interval; every later wait follows a slow
+    # round and is the minimum pause, never 0 (back-to-back rounds).
+    assert len(delays) >= 4, delays
+    assert delays[1:] == [pytest.approx(0.01)] * len(delays[1:]), delays
+    assert caplog.text.count("longer than the") == 1

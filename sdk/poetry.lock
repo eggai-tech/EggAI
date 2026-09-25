@@ -4287,4 +4287,4 @@ otel = ["opentelemetry-api", "opentelemetry-exporter-otlp-proto-grpc", "opentele
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "bd6640c1b9372a1d1e247df3aaeb466e168167820a8a929da942e5378515ae70"
+content-hash = "7ae35a77128aa67bf4085e25810515f0a7cba2dd194267252dc0123df9f30254"

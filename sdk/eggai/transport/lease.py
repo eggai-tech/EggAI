@@ -52,6 +52,8 @@ _CHUNK = 100
 # PEL from the oldest run in flight onwards, so one page covers it in practice;
 # larger PELs are paged.
 _SCAN_PAGE = 1000
+# Shortest pause between two renewal rounds, as a share of the interval.
+_MIN_PAUSE_RATIO = 0.1
 
 # Per id: 1 = renewed, 0 = lost (not in this consumer's PEL: reclaimed, acked by
 # someone else, or claimed by another consumer), 2 = trimmed (still ours in the
@@ -89,16 +91,33 @@ class LeaseLostError(Exception):
     running in parallel with that redelivery. Also raised, without running the
     handler, for an entry that was lost while it was still queued in the
     process. The entry is not acked: it is not this consumer's any more.
+
+    A batch is one unit: if any of its entries is lost, the batch handler is
+    cancelled and none is acked; the entries still owned stay pending and are
+    retried. ``message_ids`` are all the run's entries, ``lost_ids`` the ones
+    that left the PEL.
     """
 
-    def __init__(self, stream: str, group: str, message_ids: Iterable[str]):
+    def __init__(
+        self,
+        stream: str,
+        group: str,
+        message_ids: Iterable[str],
+        lost_ids: Iterable[str] | None = None,
+    ):
         self.stream = stream
         self.group = group
         self.message_ids = tuple(message_ids)
+        self.lost_ids = tuple(lost_ids) if lost_ids is not None else self.message_ids
         super().__init__(
             f"lease lost on stream {stream!r} group {group!r} for "
-            f"{', '.join(self.message_ids)}: the entry left this consumer's PEL "
+            f"{', '.join(self.lost_ids)}: the entry left this consumer's PEL "
             "(reclaimed for redelivery); the handler was cancelled"
+            + (
+                f" (batch of {', '.join(self.message_ids)})"
+                if self.lost_ids != self.message_ids
+                else ""
+            )
         )
 
 
@@ -231,7 +250,7 @@ class LeaseConfig:
 class _Invocation:
     """One handler run and the stream entries it covers (several in batch mode)."""
 
-    __slots__ = ("ids", "task", "reason", "lost")
+    __slots__ = ("ids", "task", "reason", "lost", "lost_ids")
 
     def __init__(self, ids: Iterable[str]):
         self.ids: tuple[str, ...] = tuple(ids)
@@ -239,6 +258,8 @@ class _Invocation:
         # Why the SDK cancelled the run: "lease_lost" or "timeout".
         self.reason: str | None = None
         self.lost = False
+        # The ids that left the PEL (a subset of ids in batch mode).
+        self.lost_ids: list[str] = []
 
     def cancel(self, reason: str) -> None:
         if self.reason is None:
@@ -274,6 +295,7 @@ class LeaseKeeper:
             if msg_id in self._lost_queued:
                 self._lost_queued.discard(msg_id)
                 inv.lost = True
+                inv.lost_ids.append(msg_id)
         return inv
 
     def end(self, inv: _Invocation) -> None:
@@ -378,6 +400,8 @@ class LeaseKeeper:
             return
         # Lost: the entry is not in this consumer's PEL any more.
         if inv is not None:
+            if msg_id not in inv.lost_ids:
+                inv.lost_ids.append(msg_id)
             if inv.lost:
                 return
             inv.lost = True
@@ -418,6 +442,7 @@ class LeaseKeeper:
         cfg = self.config
         loop = asyncio.get_running_loop()
         delay = cfg.interval_s
+        overrunning = False
         # The flag, not just cancellation, ends the loop: on CPython < 3.12
         # asyncio.wait_for inside redis-py can swallow a CancelledError.
         while manager.running:
@@ -442,8 +467,24 @@ class LeaseKeeper:
                         cfg.interval_s,
                     )
             # Fixed rate: a slow round (several chunks, a timed-out call)
-            # shortens the next wait instead of pushing every later renewal back.
-            delay = max(0.0, cfg.interval_s - (loop.time() - started))
+            # shortens the next wait instead of pushing every later renewal
+            # back. A round slower than the interval still gets a short pause,
+            # so a keeper that can't keep up doesn't run back-to-back rounds.
+            elapsed = loop.time() - started
+            if elapsed >= cfg.interval_s and not overrunning:
+                logger.warning(
+                    "Lease renewal round took %.3fs, longer than the %.3fs "
+                    "interval — stream=%s group=%s consumer=%s (%d in flight); "
+                    "entries may become reclaimable if this persists.",
+                    elapsed,
+                    cfg.interval_s,
+                    cfg.stream,
+                    cfg.group,
+                    cfg.consumer,
+                    len(self._in_flight),
+                )
+            overrunning = elapsed >= cfg.interval_s
+            delay = max(_MIN_PAUSE_RATIO * cfg.interval_s, cfg.interval_s - elapsed)
 
 
 LeaseKey = tuple[str, str, str]
@@ -567,7 +608,7 @@ def wrap_handler_with_lease(
     def _error(inv: _Invocation) -> Exception:
         if inv.reason == "timeout" and max_processing_ms is not None:
             return ProcessingTimeoutError(stream, group, inv.ids, max_processing_ms)
-        return LeaseLostError(stream, group, inv.ids)
+        return LeaseLostError(stream, group, inv.ids, inv.lost_ids or None)
 
     def _read_ids() -> list[str]:
         try:
@@ -598,9 +639,13 @@ def wrap_handler_with_lease(
         inv = lease.begin(ids) if lease is not None else _Invocation(ids)
         try:
             if inv.lost and lease is not None and lease.config.cancel_on_lost:
-                raise LeaseLostError(stream, group, inv.ids)
+                raise LeaseLostError(stream, group, inv.ids, inv.lost_ids or None)
             task = asyncio.create_task(call_handler(handler, is_async, *args, **kwargs))
             inv.task = task
+            # Nothing awaits between begin() and here, so the keeper can't have
+            # cancelled the run yet; honour it anyway should that ever change.
+            if inv.reason is not None:
+                task.cancel()
             try:
                 done, _ = await asyncio.wait({task}, timeout=deadline_s)
                 if not done:
