@@ -323,9 +323,47 @@ async def handle_order(message):
 
 Guidelines:
 
-- `retry_on_idle_ms` should be comfortably longer than your handler's expected worst-case execution time to avoid false positives.
+- `retry_on_idle_ms` should be comfortably longer than your handler's expected worst-case execution time to avoid false positives — or enable [`lease_renewal`](#long-running-handlers-lease-renewal), which decouples the two.
 - `retry_reclaim_interval_s` controls how often the background reclaimer wakes up. Lower values increase Redis load; 15 s is a sensible default for most workloads.
 - `max_retries` prevents poison messages from looping forever. Set to `None` for unlimited retries (no DLQ).
+
+### Long-Running Handlers: Lease Renewal
+
+The reclaimer decides that an entry is abandoned from its PEL idle time, and Redis resets that idle time only when the entry is (re)delivered — **not while a handler is working on it**. A handler that runs longer than `retry_on_idle_ms` (an LLM call of several minutes, say) therefore has its entry reclaimed and redelivered through the retry stream *while it is still running*: the message is processed twice, in parallel. Raising `retry_on_idle_ms` above the longest handler avoids that, but also delays recovery from a crashed worker by the same amount.
+
+`lease_renewal=True` removes the trade-off. While a handler runs, the SDK renews the entry's lease so the reclaimer skips it; a worker that crashes stops renewing, and its entries are reclaimed `retry_on_idle_ms` after the last renewal, as before:
+
+```python
+@agent.subscribe(
+    channel=requests,
+    retry_on_idle_ms=60_000,     # crash recovery after ~1 min of silence
+    lease_renewal=True,          # ...however long a healthy handler runs
+    max_processing_ms=900_000,   # optional: give up (and retry) after 15 min
+)
+async def handle_request(message):
+    await call_llm(message)      # may take many minutes
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `lease_renewal` | `False` | Renew in-flight entries so they are not reclaimed while being processed. Requires `retry_on_idle_ms`. |
+| `lease_renewal_interval_ms` | `retry_on_idle_ms // 3` | How often to renew. Must be `< retry_on_idle_ms`; the default tolerates two failed renewals in a row. |
+| `cancel_on_lease_lost` | `True` | Cancel a handler whose entry was reclaimed anyway, raising `LeaseLostError`. `False` logs and lets it finish. |
+| `max_processing_ms` | `None` | Handler deadline: cancel, raise `ProcessingTimeoutError`, NACK → normal retry. Requires `retry_on_idle_ms`. |
+
+**How an entry is renewed.** Every `lease_renewal_interval_ms` one Lua script checks, per entry, that it is still pending *for this consumer* and still exists in the stream, and then runs `XCLAIM <stream> <group> <this consumer> 0 <id> JUSTID`. That resets the idle time without changing the owner or the delivery count (`JUSTID`). The reclaimer's own `XCLAIM` carries `min-idle-time = retry_on_idle_ms`, so a renewed entry is skipped even if it was already on the reclaimer's candidate list. The ownership check sits in the same script so a renewal can never take an entry back from the reclaimer. Each round trip is bounded by half the interval; a failed renewal (timeout, connection error, `NOGROUP`) is logged with the stream, group, consumer and ids and retried at the next interval — it never stops the consumer. The Redis server must allow Lua scripting (`EVALSHA`).
+
+**Both streams.** A redelivery is a new entry on the handler's `.retry` stream, read by its own group (`<handler>-retry`) and consumer. Each subscription renews its own entries with its own group and consumer, so a slow retry attempt is protected exactly like a slow first delivery.
+
+**Lost leases.** If renewal finds that an in-flight entry is no longer pending for this consumer, someone else has taken responsibility for it — normally the reclaimer, after renewals failed for longer than `retry_on_idle_ms` (e.g. a Redis outage or a blocked event loop). The entry has been, or will be, redelivered. By default the running handler is then cancelled and `eggai.transport.LeaseLostError` is raised in place of its result, so it cannot overlap its redelivery; the entry is not acked (it is no longer this consumer's). With `cancel_on_lease_lost=False` an error is logged and the handler finishes (accepting the overlap).
+
+An entry that is **still pending for this consumer but was deleted from the stream** (`MAXLEN` trimming, `XTRIM`, `XDEL`) is *not* a lost lease: nothing can redeliver an entry that no longer exists, so the handler always finishes (a warning is logged) and renewal stops for it. Only an entry this consumer still owns counts as trimmed; an entry that left the PEL counts as lost even if it is also gone from the stream, because with `delete_on_ack` the reclaimer deletes the original when it moves it to `.retry`.
+
+**Prefetched entries and `max_records`.** FastStream reads up to `max_records` entries per `XREADGROUP` — *all* available entries when `max_records` is `None` — and hands them to the handler one at a time. Every entry read is already in this consumer's PEL, so the ones queued behind a slow handler go idle too. Lease renewal covers them: the entries being handled and those read but not started yet (also with `max_workers > 1`). Entries left over from an earlier process with the same consumer name (same host and pid, e.g. a restarted container) are older than anything the current process reads and are *not* renewed, so the reclaimer recovers them. Because a leased entry stays with the worker that read it, `lease_renewal=True` defaults `max_records` to **1** (unless you set it, or use `batch=True`): with long handlers you want an idle worker to take the next entry, not a busy one to hold it. With `batch=True` every entry of the batch is renewed while the batch handler runs.
+
+**Handler deadline.** A healthy slow handler keeps its lease, and so does a hung one. `max_processing_ms` bounds that: a handler still running after the deadline is cancelled, `eggai.transport.ProcessingTimeoutError` (a `TimeoutError`) is raised, the entry is NACKed and the reclaimer retries it after `retry_on_idle_ms`, counting towards `max_retries`. It also works without `lease_renewal`.
+
+**Constraints.** Handlers should be `async`. A sync handler runs in a worker thread, which cannot be interrupted: a lost lease or a missed deadline takes effect when the thread returns (its result is discarded and the error raised). A handler that blocks the event loop also blocks renewal. `lease_renewal` requires `retry_on_idle_ms` and a consumer group, and is rejected with `no_ack=True` and `ack_policy=AckPolicy.MANUAL` (an entry acked mid-run would look like a lost lease). Delivery stays at-least-once: the lease removes the *parallel* duplicate, not the redelivery after a crash, so handlers must still be idempotent.
 
 ### Automatic Recovery from Redis Stream Loss (NOGROUP)
 
@@ -372,7 +410,7 @@ async def recovery_handler(message):
 
 ## Backward Compatibility
 
-`retry_on_idle_ms` is fully opt-in. Existing subscriptions without it behave exactly as before — no extra streams, no background tasks, no changed semantics.
+`retry_on_idle_ms` is fully opt-in. Existing subscriptions without it behave exactly as before — no extra streams, no background tasks, no changed semantics. The same holds for `lease_renewal` and `max_processing_ms`: without them no lease client or renewal task is created and handlers are not wrapped.
 
 ## API Reference
 

@@ -1,6 +1,5 @@
 import asyncio
 import functools
-import inspect
 import logging
 import os
 import socket
@@ -8,7 +7,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-import anyio
 import redis.asyncio as aioredis
 from faststream import AckPolicy
 from faststream.redis import RedisBroker, StreamSub
@@ -16,7 +14,19 @@ from pydantic import BaseModel
 from redis.exceptions import ResponseError
 
 from eggai.transport.base import Transport
-from eggai.transport.middleware_utils import wrap_handler_with_filters
+from eggai.transport.lease import (
+    LEASE_OPTION_KEYS,
+    LeaseConfig,
+    LeaseKeeper,
+    LeaseManager,
+    resolve_lease_options,
+    wrap_handler_with_lease,
+)
+from eggai.transport.middleware_utils import (
+    call_handler,
+    is_async_callable,
+    wrap_handler_with_filters,
+)
 from eggai.transport.pending_reclaimer import (
     PendingReclaimerManager,
     ReclaimerConfig,
@@ -202,6 +212,9 @@ class RedisTransport(Transport):
         # Stream keys where the monitor turned delete_on_ack off because another
         # group appeared; shared with the reclaimer. Plain XACK from then on.
         self._delete_on_ack_disabled: set[str] = set()
+        # lease_renewal: one keeper per (stream, group, consumer), renewed by the
+        # manager's own client. Created on the first lease_renewal subscribe.
+        self._lease_manager: LeaseManager | None = None
 
     async def connect(self):
         """
@@ -241,6 +254,10 @@ class RedisTransport(Transport):
                 await self._delete_client.aclose()
                 self._delete_client = None
             raise
+        # Lease renewal runs before any consumer starts, so the first entries
+        # read (and any prefetched behind them) are renewed from the start.
+        if self._lease_manager is not None:
+            await self._lease_manager.start()
         if not getattr(self.broker, "running", False):
             await self.broker.start()
         else:
@@ -281,6 +298,10 @@ class RedisTransport(Transport):
         if self._reclaimer_manager is not None:
             await self._reclaimer_manager.stop()
         await self.broker.stop()
+        # After broker.stop(): handlers still finishing during the graceful
+        # shutdown keep their leases until they are done.
+        if self._lease_manager is not None:
+            await self._lease_manager.stop()
         # After broker.stop(): handlers still finishing may need it to delete.
         if self._delete_client is not None:
             await self._delete_client.aclose()
@@ -419,6 +440,37 @@ class RedisTransport(Transport):
                 A shared DLQ is written WITHOUT ``MAXLEN`` unless ``RedisTransport(dlq_max_len=...)`` is set
                 (``retry_max_len`` does not apply): trimming is stream-wide, so any writer's cap would delete
                 other writers' unconsumed dead letters. By default retention of a shared DLQ is the sink's job.
+            lease_renewal (bool, optional): Renew the lease of every entry this subscription is processing, so a
+                handler that runs longer than ``retry_on_idle_ms`` is not reclaimed and redelivered while it is still
+                running (default False). Redis resets a PEL entry's idle time only when it is (re)delivered; with
+                this option each in-flight entry is renewed every ``lease_renewal_interval_ms`` with
+                ``XCLAIM <stream> <group> <this consumer> 0 <id> JUSTID`` (owner and delivery count unchanged, idle
+                time reset), guarded by an ownership check in the same Lua script. A consumer that crashes stops
+                renewing, so its entries are still reclaimed ``retry_on_idle_ms`` after the last renewal. Covers the
+                main stream and the SDK retry stream (each with its own group/consumer), and entries FastStream has
+                read into this consumer's PEL but not handed to the handler yet. Defaults ``max_records`` to 1
+                (unless set, or ``batch=True``) so a busy worker doesn't hold prefetched entries an idle worker
+                could take. Requires ``retry_on_idle_ms`` and a consumer group; incompatible with ``no_ack=True``
+                and ``ack_policy=AckPolicy.MANUAL``. Needs Lua scripting (``EVALSHA``) on the server.
+            lease_renewal_interval_ms (int, optional): How often leases are renewed (default
+                ``retry_on_idle_ms // 3``, so two renewals can fail before an entry becomes reclaimable). Must be
+                less than ``retry_on_idle_ms``. Each renewal round trip is bounded by half the interval; a failed
+                renewal is logged (stream, group, ids) and retried at the next interval, it never stops the
+                consumer. Requires ``lease_renewal=True``.
+            cancel_on_lease_lost (bool, optional): What to do when a renewal finds that an in-flight entry left
+                this consumer's PEL, i.e. it was reclaimed for redelivery (typically after renewals failed for
+                longer than ``retry_on_idle_ms``, e.g. a Redis outage). True (default): cancel the handler and
+                raise ``eggai.transport.LeaseLostError`` so it cannot run in parallel with the redelivery (the
+                entry is not acked; it is no longer this consumer's). False: log an error and let it finish. An
+                entry that is still owned but was deleted from the stream (``MAXLEN``/``XTRIM``/``XDEL``) is not a
+                lost lease: nothing can redeliver it, so the handler always finishes (a warning is logged).
+                Requires ``lease_renewal=True``.
+            max_processing_ms (int, optional): Handler deadline. A handler still running after it is cancelled and
+                ``eggai.transport.ProcessingTimeoutError`` is raised, so the entry is NACKed and retried by the
+                reclaimer like any other failure (counts towards ``max_retries``). Default None (no deadline).
+                Pairs with ``lease_renewal``, where a hung handler would otherwise hold its lease forever. Requires
+                ``retry_on_idle_ms``. Sync handlers run in a worker thread and cannot be interrupted: a lost lease
+                or a missed deadline takes effect when the thread returns.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters
@@ -453,6 +505,9 @@ class RedisTransport(Transport):
         retry_backoff_max_ms = kwargs.pop("retry_backoff_max_ms", None)
         retry_backoff_jitter = kwargs.pop("retry_backoff_jitter", 0.0)
         _internal_retry = kwargs.pop("_internal_retry", False)
+        # The recursive retry-stream subscribe gets the main subscription's
+        # already-validated lease options (it has no retry_on_idle_ms of its own).
+        _lease_options = kwargs.pop("_lease_options", None)
 
         # EggAI applies content filtering (filter_by_message) and typed-subscription
         # support (data_type / filter_by_data) by wrapping the handler — see
@@ -623,6 +678,37 @@ class RedisTransport(Transport):
                 "retries/DLQ never trigger. Use the default NACK_ON_ERROR."
             )
 
+        # Lease renewal / processing deadline (see eggai.transport.lease).
+        if _lease_options is None:
+            _lease_options = resolve_lease_options(kwargs, retry_on_idle_ms)
+        lease_opts = _lease_options
+        for option in LEASE_OPTION_KEYS:
+            kwargs.pop(option, None)
+        if lease_opts.lease_renewal:
+            if not consumer:
+                raise ValueError(
+                    "lease_renewal requires a consumer name: pass handler_id= or "
+                    "consumer= (Agent.subscribe / Channel.subscribe set one "
+                    "automatically)."
+                )
+            if no_ack:
+                raise ValueError(
+                    "lease_renewal is incompatible with no_ack=True: with no ack "
+                    "there is no PEL entry to renew."
+                )
+            if kwargs.get("ack_policy") == AckPolicy.MANUAL:
+                raise ValueError(
+                    "lease_renewal is incompatible with ack_policy=AckPolicy.MANUAL: "
+                    "an entry acked by the handler leaves the PEL mid-run and would "
+                    "look like a lost lease."
+                )
+            # FastStream reads max_records entries per XREADGROUP (all available
+            # ones when None) and hands them to the handler one by one; the
+            # queued ones sit in this consumer's PEL, leased to a busy worker
+            # instead of going to an idle one. Long handlers want one at a time.
+            if not batch and max_records is None:
+                max_records = 1
+
         # Default max_retries only applies when retry_on_idle_ms is set.
         if retry_on_idle_ms is None:
             max_retries = None
@@ -689,6 +775,40 @@ class RedisTransport(Transport):
         # This ensures messages are NOT acknowledged when handlers raise exceptions,
         # allowing them to be redelivered for retry
         ack_policy = kwargs.pop("ack_policy", AckPolicy.NACK_ON_ERROR)
+
+        # Lease / deadline wrapper: around tracing( filters( handler ) ), inside
+        # delete_on_ack, so renewal stops before the entry is acked (and deleted).
+        # Applied per stream: the retry subscribe below wraps its own handler
+        # with the retry stream's group and consumer.
+        lease_key: tuple[str, str, str] | None = None
+        if lease_opts.lease_renewal or lease_opts.max_processing_ms is not None:
+            keeper: LeaseKeeper | None = None
+            if lease_opts.lease_renewal:
+                assert group and consumer and lease_opts.interval_ms  # validated
+                if self._lease_manager is None:
+                    self._lease_manager = LeaseManager(
+                        self._redis_url, connection_kwargs=self._connection_kwargs
+                    )
+                max_workers = kwargs.get("max_workers") or 1
+                lease_key, keeper = self._lease_manager.add(
+                    LeaseConfig(
+                        stream=channel,
+                        group=group,
+                        consumer=consumer,
+                        interval_s=lease_opts.interval_ms / 1000,
+                        cancel_on_lost=lease_opts.cancel_on_lease_lost,
+                        scan_prefetched=max_workers > 1
+                        or (not batch and max_records != 1),
+                    )
+                )
+            handler = wrap_handler_with_lease(
+                handler,
+                stream=channel,
+                group=str(group),
+                keeper=keeper,
+                message_ids=self._current_message_ids,
+                max_processing_ms=lease_opts.max_processing_ms,
+            )
 
         # Outermost wrapper, so a message a filter skips is deleted too (it is
         # acked either way). Deletes exactly where ack_policy acks. Applied per stream: the recursive retry subscribe
@@ -805,6 +925,7 @@ class RedisTransport(Transport):
                     no_ack=no_ack,
                     ack_policy=ack_policy,
                     delete_on_ack=delete_on_ack,
+                    _lease_options=lease_opts,
                     **kwargs,
                 )
 
@@ -843,6 +964,16 @@ class RedisTransport(Transport):
                 if self._reclaimer_manager is not None:
                     for key in added_reclaimer_keys:
                         self._reclaimer_manager.discard(key)
+                if self._lease_manager is not None:
+                    if lease_key is not None:
+                        self._lease_manager.discard(lease_key)
+                    self._lease_manager.discard(
+                        (
+                            retry_stream,
+                            retry_handler_id,
+                            f"{retry_handler_id}-{_CONSUMER_INSTANCE}",
+                        )
+                    )
                 raise
 
         return registered_handler
@@ -986,6 +1117,17 @@ class RedisTransport(Transport):
                     foreign,
                 )
 
+    def _current_message_ids(self) -> list[str] | None:
+        """Stream ids of the message FastStream is handling in this context (a
+        list even for one entry, several in batch mode)."""
+        message = self.broker.context.get_local("message")
+        if message is None:
+            return None
+        return [
+            i.decode() if isinstance(i, bytes) else str(i)
+            for i in message.raw_message["message_ids"]
+        ]
+
     def _wrap_delete_on_ack(
         self, handler: Callable, group: str, ack_policy: AckPolicy
     ) -> Callable:
@@ -1009,9 +1151,7 @@ class RedisTransport(Transport):
         """
         delete_on_error = ack_policy in (AckPolicy.ACK, AckPolicy.ACK_FIRST)
         # An object with an async __call__ is async too, not a sync function.
-        is_async = asyncio.iscoroutinefunction(handler) or asyncio.iscoroutinefunction(
-            type(handler).__call__
-        )
+        is_async = is_async_callable(handler)
 
         async def delete_current() -> None:
             # Everything, lookups included, inside the try: raising here would
@@ -1043,16 +1183,7 @@ class RedisTransport(Transport):
         @functools.wraps(handler)
         async def delete_on_ack_handler(*args, **kwargs):
             try:
-                if is_async:
-                    result = await handler(*args, **kwargs)
-                else:
-                    result = await anyio.to_thread.run_sync(
-                        functools.partial(handler, *args, **kwargs)
-                    )
-                    # A callable that still returned a coroutine: await it here
-                    # rather than drop it (it would never run).
-                    if inspect.isawaitable(result):
-                        result = await result
+                result = await call_handler(handler, is_async, *args, **kwargs)
             except Exception:
                 if delete_on_error:
                     await delete_current()
