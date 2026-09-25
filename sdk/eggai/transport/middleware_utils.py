@@ -10,10 +10,13 @@ handler-wrapping approach is independent of FastStream's middleware API and keep
 the behaviour identical across the Kafka, Redis, and in-memory transports.
 """
 
+import asyncio
+import functools
 import inspect
 from collections.abc import Callable
 from typing import Any
 
+import anyio
 from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
 
@@ -35,6 +38,41 @@ def _carry_identity(wrapper: Callable, handler: Callable) -> Callable:
         except AttributeError:
             pass
     return wrapper
+
+
+def _is_coroutine_function(obj: Any) -> bool:
+    if inspect.iscoroutinefunction(obj):
+        return True
+    # Marked the pre-3.12 way (e.g. AsyncMock on 3.10/3.11), which only
+    # asyncio.iscoroutinefunction recognised; that one is deprecated in 3.14.
+    marker = getattr(asyncio.coroutines, "_is_coroutine", None)
+    return marker is not None and getattr(obj, "_is_coroutine", None) is marker
+
+
+def is_async_callable(handler: Callable) -> bool:
+    """True for a coroutine function, an object with an async ``__call__``, or a
+    ``functools.partial`` of either."""
+    while isinstance(handler, functools.partial):
+        handler = handler.func
+    return _is_coroutine_function(handler) or _is_coroutine_function(
+        type(handler).__call__
+    )
+
+
+async def call_handler(handler: Callable, is_async: bool, *args, **kwargs) -> Any:
+    """Run ``handler`` the way FastStream would have without an SDK wrapper.
+
+    An async handler is awaited on the event loop; a sync one is sent to a
+    worker thread (FastStream only does that itself when it sees the sync
+    function, not an async wrapper around it). A sync callable that still
+    returned an awaitable has it awaited rather than dropped.
+    """
+    if is_async:
+        return await handler(*args, **kwargs)
+    result = await anyio.to_thread.run_sync(functools.partial(handler, *args, **kwargs))
+    if inspect.isawaitable(result):
+        result = await result
+    return result
 
 
 async def _invoke(handler: Callable, arg: Any) -> Any:

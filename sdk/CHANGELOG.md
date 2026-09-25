@@ -20,9 +20,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every group. `connect()` raises `RuntimeError` if another group already
   reads the stream; if one joins later, the group monitor turns deletion off
   for that stream (plain `XACK`) and logs an error.
+- Redis `subscribe(..., renew_lease=True)`: in-flight lease renewal for
+  handlers that run longer than `retry_on_idle_ms`. Redis only resets a PEL
+  entry's idle time on (re)delivery, so such a handler was reclaimed and
+  redelivered while still running (duplicate parallel processing). While a
+  handler runs, its entry is renewed every `lease_renewal_interval_ms`
+  (default `retry_on_idle_ms // 3`, must be smaller) with an ownership-checked
+  `XCLAIM ... 0 <id> JUSTID` in one Lua script: same owner, same delivery
+  count, idle time reset. Covers the main and the `.retry` stream, batch
+  handlers, and entries read into the PEL but still queued in the process
+  (`max_records` > 1, `max_workers` > 1); `renew_lease` defaults
+  `max_records` to 1. A crashed consumer stops renewing, so its entries are
+  still reclaimed after `retry_on_idle_ms`. When a renewal finds the entry
+  gone from this consumer's PEL, the handler is cancelled and
+  `eggai.transport.LeaseLostError` raised (`cancel_on_lease_lost=False` logs
+  and lets it finish; in batch mode the whole batch, with `lost_ids` naming
+  the lost entries); an entry still owned but trimmed from the stream is
+  not redelivered by anyone, so its handler finishes. Renewals run at a fixed
+  rate (also for subscriptions added after `connect()`), each call bounded by
+  half the interval; failures are logged with stream / group / ids and never
+  stop the consumer. Requires `retry_on_idle_ms`; rejected with `no_ack=True`
+  and `AckPolicy.MANUAL`. Opt-in, default behaviour unchanged.
+- Redis `subscribe(..., max_processing_ms=...)`: handler deadline. A handler
+  still running after it is cancelled, `eggai.transport.ProcessingTimeoutError`
+  (a `TimeoutError`) is raised and the entry is NACKed for the normal retry.
+  Pairs with `renew_lease`, where a hung handler would otherwise keep its
+  lease forever. Requires `retry_on_idle_ms`.
+
+### Changed
+
+- Minimum FastStream is now 0.6.4 (`faststream>=0.6.4,<0.8`, was `>=0.6`).
+  The SDK never worked on the older 0.6 releases: on 0.6.0–0.6.2 every Redis
+  stream subscription failed with a `TypeError` (`StreamSub` has no
+  `min_idle_time` before 0.6.3), and on 0.6.3 a `min_idle_time` subscription
+  never claimed pending entries. Nothing that works today stops working; the
+  failure moves from runtime to install time. CI now also runs the test suite
+  against FastStream 0.6.4.
+- `anyio` (`>=4.0,<5`, the range FastStream 0.6.4 already requires) is now a
+  declared dependency; the SDK imports it directly.
 
 ### Fixed
 
+- Redis: consuming resumes after a lost consumer group (stream deleted,
+  Redis flushed or failed over) with FastStream >= 0.7.6. Those versions stop
+  a subscriber for good on `NOGROUP` instead of retrying the read, so the
+  group monitor recreated the group but nothing read from it any more. The
+  monitor now also restarts the stream subscribers `connect()` started, once
+  their group exists again (a partial loss still redelivers from id `0`). No
+  change on FastStream <= 0.7.5, where the read loop never stopped. The lock
+  file moves to FastStream 0.7.7 so CI covers this path.
 - MCP adapter reads tool schemas from fastmcp's own `Tool` instead of the
   protocol `Tool`, so it works on fastmcp 3 and 4 without touching the
   fields MCP SDK 2 renamed. The `mcp` extra now allows `fastmcp>=3,<5`.
