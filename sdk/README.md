@@ -241,6 +241,18 @@ A poison entry (unparseable envelope) is no longer copied to the DLQ verbatim: i
 wrapped in a fresh envelope whose body holds the metadata above plus the original bytes
 as `_dlq_raw_b64`, so a DLQ subscriber always receives a decodable JSON object.
 
+**Freeing memory with `delete_on_ack`:** acked stream entries stay in Redis until `MAXLEN`
+trims them, and `MAXLEN` trims by count regardless of whether an entry was processed.
+`subscribe(..., delete_on_ack=True)` `XDEL`s each entry when it is acked (`XACK` + `XDEL`
+in one `MULTI`): after the handler returns, on the retry stream, and when the reclaimer
+moves an entry to `.retry` or the DLQ. A failing handler's entry still stays in the PEL
+for retry (under the default `NACK_ON_ERROR`). **It assumes one consumer group per
+stream:** `XDEL` removes the entry for every group, so don't use it on a stream that
+fans out to several groups. `connect()` raises if another group already reads the stream;
+if one joins later, the group monitor turns deletion off for that stream and logs an error.
+Deleted entries can't be replayed, and a generous `max_len` is still worth keeping as a
+backstop for the few paths that leave acked entries behind.
+
 **Retry backoff:** By default retries fire at a constant cadence equal to
 `retry_on_idle_ms`. Set `retry_backoff_multiplier > 1.0` to back off exponentially: a
 message is treated as due for reclaim once it has been idle for

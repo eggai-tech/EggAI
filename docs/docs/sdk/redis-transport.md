@@ -281,6 +281,33 @@ Two rules make a DLQ entry safe to *consume*, not just inspect. `_retry_count` i
 
 Validation: `dlq_channel` requires `retry_on_idle_ms` and a non-`None` `max_retries` (with `max_retries=None` there is no DLQ to redirect), must differ from the subscribed channel, and must not end in `.retry` (every `.retry` stream is auto-consumed by some handler, so dead-lettering into one would feed that handler's retry loop). All of it fails at `subscribe()` time, before anything is registered on the broker.
 
+### Freeing Memory with `delete_on_ack`
+
+Redis keeps a stream entry after it is acked; only `MAXLEN` trims it, and `MAXLEN` trims by count whether or not an entry was processed. With `delete_on_ack=True` a subscription `XDEL`s every entry at the moment it acks it (`XACK` + `XDEL` in one `MULTI`), so a stream only holds in-flight messages:
+
+```python
+@agent.subscribe(channel=emails, delete_on_ack=True)
+async def handle_email(message):
+    ...
+```
+
+It applies wherever the subscription acks: after the handler returns (including messages a filter skips), on the SDK retry stream, and when the reclaimer moves a stuck entry to `.retry` or the DLQ. Under the default `NACK_ON_ERROR` a failing handler's entry stays in the PEL for retry; under `AckPolicy.ACK` / `ACK_FIRST`, which ack failures too, it is deleted too. DLQ entries are never deleted by this option, and a poison entry dropped with no DLQ configured is only acked so it stays readable with `XRANGE`.
+
+**Only one consumer group per stream.** `XDEL` removes the entry for every group, so a second group (or a group-less subscriber) that has not read an entry yet never will. Competing workers inside one group are fine. For fan-out to several groups, keep `delete_on_ack` off and bound memory with `max_len`. Requires a consumer group; rejected with `no_ack=True` and `AckPolicy.MANUAL`. On Redis >= 8.2 the equivalent command is `XACKDEL`.
+
+How the one-group rule is enforced:
+
+- **At `connect()`**, before any consumer starts: another group on the stream raises `RuntimeError` naming it.
+- **At runtime**, the group monitor (every `group_monitor_interval_s`) checks again. If a group has appeared, it turns deletion **off** for that stream (plain `XACK`, entries kept) and logs an error. Memory grows again, but the other group only misses what was deleted during one monitor interval. Deletion stays off until restart, and the next `connect()` refuses to start until the extra group is gone.
+- **Renaming a handler renames its group.** `Agent` names groups `<agent>-<handler function>-<n>`, so after renaming a handler function the old group is still on the stream and every pod refuses to start. Remove it with `XGROUP DESTROY <stream> <old-group>`, and on the old `.retry` stream `XGROUP DESTROY <stream>.<old-group>.retry <old-group>-retry`.
+
+Two consequences to plan for:
+
+- **Keep `max_len` as a backstop.** A few paths still leave acked entries behind: a delete that fails (it is logged, not retried, so a successful handler isn't run again), deletion turned off by the monitor, and a crash mid-handler under `ACK_FIRST`. A generous `max_len` next to `delete_on_ack` bounds them.
+- **No replay.** Deleted entries are gone. Rewinding a group (`XGROUP SETID <stream> <group> 0`) or adding a group to backfill history finds nothing. Runbooks that rely on rewinds need another source.
+
+Tested against Redis 7.4 (open source). Redis Enterprise Active-Active / geo-replicated Azure Managed Redis has not been tested; replicated consumer-group state may behave differently there.
+
 ### Tuning the Reclaimer
 
 ```python
