@@ -67,6 +67,12 @@ async def test_delete_on_ack_removes_handled_entries(redis_client):
         await _wait_for(lambda: _async(len(seen) == 5))
         await _wait_for(lambda: _xlen_is(redis_client, stream, 0))
         assert _pending(await redis_client.xpending(stream, group)) == 0
+        # Only delivered entries are deleted, so Redis can still compute the
+        # group's lag (null means it can't); KEDA's lagCount scaler reads it.
+        (info,) = [
+            g for g in await redis_client.xinfo_groups(stream) if g["name"] == group
+        ]
+        assert info["lag"] == 0
     finally:
         await agent.stop()
     assert sorted(seen) == [0, 1, 2, 3, 4]
@@ -324,6 +330,7 @@ async def test_delete_on_ack_refuses_to_start_next_to_another_group(redis_client
 
     with pytest.raises(RuntimeError, match="someone-else"):
         await agent.start()
+    assert transport._delete_client is None  # not leaked by the failed connect()
     await transport.disconnect()
     assert calls == []
     assert await redis_client.xlen(stream) == 1
@@ -350,9 +357,48 @@ async def test_delete_on_ack_refuses_two_local_groups_on_one_stream():
 
 
 @pytest.mark.asyncio
-async def test_delete_on_ack_monitor_reports_group_added_later(redis_client, caplog):
+async def test_delete_on_ack_monitor_turns_deletion_off_for_late_group(
+    redis_client, caplog
+):
+    """A group that joins after startup: the monitor stops deleting on that
+    stream (plain XACK) so the newcomer gets every later entry, and logs once."""
     agent_name, channel_name, stream = _names("doa-late")
+    group = f"{agent_name}-handler-1"
     transport = RedisTransport(group_monitor_interval_s=0.2)
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+    seen = []
+
+    @agent.subscribe(channel=channel, delete_on_ack=True)
+    async def handler(message):
+        seen.append(message["n"])
+
+    await agent.start()
+    try:
+        await channel.publish({"type": "t", "n": 1})
+        await _wait_for(lambda: _xlen_is(redis_client, stream, 0))  # deleting
+
+        with caplog.at_level(logging.ERROR, logger="eggai.transport.redis"):
+            await redis_client.xgroup_create(stream, "late-joiner", id="$")
+            await _wait_for(lambda: _async("late-joiner" in caplog.text))
+            await asyncio.sleep(0.6)  # several more monitor cycles
+        assert caplog.text.count("late-joiner") == 1  # reported once, not per cycle
+        assert stream in transport._delete_on_ack_disabled
+
+        await channel.publish({"type": "t", "n": 2})
+        await _wait_for(lambda: _async(seen == [1, 2]))
+        await asyncio.sleep(0.3)
+        assert await redis_client.xlen(stream) == 1  # acked, kept for late-joiner
+        assert _pending(await redis_client.xpending(stream, group)) == 0
+    finally:
+        await agent.stop()
+
+
+@pytest.mark.asyncio
+async def test_delete_on_ack_client_is_open_before_consumers_start():
+    """A backlog handled right at startup must find the delete client open."""
+    agent_name, channel_name, _ = _names("doa-order")
+    transport = RedisTransport()
     agent = Agent(agent_name, transport=transport)
     channel = Channel(channel_name, transport=transport)
 
@@ -360,15 +406,53 @@ async def test_delete_on_ack_monitor_reports_group_added_later(redis_client, cap
     async def handler(message):
         pass
 
+    client_at_start = []
+    original_start = transport.broker.start
+
+    async def recording_start(*args, **kwargs):
+        client_at_start.append(transport._delete_client)
+        return await original_start(*args, **kwargs)
+
+    transport.broker.start = recording_start
     await agent.start()
     try:
-        with caplog.at_level(logging.ERROR, logger="eggai.transport.redis"):
-            await redis_client.xgroup_create(stream, "late-joiner", id="$")
-            await _wait_for(lambda: _async("late-joiner" in caplog.text))
-            await asyncio.sleep(0.6)  # several more monitor cycles
-        assert caplog.text.count("late-joiner") == 1  # reported once, not per cycle
+        assert client_at_start and client_at_start[0] is not None
     finally:
         await agent.stop()
+
+
+@pytest.mark.asyncio
+async def test_reclaimer_ack_respects_runtime_disabled_streams():
+    """Once the monitor disables deletion on a stream, the reclaimer's moves to
+    .retry / the DLQ fall back to a plain XACK too."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from eggai.transport.pending_reclaimer import (
+        PendingReclaimerManager,
+        ReclaimerConfig,
+    )
+
+    disabled: set[str] = set()
+    manager = PendingReclaimerManager(
+        "redis://localhost:6379", delete_on_ack_disabled=disabled
+    )
+    client = MagicMock()
+    client.xack = AsyncMock()
+    manager._redis_client = client
+    config = ReclaimerConfig(
+        stream="s",
+        group="g",
+        consumer="c",
+        retry_stream="s.retry",
+        min_idle_ms=1,
+        interval_s=1.0,
+        delete_on_ack=True,
+    )
+
+    disabled.add("s")
+    await manager._ack(config, b"1-0")
+    client.xack.assert_awaited_once_with("s", "g", b"1-0")
+    client.pipeline.assert_not_called()
 
 
 @pytest.mark.asyncio

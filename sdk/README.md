@@ -248,8 +248,10 @@ in one `MULTI`): after the handler returns, on the retry stream, and when the re
 moves an entry to `.retry` or the DLQ. A failing handler's entry still stays in the PEL
 for retry (under the default `NACK_ON_ERROR`). **It assumes one consumer group per
 stream:** `XDEL` removes the entry for every group, so don't use it on a stream that
-fans out to several groups. `connect()` raises if another group already reads the stream,
-and the group monitor logs an error if one joins later.
+fans out to several groups. `connect()` raises if another group already reads the stream;
+if one joins later, the group monitor turns deletion off for that stream and logs an error.
+Deleted entries can't be replayed, and a generous `max_len` is still worth keeping as a
+backstop for the few paths that leave acked entries behind.
 
 **Retry backoff:** By default retries fire at a constant cadence equal to
 `retry_on_idle_ms`. Set `retry_backoff_multiplier > 1.0` to back off exponentially: a

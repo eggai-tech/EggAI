@@ -287,8 +287,19 @@ class PendingReclaimerManager:
     message body) can be used for application-level deduplication.
     """
 
-    def __init__(self, redis_url: str, connection_kwargs: dict[str, Any] | None = None):
+    def __init__(
+        self,
+        redis_url: str,
+        connection_kwargs: dict[str, Any] | None = None,
+        delete_on_ack_disabled: set[str] | None = None,
+    ):
         self._redis_url = redis_url
+        # Stream keys where delete_on_ack was turned off at runtime (another
+        # consumer group appeared). Shared with, and mutated by, the transport's
+        # group monitor; _ack() falls back to a plain XACK for these.
+        self._delete_on_ack_disabled: set[str] = (
+            delete_on_ack_disabled if delete_on_ack_disabled is not None else set()
+        )
         # Connection-resilience settings (socket_timeout, socket_keepalive,
         # health_check_interval, retry_on_timeout, …) forwarded from the
         # transport so this independent client recovers from a silently dropped
@@ -615,7 +626,7 @@ class PendingReclaimerManager:
                 logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
 
     async def _ack(self, config: ReclaimerConfig, msg_id: Any) -> None:
-        if config.delete_on_ack:
+        if config.delete_on_ack and config.stream not in self._delete_on_ack_disabled:
             await xack_del(self._client, config.stream, config.group, msg_id)
         else:
             await self._client.xack(config.stream, config.group, msg_id)
