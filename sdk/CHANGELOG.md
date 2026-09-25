@@ -34,7 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   still reclaimed after `retry_on_idle_ms`. When a renewal finds the entry
   gone from this consumer's PEL, the handler is cancelled and
   `eggai.transport.LeaseLostError` raised (`cancel_on_lease_lost=False` logs
-  and lets it finish); an entry still owned but trimmed from the stream is
+  and lets it finish; in batch mode the whole batch, with `lost_ids` naming
+  the lost entries); an entry still owned but trimmed from the stream is
   not redelivered by anyone, so its handler finishes. Renewals run at a fixed
   rate (also for subscriptions added after `connect()`), each call bounded by
   half the interval; failures are logged with stream / group / ids and never
@@ -55,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never claimed pending entries. Nothing that works today stops working; the
   failure moves from runtime to install time. CI now also runs the test suite
   against FastStream 0.6.4.
+- `anyio` (`>=4.0,<5`, the range FastStream 0.6.4 already requires) is now a
+  declared dependency; the SDK imports it directly.
 
 ### Fixed
 

@@ -713,6 +713,14 @@ class RedisTransport(Transport):
         for option in LEASE_OPTION_KEYS:
             kwargs.pop(option, None)
         if lease_opts.lease_renewal:
+            # retry_on_idle_ms (required above) already implies a group; checked
+            # explicitly anyway rather than trusting that further down.
+            if not group:
+                raise ValueError(
+                    "lease_renewal requires a consumer group: pass handler_id= or "
+                    "group= (Agent.subscribe / Channel.subscribe set one "
+                    "automatically)."
+                )
             if not consumer:
                 raise ValueError(
                     "lease_renewal requires a consumer name: pass handler_id= or "
@@ -813,8 +821,9 @@ class RedisTransport(Transport):
         added_lease_keys: list[LeaseKey] = []
         if lease_opts.lease_renewal or lease_opts.max_processing_ms is not None:
             keeper: LeaseKeeper | None = None
-            if lease_opts.lease_renewal:
-                assert group and consumer and lease_opts.interval_ms  # validated
+            interval_ms = lease_opts.interval_ms
+            if lease_opts.lease_renewal and group and consumer and interval_ms:
+                # (group, consumer and interval were validated above.)
                 if self._lease_manager is None:
                     self._lease_manager = LeaseManager(
                         self._redis_url, connection_kwargs=self._connection_kwargs
@@ -825,7 +834,7 @@ class RedisTransport(Transport):
                         stream=channel,
                         group=group,
                         consumer=consumer,
-                        interval_s=lease_opts.interval_ms / 1000,
+                        interval_s=interval_ms / 1000,
                         cancel_on_lost=lease_opts.cancel_on_lease_lost,
                         scan_prefetched=max_workers > 1
                         or (not batch and max_records != 1),
