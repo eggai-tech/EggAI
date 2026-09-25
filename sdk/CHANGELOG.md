@@ -46,6 +46,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Pairs with `lease_renewal`, where a hung handler would otherwise keep its
   lease forever. Requires `retry_on_idle_ms`.
 
+### Changed
+
+- Minimum FastStream is now 0.6.4 (`faststream>=0.6.4,<0.8`, was `>=0.6`).
+  The SDK never worked on the older 0.6 releases: on 0.6.0–0.6.2 every Redis
+  stream subscription failed with a `TypeError` (`StreamSub` has no
+  `min_idle_time` before 0.6.3), and on 0.6.3 a `min_idle_time` subscription
+  never claimed pending entries. Nothing that works today stops working; the
+  failure moves from runtime to install time. CI now also runs the test suite
+  against FastStream 0.6.4.
+
 ### Fixed
 
 - MCP adapter reads tool schemas from fastmcp's own `Tool` instead of the

@@ -9,6 +9,7 @@ This test suite verifies:
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import uuid
@@ -1859,12 +1860,16 @@ async def _make_envelope(body: dict) -> bytes:
     """Build a FastStream BinaryMessageFormatV1 envelope around a JSON body.
 
     Used by the backoff tests to plant a stream entry with a known _retry_count.
+    ``encode`` is sync in FastStream 0.6 and async from 0.7.
     """
     from faststream.redis.parser.binary import BinaryMessageFormatV1
 
-    return await BinaryMessageFormatV1.encode(
+    envelope = BinaryMessageFormatV1.encode(
         message=body, reply_to=None, headers=None, correlation_id="test-cid"
     )
+    if inspect.isawaitable(envelope):
+        envelope = await envelope
+    return envelope
 
 
 def _make_backoff_config(stream: str, retry_stream: str, **overrides):
