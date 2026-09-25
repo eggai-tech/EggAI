@@ -6,6 +6,7 @@ localhost:6379, and unit tests of the keeper and the handler wrapper.
 """
 
 import asyncio
+import functools
 import logging
 import uuid
 from unittest.mock import AsyncMock
@@ -19,12 +20,14 @@ from eggai import Agent, Channel
 from eggai.transport import LeaseLostError, ProcessingTimeoutError, RedisTransport
 from eggai.transport.lease import (
     _RENEW_SCRIPT,
+    _SCAN_PAGE,
     LeaseConfig,
     LeaseKeeper,
     LeaseManager,
     resolve_lease_options,
     wrap_handler_with_lease,
 )
+from eggai.transport.middleware_utils import is_async_callable
 from eggai.transport.redis import _CONSUMER_INSTANCE
 
 # Reclaim threshold used by the integration tests: handlers below run for
@@ -999,6 +1002,26 @@ def test_default_interval_is_a_third_of_retry_on_idle_ms():
             "max_processing_ms must be a positive int",
         ),
         ({"lease_renewal": "yes", "retry_on_idle_ms": 500}, "True or False"),
+        (
+            {
+                "lease_renewal": True,
+                "retry_on_idle_ms": 500,
+                "lease_renewal_interval_ms": True,
+            },
+            "must be a positive int",
+        ),
+        (
+            {"retry_on_idle_ms": 500, "max_processing_ms": True},
+            "max_processing_ms must be a positive int",
+        ),
+        (
+            {
+                "lease_renewal": True,
+                "retry_on_idle_ms": 500,
+                "cancel_on_lease_lost": "no",
+            },
+            "cancel_on_lease_lost must be True or False",
+        ),
     ],
 )
 def test_agent_subscribe_validates_lease_options(options, match):
@@ -1046,3 +1069,311 @@ async def test_transport_subscribe_validates_lease_options(options, match):
     with pytest.raises(ValueError, match=match):
         await transport.subscribe("lease-val", handler, **options)
     assert transport._lease_manager is None or not transport._lease_manager._keepers
+
+
+# --------------------------------------------------------------------------
+# Cancellation, registration and rollback edge cases
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_outer_cancel_while_draining_a_timed_out_handler_is_not_swallowed():
+    """Agent stop while a timed-out handler is still unwinding: the wrapper's
+    own cancellation propagates instead of turning into ProcessingTimeoutError
+    (independent of Task.cancelling(), which Python 3.10 lacks)."""
+    unwinding = asyncio.Event()
+
+    async def handler(message):
+        try:
+            await asyncio.sleep(30)
+        except asyncio.CancelledError:
+            unwinding.set()
+            await asyncio.sleep(0.3)  # slow cleanup after the deadline
+            raise
+
+    wrapped = wrap_handler_with_lease(
+        handler,
+        stream="s",
+        group="g",
+        keeper=None,
+        message_ids=lambda: ["7-0"],
+        max_processing_ms=50,
+    )
+    outer = asyncio.create_task(wrapped({}))
+    await asyncio.wait_for(unwinding.wait(), timeout=2.0)
+    outer.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await outer
+
+
+@pytest.mark.asyncio
+async def test_handler_cancelling_itself_propagates_cancelled_error():
+    keeper = _keeper()
+
+    async def handler(message):
+        raise asyncio.CancelledError
+
+    wrapped = wrap_handler_with_lease(
+        handler,
+        stream="s",
+        group="g",
+        keeper=keeper,
+        message_ids=lambda: ["7-0"],
+        max_processing_ms=None,
+    )
+    with pytest.raises(asyncio.CancelledError):
+        await wrapped({})
+    assert not keeper.in_flight
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ids", [None, [], "raise"])
+async def test_missing_message_ids_run_unleased_and_are_logged(ids, caplog):
+    keeper = _keeper()
+    seen = []
+
+    def message_ids():
+        if ids == "raise":
+            raise KeyError("message_ids")
+        return ids
+
+    async def handler(message):
+        seen.append(dict(keeper.in_flight))
+        return "ok"
+
+    wrapped = wrap_handler_with_lease(
+        handler,
+        stream="s",
+        group="g",
+        keeper=keeper,
+        message_ids=message_ids,
+        max_processing_ms=None,
+    )
+    caplog.set_level(logging.WARNING)
+    assert await wrapped({}) == "ok"
+    assert seen == [{}]  # never registered with the keeper
+    assert "without a lease" in caplog.text
+
+
+def test_is_async_callable():
+    async def coro(message):
+        pass
+
+    def sync(message):
+        pass
+
+    class AsyncCallable:
+        async def __call__(self, message):
+            pass
+
+    assert is_async_callable(coro)
+    assert is_async_callable(functools.partial(coro))
+    assert is_async_callable(functools.partial(functools.partial(coro)))
+    assert is_async_callable(AsyncCallable())
+    assert is_async_callable(functools.partial(AsyncCallable()))
+    assert is_async_callable(AsyncMock())
+    assert not is_async_callable(sync)
+    assert not is_async_callable(functools.partial(sync))
+
+
+@pytest.mark.asyncio
+async def test_async_partial_handler_runs_on_the_event_loop():
+    loop = asyncio.get_running_loop()
+
+    async def handler(message, factor):
+        assert asyncio.get_running_loop() is loop
+        return message["n"] * factor
+
+    wrapped = wrap_handler_with_lease(
+        functools.partial(handler, factor=3),
+        stream="s",
+        group="g",
+        keeper=_keeper(),
+        message_ids=lambda: ["7-0"],
+        max_processing_ms=None,
+    )
+    assert await wrapped({"n": 2}) == 6
+
+
+@pytest.mark.asyncio
+async def test_prune_uses_state_after_the_renewal_round():
+    """Runs that end while a renewal call is pending are pruned afterwards."""
+    keeper = _keeper()
+    running = keeper.begin(["1-0"])
+    failed = keeper.begin(["2-0"])
+    keeper.end(failed)  # NACKed, remembered while "1-0" runs
+    assert keeper._finished == {"2-0"}
+
+    async def script(**_kwargs):
+        keeper.end(running)  # the last run ends mid-round
+        return [1]
+
+    await keeper.renew_once(object(), script)
+    assert keeper._finished == set() and keeper._lost_queued == set()
+
+
+@pytest.mark.asyncio
+async def test_prefetch_scan_pages_through_a_large_pel():
+    keeper = _keeper(scan_prefetched=True)
+    run = keeper.begin(["1-0"])
+    first = [{"message_id": f"{i}-0"} for i in range(1, _SCAN_PAGE + 1)]
+    second = [{"message_id": f"{_SCAN_PAGE + 1}-0"}]
+    client = AsyncMock()
+    client.xpending_range.side_effect = [first, second]
+
+    async def script(keys, args):
+        return [1] * (len(args) - 2)
+
+    await keeper.renew_once(client, script)
+
+    calls = client.xpending_range.await_args_list
+    assert [c.kwargs["min"] for c in calls] == ["1-0", f"({_SCAN_PAGE}-0"]
+    assert all(c.kwargs["count"] == _SCAN_PAGE for c in calls)
+    keeper.end(run)
+
+
+@pytest.mark.asyncio
+async def test_renewal_runs_at_a_fixed_rate_despite_slow_rounds():
+    keeper = _keeper(interval_s=0.4)
+    keeper.begin(["5-0"])
+    loop = asyncio.get_running_loop()
+    starts: list[float] = []
+
+    async def slow_script(**_kwargs):
+        starts.append(loop.time())
+        await asyncio.sleep(0.15)  # below the 0.2 s call bound
+        return [1]
+
+    manager = _manager(slow_script)
+    task = asyncio.create_task(keeper.run(manager))
+    try:
+        await _wait_for(lambda: _true(len(starts) >= 5), timeout=5.0)
+    finally:
+        manager.running = False
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+    gaps = sorted(b - a for a, b in zip(starts, starts[1:], strict=False))
+    # interval + round time would be ~0.55 s; fixed rate keeps it ~0.4 s.
+    assert gaps[len(gaps) // 2] < 0.48, gaps
+
+
+@pytest.mark.asyncio
+async def test_manager_add_reuses_same_config_refuses_a_different_one():
+    manager = LeaseManager("redis://unused")
+    config = LeaseConfig(stream="s", group="g", consumer="c", interval_s=0.1)
+    key, keeper, created = manager.add(config)
+    assert created
+    assert manager.add(config) == (key, keeper, False)
+    with pytest.raises(ValueError, match="different settings"):
+        manager.add(LeaseConfig(stream="s", group="g", consumer="c", interval_s=0.2))
+    assert manager._keepers[key] is keeper
+
+
+@pytest.mark.asyncio
+async def test_manager_discard_cancels_the_running_task():
+    # from_url doesn't connect, and an empty keeper never calls Redis.
+    manager = LeaseManager("redis://unused:1")
+    key, _, _ = manager.add(
+        LeaseConfig(stream="s", group="g", consumer="c", interval_s=0.05)
+    )
+    await manager.start()
+    try:
+        task = manager._tasks[key]
+        manager.discard(key)
+        await asyncio.gather(task, return_exceptions=True)
+        assert task.cancelled()
+        assert key not in manager._keepers and key not in manager._tasks
+    finally:
+        await manager.stop()
+
+
+@pytest.mark.asyncio
+async def test_lease_subscription_added_after_connect_is_renewed(redis_client):
+    """A second subscription on an already connected transport gets its
+    renewal task straight away, without another connect()."""
+    transport = RedisTransport()
+    channel = f"lease-late-{uuid.uuid4().hex[:8]}"
+
+    async def handler(message):
+        pass
+
+    await transport.subscribe(
+        channel,
+        handler,
+        handler_id=f"{channel}-a",
+        retry_on_idle_ms=IDLE_MS,
+        lease_renewal=True,
+    )
+    await transport.connect()
+    try:
+        manager = transport._lease_manager
+        assert manager is not None and len(manager._tasks) == 2  # main + retry
+        await transport.subscribe(
+            channel,
+            handler,
+            handler_id=f"{channel}-b",
+            retry_on_idle_ms=IDLE_MS,
+            lease_renewal=True,
+        )
+        assert len(manager._keepers) == 4
+        assert set(manager._tasks) == set(manager._keepers)
+        assert all(not t.done() for t in manager._tasks.values())
+    finally:
+        await transport.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_failed_subscribe_rolls_back_main_and_retry_keepers(monkeypatch):
+    transport = RedisTransport()
+    calls = {"n": 0}
+    real_setup = transport._setup_reclaimer
+
+    def failing_setup(**kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:  # the retry-stream reclaimer, after both keepers
+            raise RuntimeError("boom")
+        return real_setup(**kwargs)
+
+    monkeypatch.setattr(transport, "_setup_reclaimer", failing_setup)
+
+    async def handler(message):
+        pass
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await transport.subscribe(
+            "lease-rollback",
+            handler,
+            handler_id="lease-rollback-h",
+            consumer="custom-consumer",
+            retry_on_idle_ms=IDLE_MS,
+            lease_renewal=True,
+        )
+    assert transport._lease_manager is not None
+    assert transport._lease_manager._keepers == {}
+
+
+@pytest.mark.asyncio
+async def test_rollback_keeps_a_keeper_registered_by_an_earlier_subscribe(
+    monkeypatch,
+):
+    transport = RedisTransport()
+
+    async def handler(message):
+        pass
+
+    options = {
+        "handler_id": "lease-shared-h",
+        "retry_on_idle_ms": IDLE_MS,
+        "lease_renewal": True,
+    }
+    await transport.subscribe("lease-shared", handler, **options)
+    keepers = dict(transport._lease_manager._keepers)
+    assert len(keepers) == 2
+
+    def failing_setup(**kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(transport, "_setup_reclaimer", failing_setup)
+    with pytest.raises(RuntimeError, match="boom"):
+        await transport.subscribe("lease-shared", handler, **options)
+    assert transport._lease_manager._keepers == keepers

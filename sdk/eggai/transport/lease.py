@@ -45,8 +45,13 @@ LEASE_OPTION_KEYS = (
     "max_processing_ms",
 )
 
-# One round trip per chunk of ids; also the XPENDING page size.
+# Ids per renewal script call: keeps each Lua run (3 cheap commands per id)
+# short, so Redis is never blocked noticeably.
 _CHUNK = 100
+# XPENDING page size for the prefetch scan. The scan reads only this consumer's
+# PEL from the oldest run in flight onwards, so one page covers it in practice;
+# larger PELs are paged.
+_SCAN_PAGE = 1000
 
 # Per id: 1 = renewed, 0 = lost (not in this consumer's PEL: reclaimed, acked by
 # someone else, or claimed by another consumer), 2 = trimmed (still ours in the
@@ -133,6 +138,11 @@ class LeaseOptions:
     max_processing_ms: int | None = None
 
 
+def _is_positive_int(value: Any) -> bool:
+    # bool is an int subclass: True must not pass as 1 ms.
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
 def resolve_lease_options(
     options: Mapping[str, Any], retry_on_idle_ms: int | None
 ) -> LeaseOptions:
@@ -141,12 +151,16 @@ def resolve_lease_options(
     Shared by ``Agent.subscribe`` (decoration time) and
     ``RedisTransport.subscribe``, so a bad combination fails the same way on
     both paths. ``retry_on_idle_ms`` is the subscription's reclaim threshold.
+    ``options`` is only read, never modified.
     """
     lease = options.get("lease_renewal", False)
     interval_ms = options.get("lease_renewal_interval_ms")
+    cancel_on_lost = options.get("cancel_on_lease_lost", True)
     max_processing_ms = options.get("max_processing_ms")
     if not isinstance(lease, bool):
         raise ValueError("lease_renewal must be True or False")
+    if not isinstance(cancel_on_lost, bool):
+        raise ValueError("cancel_on_lease_lost must be True or False")
     if not lease:
         if interval_ms is not None or "cancel_on_lease_lost" in options:
             raise ValueError(
@@ -162,7 +176,7 @@ def resolve_lease_options(
             )
         if interval_ms is None:
             interval_ms = max(1, retry_on_idle_ms // 3)
-        elif not isinstance(interval_ms, int) or interval_ms <= 0:
+        elif not _is_positive_int(interval_ms):
             raise ValueError("lease_renewal_interval_ms must be a positive int")
         elif interval_ms >= retry_on_idle_ms:
             raise ValueError(
@@ -171,7 +185,7 @@ def resolve_lease_options(
                 "between two renewals (the default is retry_on_idle_ms // 3)."
             )
     if max_processing_ms is not None:
-        if not isinstance(max_processing_ms, int) or max_processing_ms <= 0:
+        if not _is_positive_int(max_processing_ms):
             raise ValueError("max_processing_ms must be a positive int")
         if retry_on_idle_ms is None:
             raise ValueError(
@@ -182,7 +196,7 @@ def resolve_lease_options(
     return LeaseOptions(
         lease_renewal=lease,
         interval_ms=interval_ms if lease else None,
-        cancel_on_lease_lost=bool(options.get("cancel_on_lease_lost", True)),
+        cancel_on_lease_lost=cancel_on_lost,
         max_processing_ms=max_processing_ms,
     )
 
@@ -300,7 +314,7 @@ class LeaseKeeper:
                         cfg.group,
                         min=cursor,
                         max="+",
-                        count=_CHUNK,
+                        count=_SCAN_PAGE,
                         consumername=cfg.consumer,
                     ),
                     cfg.timeout_s,
@@ -313,7 +327,7 @@ class LeaseKeeper:
                         and msg_id not in self._lost_queued
                     ):
                         queued.add(msg_id)
-                if len(page) < _CHUNK:
+                if len(page) < _SCAN_PAGE:
                     break
                 cursor = "(" + _text(page[-1]["message_id"])
         candidates = sorted(in_flight_now | queued, key=_id_key)
@@ -325,8 +339,21 @@ class LeaseKeeper:
             )
             for msg_id, status in zip(chunk, statuses, strict=True):
                 self._apply(msg_id, int(status), msg_id in queued)
-        self._finished = {i for i in self._finished if _id_key(i) >= _id_key(low)}
-        self._lost_queued = {i for i in self._lost_queued if _id_key(i) >= _id_key(low)}
+        self._prune()
+
+    def _prune(self) -> None:
+        """Forget finished / lost-queued ids older than the oldest run in flight
+        now (the scan never reaches them). Uses the state after renew_once's
+        awaits: runs may have ended, all of them even, while those were pending."""
+        if not self._finished and not self._lost_queued:
+            return
+        if not self._in_flight:
+            self._finished.clear()
+            self._lost_queued.clear()
+            return
+        low = _id_key(min(self._in_flight, key=_id_key))
+        self._finished = {i for i in self._finished if _id_key(i) >= low}
+        self._lost_queued = {i for i in self._lost_queued if _id_key(i) >= low}
 
     def _apply(self, msg_id: str, status: int, was_queued: bool) -> None:
         if status == _RENEWED:
@@ -389,29 +416,37 @@ class LeaseKeeper:
 
     async def run(self, manager: "LeaseManager") -> None:
         cfg = self.config
+        loop = asyncio.get_running_loop()
+        delay = cfg.interval_s
         # The flag, not just cancellation, ends the loop: on CPython < 3.12
         # asyncio.wait_for inside redis-py can swallow a CancelledError.
         while manager.running:
-            await asyncio.sleep(cfg.interval_s)
+            await asyncio.sleep(delay)
+            started = loop.time()
             client, script = manager.client, manager.script
-            if client is None or script is None:
-                continue
-            try:
-                await self.renew_once(client, script)
-            except asyncio.CancelledError:
-                raise
-            except Exception as e:
-                logger.warning(
-                    "Lease renewal failed — stream=%s group=%s consumer=%s ids=%s: "
-                    "%s: %s (retrying in %.3fs)",
-                    cfg.stream,
-                    cfg.group,
-                    cfg.consumer,
-                    sorted(self._in_flight, key=_id_key),
-                    type(e).__name__,
-                    e,
-                    cfg.interval_s,
-                )
+            if client is not None and script is not None:
+                try:
+                    await self.renew_once(client, script)
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:
+                    logger.warning(
+                        "Lease renewal failed — stream=%s group=%s consumer=%s "
+                        "ids=%s: %s: %s (retrying in %.3fs)",
+                        cfg.stream,
+                        cfg.group,
+                        cfg.consumer,
+                        sorted(self._in_flight, key=_id_key),
+                        type(e).__name__,
+                        e,
+                        cfg.interval_s,
+                    )
+            # Fixed rate: a slow round (several chunks, a timed-out call)
+            # shortens the next wait instead of pushing every later renewal back.
+            delay = max(0.0, cfg.interval_s - (loop.time() - started))
+
+
+LeaseKey = tuple[str, str, str]
 
 
 class LeaseManager:
@@ -420,27 +455,50 @@ class LeaseManager:
     def __init__(self, redis_url: str, connection_kwargs: dict[str, Any] | None = None):
         self._redis_url = redis_url
         self._connection_kwargs: dict[str, Any] = connection_kwargs or {}
-        self._keepers: dict[tuple[str, str, str], LeaseKeeper] = {}
-        self._tasks: dict[tuple[str, str, str], asyncio.Task] = {}
+        self._keepers: dict[LeaseKey, LeaseKeeper] = {}
+        self._tasks: dict[LeaseKey, asyncio.Task] = {}
         self.client: aioredis.Redis | None = None
         self.script: Any = None
         self.running = False
 
-    def add(self, config: LeaseConfig) -> tuple[tuple[str, str, str], LeaseKeeper]:
+    def add(self, config: LeaseConfig) -> tuple[LeaseKey, LeaseKeeper, bool]:
+        """Register (or reuse) the keeper for ``config``'s (stream, group,
+        consumer). Returns ``(key, keeper, created)``; only a created keeper is
+        the caller's to roll back with :meth:`discard`.
+
+        Subscriptions sharing a key share one PEL, so they share one keeper. A
+        second registration with different settings is refused rather than
+        replacing a keeper that handlers already wrapped may still be using.
+        """
         key = (config.stream, config.group, config.consumer)
         keeper = self._keepers.get(key)
-        if keeper is None or keeper.config != config:
-            keeper = LeaseKeeper(config)
-            self._keepers[key] = keeper
-        return key, keeper
+        if keeper is not None:
+            if keeper.config != config:
+                raise ValueError(
+                    f"lease_renewal is already configured for stream "
+                    f"{config.stream!r} group {config.group!r} consumer "
+                    f"{config.consumer!r} with different settings "
+                    f"({keeper.config} vs {config}); subscriptions sharing a "
+                    "consumer must use the same lease options."
+                )
+            return key, keeper, False
+        keeper = LeaseKeeper(config)
+        self._keepers[key] = keeper
+        return key, keeper, True
 
-    def discard(self, key: tuple[str, str, str]) -> None:
-        """Remove a registered keeper by key — used to roll back a partial subscribe."""
+    def discard(self, key: LeaseKey) -> None:
+        """Remove a keeper (rolling back a partial subscribe) and its task."""
         self._keepers.pop(key, None)
+        task = self._tasks.pop(key, None)
+        if task is not None:
+            task.cancel()
 
     async def start(self) -> None:
-        """Open the client and start missing renewal tasks. Idempotent."""
+        """Open the client and start missing renewal tasks. Idempotent: also
+        called for keepers registered after the first start."""
         if self.client is None:
+            # decode_responses: ids come back as str. The forwarded connection
+            # kwargs are resilience settings only, never decode_responses.
             self.client = aioredis.from_url(
                 self._redis_url,
                 **{**self._connection_kwargs, "decode_responses": True},
@@ -459,14 +517,19 @@ class LeaseManager:
     async def stop(self) -> None:
         """Stop all renewal tasks and close the client."""
         self.running = False
-        for task in self._tasks.values():
-            task.cancel()
-        await asyncio.gather(*self._tasks.values(), return_exceptions=True)
+        tasks = list(self._tasks.values())
         self._tasks.clear()
-        if self.client is not None:
-            await self.client.aclose()
-            self.client = None
-            self.script = None
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        client, self.client, self.script = self.client, None, None
+        if client is not None:
+            try:
+                await client.aclose()
+            except Exception:
+                logger.warning(
+                    "Lease renewal: closing the Redis client failed", exc_info=True
+                )
 
 
 async def _drain(task: asyncio.Task) -> None:
@@ -475,12 +538,6 @@ async def _drain(task: asyncio.Task) -> None:
         await task
     except (asyncio.CancelledError, Exception):
         pass
-
-
-def _outer_cancelling() -> bool:
-    task = asyncio.current_task()
-    cancelling = getattr(task, "cancelling", None)  # Python >= 3.11
-    return bool(cancelling and cancelling())
 
 
 def wrap_handler_with_lease(
@@ -498,7 +555,7 @@ def wrap_handler_with_lease(
     deadline can cancel it without cancelling FastStream's consume loop. A
     cancellation of the wrapper itself (agent stop) is forwarded to the handler.
     ``message_ids`` returns the stream ids of the message being handled (from
-    FastStream's context); without them the handler runs unleased.
+    FastStream's context); without them the handler runs unleased (logged).
 
     Sync handlers run in a worker thread, which cannot be interrupted: a lost
     lease or a missed deadline takes effect when the thread returns (its result
@@ -512,59 +569,78 @@ def wrap_handler_with_lease(
             return ProcessingTimeoutError(stream, group, inv.ids, max_processing_ms)
         return LeaseLostError(stream, group, inv.ids)
 
-    @functools.wraps(handler)
-    async def leased_handler(*args, **kwargs):
-        ids: list[str] | None = None
+    def _read_ids() -> list[str]:
         try:
             ids = message_ids()
         except Exception:
             if keeper is not None:
                 logger.error(
-                    "Lease renewal: could not read the message ids on %s; "
-                    "handling it without a lease",
+                    "Lease renewal: could not read the message ids on %s (group "
+                    "%s); handling the message without a lease",
                     stream,
+                    group,
                     exc_info=True,
                 )
-        leased = keeper is not None and bool(ids)
-        inv = keeper.begin(ids or ()) if leased and keeper else _Invocation(ids or ())
+            return []
+        if not ids and keeper is not None:
+            logger.warning(
+                "Lease renewal: no stream ids for the message on %s (group %s); "
+                "handling it without a lease",
+                stream,
+                group,
+            )
+        return list(ids or ())
+
+    @functools.wraps(handler)
+    async def leased_handler(*args, **kwargs):
+        ids = _read_ids()
+        lease = keeper if ids else None
+        inv = lease.begin(ids) if lease is not None else _Invocation(ids)
         try:
-            if inv.lost and keeper is not None and keeper.config.cancel_on_lost:
+            if inv.lost and lease is not None and lease.config.cancel_on_lost:
                 raise LeaseLostError(stream, group, inv.ids)
             task = asyncio.create_task(call_handler(handler, is_async, *args, **kwargs))
             inv.task = task
             try:
                 done, _ = await asyncio.wait({task}, timeout=deadline_s)
+                if not done:
+                    logger.error(
+                        "Handler on %s (group %s) exceeded max_processing_ms=%s "
+                        "for %s; cancelling it, the entry is left for retry.",
+                        stream,
+                        group,
+                        max_processing_ms,
+                        ", ".join(inv.ids) or "?",
+                    )
+                    inv.cancel("timeout")
+                    await asyncio.wait({task})
             except asyncio.CancelledError:
+                # asyncio.wait never raises the child's cancellation, so this is
+                # the wrapper's own (agent stop): forward it to the handler. No
+                # Task.cancelling() needed, which Python 3.10 doesn't have.
                 task.cancel()
                 await _drain(task)
                 raise
-            if not done:
-                logger.error(
-                    "Handler on %s (group %s) exceeded max_processing_ms=%s for %s; "
-                    "cancelling it, the entry is left for retry.",
-                    stream,
-                    group,
-                    max_processing_ms,
-                    ", ".join(inv.ids),
-                )
-                inv.cancel("timeout")
+            # The task is done: result() doesn't suspend, so from here on no
+            # outer cancellation can be mistaken for the handler's outcome.
             try:
-                result = await task
+                result = task.result()
             except asyncio.CancelledError:
-                if inv.reason is None or _outer_cancelling():
-                    raise
+                if inv.reason is None:
+                    raise  # the handler cancelled itself
                 raise _error(inv) from None
             except Exception as exc:
                 if inv.reason is not None:
                     raise _error(inv) from exc
                 raise
             if inv.reason is not None:
-                # The handler swallowed the cancellation; the entry is still not
-                # ours (lost) or overdue (timeout), so don't let it be acked.
+                # The handler swallowed the cancellation (or a sync handler's
+                # thread returned late); the entry is still not ours (lost) or
+                # overdue (timeout), so don't let it be acked.
                 raise _error(inv)
             return result
         finally:
-            if leased and keeper is not None:
-                keeper.end(inv)
+            if lease is not None:
+                lease.end(inv)
 
     return leased_handler
