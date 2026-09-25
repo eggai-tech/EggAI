@@ -222,8 +222,8 @@ class RedisTransport(Transport):
         # Stream keys where the monitor turned delete_on_ack off because another
         # group appeared; shared with the reclaimer. Plain XACK from then on.
         self._delete_on_ack_disabled: set[str] = set()
-        # lease_renewal: one keeper per (stream, group, consumer), renewed by the
-        # manager's own client. Created on the first lease_renewal subscribe.
+        # renew_lease: one keeper per (stream, group, consumer), renewed by the
+        # manager's own client. Created on the first renew_lease subscribe.
         self._lease_manager: LeaseManager | None = None
         # Stream subscribers connect() started, keyed by id(). FastStream
         # >= 0.7.6 stops a subscriber for good when its group is gone (NOGROUP);
@@ -465,7 +465,7 @@ class RedisTransport(Transport):
                 A shared DLQ is written WITHOUT ``MAXLEN`` unless ``RedisTransport(dlq_max_len=...)`` is set
                 (``retry_max_len`` does not apply): trimming is stream-wide, so any writer's cap would delete
                 other writers' unconsumed dead letters. By default retention of a shared DLQ is the sink's job.
-            lease_renewal (bool, optional): Renew the lease of every entry this subscription is processing, so a
+            renew_lease (bool, optional): Renew the lease of every entry this subscription is processing, so a
                 handler that runs longer than ``retry_on_idle_ms`` is not reclaimed and redelivered while it is still
                 running (default False). Redis resets a PEL entry's idle time only when it is (re)delivered; with
                 this option each in-flight entry is renewed every ``lease_renewal_interval_ms`` with
@@ -481,7 +481,7 @@ class RedisTransport(Transport):
                 ``retry_on_idle_ms // 3``, so two renewals can fail before an entry becomes reclaimable). Must be
                 less than ``retry_on_idle_ms``. Each renewal round trip is bounded by half the interval; a failed
                 renewal is logged (stream, group, ids) and retried at the next interval, it never stops the
-                consumer. Requires ``lease_renewal=True``.
+                consumer. Requires ``renew_lease=True``.
             cancel_on_lease_lost (bool, optional): What to do when a renewal finds that an in-flight entry left
                 this consumer's PEL, i.e. it was reclaimed for redelivery (typically after renewals failed for
                 longer than ``retry_on_idle_ms``, e.g. a Redis outage). True (default): cancel the handler and
@@ -489,11 +489,11 @@ class RedisTransport(Transport):
                 entry is not acked; it is no longer this consumer's). False: log an error and let it finish. An
                 entry that is still owned but was deleted from the stream (``MAXLEN``/``XTRIM``/``XDEL``) is not a
                 lost lease: nothing can redeliver it, so the handler always finishes (a warning is logged).
-                Requires ``lease_renewal=True``.
+                Requires ``renew_lease=True``.
             max_processing_ms (int, optional): Handler deadline. A handler still running after it is cancelled and
                 ``eggai.transport.ProcessingTimeoutError`` is raised, so the entry is NACKed and retried by the
                 reclaimer like any other failure (counts towards ``max_retries``). Default None (no deadline).
-                Pairs with ``lease_renewal``, where a hung handler would otherwise hold its lease forever. Requires
+                Pairs with ``renew_lease``, where a hung handler would otherwise hold its lease forever. Requires
                 ``retry_on_idle_ms``. Sync handlers run in a worker thread and cannot be interrupted: a lost lease
                 or a missed deadline takes effect when the thread returns.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
@@ -712,29 +712,29 @@ class RedisTransport(Transport):
         lease_opts = _lease_options
         for option in LEASE_OPTION_KEYS:
             kwargs.pop(option, None)
-        if lease_opts.lease_renewal:
+        if lease_opts.renew_lease:
             # retry_on_idle_ms (required above) already implies a group; checked
             # explicitly anyway rather than trusting that further down.
             if not group:
                 raise ValueError(
-                    "lease_renewal requires a consumer group: pass handler_id= or "
+                    "renew_lease requires a consumer group: pass handler_id= or "
                     "group= (Agent.subscribe / Channel.subscribe set one "
                     "automatically)."
                 )
             if not consumer:
                 raise ValueError(
-                    "lease_renewal requires a consumer name: pass handler_id= or "
+                    "renew_lease requires a consumer name: pass handler_id= or "
                     "consumer= (Agent.subscribe / Channel.subscribe set one "
                     "automatically)."
                 )
             if no_ack:
                 raise ValueError(
-                    "lease_renewal is incompatible with no_ack=True: with no ack "
+                    "renew_lease is incompatible with no_ack=True: with no ack "
                     "there is no PEL entry to renew."
                 )
             if kwargs.get("ack_policy") == AckPolicy.MANUAL:
                 raise ValueError(
-                    "lease_renewal is incompatible with ack_policy=AckPolicy.MANUAL: "
+                    "renew_lease is incompatible with ack_policy=AckPolicy.MANUAL: "
                     "an entry acked by the handler leaves the PEL mid-run and would "
                     "look like a lost lease."
                 )
@@ -819,10 +819,10 @@ class RedisTransport(Transport):
         # Lease keys this call (and its retry subscribe) registered, rolled back
         # if anything below fails. A keeper that already existed is left alone.
         added_lease_keys: list[LeaseKey] = []
-        if lease_opts.lease_renewal or lease_opts.max_processing_ms is not None:
+        if lease_opts.renew_lease or lease_opts.max_processing_ms is not None:
             keeper: LeaseKeeper | None = None
             interval_ms = lease_opts.interval_ms
-            if lease_opts.lease_renewal and group and consumer and interval_ms:
+            if lease_opts.renew_lease and group and consumer and interval_ms:
                 # (group, consumer and interval were validated above.)
                 if self._lease_manager is None:
                     self._lease_manager = LeaseManager(

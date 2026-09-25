@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every group. `connect()` raises `RuntimeError` if another group already
   reads the stream; if one joins later, the group monitor turns deletion off
   for that stream (plain `XACK`) and logs an error.
-- Redis `subscribe(..., lease_renewal=True)`: in-flight lease renewal for
+- Redis `subscribe(..., renew_lease=True)`: in-flight lease renewal for
   handlers that run longer than `retry_on_idle_ms`. Redis only resets a PEL
   entry's idle time on (re)delivery, so such a handler was reclaimed and
   redelivered while still running (duplicate parallel processing). While a
@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `XCLAIM ... 0 <id> JUSTID` in one Lua script: same owner, same delivery
   count, idle time reset. Covers the main and the `.retry` stream, batch
   handlers, and entries read into the PEL but still queued in the process
-  (`max_records` > 1, `max_workers` > 1); `lease_renewal` defaults
+  (`max_records` > 1, `max_workers` > 1); `renew_lease` defaults
   `max_records` to 1. A crashed consumer stops renewing, so its entries are
   still reclaimed after `retry_on_idle_ms`. When a renewal finds the entry
   gone from this consumer's PEL, the handler is cancelled and
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redis `subscribe(..., max_processing_ms=...)`: handler deadline. A handler
   still running after it is cancelled, `eggai.transport.ProcessingTimeoutError`
   (a `TimeoutError`) is raised and the entry is NACKed for the normal retry.
-  Pairs with `lease_renewal`, where a hung handler would otherwise keep its
+  Pairs with `renew_lease`, where a hung handler would otherwise keep its
   lease forever. Requires `retry_on_idle_ms`.
 
 ### Changed

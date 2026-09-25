@@ -128,7 +128,7 @@ class Agent:
                         "idle threshold); a cap below the base would disable backoff "
                         "entirely."
                     )
-            # lease_renewal / max_processing_ms: same checks as the transport,
+            # renew_lease / max_processing_ms: same checks as the transport,
             # but at decoration time. Validation only: kwargs is read, not
             # changed, and the transport resolves the options again.
             if any(k in kwargs for k in LEASE_OPTION_KEYS):
