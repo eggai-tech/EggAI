@@ -189,6 +189,9 @@ class RedisTransport(Transport):
         self._delete_on_ack_groups: set[tuple[str, str]] = set()
         # Foreign-group sets already reported by the monitor, so it logs once.
         self._reported_foreign_groups: set[tuple[str, frozenset[str]]] = set()
+        # delete_on_ack's own client, opened in connect() like the reclaimer's and
+        # the group monitor's, rather than reaching into FastStream's internals.
+        self._delete_client: aioredis.Redis | None = None
 
     async def connect(self):
         """
@@ -221,6 +224,12 @@ class RedisTransport(Transport):
         if self._reclaimer_manager is not None:
             # start() is idempotent — it skips reclaimer tasks already running.
             await self._reclaimer_manager.start()
+        # Per connect(), not per subscribe: a second Agent on a shared transport
+        # may add the first delete_on_ack subscription after an earlier connect().
+        if self._delete_on_ack_groups and self._delete_client is None:
+            self._delete_client = aioredis.from_url(
+                self._redis_url, **self._connection_kwargs
+            )
         self._running = True
         # Don't overwrite (and orphan) a monitor task still running from an
         # earlier connect() on a shared transport — it already iterates the
@@ -251,6 +260,10 @@ class RedisTransport(Transport):
         if self._reclaimer_manager is not None:
             await self._reclaimer_manager.stop()
         await self.broker.stop()
+        # After broker.stop(): handlers still finishing may need it to delete.
+        if self._delete_client is not None:
+            await self._delete_client.aclose()
+            self._delete_client = None
 
     async def publish(self, channel: str, message: dict[str, Any] | BaseModel):
         """
@@ -949,7 +962,8 @@ class RedisTransport(Transport):
         trimmed. FastStream's own XACK still runs afterwards, a harmless no-op on
         the deleted id. The raw stream message (channel + ids, a list even for
         one entry, so batch mode works) comes from FastStream's per-message
-        context. functools.wraps keeps the user's signature visible to
+        context; the XACK+XDEL goes through the transport's own client
+        (self._delete_client, opened in connect()). functools.wraps keeps the user's signature visible to
         fast_depends, same as the tracing wrapper. A sync handler is sent to a
         worker thread, as FastStream would have done without this wrapper.
         """
@@ -978,11 +992,13 @@ class RedisTransport(Transport):
                     return
                 raw = message.raw_message
                 channel, ids = raw["channel"], raw["message_ids"]
-                await xack_del(
-                    self.broker.config.connection.client, channel, group, *ids
-                )
+                if self._delete_client is None:
+                    raise RuntimeError(
+                        "delete_on_ack client not open (connect() not run)"
+                    )
+                await xack_del(self._delete_client, channel, group, *ids)
             except Exception:
-                logger.warning(
+                logger.error(
                     "delete_on_ack: XACK+XDEL failed for %s %s; entry left in stream",
                     channel,
                     ids,

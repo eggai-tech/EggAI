@@ -61,6 +61,7 @@ async def test_delete_on_ack_removes_handled_entries(redis_client):
 
     await agent.start()
     try:
+        assert transport._delete_client is not None  # opened by connect()
         for n in range(5):
             await channel.publish({"type": "t", "n": n})
         await _wait_for(lambda: _async(len(seen) == 5))
@@ -69,6 +70,7 @@ async def test_delete_on_ack_removes_handled_entries(redis_client):
     finally:
         await agent.stop()
     assert sorted(seen) == [0, 1, 2, 3, 4]
+    assert transport._delete_client is None  # closed by disconnect()
 
 
 @pytest.mark.asyncio
@@ -86,6 +88,7 @@ async def test_without_delete_on_ack_entries_stay(redis_client):
         seen.append(message["n"])
 
     await agent.start()
+    assert transport._delete_client is None  # no delete_on_ack, no extra client
     try:
         for n in range(3):
             await channel.publish({"type": "t", "n": n})
