@@ -1,5 +1,5 @@
 """
-lease_renewal: entries a handler is still working on are renewed (XCLAIM ...
+renew_lease: entries a handler is still working on are renewed (XCLAIM ...
 JUSTID), so the SDK reclaimer does not redeliver them while they run. Plus the
 max_processing_ms deadline. Integration tests against a real Redis at
 localhost:6379, and unit tests of the keeper and the handler wrapper.
@@ -116,7 +116,7 @@ async def test_slow_handler_processed_once_with_lease_renewal(redis_client):
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
     )
     async def handler(message):
         await tracker.run(message, 2.0)  # 4x retry_on_idle_ms
@@ -204,7 +204,7 @@ async def test_crashed_consumers_entry_is_still_reclaimed(redis_client):
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
     )
     async def handler(message):
         seen.append(message)
@@ -232,7 +232,7 @@ async def test_renewal_stopping_mid_run_lets_the_entry_be_reclaimed(redis_client
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
         cancel_on_lease_lost=False,
     )
     async def handler(message):
@@ -278,7 +278,7 @@ async def test_stale_entry_of_same_consumer_name_is_not_renewed(redis_client):
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
         max_records=10,  # prefetch scan on
     )
     async def handler(message):
@@ -317,7 +317,7 @@ async def test_lost_lease_cancels_the_handler(redis_client, caplog):
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
         max_retries=None,
     )
     async def handler(message):
@@ -365,7 +365,7 @@ async def test_lost_lease_without_cancel_lets_the_handler_finish(redis_client, c
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
         cancel_on_lease_lost=False,
     )
     async def handler(message):
@@ -403,7 +403,7 @@ async def test_trimmed_entry_is_not_a_lost_lease(redis_client, caplog):
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
     )
     async def handler(message):
         started.set()
@@ -448,7 +448,7 @@ async def test_retry_stream_delivery_is_renewed(redis_client):
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
     )
     async def handler(message):
         if not message.get("_retry_count"):
@@ -496,7 +496,7 @@ async def test_prefetched_entries_are_renewed(redis_client, lease):
     agent = Agent(agent_name, transport=transport)
     channel = Channel(channel_name, transport=transport)
     tracker = _Tracker()
-    options = {"lease_renewal": True} if lease else {}
+    options = {"renew_lease": True} if lease else {}
 
     @agent.subscribe(
         channel=channel,
@@ -541,7 +541,7 @@ async def test_concurrent_workers_entries_are_renewed(redis_client, lease):
         max_workers=2,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        **({"lease_renewal": True} if lease else {}),
+        **({"renew_lease": True} if lease else {}),
     )
     async def handler(message):
         await tracker.run(message, 0.8)
@@ -575,7 +575,7 @@ async def test_lease_renewal_defaults_max_records_to_one(redis_client):
         group_start="0",
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
     )
     async def handler(message):
         pending_counts.append(len(await _pending_entries(redis_client, stream, group)))
@@ -606,7 +606,7 @@ async def test_batch_entries_are_all_renewed(redis_client):
         max_records=10,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
     )
     async def handler(messages: list):
         batches.append(messages)
@@ -642,7 +642,7 @@ async def test_max_processing_ms_cancels_and_retries(caplog):
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
         max_processing_ms=300,
     )
     async def handler(message):
@@ -684,7 +684,7 @@ async def test_agent_stop_cancels_handler_and_stops_renewal():
         channel=channel,
         retry_on_idle_ms=IDLE_MS,
         retry_reclaim_interval_s=RECLAIM_S,
-        lease_renewal=True,
+        renew_lease=True,
     )
     async def handler(message):
         started.set()
@@ -962,19 +962,19 @@ async def test_deadline_raises_processing_timeout_error():
 
 
 def test_default_interval_is_a_third_of_retry_on_idle_ms():
-    opts = resolve_lease_options({"lease_renewal": True}, 900)
+    opts = resolve_lease_options({"renew_lease": True}, 900)
     assert opts.interval_ms == 300
     assert opts.cancel_on_lease_lost is True
-    assert resolve_lease_options({}, 900).lease_renewal is False
+    assert resolve_lease_options({}, 900).renew_lease is False
 
 
 @pytest.mark.parametrize(
     ("options", "match"),
     [
-        ({"lease_renewal": True}, "lease_renewal requires retry_on_idle_ms"),
+        ({"renew_lease": True}, "renew_lease requires retry_on_idle_ms"),
         (
             {
-                "lease_renewal": True,
+                "renew_lease": True,
                 "retry_on_idle_ms": 500,
                 "lease_renewal_interval_ms": 500,
             },
@@ -982,7 +982,7 @@ def test_default_interval_is_a_third_of_retry_on_idle_ms():
         ),
         (
             {
-                "lease_renewal": True,
+                "renew_lease": True,
                 "retry_on_idle_ms": 500,
                 "lease_renewal_interval_ms": 0,
             },
@@ -990,21 +990,21 @@ def test_default_interval_is_a_third_of_retry_on_idle_ms():
         ),
         (
             {"retry_on_idle_ms": 500, "lease_renewal_interval_ms": 100},
-            "require lease_renewal=True",
+            "require renew_lease=True",
         ),
         (
             {"retry_on_idle_ms": 500, "cancel_on_lease_lost": False},
-            "require lease_renewal=True",
+            "require renew_lease=True",
         ),
         ({"max_processing_ms": 1000}, "max_processing_ms requires retry_on_idle_ms"),
         (
             {"retry_on_idle_ms": 500, "max_processing_ms": 0},
             "max_processing_ms must be a positive int",
         ),
-        ({"lease_renewal": "yes", "retry_on_idle_ms": 500}, "True or False"),
+        ({"renew_lease": "yes", "retry_on_idle_ms": 500}, "True or False"),
         (
             {
-                "lease_renewal": True,
+                "renew_lease": True,
                 "retry_on_idle_ms": 500,
                 "lease_renewal_interval_ms": True,
             },
@@ -1016,7 +1016,7 @@ def test_default_interval_is_a_third_of_retry_on_idle_ms():
         ),
         (
             {
-                "lease_renewal": True,
+                "renew_lease": True,
                 "retry_on_idle_ms": 500,
                 "cancel_on_lease_lost": "no",
             },
@@ -1039,21 +1039,21 @@ def test_agent_subscribe_validates_lease_options(options, match):
 @pytest.mark.parametrize(
     ("options", "match"),
     [
-        ({"lease_renewal": True}, "lease_renewal requires retry_on_idle_ms"),
+        ({"renew_lease": True}, "renew_lease requires retry_on_idle_ms"),
         (
-            {"lease_renewal": True, "retry_on_idle_ms": 500, "no_ack": True},
+            {"renew_lease": True, "retry_on_idle_ms": 500, "no_ack": True},
             "incompatible with no_ack",
         ),
         (
             {
-                "lease_renewal": True,
+                "renew_lease": True,
                 "retry_on_idle_ms": 500,
                 "ack_policy": AckPolicy.MANUAL,
             },
             "incompatible with ack_policy=AckPolicy.MANUAL",
         ),
         (
-            {"lease_renewal": True, "retry_on_idle_ms": 500, "group": "g"},
+            {"renew_lease": True, "retry_on_idle_ms": 500, "group": "g"},
             "requires a consumer name",
         ),
     ],
@@ -1302,7 +1302,7 @@ async def test_lease_subscription_added_after_connect_is_renewed(redis_client):
         handler,
         handler_id=f"{channel}-a",
         retry_on_idle_ms=IDLE_MS,
-        lease_renewal=True,
+        renew_lease=True,
     )
     await transport.connect()
     try:
@@ -1313,7 +1313,7 @@ async def test_lease_subscription_added_after_connect_is_renewed(redis_client):
             handler,
             handler_id=f"{channel}-b",
             retry_on_idle_ms=IDLE_MS,
-            lease_renewal=True,
+            renew_lease=True,
         )
         assert len(manager._keepers) == 4
         assert set(manager._tasks) == set(manager._keepers)
@@ -1346,7 +1346,7 @@ async def test_failed_subscribe_rolls_back_main_and_retry_keepers(monkeypatch):
             handler_id="lease-rollback-h",
             consumer="custom-consumer",
             retry_on_idle_ms=IDLE_MS,
-            lease_renewal=True,
+            renew_lease=True,
         )
     assert transport._lease_manager is not None
     assert transport._lease_manager._keepers == {}
@@ -1364,7 +1364,7 @@ async def test_rollback_keeps_a_keeper_registered_by_an_earlier_subscribe(
     options = {
         "handler_id": "lease-shared-h",
         "retry_on_idle_ms": IDLE_MS,
-        "lease_renewal": True,
+        "renew_lease": True,
     }
     await transport.subscribe("lease-shared", handler, **options)
     keepers = dict(transport._lease_manager._keepers)

@@ -253,10 +253,10 @@ if one joins later, the group monitor turns deletion off for that stream and log
 Deleted entries can't be replayed, and a generous `max_len` is still worth keeping as a
 backstop for the few paths that leave acked entries behind.
 
-**Long-running handlers with `lease_renewal`:** Redis resets a PEL entry's idle time only
+**Long-running handlers with `renew_lease`:** Redis resets a PEL entry's idle time only
 when it is (re)delivered, not while a handler works on it, so a handler that runs longer
 than `retry_on_idle_ms` (e.g. a multi-minute LLM call) is reclaimed and redelivered while
-it is still running — processed twice, in parallel. `subscribe(..., lease_renewal=True)`
+it is still running — processed twice, in parallel. `subscribe(..., renew_lease=True)`
 renews each in-flight entry every `lease_renewal_interval_ms` (default
 `retry_on_idle_ms // 3`) with `XCLAIM <stream> <group> <same consumer> 0 <id> JUSTID`
 (owner and delivery count unchanged, idle time reset), on the main and the retry stream,
@@ -266,11 +266,11 @@ longer than `retry_on_idle_ms`), the handler is cancelled and `LeaseLostError` i
 (`cancel_on_lease_lost=False` lets it finish); an entry trimmed from the stream is not
 redelivered, so its handler finishes. `max_processing_ms` is an optional handler deadline
 (cancel, `ProcessingTimeoutError`, normal retry) so a hung handler can't hold its lease
-forever. `lease_renewal` defaults `max_records` to 1 and also renews entries read but
+forever. `renew_lease` defaults `max_records` to 1 and also renews entries read but
 still queued in the process. Requires `retry_on_idle_ms`; see the Redis transport docs.
 
 ```python
-@agent.subscribe(channel=requests, retry_on_idle_ms=60_000, lease_renewal=True,
+@agent.subscribe(channel=requests, retry_on_idle_ms=60_000, renew_lease=True,
                  max_processing_ms=900_000)
 async def handle_request(message):
     await call_llm(message)   # minutes; not redelivered while it runs

@@ -7,7 +7,7 @@ so a handler that runs longer than ``retry_on_idle_ms`` has its entry reclaimed
 and redelivered while it is still running: the same message is processed twice,
 in parallel.
 
-``lease_renewal=True`` keeps the entries a subscription is working on "fresh":
+``renew_lease=True`` keeps the entries a subscription is working on "fresh":
 every ``lease_renewal_interval_ms`` it runs, per entry and atomically (one Lua
 script), ``XCLAIM <stream> <group> <consumer> 0 <id> JUSTID`` on entries this
 consumer still owns. That resets the idle time without changing the owner or the
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 # Subscribe options owned by this module (popped by RedisTransport.subscribe).
 LEASE_OPTION_KEYS = (
-    "lease_renewal",
+    "renew_lease",
     "lease_renewal_interval_ms",
     "cancel_on_lease_lost",
     "max_processing_ms",
@@ -83,7 +83,7 @@ _LOST, _RENEWED, _TRIMMED = 0, 1, 2
 class LeaseLostError(Exception):
     """A handler's stream entry left its consumer's PEL while it was running.
 
-    Raised by a ``lease_renewal`` subscription (with the default
+    Raised by a ``renew_lease`` subscription (with the default
     ``cancel_on_lease_lost=True``) in place of the handler's result, after the
     handler was cancelled. The entry was reclaimed (usually after renewals kept
     failing for longer than ``retry_on_idle_ms``, e.g. during a Redis outage)
@@ -151,7 +151,7 @@ class ProcessingTimeoutError(TimeoutError):
 class LeaseOptions:
     """Validated lease-related subscribe options."""
 
-    lease_renewal: bool = False
+    renew_lease: bool = False
     interval_ms: int | None = None  # resolved: retry_on_idle_ms // 3 by default
     cancel_on_lease_lost: bool = True
     max_processing_ms: int | None = None
@@ -172,24 +172,24 @@ def resolve_lease_options(
     both paths. ``retry_on_idle_ms`` is the subscription's reclaim threshold.
     ``options`` is only read, never modified.
     """
-    lease = options.get("lease_renewal", False)
+    lease = options.get("renew_lease", False)
     interval_ms = options.get("lease_renewal_interval_ms")
     cancel_on_lost = options.get("cancel_on_lease_lost", True)
     max_processing_ms = options.get("max_processing_ms")
     if not isinstance(lease, bool):
-        raise ValueError("lease_renewal must be True or False")
+        raise ValueError("renew_lease must be True or False")
     if not isinstance(cancel_on_lost, bool):
         raise ValueError("cancel_on_lease_lost must be True or False")
     if not lease:
         if interval_ms is not None or "cancel_on_lease_lost" in options:
             raise ValueError(
                 "lease_renewal_interval_ms / cancel_on_lease_lost require "
-                "lease_renewal=True."
+                "renew_lease=True."
             )
     else:
         if retry_on_idle_ms is None:
             raise ValueError(
-                "lease_renewal requires retry_on_idle_ms: the lease keeps the "
+                "renew_lease requires retry_on_idle_ms: the lease keeps the "
                 "SDK-managed reclaimer from redelivering an entry that is still "
                 "being processed, and without retry_on_idle_ms there is none."
             )
@@ -213,7 +213,7 @@ def resolve_lease_options(
                 "NACKed entry."
             )
     return LeaseOptions(
-        lease_renewal=lease,
+        renew_lease=lease,
         interval_ms=interval_ms if lease else None,
         cancel_on_lease_lost=cancel_on_lost,
         max_processing_ms=max_processing_ms,
@@ -516,7 +516,7 @@ class LeaseManager:
         if keeper is not None:
             if keeper.config != config:
                 raise ValueError(
-                    f"lease_renewal is already configured for stream "
+                    f"renew_lease is already configured for stream "
                     f"{config.stream!r} group {config.group!r} consumer "
                     f"{config.consumer!r} with different settings "
                     f"({keeper.config} vs {config}); subscriptions sharing a "
