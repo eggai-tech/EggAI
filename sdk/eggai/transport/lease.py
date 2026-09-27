@@ -8,7 +8,7 @@ and redelivered while it is still running: the same message is processed twice,
 in parallel.
 
 ``renew_lease=True`` keeps the entries a subscription is working on "fresh":
-every ``lease_renewal_interval_ms`` it runs, per entry and atomically (one Lua
+every ``renew_lease_interval_ms`` it runs, per entry and atomically (one Lua
 script), ``XCLAIM <stream> <group> <consumer> 0 <id> JUSTID`` on entries this
 consumer still owns. That resets the idle time without changing the owner or the
 delivery count, so the reclaimer skips them. A consumer that crashed stops
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 # Subscribe options owned by this module (popped by RedisTransport.subscribe).
 LEASE_OPTION_KEYS = (
     "renew_lease",
-    "lease_renewal_interval_ms",
+    "renew_lease_interval_ms",
     "cancel_on_lease_lost",
     "max_processing_ms",
 )
@@ -173,7 +173,7 @@ def resolve_lease_options(
     ``options`` is only read, never modified.
     """
     lease = options.get("renew_lease", False)
-    interval_ms = options.get("lease_renewal_interval_ms")
+    interval_ms = options.get("renew_lease_interval_ms")
     cancel_on_lost = options.get("cancel_on_lease_lost", True)
     max_processing_ms = options.get("max_processing_ms")
     if not isinstance(lease, bool):
@@ -183,7 +183,7 @@ def resolve_lease_options(
     if not lease:
         if interval_ms is not None or "cancel_on_lease_lost" in options:
             raise ValueError(
-                "lease_renewal_interval_ms / cancel_on_lease_lost require "
+                "renew_lease_interval_ms / cancel_on_lease_lost require "
                 "renew_lease=True."
             )
     else:
@@ -196,10 +196,10 @@ def resolve_lease_options(
         if interval_ms is None:
             interval_ms = max(1, retry_on_idle_ms // 3)
         elif not _is_positive_int(interval_ms):
-            raise ValueError("lease_renewal_interval_ms must be a positive int")
+            raise ValueError("renew_lease_interval_ms must be a positive int")
         elif interval_ms >= retry_on_idle_ms:
             raise ValueError(
-                "lease_renewal_interval_ms must be < retry_on_idle_ms: an entry "
+                "renew_lease_interval_ms must be < retry_on_idle_ms: an entry "
                 "renewed less often than the reclaim threshold is reclaimed "
                 "between two renewals (the default is retry_on_idle_ms // 3)."
             )

@@ -976,7 +976,7 @@ def test_default_interval_is_a_third_of_retry_on_idle_ms():
             {
                 "renew_lease": True,
                 "retry_on_idle_ms": 500,
-                "lease_renewal_interval_ms": 500,
+                "renew_lease_interval_ms": 500,
             },
             "must be < retry_on_idle_ms",
         ),
@@ -984,12 +984,12 @@ def test_default_interval_is_a_third_of_retry_on_idle_ms():
             {
                 "renew_lease": True,
                 "retry_on_idle_ms": 500,
-                "lease_renewal_interval_ms": 0,
+                "renew_lease_interval_ms": 0,
             },
             "must be a positive int",
         ),
         (
-            {"retry_on_idle_ms": 500, "lease_renewal_interval_ms": 100},
+            {"retry_on_idle_ms": 500, "renew_lease_interval_ms": 100},
             "require renew_lease=True",
         ),
         (
@@ -1006,7 +1006,7 @@ def test_default_interval_is_a_third_of_retry_on_idle_ms():
             {
                 "renew_lease": True,
                 "retry_on_idle_ms": 500,
-                "lease_renewal_interval_ms": True,
+                "renew_lease_interval_ms": True,
             },
             "must be a positive int",
         ),
