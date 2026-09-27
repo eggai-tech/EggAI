@@ -468,7 +468,7 @@ class RedisTransport(Transport):
             renew_lease (bool, optional): Renew the lease of every entry this subscription is processing, so a
                 handler that runs longer than ``retry_on_idle_ms`` is not reclaimed and redelivered while it is still
                 running (default False). Redis resets a PEL entry's idle time only when it is (re)delivered; with
-                this option each in-flight entry is renewed every ``lease_renewal_interval_ms`` with
+                this option each in-flight entry is renewed every ``renew_lease_interval_ms`` with
                 ``XCLAIM <stream> <group> <this consumer> 0 <id> JUSTID`` (owner and delivery count unchanged, idle
                 time reset), guarded by an ownership check in the same Lua script. A consumer that crashes stops
                 renewing, so its entries are still reclaimed ``retry_on_idle_ms`` after the last renewal. Covers the
@@ -477,7 +477,7 @@ class RedisTransport(Transport):
                 (unless set, or ``batch=True``) so a busy worker doesn't hold prefetched entries an idle worker
                 could take. Requires ``retry_on_idle_ms`` and a consumer group; incompatible with ``no_ack=True``
                 and ``ack_policy=AckPolicy.MANUAL``. Needs Lua scripting (``EVALSHA``) on the server.
-            lease_renewal_interval_ms (int, optional): How often leases are renewed (default
+            renew_lease_interval_ms (int, optional): How often leases are renewed (default
                 ``retry_on_idle_ms // 3``, so two renewals can fail before an entry becomes reclaimable). Must be
                 less than ``retry_on_idle_ms``. Each renewal round trip is bounded by half the interval; a failed
                 renewal is logged (stream, group, ids) and retried at the next interval, it never stops the

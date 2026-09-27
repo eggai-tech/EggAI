@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   handlers that run longer than `retry_on_idle_ms`. Redis only resets a PEL
   entry's idle time on (re)delivery, so such a handler was reclaimed and
   redelivered while still running (duplicate parallel processing). While a
-  handler runs, its entry is renewed every `lease_renewal_interval_ms`
+  handler runs, its entry is renewed every `renew_lease_interval_ms`
   (default `retry_on_idle_ms // 3`, must be smaller) with an ownership-checked
   `XCLAIM ... 0 <id> JUSTID` in one Lua script: same owner, same delivery
   count, idle time reset. Covers the main and the `.retry` stream, batch

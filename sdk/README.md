@@ -257,7 +257,7 @@ backstop for the few paths that leave acked entries behind.
 when it is (re)delivered, not while a handler works on it, so a handler that runs longer
 than `retry_on_idle_ms` (e.g. a multi-minute LLM call) is reclaimed and redelivered while
 it is still running — processed twice, in parallel. `subscribe(..., renew_lease=True)`
-renews each in-flight entry every `lease_renewal_interval_ms` (default
+renews each in-flight entry every `renew_lease_interval_ms` (default
 `retry_on_idle_ms // 3`) with `XCLAIM <stream> <group> <same consumer> 0 <id> JUSTID`
 (owner and delivery count unchanged, idle time reset), on the main and the retry stream,
 so the reclaimer skips it; a crashed worker stops renewing and its entries are still
