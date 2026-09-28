@@ -195,6 +195,63 @@ jobs:
           name: python-${{ matrix.python-version }}
           fail_ci_if_error: false
 
+  # The lock file pins one FastStream release, so the `test` job never sees the
+  # bottom of the range pyproject.toml allows. This job runs the suite against
+  # the lowest supported FastStream, on the lowest supported Python. Keep the
+  # version here in step with the lower bound in sdk/pyproject.toml.
+  test-min-faststream:
+    runs-on: ubuntu-latest
+    name: Test SDK (lowest FastStream, Python 3.10)
+    env:
+      MIN_FASTSTREAM: '0.6.4'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.10'
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: poetry-${{ runner.os }}-py3.10-${{ hashFiles('sdk/poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-py3.10-
+            poetry-${{ runner.os }}-
+
+      - name: Install Poetry
+        run: pipx install poetry==2.4.3
+
+      - name: Copy README to SDK
+        run: cp README.md sdk/
+
+      - name: Install dependencies
+        working-directory: sdk
+        run: |
+          poetry install --all-extras
+          poetry run pip install "faststream[kafka,redis]==${MIN_FASTSTREAM}"
+          poetry run python -c "from importlib.metadata import version; v = version('faststream'); assert v == '${MIN_FASTSTREAM}', v"
+
+      - name: Run tests
+        working-directory: sdk
+        run: poetry run pytest -v
+
   build:
     runs-on: ubuntu-latest
     name: Build and verify SDK package
@@ -263,7 +320,7 @@ jobs:
   # Summary job to check if all required jobs passed
   all-checks-passed:
     runs-on: ubuntu-latest
-    needs: [lint, changelog, test, build]
+    needs: [lint, changelog, test, test-min-faststream, build]
     if: always()
 
     steps:
@@ -272,6 +329,7 @@ jobs:
           CHANGELOG_RESULT: ${{ needs.changelog.result }}
           LINT_RESULT: ${{ needs.lint.result }}
           TEST_RESULT: ${{ needs.test.result }}
+          TEST_MIN_FASTSTREAM_RESULT: ${{ needs.test-min-faststream.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         run: |
           # Changelog is optional (skipped on push to main or when no code changes)
@@ -282,6 +340,7 @@ jobs:
 
           if [[ "$LINT_RESULT" != "success" || \
                 "$TEST_RESULT" != "success" || \
+                "$TEST_MIN_FASTSTREAM_RESULT" != "success" || \
                 "$BUILD_RESULT" != "success" ]]; then
             echo "One or more required checks failed"
             exit 1

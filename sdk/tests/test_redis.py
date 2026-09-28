@@ -9,6 +9,7 @@ This test suite verifies:
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import uuid
@@ -1859,12 +1860,16 @@ async def _make_envelope(body: dict) -> bytes:
     """Build a FastStream BinaryMessageFormatV1 envelope around a JSON body.
 
     Used by the backoff tests to plant a stream entry with a known _retry_count.
+    ``encode`` is sync in FastStream 0.6 and async from 0.7.
     """
     from faststream.redis.parser.binary import BinaryMessageFormatV1
 
-    return await BinaryMessageFormatV1.encode(
+    envelope = BinaryMessageFormatV1.encode(
         message=body, reply_to=None, headers=None, correlation_id="test-cid"
     )
+    if inspect.isawaitable(envelope):
+        envelope = await envelope
+    return envelope
 
 
 def _make_backoff_config(stream: str, retry_stream: str, **overrides):
@@ -2248,3 +2253,56 @@ async def test_group_start_zero_delivers_backlog_and_new_entries():
     await redis_client.delete(f"eggai.{channel_name}")
     await redis_client.aclose()
     await producer.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_group_monitor_restarts_subscribers_faststream_stopped(caplog):
+    """FastStream >= 0.7.6 stops a subscriber for good on NOGROUP. The monitor
+    restarts subscribers connect() started, once their stop() has finished;
+    running ones and ones still stopping are left alone, and a failed restart
+    is logged and retried on the next pass."""
+    from types import SimpleNamespace
+
+    transport = RedisTransport()
+    transport._running = True
+
+    class FakeSubscriber:
+        def __init__(self, running, tasks=(), fail=False):
+            self.stream_sub = SimpleNamespace(name="s", group="g")
+            self.running = running
+            self.tasks = list(tasks)
+            self.fail = fail
+            self.starts = 0
+
+        async def start(self):
+            self.starts += 1
+            if self.fail:
+                raise ConnectionError("redis down")
+            self.running = True
+
+    pending = asyncio.get_running_loop().create_future()
+    stopped = FakeSubscriber(running=False)
+    stopping = FakeSubscriber(running=False, tasks=[pending])
+    running = FakeSubscriber(running=True)
+    failing = FakeSubscriber(running=False, fail=True)
+    for sub in (stopped, stopping, running, failing):
+        transport._started_subscribers[id(sub)] = sub
+
+    caplog.set_level(logging.WARNING)
+    await transport._restart_stopped_subscribers()
+
+    assert (stopped.starts, stopping.starts, running.starts) == (1, 0, 0)
+    assert stopped.running
+    assert failing.starts == 1 and "Failed to restart the consumer" in caplog.text
+    assert "Restarted the consumer for stream s group g" in caplog.text
+
+    failing.fail = False
+    pending.cancel()
+    await transport._restart_stopped_subscribers()
+    assert failing.starts == 2 and failing.running
+    assert stopping.starts == 1 and stopped.starts == 1
+
+    transport._running = False
+    stopped.running = False
+    await transport._restart_stopped_subscribers()
+    assert stopped.starts == 1  # never restarted once disconnect() began
