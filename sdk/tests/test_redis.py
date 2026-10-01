@@ -704,6 +704,126 @@ async def test_retry_stream_pins_last_id_to_new_entries():
 
 
 @pytest.mark.asyncio
+async def test_retry_on_idle_ms_defaults_max_records_to_one():
+    """With the reclaimer on, an unset max_records becomes 1 on the main and
+    the retry stream; an explicit value and batch mode are left alone."""
+
+    async def handler(message):
+        return message
+
+    def max_records(transport):
+        return {
+            s.stream_sub.name: s.stream_sub.max_records
+            for s in transport.broker.subscribers
+        }
+
+    transport = RedisTransport()
+    await transport.subscribe(
+        "orders", handler, handler_id="orders-handler-1", retry_on_idle_ms=500
+    )
+    assert max_records(transport) == {
+        "orders": 1,
+        "orders.orders-handler-1.retry": 1,
+    }
+
+    transport = RedisTransport()
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-handler-1",
+        retry_on_idle_ms=500,
+        max_records=10,
+    )
+    assert max_records(transport) == {
+        "orders": 10,
+        "orders.orders-handler-1.retry": 10,
+    }
+
+    transport = RedisTransport()
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-handler-1",
+        retry_on_idle_ms=500,
+        batch=True,
+    )
+    assert set(max_records(transport).values()) == {None}
+
+    # No reclaimer: unchanged.
+    transport = RedisTransport()
+    await transport.subscribe("orders", handler, handler_id="orders-handler-1")
+    assert max_records(transport) == {"orders": None}
+
+
+@pytest.mark.asyncio
+async def test_retry_on_idle_ms_does_not_reclaim_entries_queued_behind_a_slow_handler():
+    """A backlog waiting at startup must not be read into the PEL all at once.
+
+    Without a COUNT, one XREADGROUP hands the consumer every waiting entry; they
+    all enter its PEL and are handled one by one. An entry queued behind slow
+    handlers goes idle past retry_on_idle_ms without ever having started, the
+    reclaimer moves it to .retry, and the handler runs it twice (once from the
+    local list, once from the retry stream).
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+    test_id = uuid.uuid4().hex[:8]
+    channel_name = f"test-prefetch-{test_id}"
+    stream_name = f"eggai.{channel_name}"
+    group = f"prefetch-agent-{test_id}-handler-1"
+
+    producer = RedisTransport()
+    await producer.connect()
+    for n in range(1, 5):
+        await Channel(channel_name, transport=producer).publish(
+            {"type": "t", "data": {"n": n}}
+        )
+
+    transport = RedisTransport()
+    agent = Agent(f"prefetch-agent-{test_id}", transport=transport)
+    calls = []
+    all_seen = asyncio.Event()
+
+    @agent.subscribe(
+        channel=Channel(channel_name, transport=transport),
+        group=group,
+        group_start="0",
+        retry_on_idle_ms=1000,
+        retry_reclaim_interval_s=0.25,
+    )
+    async def handler(message):
+        calls.append(message["data"]["n"])
+        if set(calls) == {1, 2, 3, 4}:
+            all_seen.set()
+        await asyncio.sleep(1.0)
+
+    try:
+        await agent.start()
+        await asyncio.sleep(0.5)
+        # Only the entry being handled is claimed; the rest stays in the stream
+        # where another consumer could take it.
+        pending = await redis_client.xpending(stream_name, group)
+        (info,) = [
+            g
+            for g in await redis_client.xinfo_groups(stream_name)
+            if g["name"] == group
+        ]
+        assert pending["pending"] == 1
+        assert info["lag"] == 3
+
+        await asyncio.wait_for(all_seen.wait(), timeout=10.0)
+        # Leave time for a redelivery through .retry to show up.
+        await asyncio.sleep(2.0)
+    finally:
+        await agent.stop()
+        await producer.disconnect()
+        await redis_client.delete(stream_name, f"{stream_name}.{group}.retry")
+        await redis_client.aclose()
+
+    assert sorted(calls) == [1, 2, 3, 4], f"handler runs: {calls}"
+
+
+@pytest.mark.asyncio
 async def test_retry_stream_gets_its_own_tracing_destination(monkeypatch):
     """The retry-stream subscriber must be traced with the retry stream as its
     destination, not the original channel (issue #225 review).
