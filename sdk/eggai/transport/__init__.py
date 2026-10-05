@@ -7,4 +7,6 @@ from .defaults import (
 )
 from .inmemory import InMemoryTransport as InMemoryTransport
 from .kafka import KafkaTransport as KafkaTransport
+from .lease import LeaseLostError as LeaseLostError
+from .lease import ProcessingTimeoutError as ProcessingTimeoutError
 from .redis import RedisTransport as RedisTransport

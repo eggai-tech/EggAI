@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Redis `subscribe(..., renew_lease=True)`: in-flight lease renewal. Redis
+  resets a PEL entry's idle time only on delivery, so a handler running longer
+  than `retry_on_idle_ms` was reclaimed and redelivered while still running.
+  - Every `renew_lease_interval_ms` (default `retry_on_idle_ms // 3`) a Lua
+    script renews this consumer's in-flight entries with `XCLAIM ... 0 <id>
+    JUSTID` (owner and delivery count unchanged) on the main and `.retry`
+    stream, including prefetched ones; a crashed worker's entries are still
+    reclaimed. `renew_lease` defaults `max_records` to 1.
+  - An entry reclaimed anyway cancels its handler with
+    `eggai.transport.LeaseLostError` (`cancel_on_lease_lost=False` lets it
+    finish); sync handlers are never interrupted, the error is raised when
+    their thread returns.
+  - Requires `retry_on_idle_ms` and Lua scripting; rejected with `no_ack=True`
+    and `AckPolicy.MANUAL`. Opt-in, default behaviour unchanged.
+- Redis `subscribe(..., max_processing_ms=...)`: handler deadline. A handler
+  still running at it is cancelled with `eggai.transport.ProcessingTimeoutError`
+  and its entry NACKed for the normal retry. Requires `retry_on_idle_ms`.
+
+### Changed
+
+- Minimum FastStream is now 0.6.4 (`faststream>=0.6.4,<0.8`, was `>=0.6`).
+  The SDK never worked on the older 0.6 releases: on 0.6.0–0.6.2 every Redis
+  stream subscription failed with a `TypeError` (`StreamSub` has no
+  `min_idle_time` before 0.6.3), and on 0.6.3 a `min_idle_time` subscription
+  never claimed pending entries. Nothing that works today stops working; the
+  failure moves from runtime to install time. CI now also runs the test suite
+  against FastStream 0.6.4.
+- `anyio` (`>=4.0,<5`, the range FastStream 0.6.4 already requires) is now a
+  declared dependency; the SDK imports it directly.
+
+### Fixed
+
+- Redis: consuming resumes after a lost consumer group (stream deleted,
+  Redis flushed or failed over) with FastStream >= 0.7.6. Those versions stop
+  a subscriber for good on `NOGROUP` instead of retrying the read, so the
+  group monitor recreated the group but nothing read from it any more. The
+  monitor now also restarts the stream subscribers `connect()` started, once
+  their group exists again (a partial loss still redelivers from id `0`). No
+  change on FastStream <= 0.7.5, where the read loop never stopped. The lock
+  file moves to FastStream 0.7.7 so CI covers this path.
+
 ## [0.6.0] - 2026-09-25
 
 ### Added

@@ -253,6 +253,19 @@ if one joins later, the group monitor turns deletion off for that stream and log
 Deleted entries can't be replayed, and a generous `max_len` is still worth keeping as a
 backstop for the few paths that leave acked entries behind.
 
+**Long-running handlers with `renew_lease`:** Redis resets an entry's idle time only on
+delivery, so a handler running longer than `retry_on_idle_ms` is reclaimed and redelivered
+while still running. `renew_lease=True` keeps renewing in-flight entries (a crashed worker's
+are still reclaimed), and `max_processing_ms` adds an optional handler deadline. See
+[Lease Renewal](https://docs.egg-ai.com/sdk/redis-transport/#long-running-handlers-lease-renewal).
+
+```python
+@agent.subscribe(channel=requests, retry_on_idle_ms=60_000, renew_lease=True,
+                 max_processing_ms=900_000)
+async def handle_request(message):
+    await call_llm(message)   # minutes; not redelivered while it runs
+```
+
 **Retry backoff:** By default retries fire at a constant cadence equal to
 `retry_on_idle_ms`. Set `retry_backoff_multiplier > 1.0` to back off exponentially: a
 message is treated as due for reclaim once it has been idle for
