@@ -230,10 +230,11 @@ jobs:
           path: |
             ~/.cache/pypoetry
             ~/.cache/pip
-          key: poetry-${{ runner.os }}-py3.10-${{ hashFiles('sdk/poetry.lock') }}
+          # Own prefix: this job's venv has FastStream 0.6.4 installed over the
+          # lock, which must not be restored into the regular test jobs.
+          key: poetry-min-faststream-${{ runner.os }}-py3.10-${{ hashFiles('sdk/poetry.lock') }}
           restore-keys: |
-            poetry-${{ runner.os }}-py3.10-
-            poetry-${{ runner.os }}-
+            poetry-min-faststream-${{ runner.os }}-py3.10-
 
       - name: Install Poetry
         run: pipx install poetry==2.4.3
