@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import redis.asyncio as aioredis
+from redis.exceptions import ResponseError
 
 from eggai.transport.middleware_utils import call_handler, is_async_callable
 
@@ -54,6 +55,8 @@ _CHUNK = 100
 _SCAN_PAGE = 1000
 # Shortest pause between two renewal rounds, as a share of the interval.
 _MIN_PAUSE_RATIO = 0.1
+# Bound on the up-front SCRIPT LOAD in LeaseManager.start() (runs in connect()).
+_SCRIPT_CHECK_TIMEOUT_S = 5.0
 
 # Per id: 1 = renewed, 0 = lost (not in this consumer's PEL: reclaimed, acked by
 # someone else, or claimed by another consumer), 2 = trimmed (still ours in the
@@ -577,6 +580,7 @@ class LeaseManager:
                 **{**self._connection_kwargs, "decode_responses": True},
             )
             self.script = self.client.register_script(_RENEW_SCRIPT)
+            await self._check_scripting()
         self.running = True
         for key, keeper in self._keepers.items():
             task = self._tasks.get(key)
@@ -585,6 +589,37 @@ class LeaseManager:
             self._tasks[key] = asyncio.create_task(
                 keeper.run(self),
                 name=f"lease-renewal:{keeper.config.stream}:{keeper.config.group}",
+            )
+
+    async def _check_scripting(self) -> None:
+        """Load the renewal script once up front, so a server that refuses Lua
+        scripting (an ACL without ``@scripting``, a managed-Redis policy) is
+        reported clearly at startup instead of only as a renewal warning every
+        interval. Never raises: the transport keeps running, unleased."""
+        client = self.client
+        if client is None:
+            return
+        try:
+            await asyncio.wait_for(
+                client.script_load(_RENEW_SCRIPT), _SCRIPT_CHECK_TIMEOUT_S
+            )
+        except asyncio.CancelledError:
+            raise
+        except ResponseError as e:
+            logger.error(
+                "Lease renewal will not work: the Redis server refused to load "
+                "the renewal Lua script (%s). renew_lease needs Lua scripting "
+                "(SCRIPT LOAD / EVALSHA; ACL category @scripting). Handlers keep "
+                "running, but unleased: entries of handlers running longer than "
+                "retry_on_idle_ms will be redelivered while still running.",
+                e,
+            )
+        except Exception as e:
+            logger.warning(
+                "Lease renewal: could not check Lua scripting on the Redis "
+                "server (%s: %s); renewals will retry it.",
+                type(e).__name__,
+                e,
             )
 
     async def stop(self) -> None:

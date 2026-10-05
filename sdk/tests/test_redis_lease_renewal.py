@@ -1410,8 +1410,50 @@ async def test_manager_add_reuses_same_config_refuses_a_different_one():
 
 
 @pytest.mark.asyncio
+async def test_manager_start_loads_the_renewal_script(redis_client):
+    manager = LeaseManager("redis://localhost:6379")
+    await redis_client.script_flush()
+    await manager.start()
+    try:
+        assert manager.script is not None
+        assert await redis_client.script_exists(manager.script.sha) == [True]
+    finally:
+        await manager.stop()
+
+
+@pytest.mark.asyncio
+async def test_manager_start_reports_refused_scripting_without_failing(
+    monkeypatch, caplog
+):
+    """A server that refuses Lua scripting is reported once, up front; the
+    transport still starts (renewals then keep failing, logged)."""
+    from redis.exceptions import NoPermissionError
+
+    import eggai.transport.lease as lease_mod
+
+    client = AsyncMock()
+    client.register_script = lambda _src: AsyncMock()
+    client.script_load.side_effect = NoPermissionError(
+        "this user has no permissions to run the 'script|load' command"
+    )
+    monkeypatch.setattr(lease_mod.aioredis, "from_url", lambda *a, **k: client)
+    manager = LeaseManager("redis://unused")
+    key, _, _ = manager.add(
+        LeaseConfig(stream="s", group="g", consumer="c", interval_s=0.05)
+    )
+    caplog.set_level(logging.ERROR)
+    await manager.start()
+    try:
+        assert "Lease renewal will not work" in caplog.text
+        assert "@scripting" in caplog.text
+        assert manager.running and key in manager._tasks
+    finally:
+        await manager.stop()
+
+
+@pytest.mark.asyncio
 async def test_manager_discard_cancels_the_running_task():
-    # from_url doesn't connect, and an empty keeper never calls Redis.
+    # An empty keeper never calls Redis (start()'s script check only warns).
     manager = LeaseManager("redis://unused:1")
     key, _, _ = manager.add(
         LeaseConfig(stream="s", group="g", consumer="c", interval_s=0.05)
