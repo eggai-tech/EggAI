@@ -39,6 +39,13 @@ _CONSUMER_INSTANCE = f"{socket.gethostname()}-{os.getpid()}"
 # asyncapi_*, …) are intentionally excluded. ``decode_responses`` is omitted on
 # purpose: each background client pins it itself (False for the reclaimer's binary
 # passthrough, True for the monitor's string commands).
+#
+# ``credential_provider`` is forwarded for the same reason: when the server requires
+# authentication (ACL, or a rotating token such as Azure Managed Redis / Entra ID),
+# the background clients authenticate against the same server as the broker, so they
+# need the same credential source. Without it they connect unauthenticated and the
+# server rejects them (``AuthenticationError: HELLO must be called with the client
+# already authenticated``) even while the broker is connected fine.
 _BACKGROUND_CLIENT_CONNECTION_KEYS = (
     "socket_timeout",
     "socket_connect_timeout",
@@ -53,6 +60,7 @@ _BACKGROUND_CLIENT_CONNECTION_KEYS = (
     "ssl_cert_reqs",
     "ssl_ca_certs",
     "ssl_check_hostname",
+    "credential_provider",
 )
 
 

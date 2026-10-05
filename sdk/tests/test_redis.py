@@ -1589,6 +1589,38 @@ async def test_connection_kwargs_propagate_to_reclaimer():
 
 
 @pytest.mark.asyncio
+async def test_credential_provider_propagates_to_background_clients():
+    """A credential_provider passed to the transport reaches the background clients
+    (reclaimer, group monitor, delete-on-ack). When the server authenticates with a
+    rotating token (e.g. Azure Managed Redis / Entra ID) and no password is in the
+    URL, these clients would otherwise connect unauthenticated and be rejected."""
+    from redis.credentials import CredentialProvider
+
+    class _StubCredentialProvider(CredentialProvider):
+        def get_credentials(self):
+            return ("user", "token")
+
+    provider = _StubCredentialProvider()
+
+    transport = RedisTransport(credential_provider=provider)
+
+    assert transport._connection_kwargs == {"credential_provider": provider}
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders", handler, handler_id="orders-handler-cred", retry_on_idle_ms=500
+    )
+
+    assert transport._reclaimer_manager is not None
+    assert (
+        transport._reclaimer_manager._connection_kwargs["credential_provider"]
+        is provider
+    )
+
+
+@pytest.mark.asyncio
 async def test_reclaimer_start_applies_connection_kwargs(monkeypatch):
     """start() forwards connection_kwargs to from_url while pinning
     decode_responses=False (callers cannot override the binary-passthrough flag)."""

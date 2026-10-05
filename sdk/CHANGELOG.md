@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `RedisTransport` now forwards `credential_provider` to its background clients
+  (the PEL reclaimer, the group monitor, and the delete-on-ack client), not just
+  to the broker. This lets every connection authenticate from the same source
+  when the server requires a credential provider rather than a password in the
+  URL — an ACL user, or a rotating token such as Azure Managed Redis / Microsoft
+  Entra ID. Previously the background clients connected unauthenticated and the
+  server rejected them (`AuthenticationError: HELLO must be called with the
+  client already authenticated`) even while the broker was connected fine.
+
 ## [0.6.0] - 2026-09-25
 
 ### Added
