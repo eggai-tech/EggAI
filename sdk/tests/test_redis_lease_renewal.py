@@ -52,6 +52,12 @@ async def _true(value):
     return value
 
 
+def _retries(message) -> int:
+    """The SDK's _retry_count of a delivery (0 for a first one), whether it is
+    written as a string or as a number."""
+    return int(message.get("_retry_count", 0))
+
+
 @pytest_asyncio.fixture
 async def redis_client():
     client = redis.Redis(host="localhost", port=6379, decode_responses=True)
@@ -172,7 +178,7 @@ async def test_slow_handler_processed_twice_without_lease_renewal():
         await agent.stop()
 
     assert tracker.max_active == 2  # in parallel
-    assert tracker.calls[1]["_retry_count"] == "1"
+    assert _retries(tracker.calls[1]) == 1
     assert transport._lease_manager is None  # default: nothing new runs
 
 
@@ -217,7 +223,7 @@ async def test_crashed_consumers_entry_is_still_reclaimed(redis_client):
     finally:
         await agent.stop()
     assert seen[0]["n"] == 1
-    assert seen[0]["_retry_count"] == "1"
+    assert _retries(seen[0]) == 1
 
 
 @pytest.mark.asyncio
@@ -238,7 +244,7 @@ async def test_renewal_stopping_mid_run_lets_the_entry_be_reclaimed(redis_client
         cancel_on_lease_lost=False,
     )
     async def handler(message):
-        await tracker.run(message, 0.0 if message.get("_retry_count") else 3.0)
+        await tracker.run(message, 0.0 if _retries(message) else 3.0)
 
     await agent.start()
     try:
@@ -250,7 +256,7 @@ async def test_renewal_stopping_mid_run_lets_the_entry_be_reclaimed(redis_client
         await _wait_for(lambda: _true(len(tracker.calls) == 2), timeout=5.0)
     finally:
         await agent.stop()
-    assert tracker.calls[1]["_retry_count"] == "1"
+    assert _retries(tracker.calls[1]) == 1
 
 
 @pytest.mark.asyncio
@@ -284,7 +290,7 @@ async def test_stale_entry_of_same_consumer_name_is_not_renewed(redis_client):
         max_records=10,  # prefetch scan on
     )
     async def handler(message):
-        seen.append((message["n"], message.get("_retry_count", "0")))
+        seen.append((message["n"], _retries(message)))
         if message["n"] == "slow":
             await asyncio.sleep(2.0)
             slow_done.set()
@@ -296,8 +302,8 @@ async def test_stale_entry_of_same_consumer_name_is_not_renewed(redis_client):
         await asyncio.sleep(0.5)
     finally:
         await agent.stop()
-    assert ("stale", "1") in seen  # reclaimed while "slow" held a lease
-    assert [s for s in seen if s[0] == "slow"] == [("slow", "0")]
+    assert ("stale", 1) in seen  # reclaimed while "slow" held a lease
+    assert [s for s in seen if s[0] == "slow"] == [("slow", 0)]
 
 
 # --------------------------------------------------------------------------
@@ -323,7 +329,7 @@ async def test_lost_lease_cancels_the_handler(redis_client, caplog):
         max_retries=None,
     )
     async def handler(message):
-        calls.append(message.get("_retry_count", "0"))
+        calls.append(_retries(message))
         if len(calls) > 1:
             return
         started.set()
@@ -371,7 +377,7 @@ async def test_lost_lease_without_cancel_lets_the_handler_finish(redis_client, c
         cancel_on_lease_lost=False,
     )
     async def handler(message):
-        if message.get("_retry_count"):
+        if _retries(message):
             return
         started.set()
         await asyncio.sleep(1.0)
@@ -453,7 +459,7 @@ async def test_retry_stream_delivery_is_renewed(redis_client):
         renew_lease=True,
     )
     async def handler(message):
-        if not message.get("_retry_count"):
+        if not _retries(message):
             raise RuntimeError("transient")  # fast failure, NACK -> retry
         await tracker.run(message, 2.0)
 
@@ -470,7 +476,7 @@ async def test_retry_stream_delivery_is_renewed(redis_client):
     finally:
         await agent.stop()
 
-    assert [c["_retry_count"] for c in tracker.calls] == ["1"]
+    assert [_retries(c) for c in tracker.calls] == [1]
     assert all(s["time_since_delivered"] < IDLE_MS for s in samples), samples
     assert {s["consumer"] for s in samples} == {f"{retry_group}-{_CONSUMER_INSTANCE}"}
     assert await _pending_entries(redis_client, retry_stream, retry_group) == []
@@ -517,7 +523,7 @@ async def test_prefetched_entries_are_renewed(redis_client, lease):
         await asyncio.sleep(1.0)
     finally:
         await agent.stop()
-    retried = [c for c in tracker.calls if c.get("_retry_count")]
+    retried = [c for c in tracker.calls if _retries(c)]
     if lease:
         assert sorted(c["n"] for c in tracker.calls) == [0, 1, 2]
         assert retried == []
@@ -554,7 +560,7 @@ async def test_concurrent_workers_entries_are_renewed(redis_client, lease):
         await asyncio.sleep(1.0)
     finally:
         await agent.stop()
-    retried = [c for c in tracker.calls if c.get("_retry_count")]
+    retried = [c for c in tracker.calls if _retries(c)]
     if lease:
         assert sorted(c["n"] for c in tracker.calls) == [0, 1, 2, 3, 4]
         assert retried == []
@@ -648,7 +654,7 @@ async def test_max_processing_ms_cancels_and_retries(caplog):
         max_processing_ms=300,
     )
     async def handler(message):
-        if message.get("_retry_count") == "1":
+        if _retries(message) == 1:
             retried.set()
             return
         try:
@@ -691,7 +697,7 @@ async def test_sync_handler_past_its_deadline_is_not_retried_while_running(caplo
     )
     def handler(message):
         nonlocal active, max_active
-        retry_count = int(message.get("_retry_count", 0))
+        retry_count = _retries(message)
         start = time.monotonic()
         with lock:
             active += 1
