@@ -494,8 +494,10 @@ class RedisTransport(Transport):
                 ``eggai.transport.ProcessingTimeoutError`` is raised, so the entry is NACKed and retried by the
                 reclaimer like any other failure (counts towards ``max_retries``). Default None (no deadline).
                 Pairs with ``renew_lease``, where a hung handler would otherwise hold its lease forever. Requires
-                ``retry_on_idle_ms``. Sync handlers run in a worker thread and cannot be interrupted: a lost lease
-                or a missed deadline takes effect when the thread returns.
+                ``retry_on_idle_ms``. Sync handlers run in a worker thread and cannot be interrupted, so they are
+                never cancelled: a lost lease or a missed deadline takes effect when the thread returns (result
+                discarded, error raised). Past the deadline the entry stays leased until then, so its retry can't
+                overlap the thread; a sync handler that never returns keeps its lease.
             retry_on_error (bool, optional): Whether to retry handler on error (default is True).
 
             # Durability parameters

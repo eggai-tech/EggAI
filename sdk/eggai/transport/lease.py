@@ -250,21 +250,25 @@ class LeaseConfig:
 class _Invocation:
     """One handler run and the stream entries it covers (several in batch mode)."""
 
-    __slots__ = ("ids", "task", "reason", "lost", "lost_ids")
+    __slots__ = ("ids", "task", "reason", "lost", "lost_ids", "interruptible")
 
-    def __init__(self, ids: Iterable[str]):
+    def __init__(self, ids: Iterable[str], interruptible: bool = True):
         self.ids: tuple[str, ...] = tuple(ids)
         self.task: asyncio.Task | None = None
-        # Why the SDK cancelled the run: "lease_lost" or "timeout".
+        # Why the SDK stopped the run: "lease_lost" or "timeout".
         self.reason: str | None = None
         self.lost = False
         # The ids that left the PEL (a subset of ids in batch mode).
         self.lost_ids: list[str] = []
+        # False for a sync handler: its worker thread can't be stopped, and
+        # cancelling the task that awaits it would only abandon the thread
+        # (the entry would be released for retry while the thread still runs).
+        self.interruptible = interruptible
 
     def cancel(self, reason: str) -> None:
         if self.reason is None:
             self.reason = reason
-        if self.task is not None and not self.task.done():
+        if self.interruptible and self.task is not None and not self.task.done():
             self.task.cancel()
 
 
@@ -287,8 +291,8 @@ class LeaseKeeper:
     def in_flight(self) -> dict[str, _Invocation]:
         return self._in_flight
 
-    def begin(self, ids: Iterable[str]) -> _Invocation:
-        inv = _Invocation(ids)
+    def begin(self, ids: Iterable[str], interruptible: bool = True) -> _Invocation:
+        inv = _Invocation(ids, interruptible)
         for msg_id in inv.ids:
             self._in_flight[msg_id] = inv
             self._finished.discard(msg_id)
@@ -408,11 +412,15 @@ class LeaseKeeper:
             if cfg.cancel_on_lost:
                 logger.error(
                     "Lease lost for entry %s on stream %s (group %s, consumer %s): "
-                    "it was reclaimed for redelivery; cancelling the handler.",
+                    "it was reclaimed for redelivery; %s.",
                     msg_id,
                     cfg.stream,
                     cfg.group,
                     cfg.consumer,
+                    "cancelling the handler"
+                    if inv.interruptible
+                    else "the sync handler's thread can't be interrupted and may "
+                    "overlap the redelivery; its result will be discarded",
                 )
                 inv.cancel("lease_lost")
             else:
@@ -598,9 +606,11 @@ def wrap_handler_with_lease(
     ``message_ids`` returns the stream ids of the message being handled (from
     FastStream's context); without them the handler runs unleased (logged).
 
-    Sync handlers run in a worker thread, which cannot be interrupted: a lost
-    lease or a missed deadline takes effect when the thread returns (its result
-    is discarded and the error raised).
+    Sync handlers run in a worker thread, which cannot be interrupted, so they
+    are never cancelled: a lost lease or a missed deadline takes effect when the
+    thread returns (its result is discarded and the error raised). Past the
+    deadline the entry stays leased until then, so its retry cannot overlap the
+    thread; a sync handler that never returns therefore keeps its lease.
     """
     is_async = is_async_callable(handler)
     deadline_s = max_processing_ms / 1000 if max_processing_ms is not None else None
@@ -636,28 +646,39 @@ def wrap_handler_with_lease(
     async def leased_handler(*args, **kwargs):
         ids = _read_ids()
         lease = keeper if ids else None
-        inv = lease.begin(ids) if lease is not None else _Invocation(ids)
+        inv = (
+            lease.begin(ids, interruptible=is_async)
+            if lease is not None
+            else _Invocation(ids, interruptible=is_async)
+        )
         try:
             if inv.lost and lease is not None and lease.config.cancel_on_lost:
                 raise LeaseLostError(stream, group, inv.ids, inv.lost_ids or None)
+            # Nothing awaits between begin() and here, so the keeper can't have
+            # stopped the run yet; honour it anyway should that ever change.
+            if inv.reason is not None:
+                raise _error(inv)
             task = asyncio.create_task(call_handler(handler, is_async, *args, **kwargs))
             inv.task = task
-            # Nothing awaits between begin() and here, so the keeper can't have
-            # cancelled the run yet; honour it anyway should that ever change.
-            if inv.reason is not None:
-                task.cancel()
             try:
                 done, _ = await asyncio.wait({task}, timeout=deadline_s)
                 if not done:
                     logger.error(
                         "Handler on %s (group %s) exceeded max_processing_ms=%s "
-                        "for %s; cancelling it, the entry is left for retry.",
+                        "for %s; %s, the entry is left for retry.",
                         stream,
                         group,
                         max_processing_ms,
                         ", ".join(inv.ids) or "?",
+                        "cancelling it"
+                        if is_async
+                        else "it runs in a worker thread that can't be "
+                        "interrupted: waiting for it to return (the lease is "
+                        "kept until then)",
                     )
                     inv.cancel("timeout")
+                    # A sync handler's thread keeps running: wait for it, still
+                    # leased, so its retry can't overlap it.
                     await asyncio.wait({task})
             except asyncio.CancelledError:
                 # asyncio.wait never raises the child's cancellation, so this is
@@ -679,9 +700,10 @@ def wrap_handler_with_lease(
                     raise _error(inv) from exc
                 raise
             if inv.reason is not None:
-                # The handler swallowed the cancellation (or a sync handler's
-                # thread returned late); the entry is still not ours (lost) or
-                # overdue (timeout), so don't let it be acked.
+                # The handler swallowed the cancellation, or a sync handler's
+                # thread returned after the lease was lost / the deadline
+                # passed: the entry is not ours (lost) or overdue (timeout), so
+                # discard the result and don't let it be acked.
                 raise _error(inv)
             return result
         finally:
