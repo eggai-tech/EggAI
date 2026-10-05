@@ -9,32 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Redis `subscribe(..., renew_lease=True)`: in-flight lease renewal for
-  handlers that run longer than `retry_on_idle_ms`. Redis only resets a PEL
-  entry's idle time on (re)delivery, so such a handler was reclaimed and
-  redelivered while still running (duplicate parallel processing). While a
-  handler runs, its entry is renewed every `renew_lease_interval_ms`
-  (default `retry_on_idle_ms // 3`, must be smaller) with an ownership-checked
-  `XCLAIM ... 0 <id> JUSTID` in one Lua script: same owner, same delivery
-  count, idle time reset. Covers the main and the `.retry` stream, batch
-  handlers, and entries read into the PEL but still queued in the process
-  (`max_records` > 1, `max_workers` > 1); `renew_lease` defaults
-  `max_records` to 1. A crashed consumer stops renewing, so its entries are
-  still reclaimed after `retry_on_idle_ms`. When a renewal finds the entry
-  gone from this consumer's PEL, the handler is cancelled and
-  `eggai.transport.LeaseLostError` raised (`cancel_on_lease_lost=False` logs
-  and lets it finish; in batch mode the whole batch, with `lost_ids` naming
-  the lost entries); an entry still owned but trimmed from the stream is
-  not redelivered by anyone, so its handler finishes. Renewals run at a fixed
-  rate (also for subscriptions added after `connect()`), each call bounded by
-  half the interval; failures are logged with stream / group / ids and never
-  stop the consumer. Requires `retry_on_idle_ms`; rejected with `no_ack=True`
-  and `AckPolicy.MANUAL`. Opt-in, default behaviour unchanged.
+- Redis `subscribe(..., renew_lease=True)`: in-flight lease renewal. Redis
+  resets a PEL entry's idle time only on delivery, so a handler running longer
+  than `retry_on_idle_ms` was reclaimed and redelivered while still running.
+  - Every `renew_lease_interval_ms` (default `retry_on_idle_ms // 3`) a Lua
+    script renews this consumer's in-flight entries with `XCLAIM ... 0 <id>
+    JUSTID` (owner and delivery count unchanged) on the main and `.retry`
+    stream, including prefetched ones; a crashed worker's entries are still
+    reclaimed. `renew_lease` defaults `max_records` to 1.
+  - An entry reclaimed anyway cancels its handler with
+    `eggai.transport.LeaseLostError` (`cancel_on_lease_lost=False` lets it
+    finish); sync handlers are never interrupted, the error is raised when
+    their thread returns.
+  - Requires `retry_on_idle_ms` and Lua scripting; rejected with `no_ack=True`
+    and `AckPolicy.MANUAL`. Opt-in, default behaviour unchanged.
 - Redis `subscribe(..., max_processing_ms=...)`: handler deadline. A handler
-  still running after it is cancelled, `eggai.transport.ProcessingTimeoutError`
-  (a `TimeoutError`) is raised and the entry is NACKed for the normal retry.
-  Pairs with `renew_lease`, where a hung handler would otherwise keep its
-  lease forever. Requires `retry_on_idle_ms`.
+  still running at it is cancelled with `eggai.transport.ProcessingTimeoutError`
+  and its entry NACKed for the normal retry. Requires `retry_on_idle_ms`.
 
 ### Changed
 
