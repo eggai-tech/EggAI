@@ -928,6 +928,27 @@ async def test_finished_entries_no_longer_pending_are_forgotten():
 
 
 @pytest.mark.asyncio
+async def test_queued_entry_acked_during_the_round_is_not_reported_lost(caplog):
+    """An entry queued at scan time that starts, finishes and is acked while the
+    renewal script is in flight comes back 'not pending': not a lost lease."""
+    keeper = _keeper(scan_prefetched=True)
+    long_run = keeper.begin(["1-0"])
+    client = AsyncMock()
+    client.xpending_range.return_value = [{"message_id": "1-0"}, {"message_id": "2-0"}]
+
+    async def script(keys, args):
+        keeper.end(keeper.begin(["2-0"]))  # starts and is acked mid-round
+        return [1 if msg_id == "1-0" else 0 for msg_id in args[2:]]
+
+    caplog.set_level(logging.ERROR)
+    await keeper.renew_once(client, script)
+
+    assert "Lease lost" not in caplog.text
+    assert keeper._lost_queued == set()
+    keeper.end(long_run)
+
+
+@pytest.mark.asyncio
 async def test_queued_entry_lost_before_start_raises_without_running():
     keeper = _keeper(scan_prefetched=True)
     running = keeper.begin(["1-0"])
