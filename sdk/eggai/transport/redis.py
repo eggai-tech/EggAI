@@ -1141,7 +1141,7 @@ class RedisTransport(Transport):
             await client.aclose()
 
     async def _restart_stopped_subscribers(self) -> None:
-        """Restart stream subscribers FastStream stopped after a NOGROUP.
+        """Restart stream subscribers FastStream stopped (e.g. after a NOGROUP).
 
         Up to 0.7.5 FastStream's consume loop kept retrying XREADGROUP, so once
         this monitor recreated the group, consuming resumed by itself. From
@@ -1151,7 +1151,9 @@ class RedisTransport(Transport):
         group keeps the start id chosen here (id="0" on a partial loss).
         Subscribers are only started once their stop() has finished (no task
         left running), so a restart can't be cancelled by a stop still in
-        progress. No-op on FastStream versions that never stop them.
+        progress. No-op on FastStream versions that never stop them. The cause
+        of a stop is not known here, so the log says what was restarted, not
+        why it stopped.
         """
         for sub in list(self._started_subscribers.values()):
             if not self._running:
@@ -1175,9 +1177,10 @@ class RedisTransport(Transport):
                 )
             else:
                 logger.warning(
-                    "Restarted the consumer for stream %s group %s: FastStream "
-                    "stopped it after the consumer group was lost (NOGROUP); the "
-                    "group has been recreated.",
+                    "Restarted the consumer for stream %s group %s, which "
+                    "FastStream had stopped (it stops a consumer for good on "
+                    "some errors, e.g. NOGROUP from 0.7.6 on); its consumer "
+                    "group exists again.",
                     stream,
                     group,
                 )
