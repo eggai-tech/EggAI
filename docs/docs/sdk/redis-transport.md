@@ -415,3 +415,9 @@ async def recovery_handler(message):
 ## API Reference
 
 ::: eggai.transport.RedisTransport
+
+### Lease exceptions
+
+::: eggai.transport.LeaseLostError
+
+::: eggai.transport.ProcessingTimeoutError

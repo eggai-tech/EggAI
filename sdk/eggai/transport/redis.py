@@ -79,10 +79,11 @@ class _StreamGroupInfo:
 def _stream_group(sub: Any) -> tuple[str, str] | None:
     """(stream, group) of a consumer-group stream subscriber, else None."""
     stream_sub: Any = getattr(sub, "stream_sub", None)
+    name = getattr(stream_sub, "name", None)
     group = getattr(stream_sub, "group", None)
-    if stream_sub is None or not group:
+    if not name or not group:
         return None
-    return str(stream_sub.name), str(group)
+    return str(name), str(group)
 
 
 class RedisTransport(Transport):
