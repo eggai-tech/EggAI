@@ -476,8 +476,9 @@ class RedisTransport(Transport):
                 main stream and the SDK retry stream (each with its own group/consumer), and entries FastStream has
                 read into this consumer's PEL but not handed to the handler yet. Defaults ``max_records`` to 1
                 (unless you set a number, or ``batch=True``) so a busy worker doesn't hold prefetched entries an
-                idle worker could take. Requires ``retry_on_idle_ms`` and a consumer group; incompatible with ``no_ack=True``
-                and ``ack_policy=AckPolicy.MANUAL``. Needs Lua scripting (``EVALSHA``) on the server.
+                idle worker could take. Requires ``retry_on_idle_ms`` and a consumer group; incompatible with
+                ``no_ack=True`` and ``ack_policy=AckPolicy.MANUAL``. Needs Lua scripting (``EVALSHA``) on the
+                server.
             renew_lease_interval_ms (int, optional): How often leases are renewed (default
                 ``retry_on_idle_ms // 3``, so two renewals can fail before an entry becomes reclaimable). Must be
                 less than ``retry_on_idle_ms``. Each renewal round trip is bounded by half the interval; a failed
