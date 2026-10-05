@@ -8,6 +8,8 @@ localhost:6379, and unit tests of the keeper and the handler wrapper.
 import asyncio
 import functools
 import logging
+import threading
+import time
 import uuid
 from unittest.mock import AsyncMock
 
@@ -666,6 +668,58 @@ async def test_max_processing_ms_cancels_and_retries(caplog):
     assert "ProcessingTimeoutError" in caplog.text
 
 
+@pytest.mark.asyncio
+async def test_sync_handler_past_its_deadline_is_not_retried_while_running(caplog):
+    """A sync handler's thread can't be stopped: past max_processing_ms its
+    entry stays leased until the thread returns, so the retry never overlaps
+    it, and the timeout is raised only then."""
+    agent_name, channel_name, _stream, _group = _names("lease-sync-deadline")
+    transport = RedisTransport()
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+    lock = threading.Lock()
+    runs: list[tuple[int, float, float]] = []  # (retry_count, start, end)
+    active = 0
+    max_active = 0
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=IDLE_MS,
+        retry_reclaim_interval_s=RECLAIM_S,
+        renew_lease=True,
+        max_processing_ms=300,
+    )
+    def handler(message):
+        nonlocal active, max_active
+        retry_count = int(message.get("_retry_count", 0))
+        start = time.monotonic()
+        with lock:
+            active += 1
+            max_active = max(max_active, active)
+        try:
+            if retry_count == 0:
+                time.sleep(2.0)  # 4x retry_on_idle_ms, well past the deadline
+        finally:
+            with lock:
+                active -= 1
+            runs.append((retry_count, start, time.monotonic()))
+
+    caplog.set_level(logging.ERROR)
+    await agent.start()
+    try:
+        await channel.publish({"type": "t"})
+        await _wait_for(lambda: _true(len(runs) >= 2), timeout=10.0)
+    finally:
+        await agent.stop()
+
+    first, retry = runs[0], runs[1]
+    assert (first[0], retry[0]) == (0, 1)
+    assert max_active == 1
+    assert retry[1] >= first[2]  # the retry started after the thread returned
+    assert "ProcessingTimeoutError" in caplog.text
+    assert "can't be interrupted" in caplog.text
+
+
 # --------------------------------------------------------------------------
 # Lifecycle
 # --------------------------------------------------------------------------
@@ -954,6 +1008,46 @@ async def test_deadline_raises_processing_timeout_error():
         await wrapped({})
     assert exc.value.max_processing_ms == 50
     assert isinstance(exc.value, TimeoutError)
+
+
+@pytest.mark.parametrize("reason", ["timeout", "lease_lost"])
+@pytest.mark.asyncio
+async def test_sync_handler_is_never_abandoned(reason):
+    """A sync handler past its deadline (or with a lost lease) is waited for,
+    not abandoned: past the deadline it is still renewed until its thread
+    returns, and the error is raised only then, with the result discarded."""
+    keeper = _keeper()
+    returned = threading.Event()
+    renewed_after_return: list[bool] = []
+
+    def handler(message):
+        time.sleep(0.5)
+        returned.set()
+        return "late result"
+
+    async def script(keys, args):
+        renewed_after_return.append(returned.is_set())
+        return [0 if reason == "lease_lost" else 1] * (len(args) - 2)
+
+    wrapped = wrap_handler_with_lease(
+        handler,
+        stream="s",
+        group="g",
+        keeper=keeper,
+        message_ids=lambda: ["7-0"],
+        max_processing_ms=100 if reason == "timeout" else None,
+    )
+    run = asyncio.create_task(wrapped({}))
+    await asyncio.sleep(0.2)  # past the deadline; the thread is still running
+    await keeper.renew_once(object(), script)
+    assert not run.done()  # not abandoned
+    expected = ProcessingTimeoutError if reason == "timeout" else LeaseLostError
+    with pytest.raises(expected):
+        await run
+    assert returned.is_set()  # raised only after the thread returned
+    if reason == "timeout":
+        assert renewed_after_return == [False]  # still renewed past the deadline
+    assert not keeper.in_flight
 
 
 # --------------------------------------------------------------------------
@@ -1417,8 +1511,8 @@ async def test_run_cancelled_before_its_task_exists_never_starts(monkeypatch):
     keeper = _keeper()
     real_begin = keeper.begin
 
-    def begin_then_lose(ids):
-        inv = real_begin(ids)
+    def begin_then_lose(ids, **kwargs):
+        inv = real_begin(ids, **kwargs)
         inv.lost_ids.append("7-0")
         inv.cancel("lease_lost")  # task not attached yet: only the reason is set
         return inv
