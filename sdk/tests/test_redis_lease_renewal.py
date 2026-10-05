@@ -1114,6 +1114,35 @@ def test_default_interval_is_a_third_of_retry_on_idle_ms():
     assert resolve_lease_options({}, 900).renew_lease is False
 
 
+def test_default_interval_must_fit_below_a_tiny_retry_on_idle_ms():
+    assert resolve_lease_options({"renew_lease": True}, 2).interval_ms == 1
+    with pytest.raises(ValueError, match="retry_on_idle_ms >= 2"):
+        resolve_lease_options({"renew_lease": True}, 1)
+
+
+def test_in_flight_is_read_only():
+    keeper = _keeper()
+    inv = keeper.begin(["1-0"])
+    with pytest.raises(TypeError):
+        keeper.in_flight["2-0"] = inv  # type: ignore[index]
+    assert list(keeper.in_flight) == ["1-0"]
+    keeper.end(inv)
+
+
+def test_stream_group_of_a_subscriber_without_a_stream_name():
+    from types import SimpleNamespace
+
+    from eggai.transport.redis import _stream_group
+
+    def sub(**stream_sub):
+        return SimpleNamespace(stream_sub=SimpleNamespace(**stream_sub))
+
+    assert _stream_group(sub(name="s", group="g")) == ("s", "g")
+    assert _stream_group(sub(group="g")) is None
+    assert _stream_group(sub(name="s", group=None)) is None
+    assert _stream_group(SimpleNamespace()) is None
+
+
 @pytest.mark.parametrize(
     ("options", "match"),
     [

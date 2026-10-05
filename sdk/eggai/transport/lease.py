@@ -29,6 +29,7 @@ import functools
 import logging
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -198,6 +199,13 @@ def resolve_lease_options(
             )
         if interval_ms is None:
             interval_ms = max(1, retry_on_idle_ms // 3)
+            if interval_ms >= retry_on_idle_ms:
+                # Only for retry_on_idle_ms < 2: no renewal interval fits.
+                raise ValueError(
+                    "renew_lease requires retry_on_idle_ms >= 2: leases are "
+                    "renewed every renew_lease_interval_ms (a positive int "
+                    "< retry_on_idle_ms)."
+                )
         elif not _is_positive_int(interval_ms):
             raise ValueError("renew_lease_interval_ms must be a positive int")
         elif interval_ms >= retry_on_idle_ms:
@@ -296,8 +304,9 @@ class LeaseKeeper:
         self._begun_this_round: set[str] | None = None
 
     @property
-    def in_flight(self) -> dict[str, _Invocation]:
-        return self._in_flight
+    def in_flight(self) -> Mapping[str, _Invocation]:
+        """Read-only view of the runs in flight, by stream id."""
+        return MappingProxyType(self._in_flight)
 
     def begin(self, ids: Iterable[str], interruptible: bool = True) -> _Invocation:
         inv = _Invocation(ids, interruptible)
