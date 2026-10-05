@@ -903,6 +903,31 @@ async def test_finished_failures_are_not_renewed_by_the_prefetch_scan():
 
 
 @pytest.mark.asyncio
+async def test_finished_entries_no_longer_pending_are_forgotten():
+    """Beside a long run, every finished id would be kept until it ends: the
+    scan drops the ones that are no longer pending (acked), keeps the NACKed
+    ones, and keeps ids that finished while the scan was running."""
+    keeper = _keeper(scan_prefetched=True)
+    long_run = keeper.begin(["1-0"])
+    for i in range(2, 502):  # 500 short runs finish beside it
+        keeper.end(keeper.begin([f"{i}-0"]))
+    assert len(keeper._finished) == 500
+
+    async def xpending_range(*_args, **_kwargs):
+        # Finishes while this scan is in flight; the scan may miss it.
+        keeper.end(keeper.begin(["600-0"]))
+        return [{"message_id": "1-0"}, {"message_id": "7-0"}]  # 7-0 NACKed
+
+    client = AsyncMock()
+    client.xpending_range.side_effect = xpending_range
+
+    await keeper.renew_once(client, AsyncMock(return_value=[1]))
+
+    assert keeper._finished == {"7-0", "600-0"}
+    keeper.end(long_run)
+
+
+@pytest.mark.asyncio
 async def test_queued_entry_lost_before_start_raises_without_running():
     keeper = _keeper(scan_prefetched=True)
     running = keeper.begin(["1-0"])
