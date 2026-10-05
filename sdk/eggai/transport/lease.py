@@ -287,6 +287,10 @@ class LeaseKeeper:
         self._lost_queued: set[str] = set()
         # Entries trimmed from the stream while in flight: no longer renewed.
         self._trimmed: set[str] = set()
+        # Ids whose run began while a renewal round is in progress (None
+        # between rounds): a queued entry that started, and was acked, during
+        # the round trip is not a lost one.
+        self._begun_this_round: set[str] | None = None
 
     @property
     def in_flight(self) -> dict[str, _Invocation]:
@@ -294,6 +298,8 @@ class LeaseKeeper:
 
     def begin(self, ids: Iterable[str], interruptible: bool = True) -> _Invocation:
         inv = _Invocation(ids, interruptible)
+        if self._begun_this_round is not None:
+            self._begun_this_round.update(inv.ids)
         for msg_id in inv.ids:
             self._in_flight[msg_id] = inv
             self._finished.discard(msg_id)
@@ -331,50 +337,55 @@ class LeaseKeeper:
             for msg_id, inv in self._in_flight.items()
             if not inv.lost and msg_id not in self._trimmed
         }
-        queued: set[str] = set()
-        if cfg.scan_prefetched:
-            finished_before = set(self._finished)
-            pending: set[str] = set()
-            cursor = low
-            while True:
-                page = await asyncio.wait_for(
-                    client.xpending_range(
-                        cfg.stream,
-                        cfg.group,
-                        min=cursor,
-                        max="+",
-                        count=_SCAN_PAGE,
-                        consumername=cfg.consumer,
-                    ),
+        self._begun_this_round = set()
+        try:
+            queued: set[str] = set()
+            if cfg.scan_prefetched:
+                finished_before = set(self._finished)
+                pending: set[str] = set()
+                cursor = low
+                while True:
+                    page = await asyncio.wait_for(
+                        client.xpending_range(
+                            cfg.stream,
+                            cfg.group,
+                            min=cursor,
+                            max="+",
+                            count=_SCAN_PAGE,
+                            consumername=cfg.consumer,
+                        ),
+                        cfg.timeout_s,
+                    )
+                    for entry in page:
+                        msg_id = _text(entry["message_id"])
+                        pending.add(msg_id)
+                        if (
+                            msg_id not in self._in_flight
+                            and msg_id not in self._finished
+                            and msg_id not in self._lost_queued
+                        ):
+                            queued.add(msg_id)
+                    if len(page) < _SCAN_PAGE:
+                        break
+                    cursor = "(" + _text(page[-1]["message_id"])
+                # A finished entry the scan didn't find was acked (or reclaimed)
+                # and can't become pending for this consumer again: forget it,
+                # or a long run would keep every id finished beside it. Ids that
+                # finished while the scan was running may have been missed by
+                # it: kept.
+                self._finished -= finished_before - pending
+            candidates = sorted(in_flight_now | queued, key=_id_key)
+            for start in range(0, len(candidates), _CHUNK):
+                chunk = candidates[start : start + _CHUNK]
+                statuses = await asyncio.wait_for(
+                    script(keys=[cfg.stream], args=[cfg.group, cfg.consumer, *chunk]),
                     cfg.timeout_s,
                 )
-                for entry in page:
-                    msg_id = _text(entry["message_id"])
-                    pending.add(msg_id)
-                    if (
-                        msg_id not in self._in_flight
-                        and msg_id not in self._finished
-                        and msg_id not in self._lost_queued
-                    ):
-                        queued.add(msg_id)
-                if len(page) < _SCAN_PAGE:
-                    break
-                cursor = "(" + _text(page[-1]["message_id"])
-            # A finished entry the scan didn't find was acked (or reclaimed) and
-            # can't become pending for this consumer again: forget it, or a long
-            # run would keep every id finished beside it. Ids that finished
-            # while the scan was running may have been missed by it: kept.
-            self._finished -= finished_before - pending
-        candidates = sorted(in_flight_now | queued, key=_id_key)
-        for start in range(0, len(candidates), _CHUNK):
-            chunk = candidates[start : start + _CHUNK]
-            statuses = await asyncio.wait_for(
-                script(keys=[cfg.stream], args=[cfg.group, cfg.consumer, *chunk]),
-                cfg.timeout_s,
-            )
-            for msg_id, status in zip(chunk, statuses, strict=True):
-                self._apply(msg_id, int(status), msg_id in queued)
-        self._prune()
+                for msg_id, status in zip(chunk, statuses, strict=True):
+                    self._apply(msg_id, int(status), msg_id in queued)
+            self._prune()
+        finally:
+            self._begun_this_round = None
 
     def _prune(self) -> None:
         """Forget finished / lost-queued ids older than the oldest run in flight
@@ -443,6 +454,10 @@ class LeaseKeeper:
                     cfg.consumer,
                 )
         elif was_queued:
+            if self._begun_this_round and msg_id in self._begun_this_round:
+                # Queued at scan time, then started (and acked) during the
+                # round trip: its own ack is why it left the PEL.
+                return
             # Prefetched, handler not started yet: fail it when it starts.
             self._lost_queued.add(msg_id)
             logger.error(
