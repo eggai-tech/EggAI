@@ -280,7 +280,8 @@ class LeaseKeeper:
         self._in_flight: dict[str, _Invocation] = {}
         # Entries whose handler already finished in this process but may still be
         # in the PEL (a failure, NACKed for retry). Never renewed: the reclaimer
-        # must see them go idle. Only needed while other runs are in flight.
+        # must see them go idle. Only needed while other runs are in flight;
+        # the prefetch scan drops the ones no longer pending.
         self._finished: set[str] = set()
         # Prefetched entries found lost before their handler started.
         self._lost_queued: set[str] = set()
@@ -332,6 +333,8 @@ class LeaseKeeper:
         }
         queued: set[str] = set()
         if cfg.scan_prefetched:
+            finished_before = set(self._finished)
+            pending: set[str] = set()
             cursor = low
             while True:
                 page = await asyncio.wait_for(
@@ -347,6 +350,7 @@ class LeaseKeeper:
                 )
                 for entry in page:
                     msg_id = _text(entry["message_id"])
+                    pending.add(msg_id)
                     if (
                         msg_id not in self._in_flight
                         and msg_id not in self._finished
@@ -356,6 +360,11 @@ class LeaseKeeper:
                 if len(page) < _SCAN_PAGE:
                     break
                 cursor = "(" + _text(page[-1]["message_id"])
+            # A finished entry the scan didn't find was acked (or reclaimed) and
+            # can't become pending for this consumer again: forget it, or a long
+            # run would keep every id finished beside it. Ids that finished
+            # while the scan was running may have been missed by it: kept.
+            self._finished -= finished_before - pending
         candidates = sorted(in_flight_now | queued, key=_id_key)
         for start in range(0, len(candidates), _CHUNK):
             chunk = candidates[start : start + _CHUNK]
