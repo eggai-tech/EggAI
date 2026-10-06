@@ -433,9 +433,7 @@ async def test_reclaimer_ack_respects_runtime_disabled_streams():
     )
 
     disabled: set[str] = set()
-    manager = PendingReclaimerManager(
-        "redis://localhost:6379", delete_on_ack_disabled=disabled
-    )
+    manager = PendingReclaimerManager(delete_on_ack_disabled=disabled)
     client = MagicMock()
     client.xack = AsyncMock()
     manager._redis_client = client
