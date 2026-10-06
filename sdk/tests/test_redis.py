@@ -898,7 +898,7 @@ async def test_reclaimer_manager_start_stop_cycles():
         ReclaimerConfig,
     )
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     assert manager._redis_client is None
 
     manager.add(
@@ -930,7 +930,7 @@ async def test_reclaimer_manager_stop_without_start():
     """Calling stop() before start() must not raise."""
     from eggai.transport.pending_reclaimer import PendingReclaimerManager
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     await manager.stop()  # should not raise
 
 
@@ -1276,7 +1276,7 @@ async def test_reclaimer_nogroup_recovery():
     await redis_client.xgroup_create(stream_name, group_name, id="$", mkstream=True)
     await redis_client.delete(stream_name)
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     manager.add(
         ReclaimerConfig(
             stream=stream_name,
@@ -1560,17 +1560,19 @@ async def test_connection_kwargs_propagate_to_reclaimer():
         socket_keepalive=True,
         health_check_interval=30,
         retry_on_timeout=True,
-        # A broker/FastStream-only kwarg that must NOT leak into the reclaimer's
-        # aioredis.from_url call.
+        # A broker/FastStream-only kwarg that is not a connection kwarg and must NOT
+        # reach the background clients.
         graceful_timeout=20.0,
     )
 
-    assert transport._connection_kwargs == {
-        "socket_timeout": 10.0,
-        "socket_keepalive": True,
-        "health_check_interval": 30,
-        "retry_on_timeout": True,
-    }
+    # The broker's own connection dict is forwarded, so the resilience kwargs are
+    # present (alongside host/port/db); the FastStream-only one is not.
+    ck = transport._connection_kwargs
+    assert ck["socket_timeout"] == 10.0
+    assert ck["socket_keepalive"] is True
+    assert ck["health_check_interval"] == 30
+    assert ck["retry_on_timeout"] is True
+    assert "graceful_timeout" not in ck
 
     async def handler(message):
         return message
@@ -1580,50 +1582,15 @@ async def test_connection_kwargs_propagate_to_reclaimer():
     )
 
     assert transport._reclaimer_manager is not None
-    assert transport._reclaimer_manager._connection_kwargs == {
-        "socket_timeout": 10.0,
-        "socket_keepalive": True,
-        "health_check_interval": 30,
-        "retry_on_timeout": True,
-    }
-
-
-@pytest.mark.asyncio
-async def test_credential_provider_propagates_to_background_clients():
-    """A credential_provider passed to the transport reaches the background clients
-    (reclaimer, group monitor, delete-on-ack). When the server authenticates with a
-    rotating token (e.g. Azure Managed Redis / Entra ID) and no password is in the
-    URL, these clients would otherwise connect unauthenticated and be rejected."""
-    from redis.credentials import CredentialProvider
-
-    class _StubCredentialProvider(CredentialProvider):
-        def get_credentials(self):
-            return ("user", "token")
-
-    provider = _StubCredentialProvider()
-
-    transport = RedisTransport(credential_provider=provider)
-
-    assert transport._connection_kwargs == {"credential_provider": provider}
-
-    async def handler(message):
-        return message
-
-    await transport.subscribe(
-        "orders", handler, handler_id="orders-handler-cred", retry_on_idle_ms=500
-    )
-
-    assert transport._reclaimer_manager is not None
-    assert (
-        transport._reclaimer_manager._connection_kwargs["credential_provider"]
-        is provider
-    )
+    # The reclaimer gets the same connection dict the transport forwards.
+    assert transport._reclaimer_manager._connection_kwargs is ck
 
 
 @pytest.mark.asyncio
 async def test_reclaimer_start_applies_connection_kwargs(monkeypatch):
-    """start() forwards connection_kwargs to from_url while pinning
-    decode_responses=False (callers cannot override the binary-passthrough flag)."""
+    """start() builds its client from the forwarded connection dict — credentials, db
+    and resilience kwargs all reach it — while pinning decode_responses=False (callers
+    cannot override the binary-passthrough flag)."""
     from eggai.transport import pending_reclaimer
     from eggai.transport.pending_reclaimer import PendingReclaimerManager
 
@@ -1633,27 +1600,36 @@ async def test_reclaimer_start_applies_connection_kwargs(monkeypatch):
         async def aclose(self):
             pass
 
-    def fake_from_url(url, **kwargs):
-        captured["url"] = url
+    def fake_pool(**kwargs):
         captured["kwargs"] = kwargs
-        return _FakeClient()
+        return object()
 
-    monkeypatch.setattr(pending_reclaimer.aioredis, "from_url", fake_from_url)
+    monkeypatch.setattr(pending_reclaimer.aioredis, "ConnectionPool", fake_pool)
+    monkeypatch.setattr(
+        pending_reclaimer.aioredis.Redis,
+        "from_pool",
+        staticmethod(lambda pool: _FakeClient()),
+    )
 
+    provider = object()
     manager = PendingReclaimerManager(
-        "redis://localhost:6379",
         connection_kwargs={
+            "host": "db.example",
+            "port": 6380,
+            "db": 3,
+            "password": "s3cret",
+            "credential_provider": provider,
             "socket_timeout": 10.0,
-            "socket_keepalive": True,
             # Even if a caller sneaks decode_responses in, it must stay False.
             "decode_responses": True,
         },
     )
     await manager.start()
 
-    assert captured["url"] == "redis://localhost:6379"
+    assert captured["kwargs"]["db"] == 3
+    assert captured["kwargs"]["password"] == "s3cret"
+    assert captured["kwargs"]["credential_provider"] is provider
     assert captured["kwargs"]["socket_timeout"] == 10.0
-    assert captured["kwargs"]["socket_keepalive"] is True
     assert captured["kwargs"]["decode_responses"] is False
 
     await manager.stop()
@@ -1661,15 +1637,17 @@ async def test_reclaimer_start_applies_connection_kwargs(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_monitor_applies_connection_kwargs(monkeypatch):
-    """The group monitor's background client gets the transport's resilience
-    kwargs while pinning decode_responses=True (its string commands need decoding,
-    and that flag must not be overridable)."""
+    """The group monitor's background client dials the same server as the broker — db,
+    password and credential_provider all reach it — while pinning decode_responses=True
+    (its string commands need decoding, and that flag must not be overridable)."""
     from eggai.transport import redis as redis_module
 
+    provider = object()
     transport = RedisTransport(
+        url="redis://localhost:6379/3",
+        password="s3cret",
+        credential_provider=provider,
         socket_timeout=10.0,
-        socket_keepalive=True,
-        health_check_interval=30,
     )
 
     captured: dict = {}
@@ -1678,22 +1656,47 @@ async def test_monitor_applies_connection_kwargs(monkeypatch):
         async def aclose(self):
             pass
 
-    def fake_from_url(url, **kwargs):
-        captured["url"] = url
+    def fake_pool(**kwargs):
         captured["kwargs"] = kwargs
-        return _FakeClient()
+        return object()
 
-    monkeypatch.setattr(redis_module.aioredis, "from_url", fake_from_url)
+    monkeypatch.setattr(redis_module.aioredis, "ConnectionPool", fake_pool)
+    monkeypatch.setattr(
+        redis_module.aioredis.Redis,
+        "from_pool",
+        staticmethod(lambda pool: _FakeClient()),
+    )
 
     # _running stays False, so the monitor creates its client, skips the loop body,
-    # and closes the client via the finally block — enough to capture from_url.
+    # and closes the client via the finally block — enough to capture the pool kwargs.
     await transport._monitor_stream_groups()
 
-    assert captured["url"] == transport._redis_url
+    assert captured["kwargs"]["db"] == 3
+    assert captured["kwargs"]["password"] == "s3cret"
+    assert captured["kwargs"]["credential_provider"] is provider
     assert captured["kwargs"]["socket_timeout"] == 10.0
-    assert captured["kwargs"]["socket_keepalive"] is True
-    assert captured["kwargs"]["health_check_interval"] == 30
     assert captured["kwargs"]["decode_responses"] is True
+
+
+def test_prebuilt_broker_forwards_its_connection_settings():
+    """With an explicit broker=, the background clients take their settings from the
+    broker's own connection dict, so they dial its server/db/credentials rather than a
+    default localhost. This is the case the old kwargs whitelist could not cover."""
+    from faststream.redis import RedisBroker
+
+    provider = object()
+    broker = RedisBroker(
+        "rediss://redis.example:10000/4",
+        password="s3cret",
+        credential_provider=provider,
+    )
+    transport = RedisTransport(broker=broker)
+
+    ck = transport._connection_kwargs
+    assert ck["host"] == "redis.example"
+    assert ck["db"] == 4
+    assert ck["password"] == "s3cret"
+    assert ck["credential_provider"] is provider
 
 
 @pytest.mark.asyncio
@@ -1919,7 +1922,7 @@ async def test_effective_idle_ms_escalates_and_caps():
     """_effective_idle_ms grows geometrically with retry count and respects the cap."""
     from eggai.transport.pending_reclaimer import PendingReclaimerManager
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     config = _make_backoff_config(
         "s", "s.retry", backoff_multiplier=2.0, backoff_max_ms=5000
     )
@@ -1943,7 +1946,7 @@ async def test_effective_idle_ms_huge_retry_count_does_not_overflow():
     """
     from eggai.transport.pending_reclaimer import PendingReclaimerManager
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
 
     # 2.0 ** 5000 overflows the max float (~1.8e308) several times over.
     capped = _make_backoff_config(
@@ -1966,7 +1969,7 @@ async def test_effective_idle_ms_constant_when_multiplier_one():
     """multiplier=1.0 reproduces the original constant cadence at every count."""
     from eggai.transport.pending_reclaimer import PendingReclaimerManager
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     config = _make_backoff_config("s", "s.retry")  # multiplier defaults to 1.0
     for count in range(5):
         assert manager._effective_idle_ms(config, count) == 1000
@@ -1984,7 +1987,7 @@ async def test_effective_idle_ms_jitter_spreads_upward_above_base():
     """
     from eggai.transport.pending_reclaimer import PendingReclaimerManager
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     config = _make_backoff_config("s", "s.retry", backoff_jitter=0.5)  # multiplier 1.0
     samples = [manager._effective_idle_ms(config, 0) for _ in range(200)]
     # Upward only: never below the base floor (1000), never above base*(1+jitter).
@@ -2002,7 +2005,7 @@ async def test_effective_idle_ms_jitter_stays_under_cap():
     """Jitter is applied before the cap, so backoff_max_ms remains a hard ceiling."""
     from eggai.transport.pending_reclaimer import PendingReclaimerManager
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     # base*mult^count = 1000*2**3 = 8000; jitter would push to 12000, but the cap
     # pins it at 5000 regardless.
     config = _make_backoff_config(
@@ -2106,7 +2109,7 @@ async def test_backoff_skips_high_retry_count_message_not_yet_due():
     envelope = await _make_envelope({"type": "t", "_retry_count": "3", "id": test_id})
     await _deliver_to_pel(client, stream, group, f"{group}-live", envelope)
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     manager._redis_client = redis.Redis(
         host="localhost", port=6379, decode_responses=False
     )
@@ -2147,7 +2150,7 @@ async def test_backoff_reclaims_message_once_threshold_elapsed():
     envelope = await _make_envelope({"type": "t", "_retry_count": "0", "id": test_id})
     await _deliver_to_pel(client, stream, group, f"{group}-live", envelope)
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     manager._redis_client = redis.Redis(
         host="localhost", port=6379, decode_responses=False
     )
@@ -2189,7 +2192,7 @@ async def test_reclaimer_stop_completes_when_cancellation_is_swallowed(monkeypat
         ReclaimerConfig,
     )
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     manager.add(
         ReclaimerConfig(
             stream="eggai.swallow",

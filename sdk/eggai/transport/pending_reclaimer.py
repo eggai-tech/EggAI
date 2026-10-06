@@ -289,23 +289,21 @@ class PendingReclaimerManager:
 
     def __init__(
         self,
-        redis_url: str,
         connection_kwargs: dict[str, Any] | None = None,
         delete_on_ack_disabled: set[str] | None = None,
     ):
-        self._redis_url = redis_url
         # Stream keys where delete_on_ack was turned off at runtime (another
         # consumer group appeared). Shared with, and mutated by, the transport's
         # group monitor; _ack() falls back to a plain XACK for these.
         self._delete_on_ack_disabled: set[str] = (
             delete_on_ack_disabled if delete_on_ack_disabled is not None else set()
         )
-        # Connection-resilience settings (socket_timeout, socket_keepalive,
-        # health_check_interval, retry_on_timeout, …) forwarded from the
-        # transport so this independent client recovers from a silently dropped
-        # connection the same way the broker does. Without them a blocking read
-        # against a half-dead socket (e.g. cloud Redis failover) hangs forever
-        # with no socket timeout to break it.
+        # The broker's own connection dict (host/port/db/username/password/ssl/
+        # credential_provider plus resilience kwargs), forwarded from the transport so
+        # this independent client reaches the same server and database and authenticates
+        # the same way the broker does — and recovers from a silently dropped connection
+        # (without a socket timeout a blocking read against a half-dead socket, e.g. a
+        # cloud Redis failover, would hang forever).
         self._connection_kwargs: dict[str, Any] = connection_kwargs or {}
         self._redis_client: aioredis.Redis | None = None
         self._configs: dict[tuple[str, str, str], ReclaimerConfig] = {}
@@ -336,10 +334,15 @@ class PendingReclaimerManager:
         # decode_responses=False: field values are kept as raw bytes so that
         # FastStream's binary-encoded __data__ field is passed through unchanged.
         # decode_responses is pinned here and must not be overridden by callers.
-        self._redis_client = aioredis.from_url(
-            self._redis_url,
-            **{**self._connection_kwargs, "decode_responses": False},
-        )
+        # Guarded so a second connect() on a shared transport reuses the client rather
+        # than leaking the previous one (the client is closed only in stop()). A
+        # ConnectionPool is used (not Redis(**kwargs)) because the broker's dict can
+        # carry connection_class/path for rediss:// and unix://.
+        if self._redis_client is None:
+            pool = aioredis.ConnectionPool(
+                **{**self._connection_kwargs, "decode_responses": False}
+            )
+            self._redis_client = aioredis.Redis.from_pool(pool)
         self._running = True
         for key, config in self._configs.items():
             if key in self._tasks and not self._tasks[key].done():

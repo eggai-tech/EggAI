@@ -7,16 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Fixed
 
-- `RedisTransport` now forwards `credential_provider` to its background clients
-  (the PEL reclaimer, the group monitor, and the delete-on-ack client), not just
-  to the broker. This lets every connection authenticate from the same source
-  when the server requires a credential provider rather than a password in the
-  URL — an ACL user, or a rotating token such as Azure Managed Redis / Microsoft
-  Entra ID. Previously the background clients connected unauthenticated and the
-  server rejected them (`AuthenticationError: HELLO must be called with the
-  client already authenticated`) even while the broker was connected fine.
+- `RedisTransport` now dials its background clients (the PEL reclaimer, the group
+  monitor, and the delete-on-ack client) with the broker's own connection settings,
+  instead of a hand-maintained whitelist of forwarded kwargs. The whitelist silently
+  dropped everything outside it, so against a server that needs authentication the
+  background clients connected unauthenticated and were rejected
+  (`AuthenticationError: HELLO must be called with the client already authenticated`)
+  even while the broker connected fine — and `db=` / `ssl=` / `client_name` diverged
+  too (e.g. the reclaimer scanned db 0 while the broker ran on db 3). Now `username`,
+  `password`, `db`, `ssl`, `credential_provider` (ACL users and rotating tokens such
+  as Azure Managed Redis / Microsoft Entra ID) and the resilience kwargs all match the
+  broker, including when a pre-built `broker=` is supplied.
+  Requires **faststream >= 0.7** — on 0.6.0 `RedisBroker(url, credential_provider=…)`
+  (and `password=`) raises `TypeError`.
+- The group monitor no longer dies on a transient connection or auth failure
+  (`AuthenticationError` is a `ConnectionError`, not a `ResponseError`, so it escaped
+  the loop's handler): a failed cycle is logged and retried next interval, by when
+  redis-py has reconnected and the credential provider has re-authenticated. A dying
+  monitor previously left `disconnect()` re-raising and skipping reclaimer/broker/
+  delete-client shutdown.
+- The PEL reclaimer no longer leaks a Redis client on each `connect()`: a second
+  `connect()` on a shared transport reuses the existing client instead of replacing
+  it without closing the old one.
 
 ## [0.6.0] - 2026-09-25
 

@@ -31,38 +31,6 @@ logger = logging.getLogger(__name__)
 # the stream and own their own PEL entries — the competing-consumers pattern.
 _CONSUMER_INSTANCE = f"{socket.gethostname()}-{os.getpid()}"
 
-# Connection settings that, when passed to the broker, must also be forwarded to
-# the transport's other long-lived background clients — the PEL reclaimer and the
-# consumer-group monitor — so every connection recovers from a silently dropped
-# socket the same way. Kept to redis-py connection/resilience kwargs that are valid
-# for ``aioredis.from_url`` — broker/FastStream-only kwargs (decoder, middlewares,
-# asyncapi_*, …) are intentionally excluded. ``decode_responses`` is omitted on
-# purpose: each background client pins it itself (False for the reclaimer's binary
-# passthrough, True for the monitor's string commands).
-#
-# ``credential_provider`` is forwarded for the same reason: when the server requires
-# authentication (ACL, or a rotating token such as Azure Managed Redis / Entra ID),
-# the background clients authenticate against the same server as the broker, so they
-# need the same credential source. Without it they connect unauthenticated and the
-# server rejects them (``AuthenticationError: HELLO must be called with the client
-# already authenticated``) even while the broker is connected fine.
-_BACKGROUND_CLIENT_CONNECTION_KEYS = (
-    "socket_timeout",
-    "socket_connect_timeout",
-    "socket_keepalive",
-    "socket_keepalive_options",
-    "health_check_interval",
-    "retry_on_timeout",
-    "retry_on_error",
-    "max_connections",
-    "ssl_keyfile",
-    "ssl_certfile",
-    "ssl_cert_reqs",
-    "ssl_ca_certs",
-    "ssl_check_hostname",
-    "credential_provider",
-)
-
 
 @dataclass(frozen=True)
 class _StreamGroupInfo:
@@ -181,13 +149,14 @@ class RedisTransport(Transport):
             self.broker = broker
         else:
             self.broker = RedisBroker(url, log_level=logging.INFO, **kwargs)
-        self._redis_url = url
-        # Forward connection-resilience kwargs to the transport's background clients
-        # (PEL reclaimer, group monitor) so they don't hang on a silently dropped
-        # connection while the broker recovers.
-        self._connection_kwargs: dict[str, Any] = {
-            k: kwargs[k] for k in _BACKGROUND_CLIENT_CONNECTION_KEYS if k in kwargs
-        }
+        # The exact connection settings the broker dials with (host/port/db/username/
+        # password/ssl/credential_provider/resilience kwargs), read from the broker so
+        # the transport's own long-lived clients — the PEL reclaimer, the group monitor,
+        # and the delete-on-ack client — reach the same server and database and
+        # authenticate the same way. Taking the broker's dict (instead of re-deriving a
+        # whitelist from kwargs) also covers the ``broker=`` case and stops auth-only
+        # params like ``password`` and ``credential_provider`` from being silently dropped.
+        self._connection_kwargs: dict[str, Any] = dict(self.broker._connection_kwargs)
         self._max_len = max_len
         self._retry_max_len = retry_max_len
         self._dlq_max_len = dlq_max_len
@@ -210,6 +179,19 @@ class RedisTransport(Transport):
         # Stream keys where the monitor turned delete_on_ack off because another
         # group appeared; shared with the reclaimer. Plain XACK from then on.
         self._delete_on_ack_disabled: set[str] = set()
+
+    def _open_background_client(self, *, decode_responses: bool) -> aioredis.Redis:
+        """Open a long-lived background client (reclaimer / monitor / delete-on-ack)
+        that dials the same server as the broker. ``self._connection_kwargs`` is the
+        broker's own connection dict, so host/port/db/username/password/ssl/
+        credential_provider all match. A ConnectionPool (rather than ``Redis(**kwargs)``)
+        is used because the broker's dict can carry ``connection_class``/``path`` for
+        ``rediss://`` and ``unix://``, which the ``Redis`` constructor rejects.
+        ``decode_responses`` is pinned per client and must not be overridden by it."""
+        pool = aioredis.ConnectionPool(
+            **{**self._connection_kwargs, "decode_responses": decode_responses}
+        )
+        return aioredis.Redis.from_pool(pool)
 
     async def connect(self):
         """
@@ -237,9 +219,7 @@ class RedisTransport(Transport):
         # an earlier connect().
         opened_delete_client = False
         if self._delete_on_ack_groups and self._delete_client is None:
-            self._delete_client = aioredis.from_url(
-                self._redis_url, **self._connection_kwargs
-            )
+            self._delete_client = self._open_background_client(decode_responses=False)
             opened_delete_client = True
         try:
             await self._create_groups()
@@ -862,10 +842,7 @@ class RedisTransport(Transport):
         use ">" from a group that starts where the caller asked."""
         if not self._stream_subscriptions:
             return
-        client = aioredis.from_url(
-            self._redis_url,
-            **{**self._connection_kwargs, "decode_responses": True},
-        )
+        client = self._open_background_client(decode_responses=True)
         try:
             for info in list(self._stream_subscriptions):
                 try:
@@ -920,43 +897,53 @@ class RedisTransport(Transport):
         group_create_id with MKSTREAM when the stream itself is gone.
         """
         # decode_responses=True (string commands here) is pinned and must not be
-        # overridden; the forwarded resilience kwargs (socket_timeout, keepalive, …)
-        # keep this client from hanging on a half-dead socket during the very
-        # failover this monitor exists to recover from.
-        client = aioredis.from_url(
-            self._redis_url,
-            **{**self._connection_kwargs, "decode_responses": True},
-        )
+        # overridden; the broker's connection kwargs (socket_timeout, keepalive,
+        # credentials, …) keep this client authenticated and from hanging on a
+        # half-dead socket during the very failover this monitor exists to recover from.
+        client = self._open_background_client(decode_responses=True)
         try:
             while self._running:
                 await asyncio.sleep(self._group_monitor_interval_s)
-                # Iterate a snapshot: a concurrent subscribe() on a shared
-                # transport may mutate the set between awaits below.
-                for info in list(self._stream_subscriptions):
-                    try:
-                        stream_exists = await client.exists(info.stream_key)
-                        create_id = "0" if stream_exists else info.group_create_id
-                        await client.xgroup_create(
-                            name=info.stream_key,
-                            groupname=info.group,
-                            id=create_id,
-                            mkstream=True,
-                        )
-                        logger.info(
-                            "Recreated missing consumer group %s on stream %s (id=%s)",
-                            info.group,
-                            info.stream_key,
-                            create_id,
-                        )
-                    except ResponseError as e:
-                        if "BUSYGROUP" not in str(e):
-                            logger.warning(
-                                "Failed to ensure consumer group %s on %s: %s",
+                try:
+                    # Iterate a snapshot: a concurrent subscribe() on a shared
+                    # transport may mutate the set between awaits below.
+                    for info in list(self._stream_subscriptions):
+                        try:
+                            stream_exists = await client.exists(info.stream_key)
+                            create_id = "0" if stream_exists else info.group_create_id
+                            await client.xgroup_create(
+                                name=info.stream_key,
+                                groupname=info.group,
+                                id=create_id,
+                                mkstream=True,
+                            )
+                            logger.info(
+                                "Recreated missing consumer group %s on stream %s (id=%s)",
                                 info.group,
                                 info.stream_key,
-                                e,
+                                create_id,
                             )
-                await self._check_delete_on_ack_groups(client)
+                        except ResponseError as e:
+                            if "BUSYGROUP" not in str(e):
+                                logger.warning(
+                                    "Failed to ensure consumer group %s on %s: %s",
+                                    info.group,
+                                    info.stream_key,
+                                    e,
+                                )
+                    await self._check_delete_on_ack_groups(client)
+                except Exception as e:
+                    # A dropped/half-dead socket or a rotated auth token must not kill
+                    # the monitor task (AuthenticationError is a ConnectionError, not a
+                    # ResponseError, so it escapes the inner handler above). Log and
+                    # retry next interval, by when redis-py has reconnected and the
+                    # credential provider has re-authenticated. CancelledError is a
+                    # BaseException and still propagates to the outer handler.
+                    logger.warning(
+                        "Consumer-group monitor cycle failed; retrying in %.1fs: %s",
+                        self._group_monitor_interval_s,
+                        e,
+                    )
         except asyncio.CancelledError:
             pass
         finally:
@@ -1092,7 +1079,6 @@ class RedisTransport(Transport):
     ) -> tuple[str, str, str]:
         if self._reclaimer_manager is None:
             self._reclaimer_manager = PendingReclaimerManager(
-                self._redis_url,
                 connection_kwargs=self._connection_kwargs,
                 delete_on_ack_disabled=self._delete_on_ack_disabled,
             )

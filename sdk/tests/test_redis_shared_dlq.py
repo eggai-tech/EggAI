@@ -563,7 +563,7 @@ async def test_reclaimer_wraps_poison_entry_into_dlq():
     await redis_client.xreadgroup(group, "worker", {stream: ">"}, count=2)
     await asyncio.sleep(0.05)
 
-    manager = PendingReclaimerManager("redis://localhost:6379")
+    manager = PendingReclaimerManager()
     config = ReclaimerConfig(
         stream=stream,
         group=group,
