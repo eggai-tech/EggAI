@@ -325,7 +325,11 @@ class RedisTransport(Transport):
                 per-process-unique name (``{handler_id}-{hostname}-{pid}``) so each worker in the group owns
                 a distinct slice of the PEL. Pass an explicit value only if you need a stable consumer name.
             batch (bool, optional): Whether to consume messages in batches (default is False).
-            max_records (Optional[int], optional): Maximum number of records to consume in one batch (default is None).
+            max_records (Optional[int], optional): Maximum number of records to consume in one batch (default is None,
+                no limit). With ``retry_on_idle_ms`` and ``batch=False`` it defaults to 1: every entry read enters this
+                consumer's PEL at once, and an entry queued behind slow handlers would go idle past
+                ``retry_on_idle_ms`` and be re-delivered before it starts. An explicit value is kept; keep it at or
+                below what the handler gets through within ``retry_on_idle_ms``.
             group_start (str, optional): Stream id a NEW consumer group is created at: "$" (default, only entries
                 published after the group exists), "0" (the whole existing backlog) or an explicit stream id.
                 Ignored when the group already exists, a group remembers its own position. Reads always use ">".
@@ -610,6 +614,15 @@ class RedisTransport(Transport):
                 "handler fails, so the PEL-based reclaimer never sees them and "
                 "retries/DLQ never trigger. Use the default NACK_ON_ERROR."
             )
+
+        # FastStream reads max_records entries per XREADGROUP (every waiting one
+        # when None) and handles them one by one. All of them enter this
+        # consumer's PEL at read time, so the ones queued behind a slow handler
+        # go idle past retry_on_idle_ms before they start, and the reclaimer
+        # re-delivers them while they are still queued here. Read one at a time.
+        # The retry subscribe below inherits it.
+        if retry_on_idle_ms is not None and not batch and max_records is None:
+            max_records = 1
 
         # Default max_retries only applies when retry_on_idle_ms is set.
         if retry_on_idle_ms is None:

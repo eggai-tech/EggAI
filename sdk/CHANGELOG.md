@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Redis `subscribe(..., retry_on_idle_ms=...)` without `max_records` read
+  every waiting entry in one `XREADGROUP` (no `COUNT`). All of them entered
+  the consumer's PEL at once and were handled one by one, so an entry queued
+  behind slow handlers went idle past `retry_on_idle_ms` before it started,
+  and the reclaimer re-delivered it: the handler ran twice, `_retry_count`
+  climbed (up to the DLQ) without a failure, a large backlog came back as one
+  reply, and other replicas got nothing to do. `max_records` now defaults to
+  1 when `retry_on_idle_ms` is set (not with `batch=True`), on the main and
+  the retry stream. An explicit `max_records` is kept. This means one
+  `XREADGROUP` per entry: setups that relied on the unbounded read for
+  throughput with small, fast messages can set `max_records` explicitly.
 - `RedisTransport` now dials its background clients (the PEL reclaimer, the group
   monitor, and the delete-on-ack client) with the broker's own connection settings,
   instead of a hand-maintained whitelist of forwarded kwargs. The whitelist silently

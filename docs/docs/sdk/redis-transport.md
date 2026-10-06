@@ -326,6 +326,7 @@ Guidelines:
 - `retry_on_idle_ms` should be comfortably longer than your handler's expected worst-case execution time to avoid false positives.
 - `retry_reclaim_interval_s` controls how often the background reclaimer wakes up. Lower values increase Redis load; 15 s is a sensible default for most workloads.
 - `max_retries` prevents poison messages from looping forever. Set to `None` for unlimited retries (no DLQ).
+- With `retry_on_idle_ms`, `max_records` defaults to 1 (unless `batch=True`). An entry's idle time starts when it is read, not when its handler starts, so a read of the whole backlog would let entries queued behind slow handlers be reclaimed and run twice. If you set `max_records` yourself, keep it at or below what the handler gets through within `retry_on_idle_ms`.
 
 ### Automatic Recovery from Redis Stream Loss (NOGROUP)
 
