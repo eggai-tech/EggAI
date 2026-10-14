@@ -36,6 +36,7 @@ current token like any new connection.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import weakref
 from typing import Any
@@ -95,8 +96,11 @@ async def _reconnect_with_new_token(pool: Any, token: Any) -> None:
     async with lock:
         for conn in in_use:
             conn.mark_for_reconnect()  # release() disconnects it, under the lock
-        for conn in idle:
-            await conn.disconnect()
+        # As redis-py's own ConnectionPool.disconnect(): one connection failing
+        # to close (e.g. a close timeout) must not leave the rest on the old token.
+        await asyncio.gather(
+            *(conn.disconnect() for conn in idle), return_exceptions=True
+        )
 
 
 # id(provider) -> (provider, its fan-out). Keyed by id, not by the provider:
