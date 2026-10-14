@@ -13,6 +13,8 @@ import redis.asyncio as aioredis
 from faststream.redis.parser.binary import BinaryMessageFormatV1
 from redis.exceptions import ResponseError
 
+from eggai.transport.redis_reauth import close_client, open_client
+
 logger = logging.getLogger(__name__)
 
 
@@ -335,14 +337,13 @@ class PendingReclaimerManager:
         # FastStream's binary-encoded __data__ field is passed through unchanged.
         # decode_responses is pinned here and must not be overridden by callers.
         # Guarded so a second connect() on a shared transport reuses the client rather
-        # than leaking the previous one (the client is closed only in stop()). A
-        # ConnectionPool is used (not Redis(**kwargs)) because the broker's dict can
-        # carry connection_class/path for rediss:// and unix://.
+        # than leaking the previous one (the client is closed only in stop()).
+        # open_client re-authenticates it when a streaming credential provider
+        # rotates the token.
         if self._redis_client is None:
-            pool = aioredis.ConnectionPool(
-                **{**self._connection_kwargs, "decode_responses": False}
+            self._redis_client = open_client(
+                self._connection_kwargs, decode_responses=False
             )
-            self._redis_client = aioredis.Redis.from_pool(pool)
         self._running = True
         for key, config in self._configs.items():
             if key in self._tasks and not self._tasks[key].done():
@@ -359,7 +360,7 @@ class PendingReclaimerManager:
         await asyncio.gather(*self._tasks.values(), return_exceptions=True)
         self._tasks.clear()
         if self._redis_client is not None:
-            await self._client.aclose()
+            await close_client(self._client)
             self._redis_client = None
 
     async def _run(self, config: ReclaimerConfig) -> None:

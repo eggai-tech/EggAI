@@ -22,6 +22,12 @@ from eggai.transport.pending_reclaimer import (
     ReclaimerConfig,
     xack_del,
 )
+from eggai.transport.redis_reauth import (
+    close_client,
+    open_client,
+    register_pool,
+    unregister_pool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -184,14 +190,19 @@ class RedisTransport(Transport):
         """Open a long-lived background client (reclaimer / monitor / delete-on-ack)
         that dials the same server as the broker. ``self._connection_kwargs`` is the
         broker's own connection dict, so host/port/db/username/password/ssl/
-        credential_provider all match. A ConnectionPool (rather than ``Redis(**kwargs)``)
-        is used because the broker's dict can carry ``connection_class``/``path`` for
-        ``rediss://`` and ``unix://``, which the ``Redis`` constructor rejects.
+        credential_provider all match, and a streaming credential provider's new
+        tokens re-authenticate its connections (see ``redis_reauth``).
         ``decode_responses`` is pinned per client and must not be overridden by it."""
-        pool = aioredis.ConnectionPool(
-            **{**self._connection_kwargs, "decode_responses": decode_responses}
+        return open_client(self._connection_kwargs, decode_responses=decode_responses)
+
+    def _broker_pool(self) -> Any:
+        """The broker client's connection pool, or None before connect().
+        FastStream builds that client with ``Redis.from_pool``, which leaves its
+        connections out of redis-py's re-auth hook, so the transport registers
+        the pool itself (see ``redis_reauth``)."""
+        return getattr(
+            getattr(self.broker, "_connection", None), "connection_pool", None
         )
-        return aioredis.Redis.from_pool(pool)
 
     async def connect(self):
         """
@@ -226,7 +237,7 @@ class RedisTransport(Transport):
         except Exception:
             # e.g. the foreign-group check refused to start: don't leak it.
             if opened_delete_client and self._delete_client is not None:
-                await self._delete_client.aclose()
+                await close_client(self._delete_client)
                 self._delete_client = None
             raise
         if not getattr(self.broker, "running", False):
@@ -236,6 +247,8 @@ class RedisTransport(Transport):
             for sub in self.broker.subscribers:
                 if not getattr(sub, "running", False):
                     await sub.start()
+        if (pool := self._broker_pool()) is not None:
+            register_pool(pool)
         if self._reclaimer_manager is not None:
             # start() is idempotent — it skips reclaimer tasks already running.
             await self._reclaimer_manager.start()
@@ -268,10 +281,12 @@ class RedisTransport(Transport):
             self._group_monitor_task = None
         if self._reclaimer_manager is not None:
             await self._reclaimer_manager.stop()
+        if (pool := self._broker_pool()) is not None:
+            unregister_pool(pool)
         await self.broker.stop()
         # After broker.stop(): handlers still finishing may need it to delete.
         if self._delete_client is not None:
-            await self._delete_client.aclose()
+            await close_client(self._delete_client)
             self._delete_client = None
 
     async def publish(self, channel: str, message: dict[str, Any] | BaseModel):
@@ -885,7 +900,7 @@ class RedisTransport(Transport):
                         "group on its '.retry' stream too)."
                     )
         finally:
-            await client.aclose()
+            await close_client(client)
 
     @staticmethod
     async def _foreign_groups(client: Any, stream_key: str, group: str) -> list[str]:
@@ -960,7 +975,7 @@ class RedisTransport(Transport):
         except asyncio.CancelledError:
             pass
         finally:
-            await client.aclose()
+            await close_client(client)
 
     async def _check_delete_on_ack_groups(self, client: Any) -> None:
         """Handle a consumer group that joined a delete_on_ack stream after

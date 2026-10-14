@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `RedisTransport` with a streaming `credential_provider` (rotating tokens, e.g.
+  `redis-entraid` for Azure Managed Redis / Microsoft Entra ID) never moved its
+  open connections to a renewed token, so the server closed each one when the
+  token it opened with expired (`ConnectionError: Connection closed by server.`).
+  The next command on it failed, and with redis-py's default of no retries that
+  command was lost: a delete-on-ack `XACK`+`XDEL` (the handled entry stayed in
+  the PEL and was re-delivered after `retry_on_idle_ms`), a reclaimer scan, a
+  group-monitor cycle or a publish. FastStream's broker client and the
+  transport's background clients are built with `Redis.from_pool`, which leaves
+  them out of redis-py's re-auth hook; with no callback set, redis-py's token
+  manager then cancels renewal altogether. The transport now registers one
+  renewal callback per provider covering every pool it opens, across transports
+  that share the provider. On a new token, idle connections are closed and
+  in-use ones reconnect on release, so each command after the rotation runs on
+  a connection authenticated with the new token. This avoids redis-py's own
+  re-auth of in-use connections, which can cross the `AUTH` reply with another
+  command's on the same connection and drop, e.g., an `XREADGROUP` reply.
+  Connections in use at a rotation need redis-py >= 7.0 (`mark_for_reconnect`);
+  older versions log a warning and leave those to reconnect after expiry.
+
 ## [0.7.0] - 2026-10-06
 
 ### Fixed
