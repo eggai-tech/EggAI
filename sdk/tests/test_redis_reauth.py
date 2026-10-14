@@ -17,6 +17,7 @@ import itertools
 import logging
 import time
 import uuid
+from dataclasses import dataclass
 
 import pytest
 import pytest_asyncio
@@ -24,11 +25,11 @@ import redis
 import redis.asyncio as aioredis
 from redis.auth.token import SimpleToken
 from redis.auth.token_manager import RetryPolicy, TokenManager, TokenManagerConfig
-from redis.credentials import StreamingCredentialProvider
+from redis.credentials import CredentialProvider, StreamingCredentialProvider
 
 from eggai import Agent, Channel
 from eggai.transport import RedisTransport, redis_reauth
-from eggai.transport.redis_reauth import _ReAuthFanOut, register_pool
+from eggai.transport.redis_reauth import _ReAuthFanOut, register_pool, unregister_pool
 
 TOKEN_TTL_S = 2.0
 REFRESH_RATIO = 0.5  # a new token at half the TTL leaves 1 s to re-AUTH
@@ -194,7 +195,7 @@ async def test_connections_survive_token_expiry(admin, sync_admin, caplog):
         expirer.cancel()
         provider._token_mgr.stop()
     # disconnect() unregistered the broker's and the background clients' pools
-    assert len(redis_reauth._fan_outs[provider]) == 0
+    assert len(redis_reauth._fan_outs[id(provider)][1]) == 0
 
 
 @pytest.mark.asyncio
@@ -286,3 +287,70 @@ def test_pools_without_a_streaming_provider_are_not_registered():
     register_pool(aioredis.ConnectionPool(host="localhost"))
     register_pool(aioredis.ConnectionPool(host="localhost", password="pw"))
     assert len(redis_reauth._fan_outs) == before
+
+
+@dataclass
+class _StaticProvider(CredentialProvider):
+    """A plain dataclass: unhashable (``eq=True`` sets ``__hash__ = None``)."""
+
+    username: str = "default"
+    password: str = "unused"  # the default user is nopass: any password works
+
+    def get_credentials(self):
+        return self.username, self.password
+
+
+@dataclass
+class _DataclassStreamingProvider(StreamingCredentialProvider):
+    callbacks: list
+
+    def get_credentials(self):
+        return ("default", "unused")
+
+    def on_next(self, callback):
+        self.callbacks.append(callback)
+
+    def on_error(self, callback):
+        pass
+
+    def is_streaming(self) -> bool:
+        return True
+
+
+@pytest.mark.asyncio
+async def test_static_unhashable_provider_starts_and_stops():
+    """A static provider is never registered, and closing its clients (first in
+    connect(), after creating the groups) must not look it up either."""
+    test_id = uuid.uuid4().hex[:8]
+    transport = RedisTransport(
+        url="redis://localhost:6379", credential_provider=_StaticProvider()
+    )
+    agent = Agent(f"reauth-static-{test_id}", transport=transport)
+    channel = Channel(f"reauth-static-ch-{test_id}", transport=transport)
+    seen = []
+
+    @agent.subscribe(channel=channel, delete_on_ack=True, retry_on_idle_ms=10_000)
+    async def handler(message):
+        seen.append(message["n"])
+
+    await agent.start()
+    try:
+        await channel.publish({"type": "t", "n": 1})
+        for _ in range(50):
+            if seen:
+                break
+            await asyncio.sleep(0.1)
+        assert seen == [1]
+    finally:
+        await agent.stop()
+
+
+def test_unhashable_streaming_provider_is_registered_and_unregistered():
+    provider = _DataclassStreamingProvider(callbacks=[])
+    pool = aioredis.ConnectionPool(host="localhost", credential_provider=provider)
+    register_pool(pool)
+    register_pool(pool)  # idempotent: one callback on the provider
+    assert len(provider.callbacks) == 1
+    assert len(redis_reauth._fan_outs[id(provider)][1]) == 1
+    unregister_pool(pool)
+    assert len(redis_reauth._fan_outs[id(provider)][1]) == 0
