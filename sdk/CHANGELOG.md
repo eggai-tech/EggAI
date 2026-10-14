@@ -26,8 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a connection authenticated with the new token. This avoids redis-py's own
   re-auth of in-use connections, which can cross the `AUTH` reply with another
   command's on the same connection and drop, e.g., an `XREADGROUP` reply.
-  Connections in use at a rotation need redis-py >= 7.0 (`mark_for_reconnect`);
-  older versions log a warning and leave those to reconnect after expiry.
+  The SDK now explicitly requires redis-py >= 7.0, < 9.0 so every supported
+  version provides streaming credentials and `mark_for_reconnect` for connections
+  in use at a rotation.
 
 ## [0.7.0] - 2026-10-06
 

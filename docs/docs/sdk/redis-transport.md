@@ -82,9 +82,8 @@ command, before the old token expires and the server closes it. Several
 transports may share one provider. Do not share it with a client of your own
 built as `Redis(credential_provider=provider)`: a provider holds one renewal
 callback, and that client's would replace the transport's. Give it its own
-provider instance. Needs redis-py >= 7.0 for connections that are in use when
-the token rotates; with an older redis-py those are dropped when the old token
-expires and reconnect on their next command.
+provider instance. The SDK requires redis-py >= 7.0 so connections that are in
+use when the token rotates can reconnect on release.
 
 ### Consuming an Existing Backlog
 
