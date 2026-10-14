@@ -24,8 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that share the provider. On a new token, idle connections are closed and
   in-use ones reconnect on release, so each command after the rotation runs on
   a connection authenticated with the new token. This avoids redis-py's own
-  re-auth of in-use connections, which can cross the `AUTH` reply with another
-  command's on the same connection and drop, e.g., an `XREADGROUP` reply.
+  re-auth of in-use connections, which sends `AUTH` from `release()` after the
+  connection is already available to other tasks: a second task reading from it
+  makes redis-py close it, and the command being released loses the reply it had
+  already read (for an `XREADGROUP`, entries delivered to the PEL but never
+  handled until the reclaimer re-delivers them).
   The SDK now explicitly requires redis-py >= 7.0, < 9.0 so every supported
   version provides streaming credentials and `mark_for_reconnect` for connections
   in use at a rotation.

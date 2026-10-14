@@ -23,15 +23,22 @@ This module keeps one callback per provider that fans each new token out to ever
 pool registered against it.
 
 It also does not use redis-py's ``ConnectionPool.re_auth_callback`` where it can
-avoid it. That sends ``AUTH`` on a connection in use only once the connection is
-released, *after* putting it back on the available list and dropping the pool
-lock, so another task can take the connection and send its own command before the
-``AUTH`` reply is read. The replies then cross: e.g. an ``XREADGROUP`` reply is
-read as the ``AUTH`` reply and discarded, and the entries it delivered sit in the
-PEL unhandled. Instead, on a new token each pool's idle connections are closed
-and its in-use ones marked to reconnect on release, both under the pool lock, so
-every connection's next command dials anew, authenticating with the provider's
-current token like any new connection.
+avoid it. For a connection in use, that defers ``AUTH`` to ``release()``, which
+puts the connection back on the available list and drops the pool lock *before*
+sending ``AUTH`` and reading its reply. ``release()`` runs inside
+``execute_command`` before the command's result is returned, so the caller is
+still holding a reply it has already read. If another task (e.g. FastStream's
+``.retry`` subscriber, which shares the broker's pool) takes the connection
+meanwhile and reads from it, asyncio refuses the second reader (``RuntimeError:
+readuntil() called while another coroutine is already waiting``), redis-py closes
+the connection, and the pending ``AUTH`` read fails with ``ConnectionError``. That
+error leaves ``release()`` and so ``execute_command``, discarding the reply already
+read: for an ``XREADGROUP`` the delivered entries sit in the PEL unhandled until
+the reclaimer re-delivers them. Instead, on a new token each pool's idle
+connections are closed and its in-use ones marked to reconnect on release, both
+under the pool lock, so no ``AUTH`` is ever in flight on a connection another task
+can take: every connection's next command dials anew, authenticating with the
+provider's current token like any new connection.
 """
 
 from __future__ import annotations
