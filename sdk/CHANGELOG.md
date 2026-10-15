@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `RedisTransport` with a streaming `credential_provider` (rotating tokens, e.g.
+  `redis-entraid` for Azure Managed Redis / Microsoft Entra ID) never moved its
+  open connections to a renewed token, so the server closed each one when the
+  token it opened with expired (`ConnectionError: Connection closed by server.`).
+  The next command on it failed, and with redis-py's default of no retries that
+  command was lost: a delete-on-ack `XACK`+`XDEL` (the handled entry stayed in
+  the PEL and was re-delivered after `retry_on_idle_ms`), a reclaimer scan, a
+  group-monitor cycle or a publish. FastStream's broker client and the
+  transport's background clients are built with `Redis.from_pool`, which leaves
+  them out of redis-py's re-auth hook; with no callback set, redis-py's token
+  manager then cancels renewal altogether. The transport now registers one
+  renewal callback per provider covering every pool it opens, across transports
+  that share the provider. On a new token, idle connections are closed and
+  in-use ones reconnect on release, so each command after the rotation runs on
+  a connection authenticated with the new token. This avoids redis-py's own
+  re-auth of in-use connections, which sends `AUTH` from `release()` after the
+  connection is already available to other tasks: a second task reading from it
+  makes redis-py close it, and the command being released loses the reply it had
+  already read (for an `XREADGROUP`, entries delivered to the PEL but never
+  handled until the reclaimer re-delivers them).
+  If the provider fails to refresh its token, redis-py's token manager stops
+  renewing; the transport now logs that as an error saying renewal has stopped.
+  The SDK now explicitly requires redis-py >= 7.2, < 9.0: before 7.2 a connection
+  marked to reconnect at a rotation stays marked, and is dropped and redialled on
+  every release from then on.
+
 ## [0.7.0] - 2026-10-06
 
 ### Fixed

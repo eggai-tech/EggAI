@@ -59,6 +59,32 @@ transport = RedisTransport(
 
 The `url` accepts `redis://`, `rediss://` (TLS), and `unix://` schemes.
 
+### Rotating Tokens (Azure Managed Redis / Microsoft Entra ID)
+
+Pass a streaming credential provider, such as `redis-entraid`'s, as
+`credential_provider` (and no password in the URL):
+
+```python
+from redis_entraid.cred_provider import create_from_managed_identity
+from redis_entraid.identity_provider import ManagedIdentityType
+
+provider = create_from_managed_identity(
+    identity_type=ManagedIdentityType.SYSTEM_ASSIGNED,
+    resource="https://redis.azure.com/",
+)
+transport = RedisTransport(url="rediss://<name>.redis.azure.net:10000", credential_provider=provider)
+```
+
+Every connection the transport opens (the broker's and those of the reclaimer,
+the group monitor and `delete_on_ack`) authenticates with it. When the provider
+renews the token, each of those connections switches to the new one on its next
+command, before the old token expires and the server closes it. Several
+transports may share one provider. Do not share it with a client of your own
+built as `Redis(credential_provider=provider)`: a provider holds one renewal
+callback, and that client's would replace the transport's. Give it its own
+provider instance. The SDK requires redis-py >= 7.2 so connections that are in
+use when the token rotates reconnect once on release.
+
 ### Consuming an Existing Backlog
 
 A consumer group is created at `$` by default: it only sees entries published
