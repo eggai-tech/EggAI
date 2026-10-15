@@ -78,7 +78,7 @@ class _ReAuthFanOut:
         # One pool failing must not leave the others on the old token.
         for pool in list(self._pools):
             try:
-                await _reconnect_with_new_token(pool, token)
+                await _reconnect_with_new_token(pool)
             except Exception:
                 logger.warning(
                     "Redis re-authentication failed for a connection pool; its "
@@ -101,9 +101,11 @@ class _ReAuthFanOut:
         )
 
 
-async def _reconnect_with_new_token(pool: Any, token: Any) -> None:
+async def _reconnect_with_new_token(pool: Any) -> None:
     """Make every connection of ``pool`` authenticate with the new token on its
-    next command (see the module docstring for why not ``re_auth_callback``)."""
+    next command. No token is passed: a reconnecting connection asks the provider,
+    which hands out the new one (see the module docstring for why not
+    ``re_auth_callback``)."""
     # redis-py >= 7.2: release() disconnects a connection marked for reconnect
     # and clears the mark (7.0/7.1 never clear it, so such a connection would
     # be dropped again on every later release).
