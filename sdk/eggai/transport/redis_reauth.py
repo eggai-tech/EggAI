@@ -22,8 +22,8 @@ provider only the pool registered last would be re-authenticated.
 This module keeps one callback per provider that fans each new token out to every
 pool registered against it.
 
-It also does not use redis-py's ``ConnectionPool.re_auth_callback`` where it can
-avoid it. For a connection in use, that defers ``AUTH`` to ``release()``, which
+It also does not use redis-py's ``ConnectionPool.re_auth_callback``. For a
+connection in use, that defers ``AUTH`` to ``release()``, which
 puts the connection back on the available list and drops the pool lock *before*
 sending ``AUTH`` and reading its reply. ``release()`` runs inside
 ``execute_command`` before the command's result is returned, so the caller is
@@ -71,6 +71,9 @@ class _ReAuthFanOut:
     def __len__(self) -> int:
         return len(self._pools)
 
+    def __contains__(self, pool: Any) -> bool:
+        return pool in self._pools
+
     async def on_next(self, token: Any) -> None:
         # One pool failing must not leave the others on the old token.
         for pool in list(self._pools):
@@ -84,36 +87,41 @@ class _ReAuthFanOut:
                 )
 
     async def on_error(self, error: Exception) -> None:
-        # redis-py's own handler raises here, inside the provider's refresh
-        # task. Log instead: connections keep the current token until it
-        # expires, and a later refresh may still succeed.
-        logger.error("Redis credential provider failed to refresh its token: %s", error)
+        # redis-py's token manager calls this once its retry policy is used up
+        # and then schedules no further refresh, and the provider never restarts
+        # it (it still reports itself as streaming). Raising, as redis-py's own
+        # handler does, would not change that. Connections keep the current
+        # token until it expires and are then closed by the server; a reconnect
+        # authenticates with whatever token the provider hands out then.
+        logger.error(
+            "Redis credential provider failed to refresh its token; token renewal "
+            "has stopped, so connections are dropped when the current token "
+            "expires and then reconnect with a fresh one: %s",
+            error,
+        )
 
 
 async def _reconnect_with_new_token(pool: Any, token: Any) -> None:
     """Make every connection of ``pool`` authenticate with the new token on its
     next command (see the module docstring for why not ``re_auth_callback``)."""
-    lock = getattr(pool, "_lock", None)
-    idle = getattr(pool, "_available_connections", None)
-    in_use = getattr(pool, "_in_use_connections", None)
-    if lock is None or idle is None or in_use is None:
-        # Not a redis-py pool as we know it: leave it to its own re-auth.
-        await pool.re_auth_callback(token)
-        return
-    async with lock:
-        for conn in in_use:
+    # redis-py >= 7.2: release() disconnects a connection marked for reconnect
+    # and clears the mark (7.0/7.1 never clear it, so such a connection would
+    # be dropped again on every later release).
+    async with pool._lock:
+        for conn in pool._in_use_connections:
             conn.mark_for_reconnect()  # release() disconnects it, under the lock
         # As redis-py's own ConnectionPool.disconnect(): one connection failing
         # to close (e.g. a close timeout) must not leave the rest on the old token.
         await asyncio.gather(
-            *(conn.disconnect() for conn in idle), return_exceptions=True
+            *(conn.disconnect() for conn in pool._available_connections),
+            return_exceptions=True,
         )
 
 
-# id(provider) -> (provider, its fan-out). Keyed by id, not by the provider:
-# a provider need not be hashable (a plain @dataclass is not) or weakly
-# referenceable. The entry holds the provider, so its id is not reused while
-# the entry exists; providers normally live as long as the process.
+# id(provider) -> (provider, its fan-out), while any pool is registered against
+# it. Keyed by id, not by the provider: a provider need not be hashable (a plain
+# @dataclass is not) or weakly referenceable. The entry holds the provider, so
+# its id is not reused while the entry exists.
 _fan_outs: dict[int, tuple[Any, _ReAuthFanOut]] = {}
 
 
@@ -127,7 +135,7 @@ def register_pool(pool: Any) -> None:
     rotates the token. A no-op for a pool without a streaming credential provider
     (password, ACL user, a static provider or no authentication). Idempotent."""
     provider = _streaming_provider(pool)
-    if provider is None or not hasattr(pool, "re_auth_callback"):
+    if provider is None:
         return
     entry = _fan_outs.get(id(provider))
     if entry is None:
@@ -151,6 +159,11 @@ def unregister_pool(pool: Any) -> None:
     entry = _fan_outs.get(id(provider)) if provider is not None else None
     if entry is not None:
         entry[1].discard(pool)
+        if not entry[1]:
+            # Drop the provider with its last pool. Its on_next stays the
+            # emptied fan-out (a no-op) until a later register_pool installs a
+            # new one.
+            del _fan_outs[id(provider)]
 
 
 def open_client(

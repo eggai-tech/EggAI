@@ -240,15 +240,18 @@ class RedisTransport(Transport):
                 await close_client(self._delete_client)
                 self._delete_client = None
             raise
+        # broker.connect() builds the client without dialling. Register its pool
+        # before any subscriber dials: the provider's first token fetch starts
+        # its renewal, which redis-py cancels if no callback is set by then.
+        await self.broker.connect()
+        if (pool := self._broker_pool()) is not None:
+            register_pool(pool)
         if not getattr(self.broker, "running", False):
             await self.broker.start()
         else:
-            await self.broker.connect()
             for sub in self.broker.subscribers:
                 if not getattr(sub, "running", False):
                     await sub.start()
-        if (pool := self._broker_pool()) is not None:
-            register_pool(pool)
         if self._reclaimer_manager is not None:
             # start() is idempotent — it skips reclaimer tasks already running.
             await self._reclaimer_manager.start()
@@ -281,9 +284,13 @@ class RedisTransport(Transport):
             self._group_monitor_task = None
         if self._reclaimer_manager is not None:
             await self._reclaimer_manager.stop()
-        if (pool := self._broker_pool()) is not None:
-            unregister_pool(pool)
+        # stop() drains running handlers (up to graceful_timeout), and their
+        # acks still go through the broker's pool: keep re-authenticating it
+        # until they are done. stop() drops the client, so take the pool first.
+        pool = self._broker_pool()
         await self.broker.stop()
+        if pool is not None:
+            unregister_pool(pool)
         # After broker.stop(): handlers still finishing may need it to delete.
         if self._delete_client is not None:
             await close_client(self._delete_client)

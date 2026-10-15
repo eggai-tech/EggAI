@@ -195,7 +195,7 @@ async def test_connections_survive_token_expiry(admin, sync_admin, caplog):
         expirer.cancel()
         provider._token_mgr.stop()
     # disconnect() unregistered the broker's and the background clients' pools
-    assert len(redis_reauth._fan_outs[id(provider)][1]) == 0
+    assert id(provider) not in redis_reauth._fan_outs
 
 
 @pytest.mark.asyncio
@@ -233,17 +233,19 @@ async def test_transports_sharing_a_provider_are_all_reauthenticated(admin, sync
             await asyncio.sleep(0.1)
         current = idp.issued[-1].try_get("oid")
         assert current != before.try_get("oid")
-        for _ in range(10):  # in-use connections reconnect on release
+        # In-use connections reconnect on release, and each transport's consumer
+        # read loop redials on the new token; a consumer may still be mid-redial
+        # when the old user leaves CLIENT LIST.
+        for _ in range(30):
             users = [
                 c["user"]
                 for c in await admin.client_list()
                 if c["user"].startswith(f"reauth-{test_id}")
             ]
-            if before.try_get("oid") not in users:
+            if before.try_get("oid") not in users and users.count(current) >= 2:
                 break
             await asyncio.sleep(0.1)
         assert before.try_get("oid") not in users
-        # each transport's consumer read loop is back, on the new token
         assert users.count(current) >= 2
     finally:
         for agent in agents:
@@ -251,34 +253,28 @@ async def test_transports_sharing_a_provider_are_all_reauthenticated(admin, sync
         provider._token_mgr.stop()
 
 
-class _Pool:
-    """A pool without redis-py's internals: the fan-out falls back to
-    ``re_auth_callback``."""
-
-    def __init__(self, fail: bool = False) -> None:
-        self.tokens: list[str] = []
-        self.fail = fail
-
-    async def re_auth_callback(self, token):
-        if self.fail:
-            raise redis.ConnectionError("Connection closed by server.")
-        self.tokens.append(token)
+class _UnmarkableConnection(aioredis.Connection):
+    def mark_for_reconnect(self):
+        raise RuntimeError("cannot mark")
 
 
 @pytest.mark.asyncio
 async def test_one_failing_pool_does_not_stop_the_others(caplog):
     fan_out = _ReAuthFanOut()
-    pools = [_Pool(), _Pool(fail=True), _Pool()]
-    for pool in pools:
+    pools = [aioredis.ConnectionPool(host="localhost") for _ in range(3)]
+    in_use = [aioredis.Connection(), _UnmarkableConnection(), aioredis.Connection()]
+    for pool, conn in zip(pools, in_use, strict=True):
+        pool._in_use_connections.add(conn)
         fan_out.add(pool)
     await fan_out.on_next("token-2")
-    assert pools[0].tokens == ["token-2"]
-    assert pools[2].tokens == ["token-2"]
+    assert in_use[0].should_reconnect()
+    assert in_use[2].should_reconnect()
     assert "re-authentication failed" in caplog.text
 
     # A refresh error is logged, not raised into the provider's refresh task.
     await fan_out.on_error(RuntimeError("IdP unreachable"))
-    assert "failed to refresh its token: IdP unreachable" in caplog.text
+    assert "token renewal has stopped" in caplog.text
+    assert "IdP unreachable" in caplog.text
 
 
 def test_pools_without_a_streaming_provider_are_not_registered():
@@ -353,4 +349,48 @@ def test_unhashable_streaming_provider_is_registered_and_unregistered():
     assert len(provider.callbacks) == 1
     assert len(redis_reauth._fan_outs[id(provider)][1]) == 1
     unregister_pool(pool)
-    assert len(redis_reauth._fan_outs[id(provider)][1]) == 0
+    assert id(provider) not in redis_reauth._fan_outs  # the provider is let go
+
+
+@pytest.mark.asyncio
+async def test_broker_pool_is_registered_from_first_dial_until_handlers_drain():
+    """The broker's pool is registered before any subscriber dials (the first
+    token fetch starts renewal, which needs a callback by then), and stays
+    registered while broker.stop() drains handlers, whose acks still use it."""
+    test_id = uuid.uuid4().hex[:8]
+    provider = _DataclassStreamingProvider(callbacks=[])
+    transport = RedisTransport(
+        url="redis://localhost:6379", credential_provider=provider
+    )
+    agent = Agent(f"reauth-order-{test_id}", transport=transport)
+    channel = Channel(f"reauth-order-ch-{test_id}", transport=transport)
+
+    @agent.subscribe(channel=channel, retry_on_idle_ms=10_000)
+    async def handler(message):
+        pass
+
+    def broker_pool_registered() -> bool:
+        entry = redis_reauth._fan_outs.get(id(provider))
+        return entry is not None and transport._broker_pool() in entry[1]
+
+    seen: dict[str, bool] = {}
+    broker = transport.broker
+    start, stop = broker.start, broker.stop
+
+    async def recording_start():
+        seen["start"] = broker_pool_registered()
+        await start()
+
+    async def recording_stop(*args):
+        seen["stop"] = broker_pool_registered()
+        await stop(*args)
+
+    broker.start = recording_start
+    broker.stop = recording_stop
+    await agent.start()
+    try:
+        assert broker_pool_registered()
+    finally:
+        await agent.stop()
+    assert seen == {"start": True, "stop": True}
+    assert id(provider) not in redis_reauth._fan_outs

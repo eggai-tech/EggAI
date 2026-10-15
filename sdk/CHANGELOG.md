@@ -29,9 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   makes redis-py close it, and the command being released loses the reply it had
   already read (for an `XREADGROUP`, entries delivered to the PEL but never
   handled until the reclaimer re-delivers them).
-  The SDK now explicitly requires redis-py >= 7.0, < 9.0 so every supported
-  version provides streaming credentials and `mark_for_reconnect` for connections
-  in use at a rotation.
+  If the provider fails to refresh its token, redis-py's token manager stops
+  renewing; the transport now logs that as an error saying renewal has stopped.
+  The SDK now explicitly requires redis-py >= 7.2, < 9.0: before 7.2 a connection
+  marked to reconnect at a rotation stays marked, and is dropped and redialled on
+  every release from then on.
 
 ## [0.7.0] - 2026-10-06
 
