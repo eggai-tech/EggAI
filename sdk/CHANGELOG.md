@@ -45,13 +45,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stops again right after a restart (an error a restart can't fix, e.g.
   `min_idle_time` on Redis < 6.2) is restarted with exponential backoff, up to
   5 minutes, and logged as an error. No change on FastStream <= 0.7.5, where
-  the read loop never stopped.
+  the read loop never stopped. The lock moves from FastStream 0.7.5 to 0.7.7
+  (it was held back for this bug), so CI covers this path.
 - A sync handler with `data_type` / `filter_by_data` / `filter_by_message` now
   runs in a worker thread, as FastStream (Kafka, Redis) runs a sync handler
   without those options. The filter wrapper called it on the event loop,
   blocking every other consumer, Kafka heartbeats and Redis lease renewal for
   its whole run (a long one was reclaimed and redelivered despite
   `renew_lease=True`). Applies to all transports.
+
+### Security
+
+- Lock files refreshed within the existing constraints: PyJWT 2.13.0 → 2.15.1
+  and urllib3 2.7.0 → 2.8.0 (sdk and docs), clearing the open advisories on
+  both.
 
 ## [0.8.0] - 2026-10-19
 
