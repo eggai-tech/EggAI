@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Lock files refreshed within the existing constraints: PyJWT 2.13.0 → 2.15.1
+  and urllib3 2.7.0 → 2.8.0 (sdk and docs), clearing the open advisories on
+  both. FastStream stays at 0.7.5: 0.7.6+ stops a subscriber whose consumer
+  group was deleted before the group monitor can recreate it.
+
 ## [0.8.0] - 2026-10-19
 
 ### Fixed
