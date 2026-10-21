@@ -36,6 +36,7 @@ import redis.asyncio as aioredis
 from redis.exceptions import ResponseError
 
 from eggai.transport.middleware_utils import call_handler, is_async_callable
+from eggai.transport.redis_reauth import close_client, open_client
 
 logger = logging.getLogger(__name__)
 
@@ -537,8 +538,9 @@ LeaseKey = tuple[str, str, str]
 class LeaseManager:
     """Owns the Redis client and one renewal task per lease keeper."""
 
-    def __init__(self, redis_url: str, connection_kwargs: dict[str, Any] | None = None):
-        self._redis_url = redis_url
+    def __init__(self, connection_kwargs: dict[str, Any] | None = None):
+        # The broker's own connection dict (see RedisTransport), so the client
+        # dials the same server with the same credentials as the broker.
         self._connection_kwargs: dict[str, Any] = connection_kwargs or {}
         self._keepers: dict[LeaseKey, LeaseKeeper] = {}
         self._tasks: dict[LeaseKey, asyncio.Task] = {}
@@ -582,12 +584,10 @@ class LeaseManager:
         """Open the client and start missing renewal tasks. Idempotent: also
         called for keepers registered after the first start."""
         if self.client is None:
-            # decode_responses: ids come back as str. The forwarded connection
-            # kwargs are resilience settings only, never decode_responses.
-            self.client = aioredis.from_url(
-                self._redis_url,
-                **{**self._connection_kwargs, "decode_responses": True},
-            )
+            # decode_responses: ids come back as str (pinned, not taken from the
+            # broker's dict). open_client re-authenticates the client when a
+            # streaming credential provider rotates the token.
+            self.client = open_client(self._connection_kwargs, decode_responses=True)
             self.script = self.client.register_script(_RENEW_SCRIPT)
             await self._check_scripting()
         self.running = True
@@ -642,7 +642,7 @@ class LeaseManager:
         client, self.client, self.script = self.client, None, None
         if client is not None:
             try:
-                await client.aclose()
+                await close_client(client)
             except Exception:
                 logger.warning(
                     "Lease renewal: closing the Redis client failed", exc_info=True

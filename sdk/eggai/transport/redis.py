@@ -488,9 +488,9 @@ class RedisTransport(Transport):
                 time reset), guarded by an ownership check in the same Lua script. A consumer that crashes stops
                 renewing, so its entries are still reclaimed ``retry_on_idle_ms`` after the last renewal. Covers the
                 main stream and the SDK retry stream (each with its own group/consumer), and entries FastStream has
-                read into this consumer's PEL but not handed to the handler yet. Defaults ``max_records`` to 1
-                (unless you set a number, or ``batch=True``) so a busy worker doesn't hold prefetched entries an
-                idle worker could take. Requires ``retry_on_idle_ms`` and a consumer group; incompatible with
+                read into this consumer's PEL but not handed to the handler yet (``max_records`` already defaults
+                to 1 with ``retry_on_idle_ms``, so those only occur with a larger explicit value or ``max_workers``
+                > 1). Requires ``retry_on_idle_ms`` and a consumer group; incompatible with
                 ``no_ack=True`` and ``ack_policy=AckPolicy.MANUAL``. Needs Lua scripting (``EVALSHA``) on the
                 server.
             renew_lease_interval_ms (int, optional): How often leases are renewed (default
@@ -846,7 +846,7 @@ class RedisTransport(Transport):
                 # (group, consumer and interval were validated above.)
                 if self._lease_manager is None:
                     self._lease_manager = LeaseManager(
-                        self._redis_url, connection_kwargs=self._connection_kwargs
+                        connection_kwargs=self._connection_kwargs
                     )
                 max_workers = kwargs.get("max_workers") or 1
                 lease_key, keeper, created = self._lease_manager.add(

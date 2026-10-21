@@ -195,15 +195,17 @@ jobs:
           name: python-${{ matrix.python-version }}
           fail_ci_if_error: false
 
-  # The lock file pins one FastStream release, so the `test` job never sees the
-  # bottom of the range pyproject.toml allows. This job runs the suite against
-  # the lowest supported FastStream, on the lowest supported Python. Keep the
-  # version here in step with the lower bound in sdk/pyproject.toml.
+  # The lock file pins one FastStream and one redis-py release, so the `test` job
+  # never sees the bottom of the ranges pyproject.toml allows. This job runs the
+  # suite against the lowest supported FastStream and redis-py, on the lowest
+  # supported Python. Keep the versions here in step with the lower bounds in
+  # sdk/pyproject.toml.
   test-min-faststream:
     runs-on: ubuntu-latest
-    name: Test SDK (lowest FastStream, Python 3.10)
+    name: Test SDK (lowest FastStream and redis-py, Python 3.10)
     env:
-      MIN_FASTSTREAM: '0.6.4'
+      MIN_FASTSTREAM: '0.7.0'
+      MIN_REDIS_PY: '7.2.0'
 
     services:
       redis:
@@ -230,8 +232,8 @@ jobs:
           path: |
             ~/.cache/pypoetry
             ~/.cache/pip
-          # Own prefix: this job's venv has FastStream 0.6.4 installed over the
-          # lock, which must not be restored into the regular test jobs.
+          # Own prefix: this job's venv has the lowest versions installed over
+          # the lock, which must not be restored into the regular test jobs.
           key: poetry-min-faststream-${{ runner.os }}-py3.10-${{ hashFiles('sdk/poetry.lock') }}
           restore-keys: |
             poetry-min-faststream-${{ runner.os }}-py3.10-
@@ -246,8 +248,8 @@ jobs:
         working-directory: sdk
         run: |
           poetry install --all-extras
-          poetry run pip install "faststream[kafka,redis]==${MIN_FASTSTREAM}"
-          poetry run python -c "from importlib.metadata import version; v = version('faststream'); assert v == '${MIN_FASTSTREAM}', v"
+          poetry run pip install "faststream[kafka,redis]==${MIN_FASTSTREAM}" "redis==${MIN_REDIS_PY}"
+          poetry run python -c "from importlib.metadata import version as v; assert (v('faststream'), v('redis')) == ('${MIN_FASTSTREAM}', '${MIN_REDIS_PY}'), (v('faststream'), v('redis'))"
 
       - name: Run tests
         working-directory: sdk

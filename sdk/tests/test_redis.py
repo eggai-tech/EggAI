@@ -1706,6 +1706,17 @@ async def test_connection_kwargs_propagate_to_reclaimer():
     # The reclaimer gets the same connection dict the transport forwards.
     assert transport._reclaimer_manager._connection_kwargs is ck
 
+    # So does the lease-renewal client.
+    await transport.subscribe(
+        "invoices",
+        handler,
+        handler_id="invoices-handler-1",
+        retry_on_idle_ms=500,
+        renew_lease=True,
+    )
+    assert transport._lease_manager is not None
+    assert transport._lease_manager._connection_kwargs is ck
+
 
 @pytest.mark.asyncio
 async def test_reclaimer_start_applies_connection_kwargs(monkeypatch):

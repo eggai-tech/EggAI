@@ -569,7 +569,7 @@ async def test_concurrent_workers_entries_are_renewed(redis_client, lease):
 
 
 @pytest.mark.asyncio
-async def test_lease_renewal_defaults_max_records_to_one(redis_client):
+async def test_lease_renewal_reads_one_entry_at_a_time(redis_client):
     agent_name, channel_name, stream, group = _names("lease-one")
     await _prefill(stream, group, 3)
     transport = RedisTransport()
@@ -817,7 +817,7 @@ def _keeper(**overrides):
 
 
 def _manager(script):
-    manager = LeaseManager("redis://unused")
+    manager = LeaseManager()
     manager.client = object()  # type: ignore[assignment]
     manager.script = script
     manager.running = True
@@ -1434,7 +1434,7 @@ async def test_renewal_runs_at_a_fixed_rate_despite_slow_rounds():
 
 @pytest.mark.asyncio
 async def test_manager_add_reuses_same_config_refuses_a_different_one():
-    manager = LeaseManager("redis://unused")
+    manager = LeaseManager()
     config = LeaseConfig(stream="s", group="g", consumer="c", interval_s=0.1)
     key, keeper, created = manager.add(config)
     assert created
@@ -1446,7 +1446,7 @@ async def test_manager_add_reuses_same_config_refuses_a_different_one():
 
 @pytest.mark.asyncio
 async def test_manager_start_loads_the_renewal_script(redis_client):
-    manager = LeaseManager("redis://localhost:6379")
+    manager = LeaseManager({"host": "localhost", "port": 6379})
     await redis_client.script_flush()
     await manager.start()
     try:
@@ -1471,8 +1471,9 @@ async def test_manager_start_reports_refused_scripting_without_failing(
     client.script_load.side_effect = NoPermissionError(
         "this user has no permissions to run the 'script|load' command"
     )
-    monkeypatch.setattr(lease_mod.aioredis, "from_url", lambda *a, **k: client)
-    manager = LeaseManager("redis://unused")
+    monkeypatch.setattr(lease_mod, "open_client", lambda *a, **k: client)
+    monkeypatch.setattr(lease_mod, "close_client", AsyncMock())
+    manager = LeaseManager()
     key, _, _ = manager.add(
         LeaseConfig(stream="s", group="g", consumer="c", interval_s=0.05)
     )
@@ -1487,9 +1488,35 @@ async def test_manager_start_reports_refused_scripting_without_failing(
 
 
 @pytest.mark.asyncio
+async def test_manager_client_uses_the_broker_connection_settings(monkeypatch):
+    """The lease client dials with the broker's connection dict through
+    redis_reauth (credentials, db, TLS and token rotation match the broker),
+    with decode_responses pinned to True, and is closed the same way."""
+    import eggai.transport.lease as lease_mod
+
+    client = AsyncMock()
+    client.register_script = lambda _src: AsyncMock()
+    opened: list[tuple[dict, bool]] = []
+
+    def fake_open(kwargs, *, decode_responses):
+        opened.append((kwargs, decode_responses))
+        return client
+
+    closed = AsyncMock()
+    monkeypatch.setattr(lease_mod, "open_client", fake_open)
+    monkeypatch.setattr(lease_mod, "close_client", closed)
+    kwargs = {"host": "h", "port": 1, "db": 3, "decode_responses": False}
+    manager = LeaseManager(kwargs)
+    await manager.start()
+    await manager.stop()
+    assert opened == [(kwargs, True)]
+    closed.assert_awaited_once_with(client)
+
+
+@pytest.mark.asyncio
 async def test_manager_discard_cancels_the_running_task():
     # An empty keeper never calls Redis (start()'s script check only warns).
-    manager = LeaseManager("redis://unused:1")
+    manager = LeaseManager({"host": "unused", "port": 1})
     key, _, _ = manager.add(
         LeaseConfig(stream="s", group="g", consumer="c", interval_s=0.05)
     )
