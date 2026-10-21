@@ -35,7 +35,11 @@ from typing import Any
 import redis.asyncio as aioredis
 from redis.exceptions import ResponseError
 
-from eggai.transport.middleware_utils import call_handler, is_async_callable
+from eggai.transport.middleware_utils import (
+    call_handler,
+    is_async_callable,
+    runs_in_worker_thread,
+)
 from eggai.transport.redis_reauth import close_client, open_client
 
 logger = logging.getLogger(__name__)
@@ -57,6 +61,8 @@ _CHUNK = 100
 _SCAN_PAGE = 1000
 # Shortest pause between two renewal rounds, as a share of the interval.
 _MIN_PAUSE_RATIO = 0.1
+# Floor on each renewal call's timeout (see LeaseConfig.timeout_s).
+_MIN_CALL_TIMEOUT_S = 1.0
 # Bound on the up-front SCRIPT LOAD in LeaseManager.start() (runs in connect()).
 _SCRIPT_CHECK_TIMEOUT_S = 5.0
 
@@ -255,8 +261,13 @@ class LeaseConfig:
     @property
     def timeout_s(self) -> float:
         """Bound on each renewal round trip: half the interval, so a hung call
-        never delays the next renewal by a whole interval."""
-        return self.interval_s / 2
+        never delays the next renewal by a whole interval, but at least
+        ``_MIN_CALL_TIMEOUT_S`` (capped at the interval) so short intervals still
+        leave a remote or busy Redis time to answer. A slow call that succeeds
+        then renews at most two intervals after the previous renewal, within
+        ``retry_on_idle_ms`` for any interval below half of it (the default is
+        a third)."""
+        return max(self.interval_s / 2, min(_MIN_CALL_TIMEOUT_S, self.interval_s))
 
 
 class _Invocation:
@@ -681,6 +692,9 @@ def wrap_handler_with_lease(
     thread; a sync handler that never returns therefore keeps its lease.
     """
     is_async = is_async_callable(handler)
+    # A sync handler, also behind the filter wrapper (which is async itself but
+    # awaits the handler's thread), must never be cancelled: see above.
+    interruptible = not runs_in_worker_thread(handler)
     deadline_s = max_processing_ms / 1000 if max_processing_ms is not None else None
 
     def _error(inv: _Invocation) -> Exception:
@@ -715,9 +729,9 @@ def wrap_handler_with_lease(
         ids = _read_ids()
         lease = keeper if ids else None
         inv = (
-            lease.begin(ids, interruptible=is_async)
+            lease.begin(ids, interruptible=interruptible)
             if lease is not None
-            else _Invocation(ids, interruptible=is_async)
+            else _Invocation(ids, interruptible=interruptible)
         )
         try:
             if inv.lost and lease is not None and lease.config.cancel_on_lost:
@@ -739,7 +753,7 @@ def wrap_handler_with_lease(
                         max_processing_ms,
                         ", ".join(inv.ids) or "?",
                         "cancelling it"
-                        if is_async
+                        if interruptible
                         else "it runs in a worker thread that can't be "
                         "interrupted: waiting for it to return (the lease is "
                         "kept until then)",

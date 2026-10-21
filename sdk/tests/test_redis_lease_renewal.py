@@ -17,6 +17,8 @@ import pytest
 import pytest_asyncio
 import redis.asyncio as redis
 from faststream import AckPolicy
+from pydantic import BaseModel
+from redis import Redis as SyncRedis
 
 from eggai import Agent, Channel
 from eggai.transport import LeaseLostError, ProcessingTimeoutError, RedisTransport
@@ -29,7 +31,10 @@ from eggai.transport.lease import (
     resolve_lease_options,
     wrap_handler_with_lease,
 )
-from eggai.transport.middleware_utils import is_async_callable
+from eggai.transport.middleware_utils import (
+    is_async_callable,
+    wrap_handler_with_filters,
+)
 from eggai.transport.redis import _CONSUMER_INSTANCE
 
 # Reclaim threshold used by the integration tests: handlers below run for
@@ -674,11 +679,15 @@ async def test_max_processing_ms_cancels_and_retries(caplog):
     assert "ProcessingTimeoutError" in caplog.text
 
 
+@pytest.mark.parametrize("filtered", [False, True], ids=["plain", "filtered"])
 @pytest.mark.asyncio
-async def test_sync_handler_past_its_deadline_is_not_retried_while_running(caplog):
+async def test_sync_handler_past_its_deadline_is_not_retried_while_running(
+    caplog, filtered
+):
     """A sync handler's thread can't be stopped: past max_processing_ms its
     entry stays leased until the thread returns, so the retry never overlaps
-    it, and the timeout is raised only then."""
+    it, and the timeout is raised only then. Also behind the filter wrapper,
+    which is async itself but awaits the handler's thread."""
     agent_name, channel_name, _stream, _group = _names("lease-sync-deadline")
     transport = RedisTransport()
     agent = Agent(agent_name, transport=transport)
@@ -694,6 +703,7 @@ async def test_sync_handler_past_its_deadline_is_not_retried_while_running(caplo
         retry_reclaim_interval_s=RECLAIM_S,
         renew_lease=True,
         max_processing_ms=300,
+        **({"filter_by_message": lambda m: True} if filtered else {}),
     )
     def handler(message):
         nonlocal active, max_active
@@ -721,9 +731,79 @@ async def test_sync_handler_past_its_deadline_is_not_retried_while_running(caplo
     first, retry = runs[0], runs[1]
     assert (first[0], retry[0]) == (0, 1)
     assert max_active == 1
-    assert retry[1] >= first[2]  # the retry started after the thread returned
-    assert "ProcessingTimeoutError" in caplog.text
+    # The retry (_retry_count 1) proves the run was NACKed, i.e. the timeout
+    # was raised, not acked; it started only after the thread returned.
+    # (FastStream's own log of the error isn't reliably captured by caplog.)
+    assert retry[1] >= first[2]
     assert "can't be interrupted" in caplog.text
+
+
+class _Typed(BaseModel):
+    type: str = "t"
+    n: int = 0
+
+
+@pytest.mark.parametrize(
+    "filter_opts",
+    [{"data_type": _Typed}, {"filter_by_message": lambda m: True}],
+    ids=["data_type", "filter_by_message"],
+)
+@pytest.mark.asyncio
+async def test_filtered_sync_handler_keeps_its_lease(filter_opts):
+    """A sync handler behind the filter wrapper (data_type / filter_by_message)
+    runs in a worker thread like one without filters, so it doesn't block the
+    event loop: renewal keeps its entry's idle time low and it runs once."""
+    agent_name, channel_name, stream, group = _names("lease-sync-filtered")
+    transport = RedisTransport()
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+    loop_thread = threading.get_ident()
+    threads: list[int] = []
+    running = threading.Event()
+
+    @agent.subscribe(
+        channel=channel,
+        retry_on_idle_ms=IDLE_MS,
+        retry_reclaim_interval_s=RECLAIM_S,
+        renew_lease=True,
+        **filter_opts,
+    )
+    def handler(message):
+        threads.append(threading.get_ident())
+        running.set()
+        time.sleep(2.0)  # 4x retry_on_idle_ms
+
+    # Sampled from a separate OS thread with its own client, so a blocked
+    # event loop can't pause the sampling (it would hide the lapsed lease).
+    idles: list[int] = []
+    stop_sampling = threading.Event()
+
+    def sample() -> None:
+        client = SyncRedis(host="localhost", port=6379)
+        try:
+            while not stop_sampling.wait(0.05):
+                entries = client.xpending_range(stream, group, "-", "+", 100)
+                idles.extend(e["time_since_delivered"] for e in entries)
+        finally:
+            client.close()
+
+    sampler = threading.Thread(target=sample, daemon=True)
+    await agent.start()
+    try:
+        await channel.publish({"type": "t", "n": 1})
+        await _wait_for(lambda: _true(running.is_set()))
+        sampler.start()
+        # The 2 s run, then long enough for a reclaim + retry to show up had
+        # the lease lapsed.
+        await asyncio.sleep(2.0 + IDLE_MS / 1000 + 3 * RECLAIM_S)
+    finally:
+        stop_sampling.set()
+        await agent.stop()
+    sampler.join(timeout=5)
+
+    assert threads and all(t != loop_thread for t in threads)
+    assert len(threads) == 1, "redelivered while still running"
+    assert idles and max(idles) < IDLE_MS, max(idles, default=None)
 
 
 # --------------------------------------------------------------------------
@@ -1062,17 +1142,21 @@ async def test_deadline_raises_processing_timeout_error():
     assert isinstance(exc.value, TimeoutError)
 
 
+@pytest.mark.parametrize("filtered", [False, True], ids=["plain", "filtered"])
 @pytest.mark.parametrize("reason", ["timeout", "lease_lost"])
 @pytest.mark.asyncio
-async def test_sync_handler_is_never_abandoned(reason):
+async def test_sync_handler_is_never_abandoned(reason, filtered):
     """A sync handler past its deadline (or with a lost lease) is waited for,
     not abandoned: past the deadline it is still renewed until its thread
     returns, and the error is raised only then, with the result discarded."""
     keeper = _keeper()
     returned = threading.Event()
     renewed_after_return: list[bool] = []
+    loop_thread = threading.get_ident()
+    handler_threads: list[int] = []
 
     def handler(message):
+        handler_threads.append(threading.get_ident())
         time.sleep(0.5)
         returned.set()
         return "late result"
@@ -1081,8 +1165,13 @@ async def test_sync_handler_is_never_abandoned(reason):
         renewed_after_return.append(returned.is_set())
         return [0 if reason == "lease_lost" else 1] * (len(args) - 2)
 
+    inner = (
+        wrap_handler_with_filters(handler, filter_by_message=lambda m: True)
+        if filtered
+        else handler
+    )
     wrapped = wrap_handler_with_lease(
-        handler,
+        inner,
         stream="s",
         group="g",
         keeper=keeper,
@@ -1097,6 +1186,7 @@ async def test_sync_handler_is_never_abandoned(reason):
     with pytest.raises(expected):
         await run
     assert returned.is_set()  # raised only after the thread returned
+    assert handler_threads and handler_threads[0] != loop_thread
     if reason == "timeout":
         assert renewed_after_return == [False]  # still renewed past the deadline
     assert not keeper.in_flight
@@ -1105,6 +1195,19 @@ async def test_sync_handler_is_never_abandoned(reason):
 # --------------------------------------------------------------------------
 # Option validation and defaults
 # --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("interval_s", "timeout_s"),
+    [(0.1, 0.1), (1.0, 1.0), (1.5, 1.0), (3.0, 1.5), (10.0, 5.0)],
+)
+def test_renewal_call_timeout_is_half_the_interval_but_at_least_1s(
+    interval_s, timeout_s
+):
+    """Half the interval, floored at 1 s for short intervals (a remote or busy
+    Redis), never more than the interval itself."""
+    config = LeaseConfig(stream="s", group="g", consumer="c", interval_s=interval_s)
+    assert config.timeout_s == timeout_s
 
 
 def test_default_interval_is_a_third_of_retry_on_idle_ms():

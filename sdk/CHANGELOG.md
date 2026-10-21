@@ -35,12 +35,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Redis: consuming resumes after a lost consumer group (stream deleted,
-  Redis flushed or failed over) with FastStream >= 0.7.6. Those versions stop
-  a subscriber for good on `NOGROUP` instead of retrying the read, so the
-  group monitor recreated the group but nothing read from it any more. The
-  monitor now also restarts the stream subscribers `connect()` started, once
-  their group exists again (a partial loss still redelivers from id `0`). No
-  change on FastStream <= 0.7.5, where the read loop never stopped.
+  Redis flushed or failed over) with FastStream >= 0.7.6, for every stream
+  subscription (not only `renew_lease`). Those versions stop a subscriber for
+  good on `NOGROUP` instead of retrying the read, so the group monitor
+  recreated the group but nothing read from it any more. The monitor now also
+  restarts the stream subscribers `connect()` started, once their group exists
+  again (a partial loss still redelivers from id `0`). A subscriber FastStream
+  stops again right after a restart (an error a restart can't fix, e.g.
+  `min_idle_time` on Redis < 6.2) is restarted with exponential backoff, up to
+  5 minutes, and logged as an error. No change on FastStream <= 0.7.5, where
+  the read loop never stopped.
+- A sync handler with `data_type` / `filter_by_data` / `filter_by_message` now
+  runs in a worker thread, as FastStream (Kafka, Redis) runs a sync handler
+  without those options. The filter wrapper called it on the event loop,
+  blocking every other consumer, Kafka heartbeats and Redis lease renewal for
+  its whole run (a long one was reclaimed and redelivered despite
+  `renew_lease=True`). Applies to all transports.
 
 ## [0.8.0] - 2026-10-19
 

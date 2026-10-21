@@ -75,17 +75,19 @@ async def call_handler(handler: Callable, is_async: bool, *args, **kwargs) -> An
     return result
 
 
-async def _invoke(handler: Callable, arg: Any) -> Any:
-    """Call ``handler`` with ``arg``, awaiting the result only if it is awaitable.
+# Set on a filter wrapper whose user handler is sync. The wrapper itself is a
+# coroutine function, so is_async_callable() can't tell that awaiting it means
+# waiting on a worker thread that cancelling cannot stop.
+_RUNS_IN_THREAD_ATTR = "__eggai_runs_in_thread__"
 
-    Mirrors ``make_tracing_wrapper``'s tolerance of synchronous handlers: a sync
-    handler combined with a filter option must not raise ``TypeError`` from an
-    unconditional ``await``.
-    """
-    result = handler(arg)
-    if inspect.isawaitable(result):
-        return await result
-    return result
+
+def runs_in_worker_thread(handler: Callable) -> bool:
+    """True when awaiting ``handler`` runs the user's code in a worker thread:
+    a sync handler, or an SDK wrapper (filters, tracing) around one. Cancelling
+    such a run only abandons the thread, it keeps running."""
+    return not is_async_callable(handler) or bool(
+        getattr(handler, _RUNS_IN_THREAD_ATTR, False)
+    )
 
 
 def wrap_handler_with_filters(
@@ -130,6 +132,16 @@ def wrap_handler_with_filters(
             "message. Use filter_by_message to filter on the raw dict instead."
         )
 
+    # A sync handler runs in a worker thread, as FastStream runs one it is given
+    # directly: called inline from the async wrapper it would block the event
+    # loop (other consumers, heartbeats, lease renewal) for its whole run.
+    is_async = is_async_callable(handler)
+
+    def _mark_sync(wrapper: Callable) -> Callable:
+        if not is_async:
+            setattr(wrapper, _RUNS_IN_THREAD_ATTR, True)
+        return wrapper
+
     if data_type is not None:
         if "type" not in data_type.model_fields:
             raise ValueError(
@@ -158,17 +170,17 @@ def wrap_handler_with_filters(
                 return None
             if filter_by_data is not None and not filter_by_data(typed_message):
                 return None
-            return await _invoke(handler, typed_message)
+            return await call_handler(handler, is_async, typed_message)
 
-        return _carry_identity(typed_handler, handler)
+        return _mark_sync(_carry_identity(typed_handler, handler))
 
     if filter_by_message is not None:
 
         async def filtered_handler(message: dict[str, Any]) -> Any:
             if filter_by_message(message):
-                return await _invoke(handler, message)
+                return await call_handler(handler, is_async, message)
             return None
 
-        return _carry_identity(filtered_handler, handler)
+        return _mark_sync(_carry_identity(filtered_handler, handler))
 
     return handler

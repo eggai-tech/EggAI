@@ -6,11 +6,18 @@ They lock in the contract that both the Redis and Kafka transports rely on after
 FastStream 0.7 removed subscriber middlewares.
 """
 
+import asyncio
+import threading
+import time
+
 import pytest
 from pydantic import BaseModel
 
 from eggai.schemas import BaseMessage
-from eggai.transport.middleware_utils import wrap_handler_with_filters
+from eggai.transport.middleware_utils import (
+    runs_in_worker_thread,
+    wrap_handler_with_filters,
+)
 
 
 class Order(BaseModel):
@@ -159,6 +166,91 @@ async def test_sync_handler_works_with_data_type():
     await wrapped(_order_msg(order_id=7))
 
     assert seen == [7]
+
+
+_FILTERS = [
+    pytest.param({"filter_by_message": lambda m: True}, id="filter_by_message"),
+    pytest.param({"data_type": OrderMessage}, id="data_type"),
+]
+
+
+@pytest.mark.parametrize("filter_opts", _FILTERS)
+@pytest.mark.asyncio
+async def test_sync_handler_behind_filters_runs_in_a_worker_thread(filter_opts):
+    """A sync handler behind the filter wrapper runs in a worker thread, as
+    FastStream runs one it is given directly, so it doesn't block the event
+    loop (other consumers, heartbeats, lease renewal) while it works."""
+    loop_thread = threading.get_ident()
+    threads = []
+
+    def sync_handler(message):
+        threads.append(threading.get_ident())
+        time.sleep(0.3)
+        return "done"
+
+    ticks = 0
+
+    async def ticker():
+        nonlocal ticks
+        while True:
+            await asyncio.sleep(0.01)
+            ticks += 1
+
+    wrapped = wrap_handler_with_filters(sync_handler, **filter_opts)
+    tick_task = asyncio.create_task(ticker())
+    try:
+        result = await wrapped(_order_msg())
+    finally:
+        tick_task.cancel()
+
+    assert result == "done"
+    assert threads and threads[0] != loop_thread
+    assert ticks >= 10  # the loop kept running during the 0.3 s sleep
+
+
+@pytest.mark.parametrize("filter_opts", _FILTERS)
+@pytest.mark.asyncio
+async def test_async_handler_behind_filters_runs_on_the_event_loop(filter_opts):
+    loop_thread = threading.get_ident()
+    threads = []
+
+    async def handler(message):
+        threads.append(threading.get_ident())
+
+    await wrap_handler_with_filters(handler, **filter_opts)(_order_msg())
+    assert threads == [loop_thread]
+
+
+@pytest.mark.parametrize("filter_opts", _FILTERS)
+def test_runs_in_worker_thread(filter_opts):
+    def sync_handler(message):
+        pass
+
+    async def async_handler(message):
+        pass
+
+    assert runs_in_worker_thread(sync_handler)
+    assert not runs_in_worker_thread(async_handler)
+    assert runs_in_worker_thread(wrap_handler_with_filters(sync_handler, **filter_opts))
+    assert not runs_in_worker_thread(
+        wrap_handler_with_filters(async_handler, **filter_opts)
+    )
+
+
+def test_runs_in_worker_thread_survives_the_tracing_wrapper(monkeypatch):
+    """tracing( filters( sync handler ) ): the tracing wrapper copies the
+    marker (functools.wraps), so the lease wrapper still sees a thread."""
+    import eggai.tracing as tracing
+
+    monkeypatch.setattr(tracing, "_backend", tracing._NoOpBackend())
+
+    def sync_handler(message):
+        pass
+
+    filtered = wrap_handler_with_filters(sync_handler, filter_by_message=bool)
+    traced = tracing.make_tracing_wrapper("ch", filtered)
+    assert traced is not filtered  # tracing did wrap it
+    assert runs_in_worker_thread(traced)
 
 
 def test_wrapper_preserves_handler_identity():

@@ -2472,3 +2472,75 @@ async def test_group_monitor_restarts_subscribers_faststream_stopped(caplog):
     stopped.running = False
     await transport._restart_stopped_subscribers()
     assert stopped.starts == 1  # never restarted once disconnect() began
+
+
+@pytest.mark.asyncio
+async def test_group_monitor_backs_off_a_subscriber_that_keeps_stopping(
+    monkeypatch, caplog
+):
+    """FastStream also stops a subscriber for errors a restart can't fix (e.g.
+    min_idle_time on Redis < 6.2), which then stops again right after every
+    restart. Those restarts back off exponentially (capped) and are logged as
+    errors; a subscriber that stays up for a monitor pass resets the backoff."""
+    from types import SimpleNamespace
+
+    import eggai.transport.redis as redis_mod
+
+    now = 1000.0
+    monkeypatch.setattr(redis_mod.time, "monotonic", lambda: now)
+    transport = RedisTransport(group_monitor_interval_s=1.0)
+    transport._running = True
+
+    class StopsRightAway:
+        def __init__(self):
+            self.stream_sub = SimpleNamespace(name="s", group="g")
+            self.running = False
+            self.tasks = []
+            self.starts = 0
+
+        async def start(self):
+            self.starts += 1
+            self.running = True
+
+    sub = StopsRightAway()
+    transport._started_subscribers[id(sub)] = sub
+
+    async def monitor_pass(after_s, stops_again=True):
+        nonlocal now
+        now += after_s
+        if stops_again:
+            sub.running = False  # the terminal error hit right after start()
+        await transport._restart_stopped_subscribers()
+
+    caplog.set_level(logging.WARNING)
+    await transport._restart_stopped_subscribers()
+    assert sub.starts == 1  # first restart: immediate, a warning
+    assert "Restarted the consumer for stream s group g" in caplog.text
+
+    await monitor_pass(1.0)
+    assert sub.starts == 2  # stopped again: restarted, then backs off 2 s
+    assert "stopped again by FastStream right after its restart (1 time" in (
+        caplog.text
+    )
+    await monitor_pass(1.0)
+    assert sub.starts == 2  # within the backoff
+    await monitor_pass(1.0)
+    assert sub.starts == 3  # 2 s later; next backoff 4 s
+    for _ in range(3):
+        await monitor_pass(1.0)
+    assert sub.starts == 3
+    await monitor_pass(1.0)
+    assert sub.starts == 4
+
+    # Capped: many failures in a row never wait longer than the cap.
+    transport._restart_states[id(sub)].failures = 20
+    await monitor_pass(1000.0)
+    assert sub.starts == 5
+    state = transport._restart_states[id(sub)]
+    assert state.not_before - now == redis_mod._MAX_RESTART_BACKOFF_S
+
+    # Stays up through a pass: the backoff is gone, the next stop restarts at once.
+    await monitor_pass(redis_mod._MAX_RESTART_BACKOFF_S, stops_again=False)
+    assert id(sub) not in transport._restart_states
+    await monitor_pass(1.0)
+    assert sub.starts == 6

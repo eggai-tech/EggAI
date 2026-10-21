@@ -3,6 +3,7 @@ import functools
 import logging
 import os
 import socket
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -47,6 +48,20 @@ logger = logging.getLogger(__name__)
 # consumer group (same handler code → same group) each claim a distinct slice of
 # the stream and own their own PEL entries — the competing-consumers pattern.
 _CONSUMER_INSTANCE = f"{socket.gethostname()}-{os.getpid()}"
+
+
+# Longest wait between restarts of a subscriber that FastStream keeps stopping
+# again right after a restart (a terminal error that recurs on every read).
+_MAX_RESTART_BACKOFF_S = 300.0
+
+
+@dataclass
+class _RestartState:
+    """Backoff for one subscriber the group monitor restarted. ``failures``
+    counts restarts in a row after which it was found stopped again."""
+
+    failures: int = 0
+    not_before: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -213,6 +228,9 @@ class RedisTransport(Transport):
         # >= 0.7.6 stops a subscriber for good when its group is gone (NOGROUP);
         # the group monitor restarts these once it has recreated the group.
         self._started_subscribers: dict[int, Any] = {}
+        # Restart backoff per started subscriber (same keys), see
+        # _restart_stopped_subscribers. Dropped once it stays running.
+        self._restart_states: dict[int, _RestartState] = {}
 
     def _open_background_client(self, *, decode_responses: bool) -> aioredis.Redis:
         """Open a long-lived background client (reclaimer / monitor / delete-on-ack)
@@ -495,9 +513,9 @@ class RedisTransport(Transport):
                 server.
             renew_lease_interval_ms (int, optional): How often leases are renewed (default
                 ``retry_on_idle_ms // 3``, so two renewals can fail before an entry becomes reclaimable). Must be
-                less than ``retry_on_idle_ms``. Each renewal round trip is bounded by half the interval; a failed
-                renewal is logged (stream, group, ids) and retried at the next interval, it never stops the
-                consumer. Requires ``renew_lease=True``.
+                less than ``retry_on_idle_ms``. Each renewal round trip is bounded by half the interval, but at least
+                1 s (at most the interval); a failed renewal is logged (stream, group, ids) and retried at the next
+                interval, it never stops the consumer. Requires ``renew_lease=True``.
             cancel_on_lease_lost (bool, optional): What to do when a renewal finds that an in-flight entry left
                 this consumer's PEL, i.e. it was reclaimed for redelivery (typically after renewals failed for
                 longer than ``retry_on_idle_ms``, e.g. a Redis outage). True (default): cancel the handler and
@@ -1176,17 +1194,28 @@ class RedisTransport(Transport):
         group keeps the start id chosen here (id="0" on a partial loss).
         Subscribers are only started once their stop() has finished (no task
         left running), so a restart can't be cancelled by a stop still in
-        progress. No-op on FastStream versions that never stop them. The cause
-        of a stop is not known here, so the log says what was restarted, not
-        why it stopped.
+        progress. No-op on FastStream versions that never stop them.
+
+        The cause of a stop is not known here. FastStream also stops a subscriber
+        for errors a restart can't fix (e.g. ``min_idle_time`` on Redis < 6.2),
+        so one found stopped again after a restart is restarted with exponential
+        backoff (up to ``_MAX_RESTART_BACKOFF_S``) and logged as an error; once
+        it stays running through a monitor pass, the backoff resets. A restart
+        that raises (e.g. Redis unreachable) is retried on the next pass.
         """
-        for sub in list(self._started_subscribers.values()):
+        for key, sub in list(self._started_subscribers.items()):
             if not self._running:
                 return
             if getattr(sub, "running", True):
+                # Still running a pass after its restart: the stop is behind it.
+                self._restart_states.pop(key, None)
                 continue
             if any(not task.done() for task in getattr(sub, "tasks", ())):
                 continue  # still stopping (graceful wait for in-flight handlers)
+            state = self._restart_states.get(key)
+            now = time.monotonic()
+            if state is not None and now < state.not_before:
+                continue
             stream, group = _stream_group(sub) or ("?", "?")
             try:
                 await sub.start()
@@ -1200,7 +1229,9 @@ class RedisTransport(Transport):
                     type(e).__name__,
                     e,
                 )
-            else:
+                continue
+            if state is None:
+                self._restart_states[key] = _RestartState()
                 logger.warning(
                     "Restarted the consumer for stream %s group %s, which "
                     "FastStream had stopped (it stops a consumer for good on "
@@ -1209,6 +1240,24 @@ class RedisTransport(Transport):
                     stream,
                     group,
                 )
+                continue
+            state.failures += 1
+            delay = min(
+                self._group_monitor_interval_s * 2**state.failures,
+                _MAX_RESTART_BACKOFF_S,
+            )
+            state.not_before = now + delay
+            logger.error(
+                "The consumer for stream %s group %s was stopped again by "
+                "FastStream right after its restart (%d time(s) in a row); "
+                "restarted it once more, next attempt no sooner than in %.0fs. "
+                "FastStream logs the cause (CRITICAL) when it stops a consumer; "
+                "an error that recurs on every read needs fixing there.",
+                stream,
+                group,
+                state.failures,
+                delay,
+            )
 
     async def _check_delete_on_ack_groups(self, client: Any) -> None:
         """Handle a consumer group that joined a delete_on_ack stream after
