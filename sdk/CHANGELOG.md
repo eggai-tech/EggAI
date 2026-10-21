@@ -7,12 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Redis `subscribe(..., renew_lease=True)`: in-flight lease renewal. Redis
+  resets a PEL entry's idle time only on delivery, so a handler running longer
+  than `retry_on_idle_ms` was reclaimed and redelivered while still running.
+  - Every `renew_lease_interval_ms` (default `retry_on_idle_ms // 3`) a Lua
+    script renews this consumer's in-flight entries with `XCLAIM ... 0 <id>
+    JUSTID` (owner and delivery count unchanged) on the main and `.retry`
+    stream, including prefetched ones; a crashed worker's entries are still
+    reclaimed.
+  - An entry reclaimed anyway cancels its handler with
+    `eggai.transport.LeaseLostError` (`cancel_on_lease_lost=False` lets it
+    finish); sync handlers are never interrupted, the error is raised when
+    their thread returns.
+  - Requires `retry_on_idle_ms` and Lua scripting; rejected with `no_ack=True`
+    and `AckPolicy.MANUAL`. Opt-in, default behaviour unchanged.
+- Redis `subscribe(..., max_processing_ms=...)`: handler deadline. A handler
+  still running at it is cancelled with `eggai.transport.ProcessingTimeoutError`
+  and its entry NACKed for the normal retry. Requires `retry_on_idle_ms`;
+  rejected with `no_ack=True`.
+
+### Changed
+
+- `anyio` (`>=4.0,<5`, the range FastStream already requires) is now a
+  declared dependency; the SDK imports it directly.
+
+### Fixed
+
+- Redis: consuming resumes after a lost consumer group (stream deleted,
+  Redis flushed or failed over) with FastStream >= 0.7.6, for every stream
+  subscription (not only `renew_lease`). Those versions stop a subscriber for
+  good on `NOGROUP` instead of retrying the read, so the group monitor
+  recreated the group but nothing read from it any more. The monitor now also
+  restarts the stream subscribers `connect()` started, once their group exists
+  again (a partial loss still redelivers from id `0`). A subscriber FastStream
+  stops again right after a restart (an error a restart can't fix, e.g.
+  `min_idle_time` on Redis < 6.2) is restarted with exponential backoff, up to
+  5 minutes, and logged as an error. No change on FastStream <= 0.7.5, where
+  the read loop never stopped. The lock moves from FastStream 0.7.5 to 0.7.7
+  (it was held back for this bug), so CI covers this path.
+- A sync handler with `data_type` / `filter_by_data` / `filter_by_message` now
+  runs in a worker thread, as FastStream (Kafka, Redis) runs a sync handler
+  without those options. The filter wrapper called it on the event loop,
+  blocking every other consumer, Kafka heartbeats and Redis lease renewal for
+  its whole run (a long one was reclaimed and redelivered despite
+  `renew_lease=True`). Applies to all transports.
+
 ### Security
 
 - Lock files refreshed within the existing constraints: PyJWT 2.13.0 → 2.15.1
   and urllib3 2.7.0 → 2.8.0 (sdk and docs), clearing the open advisories on
-  both. FastStream stays at 0.7.5: 0.7.6+ stops a subscriber whose consumer
-  group was deleted before the group monitor can recreate it.
+  both.
 
 ## [0.8.0] - 2026-10-19
 

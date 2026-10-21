@@ -9,6 +9,7 @@ This test suite verifies:
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import uuid
@@ -1705,6 +1706,17 @@ async def test_connection_kwargs_propagate_to_reclaimer():
     # The reclaimer gets the same connection dict the transport forwards.
     assert transport._reclaimer_manager._connection_kwargs is ck
 
+    # So does the lease-renewal client.
+    await transport.subscribe(
+        "invoices",
+        handler,
+        handler_id="invoices-handler-1",
+        retry_on_idle_ms=500,
+        renew_lease=True,
+    )
+    assert transport._lease_manager is not None
+    assert transport._lease_manager._connection_kwargs is ck
+
 
 @pytest.mark.asyncio
 async def test_reclaimer_start_applies_connection_kwargs(monkeypatch):
@@ -2014,12 +2026,16 @@ async def _make_envelope(body: dict) -> bytes:
     """Build a FastStream BinaryMessageFormatV1 envelope around a JSON body.
 
     Used by the backoff tests to plant a stream entry with a known _retry_count.
+    ``encode`` is sync in FastStream 0.6 and async from 0.7.
     """
     from faststream.redis.parser.binary import BinaryMessageFormatV1
 
-    return await BinaryMessageFormatV1.encode(
+    envelope = BinaryMessageFormatV1.encode(
         message=body, reply_to=None, headers=None, correlation_id="test-cid"
     )
+    if inspect.isawaitable(envelope):
+        envelope = await envelope
+    return envelope
 
 
 def _make_backoff_config(stream: str, retry_stream: str, **overrides):
@@ -2403,3 +2419,162 @@ async def test_group_start_zero_delivers_backlog_and_new_entries():
     await redis_client.delete(f"eggai.{channel_name}")
     await redis_client.aclose()
     await producer.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_group_monitor_restarts_subscribers_faststream_stopped(caplog):
+    """FastStream >= 0.7.6 stops a subscriber for good on NOGROUP. The monitor
+    restarts subscribers connect() started, once their stop() has finished;
+    running ones and ones still stopping are left alone, and a failed restart
+    is logged and retried on the next pass."""
+    from types import SimpleNamespace
+
+    transport = RedisTransport()
+    transport._running = True
+
+    class FakeSubscriber:
+        def __init__(self, running, tasks=(), fail=False):
+            self.stream_sub = SimpleNamespace(name="s", group="g")
+            self.running = running
+            self.tasks = list(tasks)
+            self.fail = fail
+            self.starts = 0
+
+        async def start(self):
+            self.starts += 1
+            if self.fail:
+                raise ConnectionError("redis down")
+            self.running = True
+
+    pending = asyncio.get_running_loop().create_future()
+    stopped = FakeSubscriber(running=False)
+    stopping = FakeSubscriber(running=False, tasks=[pending])
+    running = FakeSubscriber(running=True)
+    failing = FakeSubscriber(running=False, fail=True)
+    for sub in (stopped, stopping, running, failing):
+        transport._started_subscribers[id(sub)] = sub
+
+    caplog.set_level(logging.WARNING)
+    await transport._restart_stopped_subscribers()
+
+    assert (stopped.starts, stopping.starts, running.starts) == (1, 0, 0)
+    assert stopped.running
+    assert failing.starts == 1 and "Failed to restart the consumer" in caplog.text
+    assert "Restarted the consumer for stream s group g" in caplog.text
+
+    failing.fail = False
+    pending.cancel()
+    await transport._restart_stopped_subscribers()
+    assert failing.starts == 2 and failing.running
+    assert stopping.starts == 1 and stopped.starts == 1
+
+    transport._running = False
+    stopped.running = False
+    await transport._restart_stopped_subscribers()
+    assert stopped.starts == 1  # never restarted once disconnect() began
+
+
+@pytest.mark.asyncio
+async def test_connect_and_monitor_never_both_start_a_subscriber():
+    """FastStream's start() awaits XGROUP CREATE before it sets running, so
+    connect() (on a shared transport) and the monitor's restart could both
+    start the same stopped subscriber, each adding a consume loop. Starts are
+    serialised and re-check running."""
+    from types import SimpleNamespace
+
+    transport = RedisTransport()
+    transport._running = True
+
+    class SlowStart:
+        def __init__(self):
+            self.stream_sub = SimpleNamespace(name="s", group="g")
+            self.running = False
+            self.tasks = []
+            self.starts = 0
+
+        async def start(self):
+            self.starts += 1
+            await asyncio.sleep(0.05)  # XGROUP CREATE round trip
+            self.running = True
+
+    sub = SlowStart()
+    transport._started_subscribers[id(sub)] = sub
+    results = await asyncio.gather(
+        transport._start_if_stopped(sub),  # connect()'s path
+        transport._restart_stopped_subscribers(),
+    )
+    assert sub.starts == 1 and sub.running
+    assert results[0] is True  # connect() won; the monitor saw it running
+    assert await transport._start_if_stopped(sub) is False
+
+
+@pytest.mark.asyncio
+async def test_group_monitor_backs_off_a_subscriber_that_keeps_stopping(
+    monkeypatch, caplog
+):
+    """FastStream also stops a subscriber for errors a restart can't fix (e.g.
+    min_idle_time on Redis < 6.2), which then stops again right after every
+    restart. Those restarts back off exponentially (capped) and are logged as
+    errors; a subscriber that stays up for a monitor pass resets the backoff."""
+    from types import SimpleNamespace
+
+    import eggai.transport.redis as redis_mod
+
+    now = 1000.0
+    monkeypatch.setattr(redis_mod.time, "monotonic", lambda: now)
+    transport = RedisTransport(group_monitor_interval_s=1.0)
+    transport._running = True
+
+    class StopsRightAway:
+        def __init__(self):
+            self.stream_sub = SimpleNamespace(name="s", group="g")
+            self.running = False
+            self.tasks = []
+            self.starts = 0
+
+        async def start(self):
+            self.starts += 1
+            self.running = True
+
+    sub = StopsRightAway()
+    transport._started_subscribers[id(sub)] = sub
+
+    async def monitor_pass(after_s, stops_again=True):
+        nonlocal now
+        now += after_s
+        if stops_again:
+            sub.running = False  # the terminal error hit right after start()
+        await transport._restart_stopped_subscribers()
+
+    caplog.set_level(logging.WARNING)
+    await transport._restart_stopped_subscribers()
+    assert sub.starts == 1  # first restart: immediate, a warning
+    assert "Restarted the consumer for stream s group g" in caplog.text
+
+    await monitor_pass(1.0)
+    assert sub.starts == 2  # stopped again: restarted, then backs off 2 s
+    assert "stopped again by FastStream right after its restart (1 time" in (
+        caplog.text
+    )
+    await monitor_pass(1.0)
+    assert sub.starts == 2  # within the backoff
+    await monitor_pass(1.0)
+    assert sub.starts == 3  # 2 s later; next backoff 4 s
+    for _ in range(3):
+        await monitor_pass(1.0)
+    assert sub.starts == 3
+    await monitor_pass(1.0)
+    assert sub.starts == 4
+
+    # Capped: many failures in a row never wait longer than the cap.
+    transport._restart_states[id(sub)].failures = 20
+    await monitor_pass(1000.0)
+    assert sub.starts == 5
+    state = transport._restart_states[id(sub)]
+    assert state.not_before - now == redis_mod._MAX_RESTART_BACKOFF_S
+
+    # Stays up through a pass: the backoff is gone, the next stop restarts at once.
+    await monitor_pass(redis_mod._MAX_RESTART_BACKOFF_S, stops_again=False)
+    assert id(sub) not in transport._restart_states
+    await monitor_pass(1.0)
+    assert sub.starts == 6

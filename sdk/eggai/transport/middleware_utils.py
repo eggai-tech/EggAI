@@ -10,10 +10,13 @@ handler-wrapping approach is independent of FastStream's middleware API and keep
 the behaviour identical across the Kafka, Redis, and in-memory transports.
 """
 
+import asyncio
+import functools
 import inspect
 from collections.abc import Callable
 from typing import Any
 
+import anyio
 from pydantic import BaseModel, ValidationError
 from pydantic_core import PydanticUndefined
 
@@ -37,17 +40,54 @@ def _carry_identity(wrapper: Callable, handler: Callable) -> Callable:
     return wrapper
 
 
-async def _invoke(handler: Callable, arg: Any) -> Any:
-    """Call ``handler`` with ``arg``, awaiting the result only if it is awaitable.
+def _is_coroutine_function(obj: Any) -> bool:
+    if inspect.iscoroutinefunction(obj):
+        return True
+    # Marked the pre-3.12 way (e.g. AsyncMock on 3.10/3.11), which only
+    # asyncio.iscoroutinefunction recognised; that one is deprecated in 3.14.
+    marker = getattr(asyncio.coroutines, "_is_coroutine", None)
+    return marker is not None and getattr(obj, "_is_coroutine", None) is marker
 
-    Mirrors ``make_tracing_wrapper``'s tolerance of synchronous handlers: a sync
-    handler combined with a filter option must not raise ``TypeError`` from an
-    unconditional ``await``.
+
+def is_async_callable(handler: Callable) -> bool:
+    """True for a coroutine function, an object with an async ``__call__``, or a
+    ``functools.partial`` of either."""
+    while isinstance(handler, functools.partial):
+        handler = handler.func
+    return _is_coroutine_function(handler) or _is_coroutine_function(
+        type(handler).__call__
+    )
+
+
+async def call_handler(handler: Callable, is_async: bool, *args, **kwargs) -> Any:
+    """Run ``handler`` the way FastStream would have without an SDK wrapper.
+
+    An async handler is awaited on the event loop; a sync one is sent to a
+    worker thread (FastStream only does that itself when it sees the sync
+    function, not an async wrapper around it). A sync callable that still
+    returned an awaitable has it awaited rather than dropped.
     """
-    result = handler(arg)
+    if is_async:
+        return await handler(*args, **kwargs)
+    result = await anyio.to_thread.run_sync(functools.partial(handler, *args, **kwargs))
     if inspect.isawaitable(result):
-        return await result
+        result = await result
     return result
+
+
+# Set on a filter wrapper whose user handler is sync. The wrapper itself is a
+# coroutine function, so is_async_callable() can't tell that awaiting it means
+# waiting on a worker thread that cancelling cannot stop.
+_RUNS_IN_THREAD_ATTR = "__eggai_runs_in_thread__"
+
+
+def runs_in_worker_thread(handler: Callable) -> bool:
+    """True when awaiting ``handler`` runs the user's code in a worker thread:
+    a sync handler, or an SDK wrapper (filters, tracing) around one. Cancelling
+    such a run only abandons the thread, it keeps running."""
+    return not is_async_callable(handler) or bool(
+        getattr(handler, _RUNS_IN_THREAD_ATTR, False)
+    )
 
 
 def wrap_handler_with_filters(
@@ -92,6 +132,16 @@ def wrap_handler_with_filters(
             "message. Use filter_by_message to filter on the raw dict instead."
         )
 
+    # A sync handler runs in a worker thread, as FastStream runs one it is given
+    # directly: called inline from the async wrapper it would block the event
+    # loop (other consumers, heartbeats, lease renewal) for its whole run.
+    is_async = is_async_callable(handler)
+
+    def _mark_sync(wrapper: Callable) -> Callable:
+        if not is_async:
+            setattr(wrapper, _RUNS_IN_THREAD_ATTR, True)
+        return wrapper
+
     if data_type is not None:
         if "type" not in data_type.model_fields:
             raise ValueError(
@@ -120,17 +170,17 @@ def wrap_handler_with_filters(
                 return None
             if filter_by_data is not None and not filter_by_data(typed_message):
                 return None
-            return await _invoke(handler, typed_message)
+            return await call_handler(handler, is_async, typed_message)
 
-        return _carry_identity(typed_handler, handler)
+        return _mark_sync(_carry_identity(typed_handler, handler))
 
     if filter_by_message is not None:
 
         async def filtered_handler(message: dict[str, Any]) -> Any:
             if filter_by_message(message):
-                return await _invoke(handler, message)
+                return await call_handler(handler, is_async, message)
             return None
 
-        return _carry_identity(filtered_handler, handler)
+        return _mark_sync(_carry_identity(filtered_handler, handler))
 
     return handler
