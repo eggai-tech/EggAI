@@ -132,7 +132,11 @@ class Agent:
             # but at decoration time. Validation only: kwargs is read, not
             # changed, and the transport resolves the options again.
             if any(k in kwargs for k in LEASE_OPTION_KEYS):
-                resolve_lease_options(kwargs, kwargs.get("retry_on_idle_ms"))
+                resolve_lease_options(
+                    kwargs,
+                    kwargs.get("retry_on_idle_ms"),
+                    no_ack=kwargs.get("no_ack", False),
+                )
             # Plugins see the kwargs as the caller wrote them (before the DLQ
             # key below is resolved to its namespaced form).
             original_kwargs = kwargs.copy()

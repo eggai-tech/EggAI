@@ -174,14 +174,17 @@ def _is_positive_int(value: Any) -> bool:
 
 
 def resolve_lease_options(
-    options: Mapping[str, Any], retry_on_idle_ms: int | None
+    options: Mapping[str, Any],
+    retry_on_idle_ms: int | None,
+    *,
+    no_ack: bool = False,
 ) -> LeaseOptions:
     """Validate the lease options in ``options`` (a subscribe kwargs mapping).
 
     Shared by ``Agent.subscribe`` (decoration time) and
     ``RedisTransport.subscribe``, so a bad combination fails the same way on
-    both paths. ``retry_on_idle_ms`` is the subscription's reclaim threshold.
-    ``options`` is only read, never modified.
+    both paths. ``retry_on_idle_ms`` is the subscription's reclaim threshold and
+    ``no_ack`` its ``no_ack`` option. ``options`` is only read, never modified.
     """
     lease = options.get("renew_lease", False)
     interval_ms = options.get("renew_lease_interval_ms")
@@ -221,6 +224,11 @@ def resolve_lease_options(
                 "renewed less often than the reclaim threshold is reclaimed "
                 "between two renewals (the default is retry_on_idle_ms // 3)."
             )
+        if no_ack:
+            raise ValueError(
+                "renew_lease is incompatible with no_ack=True: with no ack "
+                "there is no PEL entry to renew."
+            )
     if max_processing_ms is not None:
         if not _is_positive_int(max_processing_ms):
             raise ValueError("max_processing_ms must be a positive int")
@@ -229,6 +237,12 @@ def resolve_lease_options(
                 "max_processing_ms requires retry_on_idle_ms: a handler past its "
                 "deadline is NACKed, and only the SDK-managed reclaimer retries a "
                 "NACKed entry."
+            )
+        if no_ack:
+            raise ValueError(
+                "max_processing_ms is incompatible with no_ack=True: a handler "
+                "past its deadline is left in the PEL for retry, and with no ack "
+                "there is no PEL entry, so the message would be lost."
             )
     return LeaseOptions(
         renew_lease=lease,
@@ -356,10 +370,14 @@ class LeaseKeeper:
         # delivered to this process are newer than anything left from before.
         # Not renewing those lets the reclaimer recover them.
         low = min(self._in_flight, key=_id_key)
+        # Skip only the ids that were lost (or trimmed), not a whole batch: a
+        # batch handler that keeps running after one loss (cancel_on_lease_lost
+        # =False, or a sync handler, never cancelled) still owns the others,
+        # which would otherwise be reclaimed and redelivered alongside it.
         in_flight_now = {
             msg_id
             for msg_id, inv in self._in_flight.items()
-            if not inv.lost and msg_id not in self._trimmed
+            if msg_id not in inv.lost_ids and msg_id not in self._trimmed
         }
         self._begun_this_round = set()
         try:
@@ -689,7 +707,10 @@ def wrap_handler_with_lease(
     are never cancelled: a lost lease or a missed deadline takes effect when the
     thread returns (its result is discarded and the error raised). Past the
     deadline the entry stays leased until then, so its retry cannot overlap the
-    thread; a sync handler that never returns therefore keeps its lease.
+    thread; a sync handler that never returns therefore keeps its lease. The
+    exception is a cancellation of the wrapper itself (agent stop past
+    ``graceful_timeout``): it is forwarded, which abandons a sync handler's
+    thread, and the lease ends with the wrapper.
     """
     is_async = is_async_callable(handler)
     # A sync handler, also behind the filter wrapper (which is async itself but

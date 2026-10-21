@@ -2475,6 +2475,40 @@ async def test_group_monitor_restarts_subscribers_faststream_stopped(caplog):
 
 
 @pytest.mark.asyncio
+async def test_connect_and_monitor_never_both_start_a_subscriber():
+    """FastStream's start() awaits XGROUP CREATE before it sets running, so
+    connect() (on a shared transport) and the monitor's restart could both
+    start the same stopped subscriber, each adding a consume loop. Starts are
+    serialised and re-check running."""
+    from types import SimpleNamespace
+
+    transport = RedisTransport()
+    transport._running = True
+
+    class SlowStart:
+        def __init__(self):
+            self.stream_sub = SimpleNamespace(name="s", group="g")
+            self.running = False
+            self.tasks = []
+            self.starts = 0
+
+        async def start(self):
+            self.starts += 1
+            await asyncio.sleep(0.05)  # XGROUP CREATE round trip
+            self.running = True
+
+    sub = SlowStart()
+    transport._started_subscribers[id(sub)] = sub
+    results = await asyncio.gather(
+        transport._start_if_stopped(sub),  # connect()'s path
+        transport._restart_stopped_subscribers(),
+    )
+    assert sub.starts == 1 and sub.running
+    assert results[0] is True  # connect() won; the monitor saw it running
+    assert await transport._start_if_stopped(sub) is False
+
+
+@pytest.mark.asyncio
 async def test_group_monitor_backs_off_a_subscriber_that_keeps_stopping(
     monkeypatch, caplog
 ):

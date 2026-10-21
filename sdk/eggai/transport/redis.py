@@ -231,6 +231,8 @@ class RedisTransport(Transport):
         # Restart backoff per started subscriber (same keys), see
         # _restart_stopped_subscribers. Dropped once it stays running.
         self._restart_states: dict[int, _RestartState] = {}
+        # Serialises subscriber starts (see _start_if_stopped).
+        self._subscriber_start_lock = asyncio.Lock()
 
     def _open_background_client(self, *, decode_responses: bool) -> aioredis.Redis:
         """Open a long-lived background client (reclaimer / monitor / delete-on-ack)
@@ -303,8 +305,7 @@ class RedisTransport(Transport):
                 await self.broker.start()
             else:
                 for sub in self.broker.subscribers:
-                    if not getattr(sub, "running", False):
-                        await sub.start()
+                    await self._start_if_stopped(sub)
         except BaseException:
             # Don't leave renewal tasks and their client behind a failed start.
             if started_lease_manager and self._lease_manager is not None:
@@ -528,7 +529,7 @@ class RedisTransport(Transport):
                 ``eggai.transport.ProcessingTimeoutError`` is raised, so the entry is NACKed and retried by the
                 reclaimer like any other failure (counts towards ``max_retries``). Default None (no deadline).
                 Pairs with ``renew_lease``, where a hung handler would otherwise hold its lease forever. Requires
-                ``retry_on_idle_ms``. Sync handlers run in a worker thread and cannot be interrupted, so they are
+                ``retry_on_idle_ms``; incompatible with ``no_ack=True`` (no PEL entry to retry). Sync handlers run in a worker thread and cannot be interrupted, so they are
                 never cancelled: a lost lease or a missed deadline takes effect when the thread returns (result
                 discarded, error raised). Past the deadline the entry stays leased until then, so its retry can't
                 overlap the thread; a sync handler that never returns keeps its lease.
@@ -744,7 +745,9 @@ class RedisTransport(Transport):
 
         # Lease renewal / processing deadline (see eggai.transport.lease).
         if _lease_options is None:
-            _lease_options = resolve_lease_options(kwargs, retry_on_idle_ms)
+            _lease_options = resolve_lease_options(
+                kwargs, retry_on_idle_ms, no_ack=no_ack
+            )
         lease_opts = _lease_options
         for option in LEASE_OPTION_KEYS:
             kwargs.pop(option, None)
@@ -762,11 +765,6 @@ class RedisTransport(Transport):
                     "renew_lease requires a consumer name: pass handler_id= or "
                     "consumer= (Agent.subscribe / Channel.subscribe set one "
                     "automatically)."
-                )
-            if no_ack:
-                raise ValueError(
-                    "renew_lease is incompatible with no_ack=True: with no ack "
-                    "there is no PEL entry to renew."
                 )
             if kwargs.get("ack_policy") == AckPolicy.MANUAL:
                 raise ValueError(
@@ -1183,6 +1181,19 @@ class RedisTransport(Transport):
         finally:
             await close_client(client)
 
+    async def _start_if_stopped(self, sub: Any) -> bool:
+        """Start ``sub`` unless it is running; True if this call started it.
+
+        Serialised by ``_subscriber_start_lock`` with ``running`` re-checked
+        inside: FastStream's start() sets ``running`` only after awaiting
+        ``XGROUP CREATE``, so connect() and the monitor's restart could
+        otherwise both start it, each adding its own consume loop."""
+        async with self._subscriber_start_lock:
+            if getattr(sub, "running", False):
+                return False
+            await sub.start()
+            return True
+
     async def _restart_stopped_subscribers(self) -> None:
         """Restart stream subscribers FastStream stopped (e.g. after a NOGROUP).
 
@@ -1218,7 +1229,8 @@ class RedisTransport(Transport):
                 continue
             stream, group = _stream_group(sub) or ("?", "?")
             try:
-                await sub.start()
+                if not await self._start_if_stopped(sub):
+                    continue  # connect() started it meanwhile
             except Exception as e:
                 logger.warning(
                     "Failed to restart the consumer for stream %s group %s "

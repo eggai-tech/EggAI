@@ -637,6 +637,74 @@ async def test_batch_entries_are_all_renewed(redis_client):
     assert all(s["time_since_delivered"] < IDLE_MS for s in samples), samples
 
 
+@pytest.mark.parametrize("variant", ["async_no_cancel", "sync"])
+@pytest.mark.asyncio
+async def test_batch_entries_still_owned_are_not_redelivered_after_one_is_lost(
+    redis_client, variant
+):
+    """One entry of a running batch is claimed away. The others are still this
+    consumer's and must stay leased until the batch handler is done, so none of
+    them is redelivered while it runs (cancel_on_lease_lost=False, or a sync
+    handler, which is never cancelled)."""
+    agent_name, channel_name, stream, group = _names("lease-batch-lost")
+    await _prefill(stream, group, 3)
+    transport = RedisTransport()
+    agent = Agent(agent_name, transport=transport)
+    channel = Channel(channel_name, transport=transport)
+    started = threading.Event()
+    first_end: list[float] = []
+    retried: list[tuple[int, float]] = []  # (n, start) of redeliveries
+
+    def record(messages) -> bool:
+        now = time.monotonic()
+        if any(_retries(m) for m in messages):
+            retried.extend((m["n"], now) for m in messages)
+            return False
+        started.set()
+        return True
+
+    opts = {"cancel_on_lease_lost": False} if variant == "async_no_cancel" else {}
+    if variant == "sync":
+
+        def handler(messages: list):
+            if record(messages):
+                time.sleep(3.0)
+                first_end.append(time.monotonic())
+
+    else:
+
+        async def handler(messages: list):
+            if record(messages):
+                await asyncio.sleep(3.0)
+                first_end.append(time.monotonic())
+
+    agent.subscribe(
+        channel=channel,
+        group_start="0",
+        batch=True,
+        max_records=10,
+        retry_on_idle_ms=IDLE_MS,
+        retry_reclaim_interval_s=RECLAIM_S,
+        renew_lease=True,
+        **opts,
+    )(handler)
+
+    await agent.start()
+    try:
+        await _wait_for(lambda: _true(started.is_set()))
+        entries = await _pending_entries(redis_client, stream, group)
+        assert len(entries) == 3
+        lost = sorted(e["message_id"] for e in entries)[0]
+        await redis_client.xclaim(stream, group, "thief", 0, [lost], justid=True)
+        await _wait_for(lambda: _true(bool(first_end)), timeout=10.0)
+        await asyncio.sleep(IDLE_MS / 1000 + 3 * RECLAIM_S)
+    finally:
+        await agent.stop()
+
+    early = [n for n, start in retried if start < first_end[0]]
+    assert set(early) <= {0}, f"redelivered while the batch ran: {retried}"
+
+
 # --------------------------------------------------------------------------
 # max_processing_ms
 # --------------------------------------------------------------------------
@@ -1300,6 +1368,14 @@ def test_stream_group_of_a_subscriber_without_a_stream_name():
             },
             "cancel_on_lease_lost must be True or False",
         ),
+        (
+            {"renew_lease": True, "retry_on_idle_ms": 500, "no_ack": True},
+            "renew_lease is incompatible with no_ack",
+        ),
+        (
+            {"retry_on_idle_ms": 500, "max_processing_ms": 300, "no_ack": True},
+            "max_processing_ms is incompatible with no_ack",
+        ),
     ],
 )
 def test_agent_subscribe_validates_lease_options(options, match):
@@ -1320,7 +1396,12 @@ def test_agent_subscribe_validates_lease_options(options, match):
         ({"renew_lease": True}, "renew_lease requires retry_on_idle_ms"),
         (
             {"renew_lease": True, "retry_on_idle_ms": 500, "no_ack": True},
-            "incompatible with no_ack",
+            "renew_lease is incompatible with no_ack",
+        ),
+        (
+            # A deadline NACKs for retry; with no_ack there is nothing to retry.
+            {"retry_on_idle_ms": 500, "max_processing_ms": 300, "no_ack": True},
+            "max_processing_ms is incompatible with no_ack",
         ),
         (
             {
@@ -1724,6 +1805,28 @@ async def test_rollback_keeps_a_keeper_registered_by_an_earlier_subscribe(
     with pytest.raises(RuntimeError, match="boom"):
         await transport.subscribe("lease-shared", handler, **options)
     assert transport._lease_manager._keepers == keepers
+
+
+@pytest.mark.parametrize(
+    "variant", ["no_cancel", "sync"], ids=["cancel_on_lease_lost=False", "sync"]
+)
+@pytest.mark.asyncio
+async def test_batch_keeps_renewing_the_entries_it_still_owns(variant):
+    """One lost entry doesn't stop renewal of the rest of a batch whose handler
+    keeps running (not cancelled, or a sync handler that can't be): they are
+    still this consumer's and would otherwise be redelivered alongside it."""
+    keeper = _keeper(cancel_on_lost=variant != "no_cancel")
+    keeper.begin(["1-0", "2-0", "3-0"], interruptible=variant != "sync")
+    renewed: list[list[str]] = []
+
+    async def script(keys, args):
+        ids = list(args[2:])
+        renewed.append(ids)
+        return [0 if msg_id == "1-0" else 1 for msg_id in ids]  # 1-0 lost
+
+    await keeper.renew_once(object(), script)
+    await keeper.renew_once(object(), script)
+    assert renewed == [["1-0", "2-0", "3-0"], ["2-0", "3-0"]]
 
 
 @pytest.mark.asyncio

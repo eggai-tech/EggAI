@@ -25,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     and `AckPolicy.MANUAL`. Opt-in, default behaviour unchanged.
 - Redis `subscribe(..., max_processing_ms=...)`: handler deadline. A handler
   still running at it is cancelled with `eggai.transport.ProcessingTimeoutError`
-  and its entry NACKed for the normal retry. Requires `retry_on_idle_ms`.
+  and its entry NACKed for the normal retry. Requires `retry_on_idle_ms`;
+  rejected with `no_ack=True`.
 
 ### Changed
 
