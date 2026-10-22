@@ -110,7 +110,17 @@ def setup_tracing(
     endpoint: str | None = None,
 ):
     """Activate EggAI tracing. Call once at app startup."""
+    global _backend
+
     from opentelemetry import trace
+    from opentelemetry.trace import ProxyTracerProvider
+
+    if not isinstance(trace.get_tracer_provider(), ProxyTracerProvider):
+        from importlib.metadata import version
+
+        _backend = _OtelBackend(trace.get_tracer("eggai", version("eggai")))
+        return
+
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import (
@@ -144,14 +154,11 @@ def setup_tracing(
 
     provider.add_span_processor(BatchSpanProcessor(span_exporter))
 
-    from opentelemetry.trace import ProxyTracerProvider
-
     if isinstance(trace.get_tracer_provider(), ProxyTracerProvider):
         trace.set_tracer_provider(provider)
 
     from importlib.metadata import version
 
-    global _backend
     _backend = _OtelBackend(trace.get_tracer("eggai", version("eggai")))
 
 

@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import subprocess
+import sys
+import threading
 
 import pytest
 
@@ -216,3 +220,68 @@ async def test_span_multi_hop_shares_single_trace_id(fresh_transport):
     finally:
         await fresh_transport.disconnect()
         _deactivate_tracer()
+
+
+@pytest.mark.asyncio
+async def test_setup_tracing_reuses_registered_provider_without_starting_thread(
+    fresh_transport,
+):
+    import eggai.tracing as t
+
+    before = {thread.name for thread in threading.enumerate()}
+    requested_exporter = InMemorySpanExporter()
+    t.setup_tracing(exporter=requested_exporter, service_name="ignored")
+    after = {thread.name for thread in threading.enumerate()}
+
+    assert after == before
+    assert isinstance(t.get_backend(), t._OtelBackend)
+
+    try:
+        from eggai import Channel
+
+        channel = Channel("tracing-existing-provider-test", transport=fresh_transport)
+        await fresh_transport.connect()
+        await channel.publish(Message(source="svc", type="test.existing"))
+
+        spans = _SHARED_EXPORTER.get_finished_spans()
+        assert any("eggai.publish" in span.name for span in spans)
+        assert requested_exporter.get_finished_spans() == ()
+    finally:
+        await fresh_transport.disconnect()
+        _deactivate_tracer()
+
+
+def test_setup_tracing_installs_provider_when_global_provider_is_proxy():
+    script = """
+import asyncio
+
+from eggai import Channel, InMemoryTransport, setup_tracing
+from eggai.schemas import Message
+
+
+async def main():
+    transport = InMemoryTransport()
+    channel = Channel("tracing-proxy-test", transport=transport)
+    setup_tracing(exporter="console")
+    await transport.connect()
+    await channel.publish(Message(source="svc", type="test.proxy"))
+    await transport.disconnect()
+
+
+asyncio.run(main())
+"""
+    env = os.environ.copy()
+    env.pop("OTEL_EXPORTER_OTLP_ENDPOINT", None)
+    env["PYTHONPATH"] = os.pathsep.join(
+        [os.path.dirname(os.path.dirname(__file__)), env.get("PYTHONPATH", "")]
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=True,
+    )
+
+    assert "eggai.publish" in result.stdout
