@@ -8,7 +8,7 @@ from .channel import Channel, resolve_dlq_channel
 from .hooks import eggai_register_stop
 from .transport import get_default_transport
 from .transport.base import Transport
-from .transport.lease import LEASE_OPTION_KEYS, resolve_lease_options
+from .transport.lease_options import LEASE_OPTION_KEYS, resolve_lease_options
 
 HANDLERS_IDS: defaultdict[str, int] = defaultdict(int)
 

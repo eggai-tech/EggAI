@@ -30,6 +30,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING: the brokers are extras.** `pip install eggai` installs the core
+  only (`Agent`, `Channel`, `InMemoryTransport`); install the broker you use
+  with `pip install "eggai[redis]"` or `pip install "eggai[kafka]"`, so an
+  application gets one broker client, not both. Before, every install pulled in
+  FastStream with both its Redis and Kafka clients (`redis`, `aiokafka`).
+  - `KafkaTransport` and `RedisTransport` are imported on first use, from
+    `eggai` and `eggai.transport` as before; without their extra they raise an
+    `ImportError` that names it (`pip install 'eggai[kafka]'`).
+  - Migration: add the extra where eggai is required (`eggai[redis]`,
+    `eggai[kafka]`, or both); no code change.
+  - The lease options and errors (`LeaseLostError`, `ProcessingTimeoutError`)
+    moved to `eggai.transport.lease_options`, so `Agent` imports without the
+    Redis client; `eggai.transport` and `eggai.transport.lease` still export
+    them.
+  - The CLI's Kafka project template requires `eggai[kafka]` instead of
+    `faststream[kafka]`.
 - `anyio` (`>=4.0,<5`, the range FastStream already requires) is now a
   declared dependency; the SDK imports it directly.
 
