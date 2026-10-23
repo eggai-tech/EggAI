@@ -430,10 +430,12 @@ async def test_qa_agent():
 
 ### Installation
 
-Install `eggai` via pip:
+Install `eggai` via pip, with the broker you use:
 
 ```bash
-pip install eggai
+pip install "eggai[redis]"   # Redis Streams transport
+pip install "eggai[kafka]"   # Kafka transport
+pip install eggai            # core only, with the in-memory transport
 ```
 
 For local development, clone the repository and install the package in editable mode:

@@ -299,14 +299,33 @@ jobs:
       - name: Test package installation
         working-directory: sdk
         run: |
+          WHEEL=$(ls dist/*.whl)
+
+          # Each broker extra installs its own client only; the core needs none.
+          for extra in redis kafka; do
+            python -m venv "/tmp/test-venv-$extra"
+            "/tmp/test-venv-$extra/bin/pip" install --upgrade pip
+            "/tmp/test-venv-$extra/bin/pip" install "${WHEEL}[$extra]"
+          done
+          /tmp/test-venv-redis/bin/python -c "from eggai import RedisTransport; import importlib.util as u; assert u.find_spec('aiokafka') is None"
+          /tmp/test-venv-kafka/bin/python -c "from eggai import KafkaTransport; import importlib.util as u; assert u.find_spec('redis') is None"
+
           # Create a temporary venv and test install
           python -m venv /tmp/test-venv
           /tmp/test-venv/bin/pip install --upgrade pip
-          /tmp/test-venv/bin/pip install dist/*.whl
+          /tmp/test-venv/bin/pip install "$WHEEL"
 
-          # Verify imports work
+          # Verify imports work: the core without any broker, a transport naming its extra
           /tmp/test-venv/bin/python -c "import eggai; print(f'EggAI version: {eggai.__version__}')"
-          /tmp/test-venv/bin/python -c "from eggai import Agent, KafkaTransport, InMemoryTransport"
+          /tmp/test-venv/bin/python -c "from eggai import Agent, Channel, InMemoryTransport; import importlib.util as u; assert not any(u.find_spec(m) for m in ('faststream', 'redis', 'aiokafka'))"
+          /tmp/test-venv/bin/python -c "
+          try:
+              from eggai import KafkaTransport
+          except ImportError as e:
+              assert 'eggai[kafka]' in str(e), e
+          else:
+              raise SystemExit('KafkaTransport imported without the kafka extra')
+          "
 
           # Test CLI if available
           if /tmp/test-venv/bin/pip show eggai | grep -q "cli"; then
