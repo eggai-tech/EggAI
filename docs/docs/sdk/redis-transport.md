@@ -341,6 +341,7 @@ Tested against Redis 7.4 (open source). Redis Enterprise Active-Active / geo-rep
     channel=orders,
     retry_on_idle_ms=30_000,        # reclaim after 30 s idle (default: None = disabled)
     retry_reclaim_interval_s=15.0,  # scan PEL every 15 s   (default: 15.0)
+    retry_reclaim_batch_size=10,    # XCLAIM 10 entries at a time (default: 10)
     max_retries=5,                  # route to DLQ after 5 retries (default: 5)
 )
 async def handle_order(message):
@@ -351,6 +352,7 @@ Guidelines:
 
 - `retry_on_idle_ms` should be comfortably longer than your handler's expected worst-case execution time to avoid false positives — or enable [`renew_lease`](#long-running-handlers-lease-renewal), which decouples the two.
 - `retry_reclaim_interval_s` controls how often the background reclaimer wakes up. Lower values increase Redis load; 15 s is a sensible default for most workloads.
+- `retry_reclaim_batch_size` caps how many stuck entries one `XCLAIM` takes. A cycle moves its stale entries batch by batch, so at most this many payloads are in memory at once, even when a whole backlog went stale together (a handler failing fast while a dependency is down). Raise it for small messages and very large backlogs; keep it low for large payloads.
 - `max_retries` prevents poison messages from looping forever. Set to `None` for unlimited retries (no DLQ).
 - With `retry_on_idle_ms`, `max_records` defaults to 1 (unless `batch=True`). An entry's idle time starts when it is read, not when its handler starts, so a read of the whole backlog would let entries queued behind slow handlers be reclaimed and run twice. If you set `max_records` yourself, keep it at or below what the handler gets through within `retry_on_idle_ms`.
 
