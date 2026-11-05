@@ -459,6 +459,12 @@ class RedisTransport(Transport):
                 Binary (non-UTF-8) field values are not supported.
             retry_reclaim_interval_s (float, optional): How often the reclaimer scans for stuck messages (default 15.0s).
                 Only used when retry_on_idle_ms is set.
+            retry_reclaim_batch_size (int, optional): Maximum number of stuck messages the reclaimer claims with one
+                ``XCLAIM`` (default 10). A reclaim cycle moves its stale entries batch by batch, so only one batch's
+                payloads are held in memory at once (roughly twice their size: the claimed entry plus its re-encoded
+                copy), even when a whole backlog went stale together (e.g. the handler
+                failed fast on every message while a dependency was down). Must be an int >= 1. Only used when
+                retry_on_idle_ms is set.
             retry_backoff_multiplier (float, optional): Exponential backoff factor applied between retry attempts
                 (default 1.0 = constant cadence, the original behaviour). A failing message is reclaimed once it has
                 been idle for ``retry_on_idle_ms * (retry_backoff_multiplier ** retry_count)``. With base 30s and
@@ -554,6 +560,7 @@ class RedisTransport(Transport):
         # Reclaimer options — extracted before StreamSub is built.
         retry_on_idle_ms = kwargs.pop("retry_on_idle_ms", None)
         retry_reclaim_interval_s = kwargs.pop("retry_reclaim_interval_s", 15.0)
+        retry_reclaim_batch_size = kwargs.pop("retry_reclaim_batch_size", 10)
         _explicit_max_retries = "max_retries" in kwargs
         max_retries = kwargs.pop("max_retries", 5)
         on_dlq = kwargs.pop("on_dlq", None)
@@ -718,6 +725,12 @@ class RedisTransport(Transport):
             )
         if not 0.0 <= retry_backoff_jitter <= 1.0:
             raise ValueError("retry_backoff_jitter must be between 0.0 and 1.0")
+        if (
+            not isinstance(retry_reclaim_batch_size, int)
+            or isinstance(retry_reclaim_batch_size, bool)
+            or retry_reclaim_batch_size < 1
+        ):
+            raise ValueError("retry_reclaim_batch_size must be an int >= 1")
         if (
             retry_on_idle_ms is not None
             and retry_backoff_max_ms is not None
@@ -958,6 +971,7 @@ class RedisTransport(Transport):
                         retry_stream=retry_stream,
                         min_idle_ms=retry_on_idle_ms,
                         interval_s=retry_reclaim_interval_s,
+                        claim_batch_size=retry_reclaim_batch_size,
                         max_retries=max_retries,
                         dlq_stream=dlq_stream,
                         on_dlq=on_dlq,
@@ -1027,6 +1041,7 @@ class RedisTransport(Transport):
                         retry_stream=retry_stream,
                         min_idle_ms=retry_on_idle_ms,
                         interval_s=retry_reclaim_interval_s,
+                        claim_batch_size=retry_reclaim_batch_size,
                         max_retries=max_retries,
                         dlq_stream=dlq_stream,
                         on_dlq=on_dlq,
@@ -1397,6 +1412,7 @@ class RedisTransport(Transport):
         handler: str | None = None,
         dlq_max_len: int | None = None,
         delete_on_ack: bool = False,
+        claim_batch_size: int = 10,
     ) -> tuple[str, str, str]:
         if self._reclaimer_manager is None:
             self._reclaimer_manager = PendingReclaimerManager(
@@ -1422,5 +1438,6 @@ class RedisTransport(Transport):
                 handler=handler,
                 dlq_max_len=dlq_max_len,
                 delete_on_ack=delete_on_ack,
+                claim_batch_size=claim_batch_size,
             )
         )

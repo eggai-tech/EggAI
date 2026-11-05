@@ -35,6 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Redis: the pending-entry reclaimer claims stale entries in bounded batches
+  instead of with one `XCLAIM` for all of them. A consumer whose handler fails
+  fast while a dependency is down accumulates a large PEL; once it went stale,
+  one reclaim cycle claimed it all, loading every payload (plus a re-encoded
+  copy each) into memory at once, which with large messages could exhaust the
+  process. Each cycle now claims, re-queues and acks at most
+  `retry_reclaim_batch_size` entries (new `subscribe` option, default 10) at a
+  time before claiming the next batch. Retry counts, backoff, poison handling
+  and DLQ routing are unchanged.
 - Redis: consuming resumes after a lost consumer group (stream deleted,
   Redis flushed or failed over) with FastStream >= 0.7.6, for every stream
   subscription (not only `renew_lease`). Those versions stop a subscriber for

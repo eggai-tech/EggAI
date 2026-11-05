@@ -87,6 +87,15 @@ class ReclaimerConfig:
     # retry stream or DLQ (the subscription's delete_on_ack). Assumes this group is
     # the only consumer of `stream`.
     delete_on_ack: bool = False
+    # Max entries per XCLAIM. A reclaim cycle claims (and so loads into memory)
+    # its stale entries this many at a time, re-queues them, and only then claims
+    # the next batch: peak memory is one batch of payloads, not the whole stale
+    # set, which after an outage can be the entire backlog.
+    claim_batch_size: int = 10
+
+    def __post_init__(self) -> None:
+        if self.claim_batch_size < 1:
+            raise ValueError("claim_batch_size must be >= 1")
 
 
 async def xack_del(client: Any, stream: str, group: str, *ids: Any) -> None:
@@ -279,9 +288,11 @@ class PendingReclaimerManager:
     indefinitely because FastStream only reads with XREADGROUP … > (new messages).
     Each reclaim loop:
       1. Pages through XPENDING to find entries idle longer than min_idle_ms.
-      2. XCLAIM them under a dedicated reclaimer consumer.
+      2. XCLAIM them under a dedicated reclaimer consumer, at most
+         ``claim_batch_size`` at a time.
       3. XADD the fields to retry_stream (a separate stream — avoids duplicates).
       4. XACK the original PEL entry (plus XDEL with delete_on_ack).
+    Steps 2-4 repeat per batch, so only one batch of payloads is in memory.
 
     Delivery guarantee: at-least-once. XADD and XACK are not atomic; a crash
     between them will re-deliver the message on the next reclaim cycle.
@@ -540,94 +551,107 @@ class PendingReclaimerManager:
             if not stale_ids:
                 return
 
+        # Claim and re-queue in bounded batches. A single XCLAIM over every stale
+        # id would pull all their payloads into one reply — after a downstream
+        # outage that is the whole backlog, which for large messages can exhaust
+        # the process's memory. Each batch's reply is released (it is local to
+        # _claim_batch) before the next XCLAIM. XCLAIM re-checks min_idle_time per
+        # batch, so an entry another consumer took in the meantime is skipped.
+        batch_size = config.claim_batch_size
+        for start in range(0, len(stale_ids), batch_size):
+            await self._claim_batch(config, stale_ids[start : start + batch_size])
+
+    async def _claim_batch(self, config: ReclaimerConfig, ids: list[Any]) -> None:
+        """XCLAIM ``ids`` and re-queue every entry the claim returns."""
         claimed: Any = await self._client.xclaim(
             name=config.stream,
             groupname=config.group,
             consumername=config.consumer,  # "-reclaimer" suffix — no feedback loop
             min_idle_time=config.min_idle_ms,
-            message_ids=stale_ids,
+            message_ids=ids,
+        )
+        for msg_id, fields in claimed:
+            await self._requeue(config, msg_id, fields)
+
+    async def _requeue(self, config: ReclaimerConfig, msg_id: Any, fields: Any) -> None:
+        """Move one claimed entry to the retry stream or the DLQ, then ack it."""
+        data_key = b"__data__"
+        msg_id_str = msg_id.decode() if isinstance(msg_id, bytes) else msg_id
+
+        # Parse once and bump the retry metadata in the body dict; the body is
+        # encoded exactly once below, after routing.
+        # NOTE: XADD then XACK is not atomic. A crash here re-delivers on the
+        # next cycle (at-least-once). Use _original_message_id to deduplicate.
+        parsed = (
+            _inject_retry_metadata(fields[data_key], msg_id_str)
+            if data_key in fields
+            else None
         )
 
-        data_key = b"__data__"
-        for msg_id, fields in claimed:
-            msg_id_str = msg_id.decode() if isinstance(msg_id, bytes) else msg_id
-
-            # Parse once and bump the retry metadata in the body dict; the body is
-            # encoded exactly once below, after routing.
-            # NOTE: XADD then XACK is not atomic. A crash here re-delivers on the
-            # next cycle (at-least-once). Use _original_message_id to deduplicate.
-            parsed = (
-                _inject_retry_metadata(fields[data_key], msg_id_str)
-                if data_key in fields
-                else None
-            )
-
-            # Poison: no __data__ field, not an envelope, a non-object body, or a
-            # non-integer _retry_count. Its count can never be incremented, so
-            # re-queueing it would livelock the retry stream. Route it to the DLQ
-            # (wrapped so it decodes) if configured, otherwise drop it (XACK) with
-            # a loud error rather than spin on it indefinitely.
-            if parsed is None:
-                if config.dlq_stream is not None:
-                    raw = (
-                        fields[data_key]
-                        if data_key in fields
-                        else _fields_as_json(fields)
-                    )
-                    headers, body = _poison_body(
-                        raw, _dlq_metadata(config, "poison"), msg_id_str
-                    )
-                    dlq_fields = dict(fields)
-                    dlq_fields[data_key] = _encode_body(headers, body)
-                    await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
-                    await self._ack(config, msg_id)
-                    logger.warning(
-                        "Message %s has an unparseable envelope; moved to DLQ %s "
-                        "(retry count cannot be tracked)",
-                        msg_id_str,
-                        config.dlq_stream,
-                    )
-                    await self._invoke_on_dlq(config, body, msg_id_str, 0)
-                else:
-                    # Plain XACK even with delete_on_ack: with no DLQ this entry
-                    # is the only copy, keep it for XRANGE forensics.
-                    await self._client.xack(config.stream, config.group, msg_id)
-                    logger.error(
-                        "Message %s has an unparseable envelope and no DLQ is "
-                        "configured; dropping it to avoid a retry-stream livelock",
-                        msg_id_str,
-                    )
-                continue
-
-            headers, body, new_count = parsed
-
-            # Route to DLQ if max retries exceeded, otherwise to retry stream.
-            if (
-                config.max_retries is not None
-                and config.dlq_stream is not None
-                and new_count > config.max_retries
-            ):
-                # new_count is the retry that would have run next; the retries
-                # that actually ran are new_count - 1 (== max_retries).
-                _stamp_dead_letter(
-                    body, _dlq_metadata(config, "max_retries"), new_count - 1
+        # Poison: no __data__ field, not an envelope, a non-object body, or a
+        # non-integer _retry_count. Its count can never be incremented, so
+        # re-queueing it would livelock the retry stream. Route it to the DLQ
+        # (wrapped so it decodes) if configured, otherwise drop it (XACK) with
+        # a loud error rather than spin on it indefinitely.
+        if parsed is None:
+            if config.dlq_stream is not None:
+                raw = (
+                    fields[data_key] if data_key in fields else _fields_as_json(fields)
+                )
+                headers, body = _poison_body(
+                    raw, _dlq_metadata(config, "poison"), msg_id_str
                 )
                 dlq_fields = dict(fields)
                 dlq_fields[data_key] = _encode_body(headers, body)
                 await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
                 await self._ack(config, msg_id)
                 logger.warning(
-                    "Message %s exceeded max_retries=%d; moved to DLQ %s",
+                    "Message %s has an unparseable envelope; moved to DLQ %s "
+                    "(retry count cannot be tracked)",
                     msg_id_str,
-                    config.max_retries,
                     config.dlq_stream,
                 )
-                await self._invoke_on_dlq(config, body, msg_id_str, new_count)
+                await self._invoke_on_dlq(config, body, msg_id_str, 0)
             else:
-                fields[data_key] = _encode_body(headers, body)
-                await self._xadd(config.retry_stream, fields, config.max_len)
-                await self._ack(config, msg_id)
-                logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
+                # Plain XACK even with delete_on_ack: with no DLQ this entry
+                # is the only copy, keep it for XRANGE forensics.
+                await self._client.xack(config.stream, config.group, msg_id)
+                logger.error(
+                    "Message %s has an unparseable envelope and no DLQ is "
+                    "configured; dropping it to avoid a retry-stream livelock",
+                    msg_id_str,
+                )
+            return
+
+        headers, body, new_count = parsed
+
+        # Route to DLQ if max retries exceeded, otherwise to retry stream.
+        if (
+            config.max_retries is not None
+            and config.dlq_stream is not None
+            and new_count > config.max_retries
+        ):
+            # new_count is the retry that would have run next; the retries
+            # that actually ran are new_count - 1 (== max_retries).
+            _stamp_dead_letter(
+                body, _dlq_metadata(config, "max_retries"), new_count - 1
+            )
+            dlq_fields = dict(fields)
+            dlq_fields[data_key] = _encode_body(headers, body)
+            await self._xadd(config.dlq_stream, dlq_fields, config.dlq_max_len)
+            await self._ack(config, msg_id)
+            logger.warning(
+                "Message %s exceeded max_retries=%d; moved to DLQ %s",
+                msg_id_str,
+                config.max_retries,
+                config.dlq_stream,
+            )
+            await self._invoke_on_dlq(config, body, msg_id_str, new_count)
+        else:
+            fields[data_key] = _encode_body(headers, body)
+            await self._xadd(config.retry_stream, fields, config.max_len)
+            await self._ack(config, msg_id)
+            logger.debug("Reclaimed %s → %s", msg_id_str, config.retry_stream)
 
     async def _ack(self, config: ReclaimerConfig, msg_id: Any) -> None:
         if config.delete_on_ack and config.stream not in self._delete_on_ack_disabled:

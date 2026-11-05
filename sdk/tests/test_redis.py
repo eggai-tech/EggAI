@@ -2315,6 +2315,125 @@ async def test_backoff_reclaims_message_once_threshold_elapsed():
 
 
 @pytest.mark.asyncio
+async def test_reclaimer_claims_stale_entries_in_bounded_batches():
+    """A large stale PEL is XCLAIMed ceil(N/k) times with <= k ids each, never in
+    one call: one XCLAIM reply holds every claimed payload, so claiming a whole
+    backlog at once would load all of it into memory. Every entry is still
+    re-queued and acked."""
+    from eggai.transport.pending_reclaimer import PendingReclaimerManager
+
+    test_id = uuid.uuid4().hex[:8]
+    stream = f"eggai.reclaim-batches-{test_id}"
+    retry_stream = f"{stream}.retry"
+    group = f"g-{test_id}"
+    total, batch_size = 25, 10
+
+    client = redis.Redis(host="localhost", port=6379, decode_responses=False)
+    await client.xgroup_create(name=stream, groupname=group, id="0", mkstream=True)
+    for i in range(total):
+        envelope = await _make_envelope({"type": "t", "id": f"{test_id}-{i}"})
+        await client.xadd(stream, {b"__data__": envelope})
+    await client.xreadgroup(
+        groupname=group,
+        consumername=f"{group}-live",
+        streams={stream: ">"},
+        count=total,
+    )
+
+    manager = PendingReclaimerManager()
+    manager._redis_client = redis.Redis(
+        host="localhost", port=6379, decode_responses=False
+    )
+    claim_sizes: list[int] = []
+    real_xclaim = manager._redis_client.xclaim
+
+    async def counting_xclaim(*args, **kwargs):
+        claim_sizes.append(len(kwargs["message_ids"]))
+        return await real_xclaim(*args, **kwargs)
+
+    manager._redis_client.xclaim = counting_xclaim
+    config = _make_backoff_config(
+        stream,
+        retry_stream,
+        group=group,
+        consumer=f"{group}-reclaimer",
+        min_idle_ms=100,
+        claim_batch_size=batch_size,
+    )
+
+    try:
+        await asyncio.sleep(0.3)  # every entry idle past min_idle_ms
+        await manager._reclaim_once(config)
+
+        assert claim_sizes == [10, 10, 5]
+        pending = await client.xpending(stream, group)
+        assert pending["pending"] == 0, "every stale entry should have been acked"
+        entries = await client.xrange(retry_stream)
+        from faststream.redis.parser.binary import BinaryMessageFormatV1
+
+        ids = set()
+        for _, fields in entries:
+            body = json.loads(BinaryMessageFormatV1.parse(fields[b"__data__"])[0])
+            assert body["_retry_count"] == "1"
+            ids.add(body["id"])
+        assert ids == {f"{test_id}-{i}" for i in range(total)}
+    finally:
+        await manager._redis_client.aclose()
+        await client.delete(stream, retry_stream)
+        await client.aclose()
+
+
+def test_reclaimer_config_rejects_non_positive_claim_batch_size():
+    with pytest.raises(ValueError, match="claim_batch_size"):
+        _make_backoff_config("s", "s.retry", claim_batch_size=0)
+
+
+@pytest.mark.asyncio
+async def test_retry_reclaim_batch_size_propagates_and_validates():
+    """retry_reclaim_batch_size reaches both reclaimers (default 10); non-int or < 1 is rejected."""
+    transport = RedisTransport()
+
+    async def handler(message):
+        return message
+
+    await transport.subscribe(
+        "orders", handler, handler_id="orders-batch-default", retry_on_idle_ms=500
+    )
+    await transport.subscribe(
+        "orders",
+        handler,
+        handler_id="orders-batch-3",
+        retry_on_idle_ms=500,
+        retry_reclaim_batch_size=3,
+    )
+    sizes = {
+        config.group: config.claim_batch_size
+        for config in transport._reclaimer_manager._configs.values()
+    }
+    assert len(sizes) == 4, "expected a main and a retry reclaimer per subscription"
+    for group, size in sizes.items():
+        assert size == (3 if "orders-batch-3" in group else 10), group
+
+    with pytest.raises(ValueError, match="retry_reclaim_batch_size"):
+        await transport.subscribe(
+            "orders",
+            handler,
+            handler_id="orders-batch-0",
+            retry_on_idle_ms=500,
+            retry_reclaim_batch_size=0,
+        )
+    for bad in (2.5, True):
+        with pytest.raises(ValueError, match="retry_reclaim_batch_size"):
+            await transport.subscribe(
+                "orders",
+                handler,
+                handler_id=f"orders-batch-{bad}",
+                retry_on_idle_ms=500,
+                retry_reclaim_batch_size=bad,
+            )
+
+
+@pytest.mark.asyncio
 async def test_reclaimer_stop_completes_when_cancellation_is_swallowed(monkeypatch):
     """stop() must return even if the cancellation never reaches _run().
 
