@@ -1,13 +1,16 @@
 # EggAI SDK
+{%- if transport == "kafka" %}
+eggai[kafka]>=0.8.0
+{%- else %}
 eggai>=0.2.1
+{%- endif %}
 
 # Core dependencies
 pydantic>=2.0.0
 asyncio
 {%- if transport == "kafka" %}
 
-# Kafka transport dependencies
-faststream[kafka]>=0.5.0
+# Kafka transport configuration (.env)
 python-dotenv>=1.0.0
 {%- endif %}
 {%- if include_console %}

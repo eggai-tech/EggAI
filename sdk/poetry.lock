@@ -72,9 +72,10 @@ caio = ">=0.12.0,<0.13.0"
 name = "aiokafka"
 version = "0.14.0"
 description = "Kafka integration with asyncio"
-optional = false
+optional = true
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "extra == \"kafka\""
 files = [
     {file = "aiokafka-0.14.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:2c767f320c902b126b7b37afb4ade241dc96e7d74b3515f0d0c1c8a800065113"},
     {file = "aiokafka-0.14.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f68e75acf03631ea046b00bc8cc9aca8e3eb89486468b884629586ae6f2c63bc"},
@@ -231,7 +232,7 @@ files = [
     {file = "async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c"},
     {file = "async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3"},
 ]
-markers = {dev = "python_full_version < \"3.11.3\""}
+markers = {main = "(extra == \"redis\" or extra == \"kafka\") and (extra == \"kafka\" or python_full_version < \"3.11.3\")", dev = "python_full_version < \"3.11.3\""}
 
 [[package]]
 name = "attrs"
@@ -1180,9 +1181,10 @@ test = ["pytest (>=6)"]
 name = "fast-depends"
 version = "3.0.9"
 description = "FastDepends - extracted and cleared from HTTP domain logic FastAPI Dependency Injection System. Async and sync are both supported."
-optional = false
+optional = true
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "extra == \"redis\" or extra == \"kafka\""
 files = [
     {file = "fast_depends-3.0.9-py3-none-any.whl", hash = "sha256:a9fda223e4f9f92ade11dabfdc31d20e62fedc25340f1a5b1f01db2ae25ab1d9"},
     {file = "fast_depends-3.0.9.tar.gz", hash = "sha256:c31c3985d0196ea4998da9f5913a76ede75cc4484d89eeafcea1a6bd64fbca82"},
@@ -1284,19 +1286,18 @@ server = ["authlib (>=1.6.11)", "beartype (>=0.23.0rc2) ; python_version >= \"3.
 name = "faststream"
 version = "0.7.7"
 description = "A thin, typed Python client for Kafka, RabbitMQ, NATS, Redis and MQTT — with AsyncAPI docs and in-memory testing."
-optional = false
+optional = true
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "extra == \"redis\" or extra == \"kafka\""
 files = [
     {file = "faststream-0.7.7-py3-none-any.whl", hash = "sha256:f15f1c2f389d218e5e9b2d2e22286155faffed20f7e16be8d26ccf5e9f1dd0ce"},
     {file = "faststream-0.7.7.tar.gz", hash = "sha256:dfba491c665f1b962f7c1262496201340bec8711f7d19a786f13cb1e9e2a5bdd"},
 ]
 
 [package.dependencies]
-aiokafka = {version = ">=0.9,<0.15", optional = true, markers = "extra == \"kafka\""}
 anyio = ">=4.14.2,<5"
 fast-depends = {version = ">=3.0.9", extras = ["pydantic"]}
-redis = {version = ">=5.0.0,<9.0.0", optional = true, markers = "extra == \"redis\""}
 typing-extensions = ">=4.12.0"
 
 [package.extras]
@@ -2798,6 +2799,7 @@ files = [
     {file = "packaging-26.3-py3-none-any.whl", hash = "sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"},
     {file = "packaging-26.3.tar.gz", hash = "sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79"},
 ]
+markers = {main = "extra == \"kafka\" or extra == \"mcp\""}
 
 [[package]]
 name = "pathable"
@@ -3524,6 +3526,7 @@ files = [
     {file = "redis-8.1.0-py3-none-any.whl", hash = "sha256:a4fe1aac3d3b3cc791d4b3d5931c5a956045dc951ee74d1c913ee3ac4d2ee9fb"},
     {file = "redis-8.1.0.tar.gz", hash = "sha256:6e1a19beef9225c83efd689c7e6b7da2d5215b1f42cd13b7fc3714d0a09c7b25"},
 ]
+markers = {main = "extra == \"redis\""}
 
 [package.dependencies]
 async-timeout = {version = ">=4.0.3", markers = "python_full_version < \"3.11.3\""}
@@ -4593,10 +4596,12 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [extras]
 a2a = ["a2a-sdk"]
 cli = ["click", "jinja2"]
+kafka = ["aiokafka", "faststream"]
 mcp = ["fastmcp"]
 otel = ["opentelemetry-api", "opentelemetry-exporter-otlp-proto-grpc", "opentelemetry-exporter-otlp-proto-http", "opentelemetry-sdk"]
+redis = ["faststream", "redis"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "a0be638215bcfe37c219d44bec7b11969e839ab759f5f707c63ca46481bc0de0"
+content-hash = "d6cc61e8ea0c6f068b153f5035e64bd7418b52e46888a293ba088bd817cd9146"
