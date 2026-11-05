@@ -460,9 +460,10 @@ class RedisTransport(Transport):
             retry_reclaim_interval_s (float, optional): How often the reclaimer scans for stuck messages (default 15.0s).
                 Only used when retry_on_idle_ms is set.
             retry_reclaim_batch_size (int, optional): Maximum number of stuck messages the reclaimer claims with one
-                ``XCLAIM`` (default 10). A reclaim cycle moves its stale entries batch by batch, so at most this many
-                payloads are held in memory at once, even when a whole backlog went stale together (e.g. the handler
-                failed fast on every message while a dependency was down). Must be >= 1. Only used when
+                ``XCLAIM`` (default 10). A reclaim cycle moves its stale entries batch by batch, so only one batch's
+                payloads are held in memory at once (roughly twice their size: the claimed entry plus its re-encoded
+                copy), even when a whole backlog went stale together (e.g. the handler
+                failed fast on every message while a dependency was down). Must be an int >= 1. Only used when
                 retry_on_idle_ms is set.
             retry_backoff_multiplier (float, optional): Exponential backoff factor applied between retry attempts
                 (default 1.0 = constant cadence, the original behaviour). A failing message is reclaimed once it has
@@ -724,8 +725,12 @@ class RedisTransport(Transport):
             )
         if not 0.0 <= retry_backoff_jitter <= 1.0:
             raise ValueError("retry_backoff_jitter must be between 0.0 and 1.0")
-        if retry_reclaim_batch_size < 1:
-            raise ValueError("retry_reclaim_batch_size must be >= 1")
+        if (
+            not isinstance(retry_reclaim_batch_size, int)
+            or isinstance(retry_reclaim_batch_size, bool)
+            or retry_reclaim_batch_size < 1
+        ):
+            raise ValueError("retry_reclaim_batch_size must be an int >= 1")
         if (
             retry_on_idle_ms is not None
             and retry_backoff_max_ms is not None

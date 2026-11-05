@@ -2390,7 +2390,7 @@ def test_reclaimer_config_rejects_non_positive_claim_batch_size():
 
 @pytest.mark.asyncio
 async def test_retry_reclaim_batch_size_propagates_and_validates():
-    """retry_reclaim_batch_size reaches both reclaimers (default 10); < 1 is rejected."""
+    """retry_reclaim_batch_size reaches both reclaimers (default 10); non-int or < 1 is rejected."""
     transport = RedisTransport()
 
     async def handler(message):
@@ -2422,6 +2422,15 @@ async def test_retry_reclaim_batch_size_propagates_and_validates():
             retry_on_idle_ms=500,
             retry_reclaim_batch_size=0,
         )
+    for bad in (2.5, True):
+        with pytest.raises(ValueError, match="retry_reclaim_batch_size"):
+            await transport.subscribe(
+                "orders",
+                handler,
+                handler_id=f"orders-batch-{bad}",
+                retry_on_idle_ms=500,
+                retry_reclaim_batch_size=bad,
+            )
 
 
 @pytest.mark.asyncio
