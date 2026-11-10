@@ -15,11 +15,17 @@ EggAI Multi-Agent Meta Framework is an async-first framework for building, deplo
 
 ## Installation
 
+Install the SDK with the broker you use:
+
 ```bash
-pip install eggai
+pip install "eggai[redis]"   # Redis Streams transport (RedisTransport)
+pip install "eggai[kafka]"   # Kafka transport (KafkaTransport)
+pip install eggai            # Core only: Agent, Channel, InMemoryTransport
 ```
 
-Redis Streams and Kafka support are included by default.
+Each broker is an extra, so an application installs only its own broker's
+client. Without its extra, importing a transport raises an `ImportError` that
+names the extra to install.
 
 Optional extras:
 ```bash

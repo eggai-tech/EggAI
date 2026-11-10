@@ -17,11 +17,13 @@ Redis Streams provide durable, ordered message delivery with native consumer gro
 
 ## Installation
 
-Redis support is included in the default `eggai` package — no extra extras needed:
+Redis support is the `redis` extra, which installs FastStream and the Redis client:
 
 ```bash
-pip install eggai
+pip install "eggai[redis]"
 ```
+
+Without it, importing `RedisTransport` raises an `ImportError` that names the extra.
 
 ## Quick Start
 
